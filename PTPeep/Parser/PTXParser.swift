@@ -182,9 +182,8 @@ final class PTXParser {
         // Build a lookup: audioFileIndex → base name
         let fileNameByIndex: [Int: String] = audioFiles.reduce(into: [:]) { $0[$1.index] = $1.name }
 
-        // Compute SMPTE offset: subtract minimum timeline position so earliest clip = t=0
-        let allPositions = trackPlaylists.flatMap(\.placements).map(\.timelineSample)
-        let minTimeline  = allPositions.filter { $0 > 0 }.min() ?? 0
+        // Use raw timeline positions (true zero = sample 0, no SMPTE offset subtracted).
+        // TODO: add a "Offset to first clip" toggle in Settings.
 
         // Assign clips to tracks
         for (i, tp) in trackPlaylists.enumerated() {
@@ -193,7 +192,7 @@ final class PTXParser {
                 let clipEntry = p.clipIdx < clips.count ? clips[p.clipIdx] : nil
                 return PTXClip(
                     name: clipEntry?.name ?? "Clip \(p.clipIdx)",
-                    startSample: p.timelineSample - minTimeline,
+                    startSample: p.timelineSample,
                     lengthSamples: clipEntry?.lengthSamples ?? 0,
                     sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
                 )
