@@ -323,7 +323,7 @@ private struct PlaceholderRow: View {
 
 // MARK: - Zoom controller
 
-private final class ZoomController: ObservableObject {
+private final class ZoomController: ObservableObject, @unchecked Sendable {
     @Published var scale: Double     = 1.0   // 1 = full fit, higher = zoomed in
     @Published var viewStart: Double = 0.0   // absolute timeline fraction at left edge
 
@@ -341,8 +341,8 @@ private final class ZoomController: ObservableObject {
                   let ch = event.charactersIgnoringModifiers else { return event }
             let anchor = self.hoverAbsFrac
             switch ch {
-            case "t": DispatchQueue.main.async { self.zoomIn(anchor: anchor) };  return nil
-            case "r": DispatchQueue.main.async { self.zoomOut(anchor: anchor) }; return nil
+            case "t": self.zoomIn(anchor: anchor);  return nil
+            case "r": self.zoomOut(anchor: anchor); return nil
             default:  return event
             }
         }
