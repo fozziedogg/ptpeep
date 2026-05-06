@@ -1,0 +1,67 @@
+{
+  "buildCommand" : {
+    "command" : "build",
+    "skipDependencies" : false,
+    "style" : "buildOnly"
+  },
+  "configuredTargets" : [
+    {
+      "guid" : "13fa132938cf7862d9dfcead23345d9876e2989fb3623b7fe97000d010f0d301"
+    },
+    {
+      "guid" : "13fa132938cf7862d9dfcead23345d98dfe6975186e3bc3862c4771c16f8d392"
+    }
+  ],
+  "containerPath" : "/Users/fozzie/developer/ptpeek/PTpeek.xcodeproj",
+  "continueBuildingAfterErrors" : false,
+  "dependencyScope" : "workspace",
+  "enableIndexBuildArena" : false,
+  "hideShellScriptEnvironment" : false,
+  "parameters" : {
+    "action" : "build",
+    "activeArchitecture" : "arm64",
+    "activeRunDestination" : {
+      "disableOnlyActiveArch" : false,
+      "hostTargetedPlatform" : null,
+      "platform" : "macosx",
+      "sdk" : "macosx26.4",
+      "sdkVariant" : "macos",
+      "supportedArchitectures" : [
+        "arm64e",
+        "arm64",
+        "x86_64"
+      ],
+      "targetArchitecture" : "arm64"
+    },
+    "arenaInfo" : {
+      "buildIntermediatesPath" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex",
+      "buildProductsPath" : "/Users/fozzie/developer/ptpeek/build/Build/Products",
+      "derivedDataPath" : "/Users/fozzie/developer/ptpeek/build",
+      "indexDataStoreFolderPath" : "/Users/fozzie/developer/ptpeek/build/Index.noindex/DataStore",
+      "indexEnableDataStore" : true,
+      "indexPCHPath" : "/Users/fozzie/developer/ptpeek/build/Index.noindex/PrecompiledHeaders",
+      "pchPath" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PrecompiledHeaders"
+    },
+    "configurationName" : "Debug",
+    "overrides" : {
+      "commandLine" : {
+        "table" : {
+
+        }
+      },
+      "synthesized" : {
+        "table" : {
+          "ACTION" : "build",
+          "ENABLE_PREVIEWS" : "NO",
+          "ENABLE_XOJIT_PREVIEWS" : "YES"
+        }
+      }
+    }
+  },
+  "schemeCommand" : "launch",
+  "showNonLoggedProgress" : true,
+  "useDryRun" : false,
+  "useImplicitDependencies" : true,
+  "useLegacyBuildLocations" : false,
+  "useParallelTargets" : true
+}

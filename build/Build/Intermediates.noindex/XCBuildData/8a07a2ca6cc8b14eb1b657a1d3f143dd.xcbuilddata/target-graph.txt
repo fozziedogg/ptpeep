@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'PTpeekQL' in project 'PTpeek'
+➜ Explicit dependency on target 'PTpeek' in project 'PTpeek'
+Target 'PTpeek' in project 'PTpeek' (no dependencies)

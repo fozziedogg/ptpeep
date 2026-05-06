@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>12</integer>
+	<key>logs</key>
+	<dict>
+		<key>8AF4095B-6856-4E49-B0CD-1CE0CA401B6C</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>8AF4095B-6856-4E49-B0CD-1CE0CA401B6C.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>PTpeek project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>PTpeek</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building project PTpeek with scheme PTpeek and configuration Debug</string>
+			<key>timeStartedRecording</key>
+			<real>799709214.998487</real>
+			<key>timeStoppedRecording</key>
+			<real>799709226.27576303</real>
+			<key>title</key>
+			<string>Building project PTpeek with scheme PTpeek and configuration Debug</string>
+			<key>uniqueIdentifier</key>
+			<string>8AF4095B-6856-4E49-B0CD-1CE0CA401B6C</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

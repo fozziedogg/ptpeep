@@ -1,0 +1,69 @@
+{
+  "" : {
+    "diagnostics" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQL-primary.dia",
+    "emit-module-dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQL-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQL-primary-emit-module.dia",
+    "pch" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQL-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQL-primary.swiftdeps"
+  },
+  "/Users/fozzie/developer/ptpeek/PTpeek/Parser/PTXParser.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXParser.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXParser.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXParser.dia",
+    "index-unit-output-path" : "/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXParser.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXParser.bc",
+    "object" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXParser.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXParser.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXParser~partial.swiftmodule"
+  },
+  "/Users/fozzie/developer/ptpeek/PTpeek/Parser/PTXSession.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXSession.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXSession.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXSession.dia",
+    "index-unit-output-path" : "/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXSession.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXSession.bc",
+    "object" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXSession.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXSession.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTXSession~partial.swiftmodule"
+  },
+  "/Users/fozzie/developer/ptpeek/PTpeek/ProTools/PTSLSessionInfo.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTSLSessionInfo.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTSLSessionInfo.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTSLSessionInfo.dia",
+    "index-unit-output-path" : "/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTSLSessionInfo.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTSLSessionInfo.bc",
+    "object" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTSLSessionInfo.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTSLSessionInfo.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTSLSessionInfo~partial.swiftmodule"
+  },
+  "/Users/fozzie/developer/ptpeek/PTpeek/UI/Views/SessionInspectorView.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/SessionInspectorView.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/SessionInspectorView.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/SessionInspectorView.dia",
+    "index-unit-output-path" : "/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/SessionInspectorView.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/SessionInspectorView.bc",
+    "object" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/SessionInspectorView.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/SessionInspectorView.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/SessionInspectorView~partial.swiftmodule"
+  },
+  "/Users/fozzie/developer/ptpeek/PTpeekQL/PTpeekQLExtension.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQLExtension.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQLExtension.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQLExtension.dia",
+    "index-unit-output-path" : "/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQLExtension.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQLExtension.bc",
+    "object" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQLExtension.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQLExtension.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PTpeekQLExtension~partial.swiftmodule"
+  },
+  "/Users/fozzie/developer/ptpeek/PTpeekQL/PreviewViewController.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PreviewViewController.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PreviewViewController.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PreviewViewController.dia",
+    "index-unit-output-path" : "/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PreviewViewController.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PreviewViewController.bc",
+    "object" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PreviewViewController.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PreviewViewController.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeek/build/Build/Intermediates.noindex/PTpeek.build/Debug/PTpeekQL.build/Objects-normal/arm64/PreviewViewController~partial.swiftmodule"
+  }
+}

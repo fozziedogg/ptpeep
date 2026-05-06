@@ -1,0 +1,463 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1CF105CABB27B81EA9C40007 /* PTPeepApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D7312DDA765BE13DD13FA1 /* PTPeepApp.swift */; };
+		39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */; };
+		3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */; };
+		444F7D5A52DE9378417AB54D /* PreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */; };
+		64E4CC8FC4A8FCFE7063F524 /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
+		6D20E1B9888CCB8D7BE72499 /* PTXSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */; };
+		817545FEB75406BA932347C7 /* PTPeepQLExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */; };
+		9FC59CEB3E0D26A58151CCF3 /* PTXParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B29D7A6E14B870EF3F9366B /* PTXParser.swift */; };
+		A39C68A5798602DFA83D8328 /* PTXParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B29D7A6E14B870EF3F9366B /* PTXParser.swift */; };
+		B02452675BFE6D1BA8A2228C /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
+		F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4B36B85FAA208C40F5DD2D24 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 02339220E22D1FAD47913182 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 81406124F86955B21FD8970C;
+			remoteInfo = PTPeep;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXSession.swift; sourceTree = "<group>"; };
+		252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTSLSessionInfo.swift; sourceTree = "<group>"; };
+		46BF2988BB03A6D06142C1AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		4B29D7A6E14B870EF3F9366B /* PTXParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXParser.swift; sourceTree = "<group>"; };
+		61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeepQLExtension.swift; sourceTree = "<group>"; };
+		79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
+		7DE1A0204EA264D8B2859DC0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionInspectorView.swift; sourceTree = "<group>"; };
+		927280E6749AFAE80FE9ABE2 /* PTPeepQL.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PTPeepQL.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B5C2EE3C4A771CD8663C679D /* PTPeep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PTPeep.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BEC0768540CA11F5F2EA46DF /* PTPeep.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PTPeep.entitlements; sourceTree = "<group>"; };
+		F0D7312DDA765BE13DD13FA1 /* PTPeepApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeepApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0F51F38BF178B810A6D28731 = {
+			isa = PBXGroup;
+			children = (
+				F4B62CB61566F6966D59BB75 /* App */,
+				666F8E3F6DB18B8FC1CCC178 /* Parser */,
+				E935EF30B038543166AFFF5F /* ProTools */,
+				171480A457CCF37601A1C176 /* PTPeepQL */,
+				884F2B6FFE881E2F17C5FC00 /* UI */,
+				3FE17D1C9F579184EB565FF3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		171480A457CCF37601A1C176 /* PTPeepQL */ = {
+			isa = PBXGroup;
+			children = (
+				7DE1A0204EA264D8B2859DC0 /* Info.plist */,
+				79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */,
+				61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */,
+			);
+			path = PTPeepQL;
+			sourceTree = "<group>";
+		};
+		3FE17D1C9F579184EB565FF3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B5C2EE3C4A771CD8663C679D /* PTPeep.app */,
+				927280E6749AFAE80FE9ABE2 /* PTPeepQL.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		666F8E3F6DB18B8FC1CCC178 /* Parser */ = {
+			isa = PBXGroup;
+			children = (
+				4B29D7A6E14B870EF3F9366B /* PTXParser.swift */,
+				1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */,
+			);
+			name = Parser;
+			path = PTPeep/Parser;
+			sourceTree = "<group>";
+		};
+		884F2B6FFE881E2F17C5FC00 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				D0EC6796D9E4A5B7A39965B0 /* Views */,
+			);
+			name = UI;
+			path = PTPeep/UI;
+			sourceTree = "<group>";
+		};
+		D0EC6796D9E4A5B7A39965B0 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		E935EF30B038543166AFFF5F /* ProTools */ = {
+			isa = PBXGroup;
+			children = (
+				252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */,
+			);
+			name = ProTools;
+			path = PTPeep/ProTools;
+			sourceTree = "<group>";
+		};
+		F4B62CB61566F6966D59BB75 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				46BF2988BB03A6D06142C1AA /* Info.plist */,
+				BEC0768540CA11F5F2EA46DF /* PTPeep.entitlements */,
+				F0D7312DDA765BE13DD13FA1 /* PTPeepApp.swift */,
+			);
+			name = App;
+			path = PTPeep/App;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		81406124F86955B21FD8970C /* PTPeep */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5BC1DCFB428429674A7BB318 /* Build configuration list for PBXNativeTarget "PTPeep" */;
+			buildPhases = (
+				8C67127B5C772605C570F0E8 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PTPeep;
+			packageProductDependencies = (
+			);
+			productName = PTPeep;
+			productReference = B5C2EE3C4A771CD8663C679D /* PTPeep.app */;
+			productType = "com.apple.product-type.application";
+		};
+		853E4B3211F9F3F9485D93C2 /* PTPeepQL */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0D05C179C49F1B3E54810BAC /* Build configuration list for PBXNativeTarget "PTPeepQL" */;
+			buildPhases = (
+				96F8972C3808DC72CACDF6DA /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7365D1472085240781F9CFDF /* PBXTargetDependency */,
+			);
+			name = PTPeepQL;
+			packageProductDependencies = (
+			);
+			productName = PTPeepQL;
+			productReference = 927280E6749AFAE80FE9ABE2 /* PTPeepQL.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		02339220E22D1FAD47913182 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					81406124F86955B21FD8970C = {
+						ProvisioningStyle = Automatic;
+					};
+					853E4B3211F9F3F9485D93C2 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 54C8D23A41008D524CB23712 /* Build configuration list for PBXProject "PTPeep" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0F51F38BF178B810A6D28731;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3FE17D1C9F579184EB565FF3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				81406124F86955B21FD8970C /* PTPeep */,
+				853E4B3211F9F3F9485D93C2 /* PTPeepQL */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8C67127B5C772605C570F0E8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1CF105CABB27B81EA9C40007 /* PTPeepApp.swift in Sources */,
+				B02452675BFE6D1BA8A2228C /* PTSLSessionInfo.swift in Sources */,
+				A39C68A5798602DFA83D8328 /* PTXParser.swift in Sources */,
+				F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */,
+				3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		96F8972C3808DC72CACDF6DA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				817545FEB75406BA932347C7 /* PTPeepQLExtension.swift in Sources */,
+				64E4CC8FC4A8FCFE7063F524 /* PTSLSessionInfo.swift in Sources */,
+				9FC59CEB3E0D26A58151CCF3 /* PTXParser.swift in Sources */,
+				6D20E1B9888CCB8D7BE72499 /* PTXSession.swift in Sources */,
+				444F7D5A52DE9378417AB54D /* PreviewViewController.swift in Sources */,
+				39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7365D1472085240781F9CFDF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 81406124F86955B21FD8970C /* PTPeep */;
+			targetProxy = 4B36B85FAA208C40F5DD2D24 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		01D2FA493F247292EEC20801 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		19A020329CE1E90AD34A84D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = PTPeep/App/PTPeep.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = PTPeep/App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fozzie.ptpeep;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+			};
+			name = Release;
+		};
+		53B434658D4C51471894D264 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = PTPeepQL/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fozzie.ptpeep.ql;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+			};
+			name = Debug;
+		};
+		721941C06299EBBDFFA18AD8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		747563D4284B846259C0D2A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = PTPeep/App/PTPeep.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = PTPeep/App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fozzie.ptpeep;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+			};
+			name = Debug;
+		};
+		7D97CEBDFD3F92A4489DBD11 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = PTPeepQL/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fozzie.ptpeep.ql;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0D05C179C49F1B3E54810BAC /* Build configuration list for PBXNativeTarget "PTPeepQL" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				53B434658D4C51471894D264 /* Debug */,
+				7D97CEBDFD3F92A4489DBD11 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		54C8D23A41008D524CB23712 /* Build configuration list for PBXProject "PTPeep" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				01D2FA493F247292EEC20801 /* Debug */,
+				721941C06299EBBDFFA18AD8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5BC1DCFB428429674A7BB318 /* Build configuration list for PBXNativeTarget "PTPeep" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				747563D4284B846259C0D2A3 /* Debug */,
+				19A020329CE1E90AD34A84D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 02339220E22D1FAD47913182 /* Project object */;
+}
