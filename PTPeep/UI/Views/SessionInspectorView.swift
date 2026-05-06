@@ -89,7 +89,7 @@ struct SessionInspectorView: View {
                 PlaceholderRow(text: "No clip position data — binary block decoder pending")
             } else {
                 SessionTimelineView(tracks: clippedTracks, sampleRate: sr)
-                    .frame(height: CGFloat(min(clippedTracks.count, 32)) * 10 + 28)
+                    .frame(height: CGFloat(min(clippedTracks.count, 32)) * 10 + 46)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
             }
@@ -326,9 +326,17 @@ private struct SessionTimelineView: View {
     let tracks: [PTXTrack]
     let sampleRate: Double
 
-    private static let palette: [Color] = [
+    // Hover state: fraction across timeline (0–1) and lane index
+    @State private var hoverFrac: Double? = nil
+    @State private var hoverLane: Int?    = nil
+
+    private static let palette:    [Color]  = [
         .blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown
     ]
+    private static let laneH:      CGFloat = 8
+    private static let laneGap:    CGFloat = 2
+    private static let laneStride: CGFloat = laneH + laneGap
+    private static let rulerH:     CGFloat = 20
 
     var body: some View {
         let totalSamples = max(
@@ -337,65 +345,124 @@ private struct SessionTimelineView: View {
         )
         let sr = max(sampleRate, 1)
 
-        Canvas { ctx, size in
-            let laneH: CGFloat    = 8
-            let laneGap: CGFloat  = 2
-            let laneStride        = laneH + laneGap
-            let rulerH: CGFloat   = 20
-            let availH            = size.height - rulerH
-            let total             = CGFloat(totalSamples)
+        VStack(spacing: 4) {
+            // Timeline canvas
+            Canvas { ctx, size in
+                let availH = size.height - Self.rulerH
+                let total  = CGFloat(totalSamples)
 
-            // Lanes + clips
-            for (i, track) in tracks.enumerated() {
-                let y = CGFloat(i) * laneStride
-                guard y + laneH <= availH else { break }
-                let color = SessionTimelineView.palette[i % SessionTimelineView.palette.count]
+                // Lanes + clips
+                for (i, track) in tracks.enumerated() {
+                    let y = CGFloat(i) * Self.laneStride
+                    guard y + Self.laneH <= availH else { break }
+                    let color = Self.palette[i % Self.palette.count]
 
-                // Lane trough
-                ctx.fill(
-                    Path(CGRect(x: 0, y: y, width: size.width, height: laneH)),
-                    with: .color(color.opacity(0.10))
-                )
-
-                for clip in track.clips {
-                    guard clip.startSample >= 0, clip.lengthSamples > 0 else { continue }
-                    let x = CGFloat(clip.startSample) / total * size.width
-                    let w = max(1, CGFloat(clip.lengthSamples) / total * size.width)
                     ctx.fill(
-                        Path(CGRect(x: x, y: y, width: w, height: laneH)),
-                        with: .color(color.opacity(0.80))
+                        Path(CGRect(x: 0, y: y, width: size.width, height: Self.laneH)),
+                        with: .color(color.opacity(0.10))
+                    )
+                    for clip in track.clips {
+                        guard clip.startSample >= 0, clip.lengthSamples > 0 else { continue }
+                        let x = CGFloat(clip.startSample) / total * size.width
+                        let w = max(1, CGFloat(clip.lengthSamples) / total * size.width)
+                        ctx.fill(
+                            Path(CGRect(x: x, y: y, width: w, height: Self.laneH)),
+                            with: .color(color.opacity(0.80))
+                        )
+                    }
+                }
+
+                // Ruler
+                let rulerY = size.height - Self.rulerH
+                ctx.fill(
+                    Path(CGRect(x: 0, y: rulerY, width: size.width, height: 0.5)),
+                    with: .color(.secondary.opacity(0.35))
+                )
+                let steps = 5
+                for i in 0...steps {
+                    let frac = CGFloat(i) / CGFloat(steps)
+                    let x    = frac * size.width
+                    let secs = Double(frac * total) / sr
+                    ctx.fill(
+                        Path(CGRect(x: x, y: rulerY, width: 0.5, height: 5)),
+                        with: .color(.secondary.opacity(0.5))
+                    )
+                    let anchor: UnitPoint = i == 0 ? .topLeading : (i == steps ? .topTrailing : .top)
+                    ctx.draw(
+                        Text(Self.formatTime(secs)).font(.system(size: 9).monospacedDigit()),
+                        at: CGPoint(x: x, y: rulerY + 6),
+                        anchor: anchor
+                    )
+                }
+
+                // Hover hairline
+                if let frac = hoverFrac {
+                    let hx = CGFloat(frac) * size.width
+                    ctx.fill(
+                        Path(CGRect(x: hx, y: 0, width: 0.5, height: availH)),
+                        with: .color(.primary.opacity(0.45))
                     )
                 }
             }
-
-            // Ruler
-            let rulerY = size.height - rulerH
-            ctx.fill(
-                Path(CGRect(x: 0, y: rulerY, width: size.width, height: 0.5)),
-                with: .color(.secondary.opacity(0.35))
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let loc):
+                    // We don't have size here directly; GeometryReader would add complexity.
+                    // Instead we store raw X and resolve in an overlay with GeometryReader.
+                    let lane = Int(loc.y / Self.laneStride)
+                    hoverLane = (lane >= 0 && lane < tracks.count) ? lane : nil
+                    // hoverFrac set via overlay below
+                case .ended:
+                    hoverFrac = nil
+                    hoverLane = nil
+                }
+            }
+            .overlay(
+                GeometryReader { geo in
+                    Color.clear
+                        .onContinuousHover { phase in
+                            switch phase {
+                            case .active(let loc):
+                                hoverFrac = Double(loc.x / geo.size.width).clamped(to: 0...1)
+                                let lane  = Int(loc.y / Self.laneStride)
+                                hoverLane = (lane >= 0 && lane < tracks.count) ? lane : nil
+                            case .ended:
+                                hoverFrac = nil
+                                hoverLane = nil
+                            }
+                        }
+                }
             )
 
-            let steps = 5
-            for i in 0...steps {
-                let frac = CGFloat(i) / CGFloat(steps)
-                let x    = frac * size.width
-                let secs = Double(frac * total) / sr
+            // Fixed info strip below canvas
+            HStack(spacing: 8) {
+                if let frac = hoverFrac {
+                    let secs = frac * Double(totalSamples) / sr
+                    Text(Self.formatTimeFull(secs))
+                        .foregroundStyle(.primary)
+                } else {
+                    Text("──:──:──")
+                        .foregroundStyle(.tertiary)
+                }
 
-                // Tick mark
-                ctx.fill(
-                    Path(CGRect(x: x, y: rulerY, width: 0.5, height: 5)),
-                    with: .color(.secondary.opacity(0.5))
-                )
+                Divider().frame(height: 10)
 
-                // Timecode label
-                let label  = SessionTimelineView.formatTime(secs)
-                let anchor: UnitPoint = i == 0 ? .topLeading : (i == steps ? .topTrailing : .top)
-                ctx.draw(
-                    Text(label).font(.system(size: 9).monospacedDigit()),
-                    at: CGPoint(x: x, y: rulerY + 6),
-                    anchor: anchor
-                )
+                if let lane = hoverLane {
+                    let track = tracks[lane]
+                    Text(track.name)
+                        .foregroundStyle(Self.palette[lane % Self.palette.count])
+                    Text("[\(track.channelFormat)]")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("—")
+                        .foregroundStyle(.tertiary)
+                }
+
+                Spacer()
             }
+            .font(.caption.monospacedDigit())
+            .padding(.horizontal, 2)
+            .frame(height: 14)
         }
     }
 
@@ -408,6 +475,22 @@ private struct SessionTimelineView: View {
         return h > 0
             ? String(format: "%d:%02d:%02d", h, m, s)
             : String(format: "%d:%02d", m, s)
+    }
+
+    private static func formatTimeFull(_ seconds: Double) -> String {
+        guard seconds.isFinite, seconds >= 0 else { return "0:00:00.000" }
+        let totalMs = Int(seconds * 1000)
+        let ms  = totalMs % 1000
+        let sec = (totalMs / 1000) % 60
+        let min = (totalMs / 60_000) % 60
+        let hr  = totalMs / 3_600_000
+        return String(format: "%d:%02d:%02d.%03d", hr, min, sec, ms)
+    }
+}
+
+private extension Double {
+    func clamped(to range: ClosedRange<Double>) -> Double {
+        min(max(self, range.lowerBound), range.upperBound)
     }
 }
 
