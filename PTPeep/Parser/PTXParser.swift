@@ -158,68 +158,105 @@ final class PTXParser {
             session.audioFileNames = audioFiles.map(\.name)
         }
 
-        // Clips with timeline positions
-        var clips = PTXBlockDecoder.extractClips(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        // Clip pool: name + duration from the clip bin (0x2628 blocks)
+        let clips = PTXBlockDecoder.extractClips(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        print("[PTXParser] Clip pool: \(clips.count) entries (first 3: \(clips.prefix(3).map { "\($0.name) len=\($0.lengthSamples)" }))")
 
-        // Normalize: subtract the SMPTE offset (minimum start position) so the
-        // earliest clip appears at t=0 in the overview regardless of timecode offset.
-        if let minStart = clips.map(\.startSample).min(), minStart > 0 {
-            clips = clips.map {
-                ClipEntry(name: $0.name,
-                          startSample: $0.startSample - minStart,
-                          sourceOffset: $0.sourceOffset,
-                          lengthSamples: $0.lengthSamples,
-                          audioFileIndex: $0.audioFileIndex)
+        // Build per-track playlists from 0x1052 blocks (track name + channel count + clip placements)
+        let trackPlaylists = PTXBlockDecoder.buildTrackPlaylists(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        print("[PTXParser] Track playlists: \(trackPlaylists.map { "\($0.name) ×\($0.channelCount)ch (\($0.placements.count) clips)" })")
+
+        // Build tracks from playlists (authoritative — includes channel count)
+        // Fall back to 0x1014-derived track names if playlists are empty
+        if !trackPlaylists.isEmpty {
+            session.tracks = trackPlaylists.enumerated().map { i, tp in
+                PTXTrack(index: i, name: tp.name, type: .audio, channelCount: tp.channelCount)
+            }
+        } else {
+            let trackEntries = PTXBlockDecoder.extractTracks(blocks: blocks, data: decoded, bigEndian: bigEndian)
+            if !trackEntries.isEmpty {
+                session.tracks = trackEntries.map { PTXTrack(index: $0.index, name: $0.name, type: .audio) }
             }
         }
-
-        print("[PTXParser] Clips decoded: \(clips.count)  (first 3: \(clips.prefix(3).map { "\($0.name) start=\($0.startSample) len=\($0.lengthSamples)" }))")
-
-        // Track names from block structure (more reliable than string scanning for non-audio tracks)
-        let trackEntries = PTXBlockDecoder.extractTracks(blocks: blocks, data: decoded, bigEndian: bigEndian)
-        if !trackEntries.isEmpty {
-            session.tracks = trackEntries.map { PTXTrack(index: $0.index, name: $0.name, type: .audio) }
-        }
-
-        // Map clips → tracks via playlist blocks
-        let trackClipMap = PTXBlockDecoder.buildTrackClipMap(
-            blocks: blocks, data: decoded, bigEndian: bigEndian, trackCount: session.tracks.count
-        )
 
         // Build a lookup: audioFileIndex → base name
         let fileNameByIndex: [Int: String] = audioFiles.reduce(into: [:]) { $0[$1.index] = $1.name }
 
+        // Compute SMPTE offset: subtract minimum timeline position so earliest clip = t=0
+        let allPositions = trackPlaylists.flatMap(\.placements).map(\.timelineSample)
+        let minTimeline  = allPositions.filter { $0 > 0 }.min() ?? 0
+
         // Assign clips to tracks
-        for (trackIdx, clipIndices) in trackClipMap.enumerated() {
-            guard trackIdx < session.tracks.count else { continue }
-            session.tracks[trackIdx].clips = clipIndices.compactMap { ci in
-                guard ci < clips.count else { return nil }
-                let c = clips[ci]
+        for (i, tp) in trackPlaylists.enumerated() {
+            guard i < session.tracks.count else { continue }
+            session.tracks[i].clips = tp.placements.map { p in
+                let clipEntry = p.clipIdx < clips.count ? clips[p.clipIdx] : nil
                 return PTXClip(
-                    name: c.name,
-                    startSample: c.startSample,
-                    lengthSamples: c.lengthSamples,
-                    sourceFile: fileNameByIndex[c.audioFileIndex] ?? ""
+                    name: clipEntry?.name ?? "Clip \(p.clipIdx)",
+                    startSample: p.timelineSample - minTimeline,
+                    lengthSamples: clipEntry?.lengthSamples ?? 0,
+                    sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
                 )
             }
         }
 
-        // Clips not assigned to any track: attach to a synthetic "Unassigned" track
-        let assignedIndices = Set(trackClipMap.flatMap { $0 })
-        let orphans: [PTXClip] = clips.enumerated().compactMap { (i, c) in
-            guard !assignedIndices.contains(i) else { return nil }
-            return PTXClip(
-                name: c.name,
-                startSample: c.startSample,
-                lengthSamples: c.lengthSamples,
-                sourceFile: fileNameByIndex[c.audioFileIndex] ?? ""
-            )
+        // Placements not matched to a track are discarded.
+    }
+
+    // MARK: - Clip log
+    // Writes a human-readable clip report to /tmp/ptpeep_clips.log.
+    // Call after augment() if PT is connected so sample rate is populated.
+
+    static func writeClipLog(session: PTXSession, sessionURL: URL) {
+        let sr = Double(session.sampleRate) ?? 48000.0
+        let srLabel = session.sampleRate.isEmpty ? "48000 (assumed)" : "\(session.sampleRate)"
+        let totalClips = session.tracks.reduce(0) { $0 + $1.clips.count }
+
+        var lines: [String] = []
+
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        lines.append("=== \(session.sessionName)  |  \(stamp) ===")
+        lines.append("Sample Rate : \(srLabel) Hz")
+        lines.append("Tracks      : \(session.tracks.count)")
+        lines.append("Total Clips : \(totalClips)")
+        lines.append("")
+
+        for track in session.tracks {
+            let tag     = "[\(track.channelFormat)]"
+            let divider = String(repeating: "─", count: max(0, 60 - track.name.count - tag.count - 5))
+            lines.append("── \(track.name) \(tag) \(divider) (\(track.clips.count) clips)")
+            if track.clips.isEmpty {
+                lines.append("   (no clips)")
+            } else {
+                for (i, clip) in track.clips.enumerated() {
+                    let start    = formatTC(samples: clip.startSample, sr: sr)
+                    let len      = formatTC(samples: clip.lengthSamples, sr: sr)
+                    let file     = clip.sourceFile.isEmpty ? "—" : clip.sourceFile
+                    let namePad  = clip.name.padding(toLength: 50, withPad: " ", startingAt: 0)
+                    let startPad = start.padding(toLength: 12, withPad: " ", startingAt: 0)
+                    let lenPad   = len.padding(toLength: 12, withPad: " ", startingAt: 0)
+                    let num      = String(format: "%02d", i + 1)
+                    lines.append("  [\(num)] \(namePad)  start=\(startPad)  len=\(lenPad)  file=\(file)  [\(clip.startSample)]")
+                }
+            }
+            lines.append("")
         }
-        if !orphans.isEmpty {
-            var orphanTrack = PTXTrack(index: session.tracks.count, name: "Unassigned", type: .unknown)
-            orphanTrack.clips = orphans
-            session.tracks.append(orphanTrack)
-        }
+
+        let text = lines.joined(separator: "\n")
+        let logURL = sessionURL.deletingPathExtension().appendingPathExtension("log")
+        try? text.write(to: logURL, atomically: true, encoding: .utf8)
+        print("[PTXParser] Clip log written to \(logURL.path)")
+    }
+
+    /// Format a sample count as H:MM:SS.mmm
+    private static func formatTC(samples: Int64, sr: Double) -> String {
+        guard sr > 0, samples >= 0 else { return "—" }
+        let totalMs = Int64(Double(samples) / sr * 1000)
+        let ms  = totalMs % 1000
+        let sec = (totalMs / 1000) % 60
+        let min = (totalMs / 60_000) % 60
+        let hr  = totalMs / 3_600_000
+        return String(format: "%d:%02d:%02d.%03d", hr, min, sec, ms)
     }
 
     // MARK: - Resolve audio files

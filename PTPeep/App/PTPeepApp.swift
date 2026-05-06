@@ -84,6 +84,9 @@ final class AppState: ObservableObject {
         // Augment with PTSL in background (no-op if PT not connected)
         await PTSLSessionInfo.shared.augment(session: &parsed)
         session = parsed
+
+        // Write clip log for diagnostics
+        PTXParser.writeClipLog(session: parsed, sessionURL: url)
     }
 
     func openInProTools() {

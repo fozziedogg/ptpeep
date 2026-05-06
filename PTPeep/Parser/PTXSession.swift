@@ -29,10 +29,24 @@ struct PTXMemoryLocation {
 }
 
 struct PTXTrack {
-    var index: Int
-    var name:  String
-    var type:  PTXTrackType = .audio
-    var clips: [PTXClip]   = []
+    var index:        Int
+    var name:         String
+    var type:         PTXTrackType = .audio
+    var channelCount: Int = 1       // 1=mono, 2=stereo, 6=5.1, etc.
+    var clips:        [PTXClip] = []
+
+    var channelFormat: String {
+        switch channelCount {
+        case 1:  return "Mono"
+        case 2:  return "Stereo"
+        case 3:  return "LCR"
+        case 4:  return "Quad"
+        case 5:  return "5.0"
+        case 6:  return "5.1"
+        case 8:  return "7.1"
+        default: return "\(channelCount)ch"
+        }
+    }
 }
 
 enum PTXTrackType: String {

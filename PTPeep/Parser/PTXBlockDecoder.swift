@@ -41,10 +41,17 @@ struct AudioFileEntry {
 
 struct ClipEntry {
     let name: String
-    let startSample: Int64      // position on the session timeline (samples)
+    let startSample: Int64      // source start (not timeline position — used for lookup only)
     let sourceOffset: Int64     // offset into the source audio file (samples)
     let lengthSamples: Int64    // clip duration (samples)
     let audioFileIndex: Int     // index into the AudioFileEntry list
+}
+
+/// A single clip placement on the session timeline (from a 0x104f playlist entry).
+struct ClipPlacement {
+    let clipIdx: Int        // index into the ClipEntry list (u16 at 0x104f offset+2)
+    let timelineSample: Int64   // actual position on timeline (u32 at 0x104f offset+7)
+    let trackHint: Int      // raw value from 0x104f that may indicate track (TBD)
 }
 
 struct TrackEntry {
@@ -175,8 +182,19 @@ final class PTXBlockDecoder {
         //     [+4] skip
         //     [+5..] sourceOffset (LE), length (LE), start (LE)
         //   File index: u16 LE at last 2 bytes of block content
+        //
+        // Validate hierarchy: only accept 0x2628 blocks that are contained within a 0x2629
+        // parent block. The flat byte-by-byte scanner picks up false positives; containment
+        // filtering eliminates them and keeps clip indices stable for the track→clip map.
+        let clipParentRanges: [(Int, Int)] = blocks
+            .filter { $0.contentType == 0x2629 }
+            .map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
+
         var results = [ClipEntry]()
         for block in blocks where block.contentType == 0x2628 {
+            guard clipParentRanges.contains(where: {
+                block.dataOffset >= $0.0 && block.dataOffset + block.dataSize <= $0.1
+            }) else { continue }
             let pos = block.dataOffset
             guard let nl = safeU32(data, at: pos, be: bigEndian),
                   nl >= 1, nl <= 512,
@@ -206,8 +224,8 @@ final class PTXBlockDecoder {
                 ? Int(u16(data, at: block.dataOffset + block.dataSize - 2, be: false))
                 : 0
 
-            // Skip whole-file reference clips (no real timeline placement)
-            guard startVal > 0 || srcOff > 0 else { continue }
+            // Timeline position comes from the playlist (0x104f), not the clip bin.
+            // Only filter on length — zero-length and implausibly large are invalid.
             guard lengthVal > 0, lengthVal < 10_000_000_000 else { continue }
 
             results.append(ClipEntry(
@@ -251,30 +269,147 @@ final class PTXBlockDecoder {
     //
     // Returns an array (indexed by track) of clip index arrays.
 
+    // MARK: Playlist structure dump (for track assignment research)
+    // Dumps all block types inside the first non-empty 0x1054 in order,
+    // highlighting 0x1052 (likely per-track dividers) and 0x1050 clip entries.
+    static func dumpPlaylistEntries(blocks: [PTXBlock], data: Data, bigEndian: Bool) {
+        guard let playlist = blocks.filter({ $0.contentType == 0x1054 })
+                                   .sorted(by: { $0.dataOffset < $1.dataOffset })
+                                   .first(where: { b in
+                                       blocks.contains { $0.contentType == 0x104f &&
+                                           $0.dataOffset >= b.dataOffset &&
+                                           $0.dataOffset + $0.dataSize <= b.dataOffset + b.dataSize }
+                                   }) else { return }
+
+        let rangeStart = playlist.dataOffset
+        let rangeEnd   = playlist.dataOffset + playlist.dataSize
+        let inner = blocks.filter {
+            $0.dataOffset >= rangeStart && $0.dataOffset + $0.dataSize <= rangeEnd
+        }.sorted { $0.dataOffset < $1.dataOffset }
+
+        print("[dumpPlaylist] Inside 0x1054 @ \(rangeStart): \(inner.count) sub-blocks")
+        var clipCount = 0
+        for b in inner {
+            let typeStr = String(format: "0x%04x", b.contentType)
+            if b.contentType == 0x1052 {
+                let raw = (0..<min(b.dataSize, 16)).map { String(format: "%02x", data[b.dataOffset + $0]) }.joined(separator: " ")
+                print("  ── 0x1052 size=\(b.dataSize) [\(raw)]  ← track divider?")
+                clipCount = 0
+            } else if b.contentType == 0x1050 {
+                let pos = b.dataSize >= 20 ? Int(u32(data, at: b.dataOffset + 16, be: bigEndian)) : -1
+                let cidx = b.dataSize >= 12 ? Int(u16(data, at: b.dataOffset + 11, be: bigEndian)) : -1
+                clipCount += 1
+                if clipCount <= 2 {
+                    print("    0x1050[\(clipCount)] cidx=\(cidx) pos=\(pos)")
+                }
+            } else if b.contentType != 0x104f {
+                print("  \(typeStr) size=\(b.dataSize)")
+            }
+        }
+    }
+
+    // MARK: Track → Clip Map (via 0x1052 per-track playlist blocks)
+    //
+    // Within each 0x1054 (global playlist container):
+    //   0x1052  per-track section: [u32 nameLen][name bytes][sub-blocks...]
+    //     0x1050  one clip placement, contains:
+    //       0x104f  clip reference: [skip 2][u16 clipIdx][skip 4][u32 timelinePos...]
+    //
+    // Tracks appear once per channel (stereo = 2× same name, 5.1 = 6×).
+    // We merge channels into one track entry and record the count.
+
+    struct TrackPlaylist {
+        var name:         String
+        var channelCount: Int
+        var placements:   [ClipPlacement]
+    }
+
+    static func buildTrackPlaylists(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [TrackPlaylist] {
+        // Use the first non-empty 0x1054 (main active playlist set)
+        guard let container = blocks
+            .filter({ $0.contentType == 0x1054 })
+            .sorted(by: { $0.dataOffset < $1.dataOffset })
+            .first(where: { b in
+                blocks.contains {
+                    $0.contentType == 0x1052 &&
+                    $0.dataOffset >= b.dataOffset &&
+                    $0.dataOffset + $0.dataSize <= b.dataOffset + b.dataSize
+                }
+            }) else { return [] }
+
+        let cStart = container.dataOffset
+        let cEnd   = container.dataOffset + container.dataSize
+
+        // Collect 0x1052 blocks in order — each is one channel of one track
+        let trackSections = blocks
+            .filter {
+                $0.contentType == 0x1052 &&
+                $0.dataOffset >= cStart &&
+                $0.dataOffset + $0.dataSize <= cEnd
+            }
+            .sorted { $0.dataOffset < $1.dataOffset }
+
+        // Ordered list of (name, placements) preserving first-seen order
+        var nameOrder: [String] = []
+        var channelCounts: [String: Int] = [:]
+        var placementsByName: [String: [ClipPlacement]] = [:]
+
+        for section in trackSections {
+            // Read track name: [u32 nameLen][nameBytes]
+            guard let nameLen = safeU32(data, at: section.dataOffset, be: false),
+                  nameLen >= 1, nameLen <= 256,
+                  section.dataOffset + 4 + Int(nameLen) <= data.count else { continue }
+            let nameSlice = data[section.dataOffset + 4 ..< section.dataOffset + 4 + Int(nameLen)]
+            guard let name = String(bytes: nameSlice, encoding: .utf8) else { continue }
+
+            // Collect placements from 0x104f blocks within this section
+            let sStart = section.dataOffset
+            let sEnd   = section.dataOffset + section.dataSize
+            let refs = blocks.filter {
+                $0.contentType == 0x104f &&
+                $0.dataOffset >= sStart &&
+                $0.dataOffset + $0.dataSize <= sEnd &&
+                $0.dataSize >= 11
+            }
+            let placements: [ClipPlacement] = refs.compactMap { ref in
+                let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
+                let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
+                guard timeline > 0 else { return nil }
+                return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0)
+            }
+
+            // Merge channels: first occurrence defines the track, duplicates add to channel count
+            // Use the first channel's placements (L channel); all channels share the same positions
+            if channelCounts[name] == nil {
+                nameOrder.append(name)
+                placementsByName[name] = placements
+                channelCounts[name] = 1
+            } else {
+                channelCounts[name]! += 1
+                // Merge any placements not already present (by timeline position)
+                let existingPositions = Set(placementsByName[name]!.map(\.timelineSample))
+                let novel = placements.filter { !existingPositions.contains($0.timelineSample) }
+                placementsByName[name]!.append(contentsOf: novel)
+            }
+        }
+
+        return nameOrder.map { name in
+            TrackPlaylist(
+                name: name,
+                channelCount: channelCounts[name] ?? 1,
+                placements: placementsByName[name] ?? []
+            )
+        }
+    }
+
+    // Keep old signature for compatibility — now unused internally but may be called from parser
     static func buildTrackClipMap(
         blocks: [PTXBlock],
         data: Data,
         bigEndian: Bool,
         trackCount: Int
-    ) -> [[Int]] {
-        let playlists = blocks
-            .filter { $0.contentType == 0x1054 }
-            .sorted { $0.dataOffset < $1.dataOffset }
-
-        var map = [[Int]](repeating: [], count: max(playlists.count, trackCount))
-
-        for (trackIdx, playlist) in playlists.enumerated() {
-            let rangeStart = playlist.dataOffset
-            let rangeEnd   = playlist.dataOffset + playlist.dataSize
-            let refs = blocks.filter {
-                $0.contentType == 0x104f &&
-                $0.dataOffset >= rangeStart &&
-                $0.dataOffset + $0.dataSize <= rangeEnd &&
-                $0.dataSize >= 8
-            }
-            map[trackIdx] = refs.map { Int(u32(data, at: $0.dataOffset + 4, be: bigEndian)) }
-        }
-        return map
+    ) -> [[ClipPlacement]] {
+        return []   // replaced by buildTrackPlaylists
     }
 
     // MARK: - Helpers
