@@ -88,7 +88,7 @@ struct SessionInspectorView: View {
             if clippedTracks.isEmpty {
                 PlaceholderRow(text: "No clip position data — binary block decoder pending")
             } else {
-                SessionTimelineView(tracks: clippedTracks, sampleRate: sr)
+                SessionTimelineView(tracks: clippedTracks, sampleRate: sr, frameRate: session.frameRate)
                     .frame(height: CGFloat(min(clippedTracks.count, 32)) * 10 + 46)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
@@ -325,6 +325,7 @@ private struct PlaceholderRow: View {
 private struct SessionTimelineView: View {
     let tracks: [PTXTrack]
     let sampleRate: Double
+    var frameRate: Double = 30
 
     // Hover state: fraction across timeline (0–1) and lane index
     @State private var hoverFrac: Double? = nil
@@ -389,7 +390,7 @@ private struct SessionTimelineView: View {
                     )
                     let anchor: UnitPoint = i == 0 ? .topLeading : (i == steps ? .topTrailing : .top)
                     ctx.draw(
-                        Text(Self.formatTime(secs)).font(.system(size: 9).monospacedDigit()),
+                        Text(Self.formatTC(secs, fps: frameRate)).font(.system(size: 9).monospacedDigit()),
                         at: CGPoint(x: x, y: rulerY + 6),
                         anchor: anchor
                     )
@@ -438,10 +439,10 @@ private struct SessionTimelineView: View {
             HStack(spacing: 8) {
                 if let frac = hoverFrac {
                     let secs = frac * Double(totalSamples) / sr
-                    Text(Self.formatTimeFull(secs))
+                    Text(Self.formatTC(secs, fps: frameRate))
                         .foregroundStyle(.primary)
                 } else {
-                    Text("──:──:──")
+                    Text("──:──:──:──")
                         .foregroundStyle(.tertiary)
                 }
 
@@ -466,25 +467,15 @@ private struct SessionTimelineView: View {
         }
     }
 
-    private static func formatTime(_ seconds: Double) -> String {
-        guard seconds.isFinite, seconds >= 0 else { return "0:00" }
-        let total = Int(seconds)
-        let h = total / 3600
-        let m = total % 3600 / 60
-        let s = total % 60
-        return h > 0
-            ? String(format: "%d:%02d:%02d", h, m, s)
-            : String(format: "%d:%02d", m, s)
-    }
-
-    private static func formatTimeFull(_ seconds: Double) -> String {
-        guard seconds.isFinite, seconds >= 0 else { return "0:00:00.000" }
-        let totalMs = Int(seconds * 1000)
-        let ms  = totalMs % 1000
-        let sec = (totalMs / 1000) % 60
-        let min = (totalMs / 60_000) % 60
-        let hr  = totalMs / 3_600_000
-        return String(format: "%d:%02d:%02d.%03d", hr, min, sec, ms)
+    private static func formatTC(_ seconds: Double, fps: Double) -> String {
+        guard seconds.isFinite, seconds >= 0, fps > 0 else { return "0:00:00:00" }
+        let totalFrames = Int(seconds * fps)
+        let fr  = Int(fps)
+        let f   = totalFrames % fr
+        let sec = (totalFrames / fr) % 60
+        let min = (totalFrames / fr / 60) % 60
+        let hr  = totalFrames / fr / 3600
+        return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
     }
 }
 

@@ -14,10 +14,28 @@ struct PTXSession {
     // From PTSL (populated when PT is connected)
     var sampleRate:   String = ""   // e.g. "48000"
     var bitDepth:     String = ""   // e.g. "24"
-    var tcFormat:     String = ""   // e.g. "29.97"
+    var tcFormat:     String = ""   // e.g. "29.97 DF", "25", "23.976"
     var sessionStart: String = ""
     var sessionLength: String = ""
     var plugins:      [String] = []
+
+    /// Nominal frame rate parsed from tcFormat. Defaults to 29.97 if unknown.
+    var frameRate: Double {
+        let s = tcFormat.components(separatedBy: " ").first ?? tcFormat
+        switch s {
+        case "23.976", "23.98": return 24        // count 24 frames per second
+        case "24":              return 24
+        case "25":              return 25
+        case "29.97":           return 30         // count 30 frames per second (DF/NDF)
+        case "30":              return 30
+        case "47.95", "47.952": return 48
+        case "48":              return 48
+        case "50":              return 50
+        case "59.94":           return 60
+        case "60":              return 60
+        default:                return 30
+        }
+    }
 
     // Resolved audio file URLs (matched from Audio Files/ folder)
     var resolvedAudioFiles: [ResolvedAudioFile] = []

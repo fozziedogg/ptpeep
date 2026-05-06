@@ -208,6 +208,7 @@ final class PTXParser {
 
     static func writeClipLog(session: PTXSession, sessionURL: URL) {
         let sr = Double(session.sampleRate) ?? 48000.0
+        let fps = session.frameRate
         let srLabel = session.sampleRate.isEmpty ? "48000 (assumed)" : "\(session.sampleRate)"
         let totalClips = session.tracks.reduce(0) { $0 + $1.clips.count }
 
@@ -228,8 +229,8 @@ final class PTXParser {
                 lines.append("   (no clips)")
             } else {
                 for (i, clip) in track.clips.enumerated() {
-                    let start    = formatTC(samples: clip.startSample, sr: sr)
-                    let len      = formatTC(samples: clip.lengthSamples, sr: sr)
+                    let start    = formatTC(samples: clip.startSample, sr: sr, fps: fps)
+                    let len      = formatTC(samples: clip.lengthSamples, sr: sr, fps: fps)
                     let file     = clip.sourceFile.isEmpty ? "—" : clip.sourceFile
                     let namePad  = clip.name.padding(toLength: 50, withPad: " ", startingAt: 0)
                     let startPad = start.padding(toLength: 12, withPad: " ", startingAt: 0)
@@ -247,15 +248,16 @@ final class PTXParser {
         print("[PTXParser] Clip log written to \(logURL.path)")
     }
 
-    /// Format a sample count as H:MM:SS.mmm
-    private static func formatTC(samples: Int64, sr: Double) -> String {
-        guard sr > 0, samples >= 0 else { return "—" }
-        let totalMs = Int64(Double(samples) / sr * 1000)
-        let ms  = totalMs % 1000
-        let sec = (totalMs / 1000) % 60
-        let min = (totalMs / 60_000) % 60
-        let hr  = totalMs / 3_600_000
-        return String(format: "%d:%02d:%02d.%03d", hr, min, sec, ms)
+    /// Format a sample count as H:MM:SS:FF
+    private static func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
+        guard sr > 0, fps > 0, samples >= 0 else { return "—" }
+        let totalFrames = Int64(Double(samples) / sr * fps)
+        let fr  = Int64(fps)
+        let f   = totalFrames % fr
+        let sec = (totalFrames / fr) % 60
+        let min = (totalFrames / fr / 60) % 60
+        let hr  = totalFrames / fr / 3600
+        return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
     }
 
     // MARK: - Resolve audio files
