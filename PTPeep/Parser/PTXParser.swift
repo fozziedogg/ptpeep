@@ -159,7 +159,20 @@ final class PTXParser {
         }
 
         // Clips with timeline positions
-        let clips = PTXBlockDecoder.extractClips(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        var clips = PTXBlockDecoder.extractClips(blocks: blocks, data: decoded, bigEndian: bigEndian)
+
+        // Normalize: subtract the SMPTE offset (minimum start position) so the
+        // earliest clip appears at t=0 in the overview regardless of timecode offset.
+        if let minStart = clips.map(\.startSample).min(), minStart > 0 {
+            clips = clips.map {
+                ClipEntry(name: $0.name,
+                          startSample: $0.startSample - minStart,
+                          sourceOffset: $0.sourceOffset,
+                          lengthSamples: $0.lengthSamples,
+                          audioFileIndex: $0.audioFileIndex)
+            }
+        }
+
         print("[PTXParser] Clips decoded: \(clips.count)  (first 3: \(clips.prefix(3).map { "\($0.name) start=\($0.startSample) len=\($0.lengthSamples)" }))")
 
         // Track names from block structure (more reliable than string scanning for non-audio tracks)
