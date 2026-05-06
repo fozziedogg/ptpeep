@@ -322,67 +322,83 @@ final class PTXBlockDecoder {
         var name:         String
         var channelCount: Int
         var placements:   [ClipPlacement]
-        var isHidden:     Bool   = false
-        var folderName:   String? = nil   // non-nil when track is a child of a folder
+        var isHidden:     Bool    = false
+        var isInactive:   Bool    = false
+        var trackTypeCode: UInt16 = 0     // 0=audio, 2=aux, 8=video, 9=VCA, 11=folder
+        var folderName:   String? = nil
     }
 
-    // MARK: Track display info (hidden + folder membership)
+    // MARK: Track display info (type, hidden, inactive)
     //
-    // Block 0x2519 is the track display list. Each entry has the structure:
-    //   [u32 nameLen][name bytes (UTF-8)][u8 folderChild][5 zeros][u32 marker=42][8-byte UUID][u8 displayIndex]
-    //
-    // folderChild byte (first of the 6-byte padding field):
-    //   0x00 = root-level track or folder track
-    //   0x01 = child of the preceding folder track
-    //
-    // displayIndex == 0 means the track is hidden in the Pro Tools session.
-    //
-    // Returns: (hidden: Set of names, folderOf: [childName: parentFolderName])
+    // Each 0x251a sub-block within 0x2519 holds per-track display metadata.
+    // Block content layout (all offsets from block dataOffset):
+    //   [0-1]              u16 LE track type code:
+    //                        0x00 = audio, 0x02 = aux, 0x08 = video,
+    //                        0x09 = VCA,   0x0b = folder
+    //   [2-5]              u32 LE nameLen
+    //   [6 .. 6+nameLen-1] track name (UTF-8)
+    //   [6+nameLen]        channel format byte (0=mono, 1=stereo)
+    //   [6+nameLen+1..5]   5 zero bytes
+    //   [6+nameLen+6..9]   u32 marker = 42
+    //   [6+nameLen+10..17] 8-byte UUID
+    //   [6+nameLen+18]     display index (0 = hidden for most types, but not video)
+    //   ... (9 bytes zeros, repeated marker+UUID, 2 bytes) ...
+    //   [6+nameLen+42..50] nested block header (5a 01 00 04 00 00 00 20 44)
+    //   [6+nameLen+51..54] nested block content (4 bytes; byte[2]=01 if folder)
+    //   [6+nameLen+55]     b0
+    //   [6+nameLen+56]     b1
+    //   [6+nameLen+57]     b2: 0 = hidden, 1 = visible
+    //   [6+nameLen+58]     b3: 0 = inactive, 1 = active
 
     struct TrackDisplayInfo {
-        var hidden:   Set<String>             = []
-        var folderOf: [String: String]        = [:]   // child → parent folder name
+        var hidden:   Set<String>       = []
+        var inactive: Set<String>       = []
+        var types:    [String: UInt16]  = [:]   // track type code per name
+        var folderOf: [String: String]  = [:]   // reserved (not yet decoded)
     }
 
     static func extractTrackDisplayInfo(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> TrackDisplayInfo {
-        guard let b = blocks.first(where: { $0.contentType == 0x2519 }) else { return TrackDisplayInfo() }
-        var info     = TrackDisplayInfo()
-        var pos      = b.dataOffset
-        let end      = b.dataOffset + b.dataSize
-        var lastFolder: String? = nil
+        guard let b2519 = blocks.first(where: { $0.contentType == 0x2519 }) else { return TrackDisplayInfo() }
+        var info = TrackDisplayInfo()
 
-        while pos + 4 < end {
-            guard let nl = safeU32(data, at: pos, be: false),
-                  nl >= 1, nl <= 256 else { pos += 1; continue }
-            let nameEnd = pos + 4 + Int(nl)
-            // 6 padding bytes + 4 marker + 8 UUID + 1 displayIndex = 19
-            guard nameEnd + 19 <= end else { pos += 1; continue }
-            let nameSlice = data[pos+4 ..< nameEnd]
-            // Allow any byte ≥ 0x20 so UTF-8 multi-byte names (e.g. "ƒ DME") are accepted
-            guard nameSlice.allSatisfy({ $0 >= 0x20 }),
-                  let name = String(bytes: nameSlice, encoding: .utf8) else { pos += 1; continue }
-
-            // First byte of the 6-byte padding: 0x01 = folder child, 0x00 = root-level
-            let folderChildByte = data[nameEnd]
-            // Remaining 5 bytes + u32 marker must follow
-            let fiveZeros = (1..<6).allSatisfy { data[nameEnd + $0] == 0 }
-            let marker    = u32(data, at: nameEnd + 6, be: false)
-            guard fiveZeros, marker == 42 else { pos += 1; continue }
-
-            let displayIndex = data[nameEnd + 18]
-            if displayIndex == 0 { info.hidden.insert(name) }
-
-            if folderChildByte == 0x01, let parent = lastFolder {
-                info.folderOf[name] = parent
-            } else {
-                // Root-level entry: becomes the current folder context for subsequent children
-                lastFolder = name
-            }
-
-            pos = nameEnd + 19
+        // Process only 0x251a sub-blocks that live inside 0x2519
+        let parentStart = b2519.dataOffset
+        let parentEnd   = b2519.dataOffset + b2519.dataSize
+        let subBlocks   = blocks.filter {
+            $0.contentType == 0x251a &&
+            $0.dataOffset  >= parentStart &&
+            $0.dataOffset + $0.dataSize <= parentEnd
         }
-        print("[PTXBlockDecoder] Hidden: \(info.hidden.sorted())")
-        print("[PTXBlockDecoder] Folder membership: \(info.folderOf)")
+
+        for sub in subBlocks {
+            let p = sub.dataOffset
+            guard p + 6 <= sub.dataOffset + sub.dataSize else { continue }
+
+            let typeCode = UInt16(data[p]) | UInt16(data[p + 1]) << 8
+
+            guard let nl = safeU32(data, at: p + 2, be: false),
+                  nl >= 1, nl <= 256 else { continue }
+            let nameLen = Int(nl)
+            let nameStart = p + 6
+            let nameEndPos = nameStart + nameLen
+            guard nameEndPos <= sub.dataOffset + sub.dataSize,
+                  let name = String(bytes: data[nameStart..<nameEndPos], encoding: .utf8) else { continue }
+
+            info.types[name] = typeCode
+
+            // Flags at fixed offsets from block start
+            let b2Offset = p + 63 + nameLen   // visible: 0 = hidden
+            let b3Offset = p + 64 + nameLen   // active:  0 = inactive
+            guard b3Offset < sub.dataOffset + sub.dataSize else { continue }
+
+            if data[b2Offset] == 0 { info.hidden.insert(name) }
+            if data[b3Offset] == 0 { info.inactive.insert(name) }
+        }
+
+        let nonAudioTypes = info.types.filter { $0.value != 0 }.map { "\($0.key)=\($0.value)" }.sorted()
+        print("[PTXBlockDecoder] Non-audio types: \(nonAudioTypes)")
+        print("[PTXBlockDecoder] Hidden:   \(info.hidden.sorted())")
+        print("[PTXBlockDecoder] Inactive: \(info.inactive.sorted())")
         return info
     }
 
@@ -462,6 +478,8 @@ final class PTXBlockDecoder {
                 channelCount: channelCounts[name] ?? 1,
                 placements: placementsByName[name] ?? [],
                 isHidden: displayInfo.hidden.contains(name),
+                isInactive: displayInfo.inactive.contains(name),
+                trackTypeCode: displayInfo.types[name] ?? 0,
                 folderName: displayInfo.folderOf[name]
             )
         }

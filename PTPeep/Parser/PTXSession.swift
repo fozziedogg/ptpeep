@@ -52,6 +52,7 @@ struct PTXTrack {
     var type:         PTXTrackType = .audio
     var channelCount: Int = 1       // 1=mono, 2=stereo, 6=5.1, etc.
     var isHidden:     Bool    = false
+    var isInactive:   Bool    = false
     var folderName:   String? = nil   // non-nil when this track lives inside a folder
     var clips:        [PTXClip] = []
 
@@ -75,6 +76,8 @@ enum PTXTrackType: String {
     case aux        = "Aux"
     case master     = "Master"
     case vca        = "VCA"
+    case video      = "Video"
+    case folder     = "Folder"
     case instrument = "Instrument"
     case unknown    = "Unknown"
 }

@@ -9,7 +9,8 @@ struct SessionInspectorView: View {
     let sessionURL: URL
     var onOpenInProTools: (() -> Void)? = nil
 
-    @State private var showHiddenTracks: Bool = false
+    @State private var showHiddenTracks:   Bool = false
+    @State private var showInactiveTracks: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -85,19 +86,34 @@ struct SessionInspectorView: View {
     // MARK: - Overview (Universe-style timeline)
 
     private var overviewSection: some View {
-        let hasHidden = session.tracks.contains { $0.isHidden }
+        let hasHidden   = session.tracks.contains { $0.isHidden }
+        let hasInactive = session.tracks.contains { $0.isInactive }
         let clippedTracks = session.tracks.filter {
-            !$0.clips.isEmpty && (showHiddenTracks || !$0.isHidden)
+            !$0.clips.isEmpty
+            && (showHiddenTracks   || !$0.isHidden)
+            && (showInactiveTracks || !$0.isInactive)
         }
         let sr = Double(session.sampleRate) ?? 48000.0
         return InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
-            if hasHidden {
-                Toggle(isOn: $showHiddenTracks) {
-                    Text("Show hidden tracks")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            if hasHidden || hasInactive {
+                HStack(spacing: 16) {
+                    if hasHidden {
+                        Toggle(isOn: $showHiddenTracks) {
+                            Text("Show hidden tracks")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    if hasInactive {
+                        Toggle(isOn: $showInactiveTracks) {
+                            Text("Show inactive tracks")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
                 }
-                .toggleStyle(.checkbox)
                 .padding(.horizontal, 16)
                 .padding(.top, 6)
             }
@@ -268,17 +284,26 @@ private struct MetadataRow: View {
 private struct TrackRow: View {
     let track: PTXTrack
     var body: some View {
+        let dimmed = track.isHidden || track.isInactive
         HStack(spacing: 8) {
             Image(systemName: track.type.systemImage)
-                .foregroundStyle(track.isHidden ? .tertiary : .secondary)
+                .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : track.type.tintColor)
                 .frame(width: 16)
             Text(track.name)
                 .font(.subheadline)
-                .foregroundStyle(track.isHidden ? .tertiary : .primary)
-            if track.isHidden {
-                Image(systemName: "eye.slash")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+                .italic(track.isInactive)
+            HStack(spacing: 4) {
+                if track.isHidden {
+                    Image(systemName: "eye.slash")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                if track.isInactive {
+                    Text("inactive")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
             Spacer()
             Text(track.type.rawValue)
@@ -588,8 +613,20 @@ private extension PTXTrackType {
         case .aux:        return "arrow.triangle.branch"
         case .master:     return "slider.vertical.3"
         case .vca:        return "dial.high"
+        case .video:      return "film"
+        case .folder:     return "folder"
         case .instrument: return "pianokeys.inverse"
         case .unknown:    return "questionmark.circle"
+        }
+    }
+
+    var tintColor: AnyShapeStyle {
+        switch self {
+        case .video:  return AnyShapeStyle(.purple)
+        case .folder: return AnyShapeStyle(.brown)
+        case .vca:    return AnyShapeStyle(.orange)
+        case .aux:    return AnyShapeStyle(.teal)
+        default:      return AnyShapeStyle(.secondary)
         }
     }
 }

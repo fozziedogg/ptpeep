@@ -168,25 +168,43 @@ final class PTXParser {
         // Build per-track playlists from 0x1052 blocks (track name + channel count + clip placements)
         let trackPlaylists = PTXBlockDecoder.buildTrackPlaylists(blocks: blocks, data: decoded, bigEndian: bigEndian, displayInfo: displayInfo)
         let playlistSummary = trackPlaylists.map { tp -> String in
-            var s = "\(tp.name) ×\(tp.channelCount)ch (\(tp.placements.count) clips)"
-            if tp.isHidden { s += " [hidden]" }
-            if let f = tp.folderName { s += " [in:\(f)]" }
+            var s = "\(tp.name) ×\(tp.channelCount)ch (\(tp.placements.count) clips) [type:\(tp.trackTypeCode)]"
+            if tp.isHidden   { s += " [hidden]" }
+            if tp.isInactive { s += " [inactive]" }
             return s
         }
         print("[PTXParser] Track playlists: \(playlistSummary)")
 
-        // Build tracks from playlists (authoritative — includes channel count)
+        // Build tracks from playlists (authoritative — includes channel count and clips)
         // Fall back to 0x1014-derived track names if playlists are empty
+        var playlistNames = Set<String>()
         if !trackPlaylists.isEmpty {
             session.tracks = trackPlaylists.enumerated().map { i, tp in
-                PTXTrack(index: i, name: tp.name, type: .audio, channelCount: tp.channelCount,
-                         isHidden: tp.isHidden, folderName: tp.folderName)
+                playlistNames.insert(tp.name)
+                return PTXTrack(index: i, name: tp.name, type: trackType(from: tp.trackTypeCode),
+                                channelCount: tp.channelCount,
+                                isHidden: tp.isHidden, isInactive: tp.isInactive, folderName: tp.folderName)
             }
         } else {
             let trackEntries = PTXBlockDecoder.extractTracks(blocks: blocks, data: decoded, bigEndian: bigEndian)
             if !trackEntries.isEmpty {
                 session.tracks = trackEntries.map { PTXTrack(index: $0.index, name: $0.name, type: .audio) }
             }
+        }
+
+        // Supplement with tracks that have no audio playlists (video, VCA, folder, aux).
+        // These are present in the 0x251a display blocks but have no 0x1052 playlist.
+        let nextIndex = session.tracks.count
+        let extras: [PTXTrack] = displayInfo.types.compactMap { name, typeCode -> PTXTrack? in
+            guard !playlistNames.contains(name) else { return nil }
+            return PTXTrack(index: nextIndex, name: name, type: trackType(from: typeCode),
+                            isHidden: displayInfo.hidden.contains(name),
+                            isInactive: displayInfo.inactive.contains(name))
+        }
+        if !extras.isEmpty {
+            session.tracks.append(contentsOf: extras.sorted { $0.name < $1.name })
+            // Re-index
+            for i in session.tracks.indices { session.tracks[i].index = i }
         }
 
         // Build a lookup: audioFileIndex → base name
@@ -210,6 +228,19 @@ final class PTXParser {
         }
 
         // Placements not matched to a track are discarded.
+    }
+
+    // MARK: - Track type mapping
+
+    private static func trackType(from code: UInt16) -> PTXTrackType {
+        switch code {
+        case 0x00: return .audio
+        case 0x02: return .aux
+        case 0x08: return .video
+        case 0x09: return .vca
+        case 0x0b: return .folder
+        default:   return .unknown
+        }
     }
 
     // MARK: - Clip log
