@@ -162,15 +162,18 @@ final class PTXParser {
         let clips = PTXBlockDecoder.extractClips(blocks: blocks, data: decoded, bigEndian: bigEndian)
         print("[PTXParser] Clip pool: \(clips.count) entries (first 3: \(clips.prefix(3).map { "\($0.name) len=\($0.lengthSamples)" }))")
 
+        // Hidden track names from the 0x2519 display list block
+        let hiddenNames = PTXBlockDecoder.extractHiddenTrackNames(blocks: blocks, data: decoded, bigEndian: bigEndian)
+
         // Build per-track playlists from 0x1052 blocks (track name + channel count + clip placements)
-        let trackPlaylists = PTXBlockDecoder.buildTrackPlaylists(blocks: blocks, data: decoded, bigEndian: bigEndian)
-        print("[PTXParser] Track playlists: \(trackPlaylists.map { "\($0.name) ×\($0.channelCount)ch (\($0.placements.count) clips)" })")
+        let trackPlaylists = PTXBlockDecoder.buildTrackPlaylists(blocks: blocks, data: decoded, bigEndian: bigEndian, hiddenNames: hiddenNames)
+        print("[PTXParser] Track playlists: \(trackPlaylists.map { "\($0.name) ×\($0.channelCount)ch (\($0.placements.count) clips)\($0.isHidden ? " [hidden]" : "")" })")
 
         // Build tracks from playlists (authoritative — includes channel count)
         // Fall back to 0x1014-derived track names if playlists are empty
         if !trackPlaylists.isEmpty {
             session.tracks = trackPlaylists.enumerated().map { i, tp in
-                PTXTrack(index: i, name: tp.name, type: .audio, channelCount: tp.channelCount)
+                PTXTrack(index: i, name: tp.name, type: .audio, channelCount: tp.channelCount, isHidden: tp.isHidden)
             }
         } else {
             let trackEntries = PTXBlockDecoder.extractTracks(blocks: blocks, data: decoded, bigEndian: bigEndian)

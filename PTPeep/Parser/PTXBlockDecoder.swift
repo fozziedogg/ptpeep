@@ -322,9 +322,44 @@ final class PTXBlockDecoder {
         var name:         String
         var channelCount: Int
         var placements:   [ClipPlacement]
+        var isHidden:     Bool = false
     }
 
-    static func buildTrackPlaylists(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [TrackPlaylist] {
+    // MARK: Hidden track detection
+    //
+    // Block 0x2519 is the track display list. Each entry has the structure:
+    //   [u32 nameLen][name bytes][6 bytes padding][u32 marker=42][8-byte UUID][u8 displayIndex]
+    // A displayIndex of 0 means the track is hidden in the Pro Tools session.
+
+    static func extractHiddenTrackNames(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> Set<String> {
+        guard let b = blocks.first(where: { $0.contentType == 0x2519 }) else { return [] }
+        var hidden = Set<String>()
+        var pos = b.dataOffset
+        let end = b.dataOffset + b.dataSize
+        while pos + 4 < end {
+            guard let nl = safeU32(data, at: pos, be: false),
+                  nl >= 1, nl <= 128 else { pos += 1; continue }
+            let nameEnd = pos + 4 + Int(nl)
+            // Need 18 more bytes: 6 padding + 4 marker + 8 UUID = 18, then 1 index byte
+            guard nameEnd + 19 <= end else { pos += 1; continue }
+            let nameSlice = data[pos+4 ..< nameEnd]
+            guard nameSlice.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
+                  let name = String(bytes: nameSlice, encoding: .utf8) else { pos += 1; continue }
+            // Validate: 6 zero bytes then u32 marker == 42
+            let sixZeros = (0..<6).allSatisfy { data[nameEnd + $0] == 0 }
+            let marker   = u32(data, at: nameEnd + 6, be: false)
+            guard sixZeros, marker == 42 else { pos += 1; continue }
+            // displayIndex at nameEnd + 6 (marker) + 4 + 8 (UUID) = nameEnd + 18
+            let displayIndex = data[nameEnd + 18]
+            if displayIndex == 0 { hidden.insert(name) }
+            pos = nameEnd + 19
+        }
+        print("[PTXBlockDecoder] Hidden track names: \(hidden.sorted())")
+        return hidden
+    }
+
+    static func buildTrackPlaylists(blocks: [PTXBlock], data: Data, bigEndian: Bool,
+                                    hiddenNames: Set<String> = []) -> [TrackPlaylist] {
         // Use the first non-empty 0x1054 (main active playlist set)
         guard let container = blocks
             .filter({ $0.contentType == 0x1054 })
@@ -397,7 +432,8 @@ final class PTXBlockDecoder {
             TrackPlaylist(
                 name: name,
                 channelCount: channelCounts[name] ?? 1,
-                placements: placementsByName[name] ?? []
+                placements: placementsByName[name] ?? [],
+                isHidden: hiddenNames.contains(name)
             )
         }
     }

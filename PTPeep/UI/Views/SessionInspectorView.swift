@@ -9,6 +9,8 @@ struct SessionInspectorView: View {
     let sessionURL: URL
     var onOpenInProTools: (() -> Void)? = nil
 
+    @State private var showHiddenTracks: Bool = false
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -83,9 +85,22 @@ struct SessionInspectorView: View {
     // MARK: - Overview (Universe-style timeline)
 
     private var overviewSection: some View {
-        let clippedTracks = session.tracks.filter { !$0.clips.isEmpty }
+        let hasHidden = session.tracks.contains { $0.isHidden }
+        let clippedTracks = session.tracks.filter {
+            !$0.clips.isEmpty && (showHiddenTracks || !$0.isHidden)
+        }
         let sr = Double(session.sampleRate) ?? 48000.0
         return InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
+            if hasHidden {
+                Toggle(isOn: $showHiddenTracks) {
+                    Text("Show hidden tracks")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .toggleStyle(.checkbox)
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+            }
             if clippedTracks.isEmpty {
                 PlaceholderRow(text: "No clip position data — binary block decoder pending")
             } else {
@@ -255,10 +270,16 @@ private struct TrackRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: track.type.systemImage)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(track.isHidden ? .tertiary : .secondary)
                 .frame(width: 16)
             Text(track.name)
                 .font(.subheadline)
+                .foregroundStyle(track.isHidden ? .tertiary : .primary)
+            if track.isHidden {
+                Image(systemName: "eye.slash")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
             Spacer()
             Text(track.type.rawValue)
                 .font(.caption)

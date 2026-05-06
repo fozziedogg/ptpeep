@@ -51,6 +51,7 @@ struct PTXTrack {
     var name:         String
     var type:         PTXTrackType = .audio
     var channelCount: Int = 1       // 1=mono, 2=stereo, 6=5.1, etc.
+    var isHidden:     Bool = false
     var clips:        [PTXClip] = []
 
     var channelFormat: String {
