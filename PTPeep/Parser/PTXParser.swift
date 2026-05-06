@@ -30,6 +30,7 @@ final class PTXParser {
         parseMemoryLocations(scanner: scanner, session: &session)
         parseSessionPath(scanner: scanner, session: &session)
         parseStrings(data: data, session: &session)
+        parseBlockContent(data: data, session: &session)
 
         return session
     }
@@ -130,6 +131,81 @@ final class PTXParser {
                 }
             }
             i += advance
+        }
+    }
+
+    // MARK: - Block content (XOR-decoded clip + track data)
+
+    private static func parseBlockContent(data: Data, session: inout PTXSession) {
+        guard let decoded = PTXBlockDecoder.xorDecode(data) else {
+            print("[PTXParser] XOR decode failed — unrecognised format byte 0x\(String(data[0x12], radix: 16))")
+            return
+        }
+        let bigEndian = PTXBlockDecoder.isBigEndian(decoded)
+        let blocks    = PTXBlockDecoder.scanBlocks(data: decoded, bigEndian: bigEndian)
+
+        // Log block type summary
+        let typeCounts = Dictionary(grouping: blocks, by: \.contentType)
+            .mapValues(\.count)
+            .sorted { $0.key < $1.key }
+        print("[PTXParser] XOR decoded \(decoded.count) bytes, bigEndian=\(bigEndian)")
+        print("[PTXParser] Found \(blocks.count) blocks. Types: \(typeCounts.map { "0x\(String($0.key, radix:16))×\($0.value)" }.joined(separator: " "))")
+
+        // Audio file names from binary (may supplement or replace folder scan)
+        let audioFiles = PTXBlockDecoder.extractAudioFiles(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        print("[PTXParser] Audio files decoded: \(audioFiles.count)  (first 5: \(audioFiles.prefix(5).map(\.name)))")
+        if !audioFiles.isEmpty {
+            session.audioFileNames = audioFiles.map(\.name)
+        }
+
+        // Clips with timeline positions
+        let clips = PTXBlockDecoder.extractClips(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        print("[PTXParser] Clips decoded: \(clips.count)  (first 3: \(clips.prefix(3).map { "\($0.name) start=\($0.startSample) len=\($0.lengthSamples)" }))")
+
+        // Track names from block structure (more reliable than string scanning for non-audio tracks)
+        let trackEntries = PTXBlockDecoder.extractTracks(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        if !trackEntries.isEmpty {
+            session.tracks = trackEntries.map { PTXTrack(index: $0.index, name: $0.name, type: .audio) }
+        }
+
+        // Map clips → tracks via playlist blocks
+        let trackClipMap = PTXBlockDecoder.buildTrackClipMap(
+            blocks: blocks, data: decoded, bigEndian: bigEndian, trackCount: session.tracks.count
+        )
+
+        // Build a lookup: audioFileIndex → base name
+        let fileNameByIndex: [Int: String] = audioFiles.reduce(into: [:]) { $0[$1.index] = $1.name }
+
+        // Assign clips to tracks
+        for (trackIdx, clipIndices) in trackClipMap.enumerated() {
+            guard trackIdx < session.tracks.count else { continue }
+            session.tracks[trackIdx].clips = clipIndices.compactMap { ci in
+                guard ci < clips.count else { return nil }
+                let c = clips[ci]
+                return PTXClip(
+                    name: c.name,
+                    startSample: c.startSample,
+                    lengthSamples: c.lengthSamples,
+                    sourceFile: fileNameByIndex[c.audioFileIndex] ?? ""
+                )
+            }
+        }
+
+        // Clips not assigned to any track: attach to a synthetic "Unassigned" track
+        let assignedIndices = Set(trackClipMap.flatMap { $0 })
+        let orphans: [PTXClip] = clips.enumerated().compactMap { (i, c) in
+            guard !assignedIndices.contains(i) else { return nil }
+            return PTXClip(
+                name: c.name,
+                startSample: c.startSample,
+                lengthSamples: c.lengthSamples,
+                sourceFile: fileNameByIndex[c.audioFileIndex] ?? ""
+            )
+        }
+        if !orphans.isEmpty {
+            var orphanTrack = PTXTrack(index: session.tracks.count, name: "Unassigned", type: .unknown)
+            orphanTrack.clips = orphans
+            session.tracks.append(orphanTrack)
         }
     }
 

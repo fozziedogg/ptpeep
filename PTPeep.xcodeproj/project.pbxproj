@@ -16,6 +16,8 @@
 		817545FEB75406BA932347C7 /* PTPeepQLExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */; };
 		9FC59CEB3E0D26A58151CCF3 /* PTXParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B29D7A6E14B870EF3F9366B /* PTXParser.swift */; };
 		A39C68A5798602DFA83D8328 /* PTXParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B29D7A6E14B870EF3F9366B /* PTXParser.swift */; };
+		B1C2D3E4F5A6B7C8D9E0F1A2 /* PTXBlockDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */; };
+		C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */; };
 		B02452675BFE6D1BA8A2228C /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
 		F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */; };
 /* End PBXBuildFile section */
@@ -35,6 +37,7 @@
 		252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTSLSessionInfo.swift; sourceTree = "<group>"; };
 		46BF2988BB03A6D06142C1AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4B29D7A6E14B870EF3F9366B /* PTXParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXParser.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXBlockDecoder.swift; sourceTree = "<group>"; };
 		61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeepQLExtension.swift; sourceTree = "<group>"; };
 		79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
 		7DE1A0204EA264D8B2859DC0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -82,6 +85,7 @@
 			children = (
 				4B29D7A6E14B870EF3F9366B /* PTXParser.swift */,
 				1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */,
 			);
 			name = Parser;
 			path = PTPeep/Parser;
@@ -209,6 +213,7 @@
 				A39C68A5798602DFA83D8328 /* PTXParser.swift in Sources */,
 				F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */,
 				3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */,
+				B1C2D3E4F5A6B7C8D9E0F1A2 /* PTXBlockDecoder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -222,6 +227,7 @@
 				6D20E1B9888CCB8D7BE72499 /* PTXSession.swift in Sources */,
 				444F7D5A52DE9378417AB54D /* PreviewViewController.swift in Sources */,
 				39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */,
+				C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
