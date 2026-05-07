@@ -151,6 +151,25 @@ final class PTXParser {
         print("[PTXParser] XOR decoded \(decoded.count) bytes, bigEndian=\(bigEndian)")
         print("[PTXParser] Found \(blocks.count) blocks. Types: \(typeCounts.map { "0x\(String($0.key, radix:16))×\($0.value)" }.joined(separator: " "))")
 
+        // Session parameters (sample rate, bit depth, TC format, session start)
+        let params = PTXBlockDecoder.extractSessionParams(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        if params.sampleRate > 0 && session.sampleRate.isEmpty {
+            session.sampleRate = "\(params.sampleRate)"
+        }
+        if params.bitDepth > 0 && session.bitDepth.isEmpty {
+            session.bitDepth = "\(params.bitDepth)"
+        }
+        if params.tcFrameRate > 0 && session.tcFormat.isEmpty {
+            session.tcFormat = "\(params.tcFrameRate)"
+        }
+        if session.sessionStart.isEmpty {
+            let fps = params.tcFrameRate > 0 ? Int64(params.tcFrameRate) : 30
+            let f = params.sessionStartFrames
+            session.sessionStart = String(format: "%d:%02d:%02d:%02d",
+                f / (fps * 3600), (f / (fps * 60)) % 60, (f / fps) % 60, f % fps)
+        }
+        print("[PTXParser] Session params: sr=\(params.sampleRate) bd=\(params.bitDepth) fps=\(params.tcFrameRate) start=\(params.sessionStartFrames)")
+
         // Audio file names from binary (may supplement or replace folder scan)
         let audioFiles = PTXBlockDecoder.extractAudioFiles(blocks: blocks, data: decoded, bigEndian: bigEndian)
         print("[PTXParser] Audio files decoded: \(audioFiles.count)  (first 5: \(audioFiles.prefix(5).map(\.name)))")

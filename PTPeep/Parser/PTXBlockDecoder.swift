@@ -485,6 +485,75 @@ final class PTXBlockDecoder {
         }
     }
 
+    // MARK: Session Parameters
+    //
+    // Block 0x1001 (per-audio-file descriptor) layout:
+    //   [0-3]  sample rate LE32 (e.g. 0x0000BB80 = 48000)
+    //   [4]    channel count (1=mono, 2=stereo)
+    //   [5]    bit depth as raw value (e.g. 0x18 = 24)
+    //   [6-9]  file length in samples LE32
+    //
+    // Block 0x1028 (most-recently-used descriptor) layout:
+    //   [0]    unknown byte
+    //   [1]    bit depth (raw value, same as 0x1001[5])
+    //   [2-5]  sample rate LE32
+    //   [6-10] 5 padding bytes
+    //   [11]   flag byte
+    //   [12-15] path component count N (LE32)
+    //   [16..] N path strings, each as [LE32 len][UTF-8 bytes]
+    //   After N strings:
+    //     [+0..+4]  5 zero bytes
+    //     [+5..+7]  3 bytes (0x02 0x02 0x00)
+    //     [+8]      flag byte (0x01)
+    //     [+9]      TC frame rate as raw integer (e.g. 0x18 = 24fps)
+    //     [+10..+13] session start in frames LE32
+
+    struct SessionParams {
+        var sampleRate:   Int    = 0     // e.g. 48000
+        var bitDepth:     Int    = 0     // e.g. 24
+        var tcFrameRate:  Int    = 0     // e.g. 24 (frames per second, integer)
+        var sessionStartFrames: Int64 = 0  // session start time in frames
+    }
+
+    static func extractSessionParams(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> SessionParams {
+        var params = SessionParams()
+
+        // Sample rate + bit depth from first 0x1001 block
+        if let b = blocks.first(where: { $0.contentType == 0x1001 }), b.dataSize >= 6 {
+            let p = b.dataOffset
+            let sr = Int(u32(data, at: p, be: false))
+            let bd = Int(data[p + 5])
+            if sr >= 8000 && sr <= 384000 { params.sampleRate = sr }
+            if bd == 16 || bd == 24 || bd == 32 { params.bitDepth = bd }
+        }
+
+        // TC frame rate + session start from 0x1028 block
+        if let b = blocks.first(where: { $0.contentType == 0x1028 }), b.dataSize >= 16 {
+            let p = b.dataOffset
+            // Read path component count at bytes[12-15]
+            guard let componentCount = safeU32(data, at: p + 12, be: false),
+                  componentCount <= 20 else { return params }
+            // Skip N path components
+            var pos = p + 16
+            for _ in 0..<Int(componentCount) {
+                guard let len = safeU32(data, at: pos, be: false),
+                      len <= 512,
+                      pos + 4 + Int(len) <= b.dataOffset + b.dataSize else { break }
+                pos += 4 + Int(len)
+            }
+            // Tail: 5 zeros + 3 bytes + 1 byte flag + 1 byte TC rate + 4 bytes session start
+            let tcOff = pos + 5 + 3 + 1   // skip 5 zeros, 02 02 00, and 01 flag
+            let startOff = tcOff + 1
+            guard startOff + 4 <= b.dataOffset + b.dataSize else { return params }
+            let fps = Int(data[tcOff])
+            let startFrames = Int64(u32(data, at: startOff, be: false))
+            if fps >= 23 && fps <= 60 { params.tcFrameRate = fps }
+            params.sessionStartFrames = startFrames
+        }
+
+        return params
+    }
+
     // Keep old signature for compatibility — now unused internally but may be called from parser
     static func buildTrackClipMap(
         blocks: [PTXBlock],
