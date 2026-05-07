@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 @main
 struct PTPeepApp: App {
 
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState()
 
     var body: some Scene {
@@ -12,8 +13,10 @@ struct PTPeepApp: App {
                 .environmentObject(appState)
                 .frame(minWidth: 640, idealWidth: 720,
                        minHeight: 480, idealHeight: 600)
-                .onAppear {
-                    // Register for .ptx file open events from Finder
+                .onAppear { appDelegate.appState = appState }
+                .onOpenURL { url in
+                    guard url.pathExtension.lowercased() == "ptx" else { return }
+                    Task { await appState.open(url: url) }
                 }
         }
         .commands {
@@ -34,7 +37,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func application(_ application: NSApplication, open urls: [URL]) {
         guard let url = urls.first(where: { $0.pathExtension.lowercased() == "ptx" }) else { return }
+        bringWindowForward(application)
         Task { await appState?.open(url: url) }
+    }
+
+    // Clicking the Dock icon when all windows are closed reopens the main window
+    func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows { bringWindowForward(app) }
+        return true
+    }
+
+    private func bringWindowForward(_ app: NSApplication) {
+        if let win = app.windows.first(where: { $0.isVisible }) ?? app.windows.first {
+            win.makeKeyAndOrderFront(nil)
+        }
+        app.activate(ignoringOtherApps: true)
     }
 }
 
@@ -117,7 +134,11 @@ struct AppContentView: View {
             SessionInspectorView(
                 session:          session,
                 sessionURL:       url,
-                onOpenInProTools: { appState.openInProTools() }
+                onOpenInProTools: { appState.openInProTools() },
+                onClose: {
+                    appState.session    = nil
+                    appState.sessionURL = nil
+                }
             )
         } else if appState.isLoading {
             ProgressView("Parsing session…")

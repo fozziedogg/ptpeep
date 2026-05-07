@@ -8,6 +8,7 @@ struct SessionInspectorView: View {
     let session: PTXSession
     let sessionURL: URL
     var onOpenInProTools: (() -> Void)? = nil
+    var onClose:         (() -> Void)? = nil
 
     @State private var showHiddenTracks:   Bool = false
     @State private var showInactiveTracks: Bool = false
@@ -60,6 +61,16 @@ struct SessionInspectorView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
             }
+
+            if let close = onClose {
+                Button(action: close) {
+                    Image(systemName: "xmark.circle")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Close session")
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -92,10 +103,15 @@ struct SessionInspectorView: View {
         let hasVideo    = session.tracks.contains { $0.type == .video && !$0.clips.isEmpty }
         let clippedTracks = session.tracks
             .filter {
-                !$0.clips.isEmpty
-                && (showHiddenTracks   || !$0.isHidden)
+                // Visibility toggles
+                (showHiddenTracks   || !$0.isHidden)
                 && (showInactiveTracks || !$0.isInactive)
                 && (showVideoTrack     || $0.type != .video)
+                // Show tracks with clips; also show empty hidden/inactive tracks
+                // when their toggle is explicitly on so the toggle has visible effect
+                && (!$0.clips.isEmpty
+                    || (showHiddenTracks   && $0.isHidden)
+                    || (showInactiveTracks && $0.isInactive))
             }
             .sorted { a, b in
                 // Video tracks always float to the top
@@ -456,7 +472,7 @@ private struct SessionTimelineView: View {
     private static let palette:     [Color]  = [
         .blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown
     ]
-    private static let videoColor:  Color    = Color(hue: 0.09, saturation: 0.95, brightness: 1.0)
+    private static let videoColor:  Color    = Color(white: 0.52)
     private static let audioLaneH:  CGFloat  = 8
     private static let videoLaneH:  CGFloat  = 16
     private static let laneGap:     CGFloat  = 2
