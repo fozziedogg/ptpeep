@@ -247,7 +247,19 @@ final class PTXParser {
             }
         }
 
-        // Placements not matched to a track are discarded.
+        // Video clips: extracted from 0x262d/0x2628 blocks with frame→sample conversion.
+        // Assign to all video tracks (type == .video) that have no clips yet.
+        let videoClips = PTXBlockDecoder.extractVideoClips(
+            blocks: blocks, data: decoded, bigEndian: bigEndian,
+            sampleRate: params.sampleRate > 0 ? params.sampleRate : 48000,
+            frameRate:  params.tcFrameRate > 0 ? params.tcFrameRate : 24
+        )
+        print("[PTXParser] Video clips: \(videoClips.count)")
+        if !videoClips.isEmpty {
+            for i in session.tracks.indices where session.tracks[i].type == .video && session.tracks[i].clips.isEmpty {
+                session.tracks[i].clips = videoClips
+            }
+        }
     }
 
     // MARK: - Track type mapping

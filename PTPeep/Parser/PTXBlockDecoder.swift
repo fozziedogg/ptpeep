@@ -270,6 +270,76 @@ final class PTXBlockDecoder {
         return results
     }
 
+    // MARK: Video Clips
+    //
+    // Video clips use the same 0x2628 inner format as audio clips, but live inside
+    // 0x262d parent blocks (parallel to audio's 0x2629).
+    //
+    // Key difference: the "start" field in the three-point section is the TIMELINE
+    // position in FRAMES (not source offset), and "length" is also in frames.
+    // Convert to samples: frames × (sampleRate / frameRate).
+    //
+    // Returns PTXClip values with startSample and lengthSamples already in samples.
+
+    static func extractVideoClips(blocks: [PTXBlock], data: Data, bigEndian: Bool,
+                                   sampleRate: Int, frameRate: Int) -> [PTXClip] {
+        guard sampleRate > 0, frameRate > 0 else { return [] }
+        let samplesPerFrame = Int64(sampleRate) / Int64(frameRate)
+
+        let parentRanges: [(Int, Int)] = blocks
+            .filter { $0.contentType == 0x262d }
+            .map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
+            .sorted { $0.0 < $1.0 }
+
+        func isContained(_ block: PTXBlock) -> Bool {
+            var lo = 0, hi = parentRanges.count
+            while lo < hi {
+                let mid = (lo + hi) / 2
+                if parentRanges[mid].0 <= block.dataOffset { lo = mid + 1 } else { hi = mid }
+            }
+            let idx = lo - 1
+            guard idx >= 0 else { return false }
+            return block.dataOffset + block.dataSize <= parentRanges[idx].1
+        }
+
+        var results = [PTXClip]()
+        for block in blocks where block.contentType == 0x2628 {
+            guard isContained(block) else { continue }
+            let pos = block.dataOffset
+            guard let nl = safeU32(data, at: pos, be: bigEndian),
+                  nl >= 1, nl <= 512,
+                  pos + 4 + Int(nl) <= data.count else { continue }
+            let nameSlice = data[pos+4 ..< pos+4+Int(nl)]
+            guard nameSlice.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
+                  let name = String(bytes: nameSlice, encoding: .utf8) else { continue }
+
+            let tp = pos + 4 + Int(nl)
+            guard tp + 5 <= data.count else { continue }
+
+            let nSrcOff = Int((data[tp + 1] & 0xf0) >> 4)
+            let nLength = Int((data[tp + 2] & 0xf0) >> 4)
+            let nStart  = Int((data[tp + 3] & 0xf0) >> 4)
+            guard nSrcOff <= 5, nLength <= 5, nStart <= 5,
+                  tp + 5 + nSrcOff + nLength + nStart <= data.count else { continue }
+
+            var vp = tp + 5
+            vp += nSrcOff  // skip source offset (position within the video file)
+            let lengthFrames = readLE(data, at: vp, count: nLength); vp += nLength
+            let startFrames  = readLE(data, at: vp, count: nStart)
+
+            guard lengthFrames > 0, lengthFrames < 500_000_000 else { continue }
+
+            results.append(PTXClip(
+                name: name,
+                startSample:    Int64(bitPattern: startFrames)  * samplesPerFrame,
+                lengthSamples:  Int64(bitPattern: lengthFrames) * samplesPerFrame
+            ))
+        }
+        // Deduplicate by start position (stereo/multichannel video has duplicate entries)
+        var seen = Set<Int64>()
+        return results.filter { seen.insert($0.startSample).inserted }
+    }
+
     // MARK: Track Names
     //
     // Block 0x1014 layout:
