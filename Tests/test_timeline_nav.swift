@@ -74,6 +74,34 @@ struct TestTimelineNav {
         check(TimelineNav.nextClipEnd(tracks: tracks, total: total, trackIdx: 0, cursor: 0.7) == nil,
               "at last clip end → nil")
 
+        // MARK: - nextBoundary / prevBoundary (Tab / Shift+Tab)
+        // boundaries in order: 0.0, 0.1, 0.2, 0.3, 0.5, 0.7
+        print("\nnextBoundary (Tab):")
+        check(TimelineNav.nextBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: -0.01) == 0.0,
+              "before session → 0.0 (clip 0 start)")
+        check(TimelineNav.nextBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: 0.0) == 0.1,
+              "at clip 0 start → 0.1 (clip 0 end)")
+        check(TimelineNav.nextBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: 0.05) == 0.1,
+              "inside clip 0 → 0.1 (clip 0 end)")
+        check(TimelineNav.nextBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: 0.1) == 0.2,
+              "at clip 0 end → 0.2 (clip 1 start)")
+        check(TimelineNav.nextBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: 0.25) == 0.3,
+              "inside gap after clip 1 → 0.3 (clip 1 end)")
+        check(TimelineNav.nextBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: 0.7) == nil,
+              "after last boundary → nil")
+
+        print("\nprevBoundary (Shift+Tab):")
+        check(TimelineNav.prevBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: 0.0) == nil,
+              "at first boundary → nil")
+        check(TimelineNav.prevBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: 0.05) == 0.0,
+              "inside clip 0 → 0.0 (clip 0 start)")
+        check(TimelineNav.prevBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: 0.1) == 0.0,
+              "at clip 0 end → 0.0 (skip self)")
+        check(TimelineNav.prevBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: 0.2) == 0.1,
+              "at clip 1 start → 0.1 (clip 0 end)")
+        check(TimelineNav.prevBoundary(tracks: tracks, total: total, trackIdx: 0, cursor: 0.99) == 0.7,
+              "after last clip → 0.7 (clip 2 end)")
+
         // MARK: - parseTCFrac
         // 1-hour session at 48kHz / 30fps = 172,800,000 samples
         let sr:  Double = 48000

@@ -40,6 +40,32 @@ enum TimelineNav {
         return ends.filter { $0 > cursor + 1e-9 }.min()
     }
 
+    /// Next clip boundary (start or end) after `cursor` — Tab behaviour.
+    static func nextBoundary(tracks: [PTXTrack], total: Double,
+                              trackIdx: Int, cursor: Double) -> Double? {
+        guard trackIdx < tracks.count else { return nil }
+        let clips = tracks[trackIdx].clips
+        var boundaries: [Double] = []
+        for clip in clips {
+            boundaries.append(Double(clip.startSample) / total)
+            boundaries.append(Double(clip.startSample + clip.lengthSamples) / total)
+        }
+        return boundaries.filter { $0 > cursor + 1e-9 }.min()
+    }
+
+    /// Previous clip boundary (start or end) before `cursor` — Shift+Tab behaviour.
+    static func prevBoundary(tracks: [PTXTrack], total: Double,
+                              trackIdx: Int, cursor: Double) -> Double? {
+        guard trackIdx < tracks.count else { return nil }
+        let clips = tracks[trackIdx].clips
+        var boundaries: [Double] = []
+        for clip in clips {
+            boundaries.append(Double(clip.startSample) / total)
+            boundaries.append(Double(clip.startSample + clip.lengthSamples) / total)
+        }
+        return boundaries.filter { $0 < cursor - 1e-9 }.max()
+    }
+
     // MARK: TC parsing
 
     /// Parses a timecode string into an absolute timeline fraction (0…1).

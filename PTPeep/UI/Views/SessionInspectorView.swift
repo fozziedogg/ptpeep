@@ -492,9 +492,9 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
             case "l":      self.nextClipStart();         return nil
             case "p":      self.prevClipStart();         return nil
             case "\t":
-                if mods.contains(.option) { self.nextClipEnd()   }
-                else if mods.contains(.shift) { self.prevClipStart() }
-                else                          { self.nextClipStart() }
+                if mods.contains(.option) { self.nextClipEnd()    }
+                else if mods.contains(.shift) { self.prevBoundary() }
+                else                          { self.nextBoundary() }
                 return nil
             default: return event
             }
@@ -587,6 +587,26 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
                                                   trackIdx: idx, cursor: cursor) else { return }
         selTrack = idx; selStart = next; selEnd = nil
         ensureVisible(next)
+    }
+
+    func nextBoundary() {
+        let idx = selTrack ?? 0
+        guard !tracks.isEmpty else { return }
+        let cursor = selStart ?? 0
+        guard let next = TimelineNav.nextBoundary(tracks: tracks, total: totalSamples,
+                                                   trackIdx: idx, cursor: cursor) else { return }
+        selTrack = idx; selStart = next; selEnd = nil
+        ensureVisible(next)
+    }
+
+    func prevBoundary() {
+        let idx = selTrack ?? 0
+        guard !tracks.isEmpty else { return }
+        let cursor = selStart ?? 1
+        guard let prev = TimelineNav.prevBoundary(tracks: tracks, total: totalSamples,
+                                                   trackIdx: idx, cursor: cursor) else { return }
+        selTrack = idx; selStart = prev; selEnd = nil
+        ensureVisible(prev)
     }
 
     func jumpTo(_ frac: Double) {
