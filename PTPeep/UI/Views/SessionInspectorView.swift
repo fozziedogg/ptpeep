@@ -498,9 +498,10 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     @Published var viewStart: Double = 0.0
 
     // Selection / cursor (absolute timeline fractions 0…1)
-    @Published var selStart: Double? = nil   // cursor or selection start
-    @Published var selEnd:   Double? = nil   // nil = cursor only
-    @Published var selTrack: Int?    = nil   // selected track index
+    @Published var selStart:    Double? = nil   // cursor or selection start
+    @Published var selEnd:      Double? = nil   // nil = cursor only
+    @Published var selTrack:    Int?    = nil   // selected track (start of range)
+    @Published var selTrackEnd: Int?    = nil   // non-nil when drag spans multiple tracks
 
     // Track expansion (E key toggles)
     @Published var expandedTracks: Set<Int> = []
@@ -563,10 +564,9 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
             guard let self, self.isHovering || self.isFocused else { return event }
             guard let ch = event.charactersIgnoringModifiers else { return event }
             let mods   = event.modifierFlags
-            let anchor = self.hoverAbsFrac
             switch ch {
-            case "t":      self.zoomIn(anchor: anchor);  return nil
-            case "r":      self.zoomOut(anchor: anchor); return nil
+            case "t":      self.zoomIn();  return nil
+            case "r":      self.zoomOut(); return nil
             case "e", "E":
                 if let idx = self.selTrack {
                     if self.expandedTracks.contains(idx) { self.expandedTracks.remove(idx) }
@@ -630,7 +630,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     // MARK: Selection
 
     func clearSelection() {
-        selStart = nil; selEnd = nil; selTrack = nil
+        selStart = nil; selEnd = nil; selTrack = nil; selTrackEnd = nil
     }
 
     // MARK: Track navigation
@@ -638,11 +638,13 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     func nextTrack() {
         guard !tracks.isEmpty else { return }
         selTrack = min(tracks.count - 1, (selTrack ?? -1) + 1)
+        selTrackEnd = nil
     }
 
     func prevTrack() {
         guard !tracks.isEmpty else { return }
         selTrack = max(0, (selTrack ?? tracks.count) - 1)
+        selTrackEnd = nil
     }
 
     // MARK: Clip navigation
@@ -680,22 +682,36 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     }
 
     func nextBoundary() {
-        let idx = selTrack ?? 0
         guard !tracks.isEmpty else { return }
         let cursor = selStart ?? 0
-        guard let next = TimelineNav.nextBoundary(tracks: tracks, total: totalSamples,
-                                                   trackIdx: idx, cursor: cursor) else { return }
-        selTrack = idx; selStart = next; selEnd = nil
+        let lo = min(selTrack ?? 0, selTrackEnd ?? selTrack ?? 0)
+        let hi = max(selTrack ?? 0, selTrackEnd ?? selTrack ?? 0)
+        var best: Double? = nil
+        for idx in lo...hi {
+            if let b = TimelineNav.nextBoundary(tracks: tracks, total: totalSamples,
+                                                trackIdx: idx, cursor: cursor) {
+                if best == nil || b < best! { best = b }
+            }
+        }
+        guard let next = best else { return }
+        selStart = next; selEnd = nil
         ensureVisible(next)
     }
 
     func prevBoundary() {
-        let idx = selTrack ?? 0
         guard !tracks.isEmpty else { return }
         let cursor = selStart ?? 1
-        guard let prev = TimelineNav.prevBoundary(tracks: tracks, total: totalSamples,
-                                                   trackIdx: idx, cursor: cursor) else { return }
-        selTrack = idx; selStart = prev; selEnd = nil
+        let lo = min(selTrack ?? 0, selTrackEnd ?? selTrack ?? 0)
+        let hi = max(selTrack ?? 0, selTrackEnd ?? selTrack ?? 0)
+        var best: Double? = nil
+        for idx in lo...hi {
+            if let b = TimelineNav.prevBoundary(tracks: tracks, total: totalSamples,
+                                                trackIdx: idx, cursor: cursor) {
+                if best == nil || b > best! { best = b }
+            }
+        }
+        guard let prev = best else { return }
+        selStart = prev; selEnd = nil
         ensureVisible(prev)
     }
 
@@ -785,14 +801,16 @@ private struct SessionTimelineView: View {
                 let vWindow = tc.window
 
                 // Lanes + clips
+                let selLo = min(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
+                let selHi = max(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
+
                 var laneY: CGFloat = 0
                 for (i, track) in tracks.enumerated() {
                     let thisLaneH = scaledLaneH(track, index: i)
                     guard laneY + thisLaneH <= availH else { break }
                     let color      = Self.trackColor(track, index: i)
-                    let isSelected = i == tc.selTrack
-                    let bgAlpha: Double = isSelected ? 0.22
-                        : (track.type == .video ? 0.15 : 0.10)
+                    let isSelected = selLo >= 0 && i >= selLo && i <= selHi
+                    let bgAlpha: Double = isSelected ? 0.18 : 0.03
 
                     ctx.fill(
                         Path(CGRect(x: 0, y: laneY, width: size.width, height: thisLaneH)),
@@ -806,10 +824,11 @@ private struct SessionTimelineView: View {
                         let x = CGFloat((clipFracStart - vStart) / vWindow) * size.width
                         let w = max(1, CGFloat(clipFracLen / vWindow) * size.width)
                         guard x + w > 0, x < size.width else { continue }
-                        ctx.fill(
-                            Path(CGRect(x: x, y: laneY, width: w, height: thisLaneH)),
-                            with: .color(color.opacity(0.82))
-                        )
+                        let clipRect = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
+                        ctx.fill(Path(clipRect), with: .color(color.opacity(0.88)))
+                        // 1px bright border for crisp clip edges
+                        ctx.stroke(Path(clipRect), with: .color(color.opacity(1.0)),
+                                   style: StrokeStyle(lineWidth: 1))
                         if w > 32 {
                             let fontSize: CGFloat = track.type == .video ? 8 : 6
                             ctx.draw(
@@ -937,19 +956,23 @@ private struct SessionTimelineView: View {
                                                                      availH: geo.size.height - Self.rulerH)
                                         }
                                         tc.selEnd = curFrac
+                                        let curLane = laneIndex(at: val.location.y,
+                                                                 availH: geo.size.height - Self.rulerH)
+                                        tc.selTrackEnd = curLane != tc.selTrack ? curLane : nil
                                     }
                                 }
                                 .onEnded { val in
                                     let dist = hypot(val.translation.width, val.translation.height)
                                     if dist < 3 {
-                                        // Click → place cursor
+                                        // Click → place cursor, lock zoom anchor
                                         let frac = (Double(val.location.x / geo.size.width)
                                             * tc.window + tc.viewStart).clamped(to: 0...1)
-                                        tc.selStart = frac
-                                        tc.selEnd   = nil
-                                        tc.selTrack = laneIndex(at: val.location.y,
-                                                                 availH: geo.size.height - Self.rulerH)
-                                        tc.isFocused = true
+                                        tc.selStart    = frac
+                                        tc.selEnd      = nil
+                                        tc.selTrack    = laneIndex(at: val.location.y,
+                                                                    availH: geo.size.height - Self.rulerH)
+                                        tc.selTrackEnd = nil
+                                        tc.isFocused   = true
                                     } else if isDragging {
                                         // Normalize selection so start <= end
                                         if let s = tc.selStart, let e = tc.selEnd, e < s {
@@ -1034,7 +1057,7 @@ private struct SessionTimelineView: View {
                 HStack(spacing: 4) {
                     Text("H:")
                         .foregroundStyle(.secondary)
-                    Button { tc.zoomOut(anchor: hoverAbsFrac) } label: {
+                    Button { tc.zoomOut() } label: {
                         Image(systemName: "minus")
                     }
                     .buttonStyle(.borderless)
@@ -1042,7 +1065,7 @@ private struct SessionTimelineView: View {
                     Text(tc.scale > 1.01 ? "×\(String(format: "%.1f", tc.scale))" : "Fit")
                         .foregroundStyle(.secondary)
                         .frame(width: 34, alignment: .center)
-                    Button { tc.zoomIn(anchor: hoverAbsFrac) } label: {
+                    Button { tc.zoomIn() } label: {
                         Image(systemName: "plus")
                     }
                     .buttonStyle(.borderless)
