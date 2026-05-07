@@ -41,9 +41,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { await appState?.open(url: url) }
     }
 
-    // Clicking the Dock icon when all windows are closed reopens the main window
+    // Clicking the Dock icon when all windows are closed reopens the main window.
+    // Return false when no windows exist so SwiftUI creates a new one automatically;
+    // return true (and handle manually) only when windows already exist.
     func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        if !hasVisibleWindows { bringWindowForward(app) }
+        if hasVisibleWindows { return true }
+        if app.windows.isEmpty { return false }  // let SwiftUI create a new window
+        bringWindowForward(app)
         return true
     }
 
@@ -97,6 +101,12 @@ final class AppState: ObservableObject {
         // Publish initial result so UI appears immediately
         session   = parsed
         isLoading = false
+
+        // Ensure the window is visible — handles the case where the user closed
+        // the macOS window then opened a new session via menu or Finder.
+        (NSApp.windows.first(where: { $0.isVisible }) ?? NSApp.windows.first)?
+            .makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
 
         // Augment with PTSL in background (no-op if PT not connected)
         await PTSLSessionInfo.shared.augment(session: &parsed)
