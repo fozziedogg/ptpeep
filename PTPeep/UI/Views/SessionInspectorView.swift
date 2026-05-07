@@ -471,13 +471,52 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     var tracks:       [PTXTrack] = []
     var totalSamples: Double     = 1.0
 
-    private var monitor: Any?
+    private var keyMonitor:      Any?
+    private var scrollMonitor:   Any?
+    private var magnifyMonitor:  Any?
 
     var window: Double { 1.0 / scale }
 
     func startMonitoring() {
-        guard monitor == nil else { return }
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        guard keyMonitor == nil else { return }
+
+        // Scroll wheel: horizontal = pan, Cmd+vertical = zoom
+        scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            guard let self, self.isHovering || self.isFocused else { return event }
+            let mods = event.modifierFlags
+            if mods.contains(.command) {
+                // Cmd+scroll → zoom (vertical delta drives scale)
+                let delta = Double(event.scrollingDeltaY)
+                if abs(delta) > 0.5 {
+                    if delta > 0 { self.zoomIn(anchor: self.hoverAbsFrac) }
+                    else         { self.zoomOut(anchor: self.hoverAbsFrac) }
+                }
+                return nil
+            } else {
+                // Plain scroll → pan horizontally
+                let dx = Double(event.scrollingDeltaX)
+                if abs(dx) > 0.1 {
+                    let delta = dx / 300.0 * self.window
+                    self.viewStart = (self.viewStart + delta).clamped(to: 0...(1 - self.window))
+                    return nil
+                }
+            }
+            return event
+        }
+
+        // Trackpad pinch → horizontal zoom centred on cursor
+        magnifyMonitor = NSEvent.addLocalMonitorForEvents(matching: .magnify) { [weak self] event in
+            guard let self, self.isHovering || self.isFocused else { return event }
+            let factor = 1.0 + Double(event.magnification)
+            let anchor = self.hoverAbsFrac ?? (self.viewStart + self.window / 2)
+            let newSc  = (self.scale * factor).clamped(to: 1...512)
+            let newWin = 1.0 / newSc
+            self.viewStart = (anchor - newWin / 2).clamped(to: 0...(1 - newWin))
+            self.scale     = newSc
+            return nil
+        }
+
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, self.isHovering || self.isFocused else { return event }
             guard let ch = event.charactersIgnoringModifiers else { return event }
             let mods   = event.modifierFlags
@@ -502,7 +541,10 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     }
 
     func stopMonitoring() {
-        if let m = monitor { NSEvent.removeMonitor(m); monitor = nil }
+        [keyMonitor, scrollMonitor, magnifyMonitor].forEach {
+            if let m = $0 { NSEvent.removeMonitor(m) }
+        }
+        keyMonitor = nil; scrollMonitor = nil; magnifyMonitor = nil
     }
 
     // MARK: Zoom
