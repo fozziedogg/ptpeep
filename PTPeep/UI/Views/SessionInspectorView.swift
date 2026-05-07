@@ -90,12 +90,18 @@ struct SessionInspectorView: View {
         let hasHidden   = session.tracks.contains { $0.isHidden }
         let hasInactive = session.tracks.contains { $0.isInactive }
         let hasVideo    = session.tracks.contains { $0.type == .video && !$0.clips.isEmpty }
-        let clippedTracks = session.tracks.filter {
-            !$0.clips.isEmpty
-            && (showHiddenTracks   || !$0.isHidden)
-            && (showInactiveTracks || !$0.isInactive)
-            && (showVideoTrack     || $0.type != .video)
-        }
+        let clippedTracks = session.tracks
+            .filter {
+                !$0.clips.isEmpty
+                && (showHiddenTracks   || !$0.isHidden)
+                && (showInactiveTracks || !$0.isInactive)
+                && (showVideoTrack     || $0.type != .video)
+            }
+            .sorted { a, b in
+                // Video tracks always float to the top
+                if (a.type == .video) != (b.type == .video) { return a.type == .video }
+                return false
+            }
         let sr = Double(session.sampleRate) ?? 48000.0
         return InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
             if hasHidden || hasInactive || hasVideo {
@@ -506,7 +512,7 @@ private struct SessionTimelineView: View {
                             ctx.draw(
                                 Text(clip.name)
                                     .font(.system(size: fontSize).bold())
-                                    .foregroundStyle(.white),
+                                    .foregroundColor(.white),
                                 in: CGRect(x: x + 3,
                                            y: laneY + (thisLaneH - fontSize) / 2 - 1,
                                            width: w - 6, height: fontSize + 2)
