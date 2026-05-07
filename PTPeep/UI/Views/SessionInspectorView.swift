@@ -574,10 +574,10 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
                 }
                 return nil
             case "\u{1b}": self.clearSelection();        return nil  // Escape
-            case "k":      self.prevTrack();             return nil
+            case "p":      self.prevTrack();             return nil
             case ";":      self.nextTrack();             return nil
-            case "l":      self.nextClipStart();         return nil
-            case "p":      self.prevClipStart();         return nil
+            case "l":      self.prevBoundary();          return nil
+            case "'":      self.nextBoundary();          return nil
             case "\t":
                 if mods.contains(.option) { self.nextClipEnd()    }
                 else if mods.contains(.shift) { self.prevBoundary() }
@@ -598,7 +598,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     // MARK: Zoom
 
     func zoomIn(anchor: Double? = nil) {
-        let a      = anchor ?? (viewStart + window / 2)
+        let a      = anchor ?? selStart ?? (viewStart + window / 2)
         let newSc  = min(scale * 1.5, 512)
         let newWin = 1.0 / newSc
         viewStart  = (a - newWin / 2).clamped(to: 0...(1 - newWin))
@@ -608,7 +608,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     func zoomOut(anchor: Double? = nil) {
         let newSc = max(scale / 1.5, 1.0)
         guard newSc > 1.0 else { viewStart = 0; scale = 1.0; return }
-        let a      = anchor ?? (viewStart + window / 2)
+        let a      = anchor ?? selStart ?? (viewStart + window / 2)
         let newWin = 1.0 / newSc
         viewStart  = (a - newWin / 2).clamped(to: 0...(1 - newWin))
         scale      = newSc
