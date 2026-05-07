@@ -10,13 +10,11 @@ struct SessionInspectorView: View {
     var onOpenInProTools: (() -> Void)? = nil
     var onClose:         (() -> Void)? = nil
 
-    @State private var showHiddenTracks:   Bool = false
-    @State private var showInactiveTracks: Bool = false
-    @State private var showVideoTrack:     Bool = true
-    @State private var vZoomIdx:           Int  = 2   // 0…4 → vZoomLevels
-
-    private static let vZoomLevels: [CGFloat] = [0.5, 0.75, 1.0, 1.5, 2.5]
-    private var verticalScale: CGFloat { Self.vZoomLevels[vZoomIdx] }
+    @State private var showHiddenTracks:   Bool    = false
+    @State private var showInactiveTracks: Bool    = false
+    @State private var showVideoTrack:     Bool    = true
+    @State private var overviewHeight:     CGFloat = 0     // 0 = auto-init on first render
+    @State private var overviewDragStart:  CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -168,21 +166,16 @@ struct SessionInspectorView: View {
                     }
                     Spacer()
                     if hasClips {
-                        // Vertical zoom: 5 discrete levels like Pro Tools
                         HStack(spacing: 4) {
                             Text("V:")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            Button(action: { vZoomIdx = max(0, vZoomIdx - 1) }) {
+                            Button(action: { overviewHeight = max(50, overviewHeight / 1.5) }) {
                                 Image(systemName: "minus")
                             }
                             .buttonStyle(.borderless)
                             .controlSize(.mini)
-                            Text("\(vZoomIdx + 1)")
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                                .frame(width: 14, alignment: .center)
-                            Button(action: { vZoomIdx = min(4, vZoomIdx + 1) }) {
+                            Button(action: { overviewHeight = min(600, overviewHeight * 1.5) }) {
                                 Image(systemName: "plus")
                             }
                             .buttonStyle(.borderless)
@@ -196,16 +189,33 @@ struct SessionInspectorView: View {
             if clippedTracks.isEmpty {
                 PlaceholderRow(text: "No clip position data — binary block decoder pending")
             } else {
-                let videoCount = clippedTracks.filter { $0.type == .video }.count
-                let otherCount = min(clippedTracks.count - videoCount, 32)
-                let timelineH  = CGFloat(videoCount) * (16 * verticalScale + 2)
-                             + CGFloat(otherCount)  * (8  * verticalScale + 2)
-                             + 46
+                let videoCount  = clippedTracks.filter { $0.type == .video }.count
+                let otherCount  = min(clippedTracks.count - videoCount, 32)
+                // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
+                let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
+                               + CGFloat(max(0, videoCount + otherCount - 1)) * 2
+                let overhead: CGFloat = 46  // ruler(20) + info-strip(14) + padding(12)
+                // Auto-init height on first render: fit all tracks at scale 1
+                let effectiveH: CGFloat = {
+                    if overviewHeight == 0 {
+                        let h = baseLanesH + overhead
+                        DispatchQueue.main.async { overviewHeight = h }
+                        return h
+                    }
+                    return overviewHeight
+                }()
+                let vScale = baseLanesH > 0 ? (effectiveH - overhead) / baseLanesH : 1.0
+
                 SessionTimelineView(tracks: clippedTracks, sampleRate: sr,
-                                    frameRate: session.frameRate, verticalScale: verticalScale)
-                    .frame(height: timelineH)
+                                    frameRate: session.frameRate,
+                                    verticalScale: max(0.2, vScale))
+                    .frame(height: effectiveH)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.top, 8)
+
+                // Drag handle — pull to resize
+                OverviewResizeHandle(height: $overviewHeight, dragStart: $overviewDragStart)
+                    .padding(.horizontal, 16)
             }
         }
     }
@@ -438,6 +448,36 @@ private struct ListRow: View {
     }
 }
 
+// MARK: - Overview resize handle
+
+private struct OverviewResizeHandle: View {
+    @Binding var height:     CGFloat
+    @Binding var dragStart:  CGFloat
+
+    var body: some View {
+        ZStack {
+            Color(nsColor: .separatorColor).opacity(0.25)
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(Color(nsColor: .tertiaryLabelColor))
+                .frame(width: 32, height: 3)
+        }
+        .frame(height: 8)
+        .contentShape(Rectangle())
+        .onHover { inside in
+            if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { val in
+                    if dragStart == 0 { dragStart = height }
+                    height = max(50, min(600, dragStart + val.translation.height))
+                }
+                .onEnded { _ in dragStart = 0 }
+        )
+        .padding(.bottom, 4)
+    }
+}
+
 private struct PlaceholderRow: View {
     let text: String
     var body: some View {
@@ -461,6 +501,9 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     @Published var selStart: Double? = nil   // cursor or selection start
     @Published var selEnd:   Double? = nil   // nil = cursor only
     @Published var selTrack: Int?    = nil   // selected track index
+
+    // Track expansion (E key toggles)
+    @Published var expandedTracks: Set<Int> = []
 
     // Interaction context (not published — used by key handler only)
     var isHovering:   Bool    = false
@@ -524,7 +567,12 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
             switch ch {
             case "t":      self.zoomIn(anchor: anchor);  return nil
             case "r":      self.zoomOut(anchor: anchor); return nil
-            case "e", "E": self.zoomToSelection();       return nil
+            case "e", "E":
+                if let idx = self.selTrack {
+                    if self.expandedTracks.contains(idx) { self.expandedTracks.remove(idx) }
+                    else { self.expandedTracks.insert(idx) }
+                }
+                return nil
             case "\u{1b}": self.clearSelection();        return nil  // Escape
             case "k":      self.prevTrack();             return nil
             case ";":      self.nextTrack();             return nil
@@ -701,8 +749,9 @@ private struct SessionTimelineView: View {
     private static func trackLaneH(_ track: PTXTrack) -> CGFloat {
         track.type == .video ? videoLaneH : audioLaneH
     }
-    private func scaledLaneH(_ track: PTXTrack) -> CGFloat {
-        Self.trackLaneH(track) * verticalScale
+    private func scaledLaneH(_ track: PTXTrack, index: Int) -> CGFloat {
+        let base = Self.trackLaneH(track) * verticalScale
+        return tc.expandedTracks.contains(index) ? base * 4 : base
     }
     private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
         track.type == .video ? videoColor : palette[index % palette.count]
@@ -712,7 +761,7 @@ private struct SessionTimelineView: View {
     private func laneIndex(at y: CGFloat, availH: CGFloat) -> Int? {
         var top: CGFloat = 0
         for (i, track) in tracks.enumerated() {
-            let h = scaledLaneH(track)
+            let h = scaledLaneH(track, index: i)
             if top + h > availH { break }
             if y >= top && y < top + h { return i }
             top += h + Self.laneGap
@@ -738,7 +787,7 @@ private struct SessionTimelineView: View {
                 // Lanes + clips
                 var laneY: CGFloat = 0
                 for (i, track) in tracks.enumerated() {
-                    let thisLaneH = scaledLaneH(track)
+                    let thisLaneH = scaledLaneH(track, index: i)
                     guard laneY + thisLaneH <= availH else { break }
                     let color      = Self.trackColor(track, index: i)
                     let isSelected = i == tc.selTrack
