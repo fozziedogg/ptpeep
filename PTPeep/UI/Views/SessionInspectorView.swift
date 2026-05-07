@@ -136,56 +136,7 @@ struct SessionInspectorView: View {
                 return rank(a) < rank(b)
             }
         let sr = Double(session.sampleRate) ?? 48000.0
-        let hasClips = !clippedTracks.isEmpty
         return InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
-            if hasClips || hasHidden || hasInactive || hasVideo {
-                HStack(spacing: 12) {
-                    if hasHidden {
-                        Toggle(isOn: $showHiddenTracks) {
-                            Text("Show hidden")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    if hasInactive {
-                        Toggle(isOn: $showInactiveTracks) {
-                            Text("Show inactive")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    if hasVideo {
-                        Toggle(isOn: $showVideoTrack) {
-                            Text("Show video")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    Spacer()
-                    if hasClips {
-                        HStack(spacing: 4) {
-                            Text("V:")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Button(action: { overviewHeight = max(50, overviewHeight / 1.5) }) {
-                                Image(systemName: "minus")
-                            }
-                            .buttonStyle(.borderless)
-                            .controlSize(.mini)
-                            Button(action: { overviewHeight = min(600, overviewHeight * 1.5) }) {
-                                Image(systemName: "plus")
-                            }
-                            .buttonStyle(.borderless)
-                            .controlSize(.mini)
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 6)
-            }
             if clippedTracks.isEmpty {
                 PlaceholderRow(text: "No clip position data — binary block decoder pending")
             } else {
@@ -194,7 +145,8 @@ struct SessionInspectorView: View {
                 // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                 let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                let overhead: CGFloat = 46  // ruler(20) + info-strip(14) + padding(12)
+                // overhead = top control row(24) + checkbox row(28, if shown) + ruler(20) + padding(8)
+                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo) ? 80 : 52
                 // Auto-init height on first render: fit all tracks at scale 1
                 let effectiveH: CGFloat = {
                     if overviewHeight == 0 {
@@ -208,10 +160,17 @@ struct SessionInspectorView: View {
 
                 SessionTimelineView(tracks: clippedTracks, sampleRate: sr,
                                     frameRate: session.frameRate,
-                                    verticalScale: max(0.2, vScale))
+                                    verticalScale: max(0.2, vScale),
+                                    hasHidden:   hasHidden,
+                                    hasInactive: hasInactive,
+                                    hasVideo:    hasVideo,
+                                    showHidden:    $showHiddenTracks,
+                                    showInactive:  $showInactiveTracks,
+                                    showVideo:     $showVideoTrack,
+                                    overviewHeight: $overviewHeight)
                     .frame(height: effectiveH)
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.top, 4)
 
                 // Drag handle — pull to resize
                 OverviewResizeHandle(height: $overviewHeight, dragStart: $overviewDragStart)
@@ -738,6 +697,15 @@ private struct SessionTimelineView: View {
     var frameRate: Double = 30
     var verticalScale: CGFloat = 1.0
 
+    // Track filter toggles shown in the checkbox row
+    var hasHidden:   Bool = false
+    var hasInactive: Bool = false
+    var hasVideo:    Bool = false
+    @Binding var showHidden:    Bool
+    @Binding var showInactive:  Bool
+    @Binding var showVideo:     Bool
+    @Binding var overviewHeight: CGFloat
+
     @StateObject private var tc = TimelineController()
 
     // Hover state (view-owned for rendering; tc.hoverAbsFrac mirrors it for key handler)
@@ -793,8 +761,136 @@ private struct SessionTimelineView: View {
         let sr    = max(sampleRate, 1)
         let total = Double(totalSamples)
 
-        VStack(spacing: 4) {
-            // Timeline canvas
+        VStack(spacing: 0) {
+            // ── Top control row ──────────────────────────────────────────────
+            HStack(spacing: 8) {
+                // TC position display / entry
+                Button {
+                    tcEntryText = tc.selStart.map { Self.formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                    showTCEntry = true
+                } label: {
+                    Group {
+                        if let s = tc.selStart {
+                            if let e = tc.selEnd {
+                                let lo  = min(s, e)
+                                let dur = abs(e - s) * total / sr
+                                Text("\(Self.formatTC(lo * total / sr, fps: frameRate))  +\(Self.formatTC(dur, fps: frameRate))")
+                                    .foregroundStyle(.primary)
+                            } else {
+                                Text(Self.formatTC(s * total / sr, fps: frameRate))
+                                    .foregroundStyle(.primary)
+                            }
+                        } else if let absFrac = hoverAbsFrac {
+                            Text(Self.formatTC(absFrac * total / sr, fps: frameRate))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("──:──:──:──")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .frame(width: 80, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .help("Click to go to timecode")
+                .popover(isPresented: $showTCEntry, arrowEdge: .bottom) {
+                    TCEntryPopover(text: $tcEntryText) { text in
+                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
+                                                              totalSamples: total, sampleRate: sr) {
+                            tc.jumpTo(frac)
+                        }
+                        showTCEntry = false
+                    }
+                }
+
+                Divider().frame(height: 14)
+
+                // Track name + clip name under cursor
+                Group {
+                    let displayIdx = tc.selTrack ?? hoverLane
+                    if let idx = displayIdx, idx < tracks.count {
+                        let track = tracks[idx]
+                        let color = Self.trackColor(track, index: idx)
+                        Text(track.name).foregroundStyle(color)
+                        Text("[\(track.channelFormat)]").foregroundStyle(.secondary)
+                    } else {
+                        Text("—").foregroundStyle(.tertiary)
+                    }
+                    // Clip under cursor — always from hoverLane, regardless of selTrack
+                    if let absFrac = hoverAbsFrac,
+                       let laneIdx = hoverLane, laneIdx < tracks.count {
+                        let hovSample = Int64(absFrac * total)
+                        let clipColor = Self.trackColor(tracks[laneIdx], index: laneIdx)
+                        if let clip = tracks[laneIdx].clips.first(where: {
+                            hovSample >= $0.startSample
+                                && hovSample < $0.startSample + $0.lengthSamples
+                        }) {
+                            Text("· \(clip.name)").foregroundStyle(clipColor)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // H zoom
+                HStack(spacing: 4) {
+                    Text("H:").foregroundStyle(.secondary)
+                    Button { tc.zoomOut() } label: { Image(systemName: "minus") }
+                        .buttonStyle(.borderless).controlSize(.mini)
+                    Text(tc.scale > 1.01 ? "×\(String(format: "%.1f", tc.scale))" : "Fit")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 34, alignment: .center)
+                    Button { tc.zoomIn() } label: { Image(systemName: "plus") }
+                        .buttonStyle(.borderless).controlSize(.mini)
+                }
+
+                Divider().frame(height: 14)
+
+                // V zoom
+                HStack(spacing: 4) {
+                    Text("V:").foregroundStyle(.secondary)
+                    Button { overviewHeight = max(50, overviewHeight / 1.5) } label: {
+                        Image(systemName: "minus")
+                    }
+                    .buttonStyle(.borderless).controlSize(.mini)
+                    Button { overviewHeight = min(600, overviewHeight * 1.5) } label: {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.borderless).controlSize(.mini)
+                }
+            }
+            .font(.system(size: 11).monospacedDigit())
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .frame(height: 24)
+
+            // ── Checkbox row ─────────────────────────────────────────────────
+            if hasHidden || hasInactive || hasVideo {
+                HStack(spacing: 12) {
+                    if hasHidden {
+                        Toggle(isOn: $showHidden) {
+                            Text("Show hidden").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    if hasInactive {
+                        Toggle(isOn: $showInactive) {
+                            Text("Show inactive").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    if hasVideo {
+                        Toggle(isOn: $showVideo) {
+                            Text("Show video").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+            }
+
+            // ── Timeline canvas ───────────────────────────────────────────────
             Canvas { ctx, size in
                 let availH  = size.height - Self.rulerH
                 let vStart  = tc.viewStart
@@ -986,96 +1082,6 @@ private struct SessionTimelineView: View {
                         )
                 }
             )
-
-            // Info strip
-            HStack(spacing: 8) {
-                // Position: click to open TC entry; cursor/selection > hover
-                Button {
-                    tcEntryText = tc.selStart.map { Self.formatTC($0 * total / sr, fps: frameRate) } ?? ""
-                    showTCEntry = true
-                } label: {
-                    Group {
-                        if let s = tc.selStart {
-                            if let e = tc.selEnd {
-                                let lo  = min(s, e)
-                                let dur = abs(e - s) * total / sr
-                                Text("\(Self.formatTC(lo * total / sr, fps: frameRate))  +\(Self.formatTC(dur, fps: frameRate))")
-                                    .foregroundStyle(.primary)
-                            } else {
-                                Text(Self.formatTC(s * total / sr, fps: frameRate))
-                                    .foregroundStyle(.primary)
-                            }
-                        } else if let absFrac = hoverAbsFrac {
-                            Text(Self.formatTC(absFrac * total / sr, fps: frameRate))
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("──:──:──:──")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .help("Click to go to timecode")
-                .popover(isPresented: $showTCEntry, arrowEdge: .top) {
-                    TCEntryPopover(text: $tcEntryText) { text in
-                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
-                                                              totalSamples: total, sampleRate: sr) {
-                            tc.jumpTo(frac)
-                        }
-                        showTCEntry = false
-                    }
-                }
-
-                Divider().frame(height: 10)
-
-                // Track: selected track takes priority over hovered
-                Group {
-                    let displayIdx = tc.selTrack ?? hoverLane
-                    if let idx = displayIdx, idx < tracks.count {
-                        let track = tracks[idx]
-                        let color = Self.trackColor(track, index: idx)
-                        Text(track.name).foregroundStyle(color)
-                        Text("[\(track.channelFormat)]").foregroundStyle(.secondary)
-                        // Clip name under cursor (hover only, not shown for selection)
-                        if tc.selTrack == nil, let absFrac = hoverAbsFrac {
-                            let hovSample = Int64(absFrac * total)
-                            if let clip = track.clips.first(where: {
-                                hovSample >= $0.startSample
-                                    && hovSample < $0.startSample + $0.lengthSamples
-                            }) {
-                                Text("· \(clip.name)").foregroundStyle(color)
-                            }
-                        }
-                    } else {
-                        Text("—").foregroundStyle(.tertiary)
-                    }
-                }
-
-                Spacer()
-
-                // Horizontal zoom controls
-                HStack(spacing: 4) {
-                    Text("H:")
-                        .foregroundStyle(.secondary)
-                    Button { tc.zoomOut() } label: {
-                        Image(systemName: "minus")
-                    }
-                    .buttonStyle(.borderless)
-                    .controlSize(.mini)
-                    Text(tc.scale > 1.01 ? "×\(String(format: "%.1f", tc.scale))" : "Fit")
-                        .foregroundStyle(.secondary)
-                        .frame(width: 34, alignment: .center)
-                    Button { tc.zoomIn() } label: {
-                        Image(systemName: "plus")
-                    }
-                    .buttonStyle(.borderless)
-                    .controlSize(.mini)
-                }
-                .foregroundStyle(.secondary)
-            }
-            .font(.caption.monospacedDigit())
-            .padding(.horizontal, 2)
-            .frame(height: 14)
         }
         .onAppear {
             tc.tracks       = tracks

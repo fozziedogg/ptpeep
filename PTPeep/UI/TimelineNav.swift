@@ -77,7 +77,20 @@ enum TimelineNav {
         let s = text.trimmingCharacters(in: .whitespaces)
         guard !s.isEmpty, totalSamples > 0, sampleRate > 0 else { return nil }
 
-        // Plain seconds
+        // All-digit string with 4+ digits: right-align into HHMMSSFF
+        // e.g. "01123714" → 01:12:37:14,  "123714" → 00:12:37:14
+        if s.count >= 4, s.allSatisfy({ $0.isNumber }) {
+            let src     = String(s.suffix(8))
+            let padded  = String(repeating: "0", count: max(0, 8 - src.count)) + src
+            let h   = Int(padded.prefix(2)) ?? 0
+            let m   = Int(padded.dropFirst(2).prefix(2)) ?? 0
+            let sec = Int(padded.dropFirst(4).prefix(2)) ?? 0
+            let f   = Int(padded.dropFirst(6).prefix(2)) ?? 0
+            let totalSecs = Double(h * 3600 + m * 60 + sec) + Double(f) / max(fps, 1)
+            return clamp(totalSecs * sampleRate / totalSamples)
+        }
+
+        // Plain seconds (1–3 digit strings or decimal)
         if let secs = Double(s) {
             return clamp(secs * sampleRate / totalSamples)
         }
