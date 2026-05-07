@@ -13,7 +13,10 @@ struct SessionInspectorView: View {
     @State private var showHiddenTracks:   Bool = false
     @State private var showInactiveTracks: Bool = false
     @State private var showVideoTrack:     Bool = true
-    @State private var verticalScale:      CGFloat = 1.0
+    @State private var vZoomIdx:           Int  = 2   // 0…4 → vZoomLevels
+
+    private static let vZoomLevels: [CGFloat] = [0.5, 0.75, 1.0, 1.5, 2.5]
+    private var verticalScale: CGFloat { Self.vZoomLevels[vZoomIdx] }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -165,20 +168,21 @@ struct SessionInspectorView: View {
                     }
                     Spacer()
                     if hasClips {
+                        // Vertical zoom: 5 discrete levels like Pro Tools
                         HStack(spacing: 4) {
                             Text("V:")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            Button(action: { verticalScale = max(0.5, verticalScale / 1.5) }) {
+                            Button(action: { vZoomIdx = max(0, vZoomIdx - 1) }) {
                                 Image(systemName: "minus")
                             }
                             .buttonStyle(.borderless)
                             .controlSize(.mini)
-                            Text("\(Int(verticalScale * 100))%")
+                            Text("\(vZoomIdx + 1)")
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
-                                .frame(width: 34, alignment: .center)
-                            Button(action: { verticalScale = min(8, verticalScale * 1.5) }) {
+                                .frame(width: 14, alignment: .center)
+                            Button(action: { vZoomIdx = min(4, vZoomIdx + 1) }) {
                                 Image(systemName: "plus")
                             }
                             .buttonStyle(.borderless)
@@ -445,29 +449,50 @@ private struct PlaceholderRow: View {
     }
 }
 
-// MARK: - Zoom controller
+// MARK: - Timeline controller
+// Owns zoom state, selection/cursor state, and keyboard navigation.
 
-private final class ZoomController: ObservableObject, @unchecked Sendable {
-    @Published var scale: Double     = 1.0   // 1 = full fit, higher = zoomed in
-    @Published var viewStart: Double = 0.0   // absolute timeline fraction at left edge
+private final class TimelineController: ObservableObject, @unchecked Sendable {
+    // Zoom
+    @Published var scale:     Double = 1.0
+    @Published var viewStart: Double = 0.0
 
+    // Selection / cursor (absolute timeline fractions 0…1)
+    @Published var selStart: Double? = nil   // cursor or selection start
+    @Published var selEnd:   Double? = nil   // nil = cursor only
+    @Published var selTrack: Int?    = nil   // selected track index
+
+    // Interaction context (not published — used by key handler only)
     var isHovering:   Bool    = false
-    var hoverAbsFrac: Double? = nil          // absolute timeline fraction under cursor
+    var isFocused:    Bool    = false
+    var hoverAbsFrac: Double? = nil
+
+    // Navigation context — set by view on appear
+    var tracks:       [PTXTrack] = []
+    var totalSamples: Double     = 1.0
 
     private var monitor: Any?
 
-    var window: Double { 1.0 / scale }       // fraction of timeline currently visible
+    var window: Double { 1.0 / scale }
 
     func startMonitoring() {
         guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, self.isHovering,
-                  let ch = event.charactersIgnoringModifiers else { return event }
+            guard let self, self.isHovering || self.isFocused else { return event }
+            guard let ch = event.charactersIgnoringModifiers else { return event }
+            let mods   = event.modifierFlags
             let anchor = self.hoverAbsFrac
             switch ch {
-            case "t": self.zoomIn(anchor: anchor);  return nil
-            case "r": self.zoomOut(anchor: anchor); return nil
-            default:  return event
+            case "t":      self.zoomIn(anchor: anchor);  return nil
+            case "r":      self.zoomOut(anchor: anchor); return nil
+            case "e", "E": self.zoomToSelection();       return nil
+            case "\u{1b}": self.clearSelection();        return nil  // Escape
+            case "\t":
+                if mods.contains(.option) { self.nextClipEnd()   }
+                else if mods.contains(.shift) { self.prevClipStart() }
+                else                          { self.nextClipStart() }
+                return nil
+            default: return event
             }
         }
     }
@@ -475,6 +500,8 @@ private final class ZoomController: ObservableObject, @unchecked Sendable {
     func stopMonitoring() {
         if let m = monitor { NSEvent.removeMonitor(m); monitor = nil }
     }
+
+    // MARK: Zoom
 
     func zoomIn(anchor: Double? = nil) {
         let a      = anchor ?? (viewStart + window / 2)
@@ -493,8 +520,75 @@ private final class ZoomController: ObservableObject, @unchecked Sendable {
         scale      = newSc
     }
 
-    func pan(by delta: Double) {
-        viewStart = (viewStart + delta).clamped(to: 0...(1 - window))
+    func zoomToSelection() {
+        guard let s = selStart, let e = selEnd, e > s else {
+            scale = 1.0; viewStart = 0.0; return
+        }
+        let span   = e - s
+        let margin = span * 0.1
+        let start  = max(0.0, s - margin)
+        let end    = min(1.0, e + margin)
+        let newWin = end - start
+        scale      = max(1.0, 1.0 / newWin)
+        viewStart  = start.clamped(to: 0...(1 - window))
+    }
+
+    // MARK: Selection
+
+    func clearSelection() {
+        selStart = nil; selEnd = nil; selTrack = nil
+    }
+
+    // MARK: Clip navigation
+
+    func nextClipStart() {
+        guard let idx = selTrack, idx < tracks.count else { return }
+        let cursor = selStart ?? 0
+        let starts = tracks[idx].clips
+            .map { Double($0.startSample) / totalSamples }
+            .filter { $0 > cursor + 1e-9 }
+            .sorted()
+        guard let next = starts.first else { return }
+        selStart = next; selEnd = nil
+        ensureVisible(next)
+    }
+
+    func prevClipStart() {
+        guard let idx = selTrack, idx < tracks.count else { return }
+        let cursor = selStart ?? 0
+        let starts = tracks[idx].clips
+            .map { Double($0.startSample) / totalSamples }
+            .filter { $0 < cursor - 1e-9 }
+            .sorted()
+        guard let prev = starts.last else { return }
+        selStart = prev; selEnd = nil
+        ensureVisible(prev)
+    }
+
+    func nextClipEnd() {
+        guard let idx = selTrack, idx < tracks.count else { return }
+        let cursor = selStart ?? 0
+        let ends: [Double] = tracks[idx].clips
+            .map { clip -> Double in Double(clip.startSample + clip.lengthSamples) / totalSamples }
+            .filter { $0 > cursor + 1e-9 }
+            .sorted()
+        guard let next = ends.first else { return }
+        selStart = next; selEnd = nil
+        ensureVisible(next)
+    }
+
+    func jumpTo(_ frac: Double) {
+        selStart = frac; selEnd = nil
+        ensureVisible(frac)
+    }
+
+    func ensureVisible(_ frac: Double) {
+        let margin = window * 0.1
+        if frac < viewStart + margin {
+            viewStart = max(0, frac - margin)
+        } else if frac > viewStart + window - margin {
+            viewStart = min(1 - window, frac - window + margin)
+        }
     }
 }
 
@@ -506,19 +600,29 @@ private struct SessionTimelineView: View {
     var frameRate: Double = 30
     var verticalScale: CGFloat = 1.0
 
-    @StateObject private var zoom = ZoomController()
+    @StateObject private var tc = TimelineController()
+
+    // Hover state (view-owned for rendering; tc.hoverAbsFrac mirrors it for key handler)
     @State private var hoverAbsFrac: Double? = nil
     @State private var hoverLane:    Int?    = nil
-    @State private var dragOrigin:   (viewStart: Double, window: Double)? = nil
 
-    private static let palette:     [Color]  = [
+    // Drag/gesture state
+    @State private var isDragging:  Bool   = false   // dragging a selection
+    @State private var isPanning:   Bool   = false   // option+dragging to pan
+    @State private var panOrigin:   (viewStart: Double, window: Double)? = nil
+
+    // TC entry
+    @State private var showTCEntry:  Bool   = false
+    @State private var tcEntryText:  String = ""
+
+    private static let palette:    [Color] = [
         .blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown
     ]
-    private static let videoColor:  Color    = Color(white: 0.52)
-    private static let audioLaneH:  CGFloat  = 8
-    private static let videoLaneH:  CGFloat  = 16
-    private static let laneGap:     CGFloat  = 2
-    private static let rulerH:      CGFloat  = 20
+    private static let videoColor: Color   = Color(white: 0.52)
+    private static let audioLaneH: CGFloat = 8
+    private static let videoLaneH: CGFloat = 16
+    private static let laneGap:    CGFloat = 2
+    private static let rulerH:     CGFloat = 20
 
     private static func trackLaneH(_ track: PTXTrack) -> CGFloat {
         track.type == .video ? videoLaneH : audioLaneH
@@ -530,35 +634,51 @@ private struct SessionTimelineView: View {
         track.type == .video ? videoColor : palette[index % palette.count]
     }
 
+    /// Returns the track index at a given y position within the canvas lanes.
+    private func laneIndex(at y: CGFloat, availH: CGFloat) -> Int? {
+        var top: CGFloat = 0
+        for (i, track) in tracks.enumerated() {
+            let h = scaledLaneH(track)
+            if top + h > availH { break }
+            if y >= top && y < top + h { return i }
+            top += h + Self.laneGap
+        }
+        return nil
+    }
+
     var body: some View {
         let totalSamples = max(
             tracks.flatMap(\.clips).map { $0.startSample + $0.lengthSamples }.max() ?? 1,
             1
         )
-        let sr     = max(sampleRate, 1)
-        let total  = Double(totalSamples)
+        let sr    = max(sampleRate, 1)
+        let total = Double(totalSamples)
 
         VStack(spacing: 4) {
             // Timeline canvas
             Canvas { ctx, size in
                 let availH  = size.height - Self.rulerH
-                let vStart  = zoom.viewStart
-                let vWindow = zoom.window
+                let vStart  = tc.viewStart
+                let vWindow = tc.window
 
-                // Lanes + clips (variable height: video=16px, audio=8px)
+                // Lanes + clips
                 var laneY: CGFloat = 0
                 for (i, track) in tracks.enumerated() {
                     let thisLaneH = scaledLaneH(track)
                     guard laneY + thisLaneH <= availH else { break }
-                    let color = Self.trackColor(track, index: i)
+                    let color      = Self.trackColor(track, index: i)
+                    let isSelected = i == tc.selTrack
+                    let bgAlpha: Double = isSelected ? 0.22
+                        : (track.type == .video ? 0.15 : 0.10)
 
                     ctx.fill(
                         Path(CGRect(x: 0, y: laneY, width: size.width, height: thisLaneH)),
-                        with: .color(color.opacity(track.type == .video ? 0.15 : 0.10))
+                        with: .color(color.opacity(bgAlpha))
                     )
+
                     for clip in track.clips {
                         guard clip.startSample >= 0, clip.lengthSamples > 0 else { continue }
-                        let clipFracStart = Double(clip.startSample)  / total
+                        let clipFracStart = Double(clip.startSample)   / total
                         let clipFracLen   = Double(clip.lengthSamples) / total
                         let x = CGFloat((clipFracStart - vStart) / vWindow) * size.width
                         let w = max(1, CGFloat(clipFracLen / vWindow) * size.width)
@@ -567,7 +687,6 @@ private struct SessionTimelineView: View {
                             Path(CGRect(x: x, y: laneY, width: w, height: thisLaneH)),
                             with: .color(color.opacity(0.82))
                         )
-                        // Clip name label inside clip when wide enough
                         if w > 32 {
                             let fontSize: CGFloat = track.type == .video ? 8 : 6
                             ctx.draw(
@@ -581,6 +700,29 @@ private struct SessionTimelineView: View {
                         }
                     }
                     laneY += thisLaneH + Self.laneGap
+                }
+
+                // Selection band or cursor line (drawn on top of clips)
+                if let sStart = tc.selStart {
+                    let sx = CGFloat((sStart - vStart) / vWindow) * size.width
+                    if let sEnd = tc.selEnd {
+                        let ex = CGFloat((sEnd - vStart) / vWindow) * size.width
+                        let x  = min(sx, ex)
+                        let w  = max(1, abs(ex - sx))
+                        ctx.fill(
+                            Path(CGRect(x: x, y: 0, width: w, height: availH)),
+                            with: .color(Color.accentColor.opacity(0.18))
+                        )
+                        ctx.fill(Path(CGRect(x: x,         y: 0, width: 1, height: availH)),
+                                 with: .color(Color.accentColor.opacity(0.7)))
+                        ctx.fill(Path(CGRect(x: x + w - 1, y: 0, width: 1, height: availH)),
+                                 with: .color(Color.accentColor.opacity(0.7)))
+                    } else if sx >= 0, sx <= size.width {
+                        ctx.fill(
+                            Path(CGRect(x: sx - 0.5, y: 0, width: 1, height: availH)),
+                            with: .color(.primary.opacity(0.75))
+                        )
+                    }
                 }
 
                 // Ruler
@@ -600,19 +742,20 @@ private struct SessionTimelineView: View {
                     )
                     let anchor: UnitPoint = i == 0 ? .topLeading : (i == steps ? .topTrailing : .top)
                     ctx.draw(
-                        Text(Self.formatTC(secs, fps: frameRate)).font(.system(size: 9).monospacedDigit()),
+                        Text(Self.formatTC(secs, fps: frameRate))
+                            .font(.system(size: 9).monospacedDigit()),
                         at: CGPoint(x: x, y: rulerY + 6),
                         anchor: anchor
                     )
                 }
 
-                // Hover hairline
+                // Hover hairline (on top of everything)
                 if let absFrac = hoverAbsFrac {
                     let hx = CGFloat((absFrac - vStart) / vWindow) * size.width
                     if hx >= 0, hx <= size.width {
                         ctx.fill(
                             Path(CGRect(x: hx, y: 0, width: 0.5, height: availH)),
-                            with: .color(.primary.opacity(0.45))
+                            with: .color(.primary.opacity(0.35))
                         )
                     }
                 }
@@ -620,93 +763,180 @@ private struct SessionTimelineView: View {
             .overlay(
                 GeometryReader { geo in
                     Color.clear
+                        .contentShape(Rectangle())
                         .onContinuousHover { phase in
                             switch phase {
                             case .active(let loc):
-                                zoom.isHovering = true
+                                tc.isHovering   = true
                                 let screenFrac  = Double(loc.x / geo.size.width).clamped(to: 0...1)
-                                let absFrac     = zoom.viewStart + screenFrac * zoom.window
+                                let absFrac     = tc.viewStart + screenFrac * tc.window
                                 hoverAbsFrac    = absFrac
-                                zoom.hoverAbsFrac = absFrac
-                                // Variable-height lane hit detection
-                                var found: Int? = nil
-                                var laneTop: CGFloat = 0
-                                let availableH = geo.size.height - Self.rulerH
-                                for (idx, trk) in tracks.enumerated() {
-                                    let h = scaledLaneH(trk)
-                                    if laneTop + h > availableH { break }
-                                    if loc.y >= laneTop && loc.y < laneTop + h { found = idx; break }
-                                    laneTop += h + Self.laneGap
-                                }
-                                hoverLane = found
+                                tc.hoverAbsFrac = absFrac
+                                hoverLane = laneIndex(at: loc.y,
+                                                      availH: geo.size.height - Self.rulerH)
                             case .ended:
-                                zoom.isHovering   = false
-                                zoom.hoverAbsFrac = nil
-                                hoverAbsFrac      = nil
-                                hoverLane         = nil
+                                tc.isHovering   = false
+                                tc.hoverAbsFrac = nil
+                                hoverAbsFrac    = nil
+                                hoverLane       = nil
                             }
                         }
-                        // Drag to pan
-                        .gesture(DragGesture(minimumDistance: 2)
-                            .onChanged { val in
-                                let origin = dragOrigin ?? (viewStart: zoom.viewStart, window: zoom.window)
-                                if dragOrigin == nil { dragOrigin = origin }
-                                let delta = -Double(val.translation.width / geo.size.width) * origin.window
-                                zoom.viewStart = (origin.viewStart + delta).clamped(to: 0...(1 - zoom.window))
-                            }
-                            .onEnded { _ in dragOrigin = nil }
+                        .gesture(
+                            DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                                .onChanged { val in
+                                    let dist = hypot(val.translation.width, val.translation.height)
+                                    tc.isFocused = true
+
+                                    // Below threshold: still deciding click vs drag
+                                    guard dist >= 3 else { return }
+
+                                    let curFrac: Double = (Double(val.location.x / geo.size.width)
+                                        * tc.window + tc.viewStart).clamped(to: 0...1)
+
+                                    if NSEvent.modifierFlags.contains(.option) {
+                                        // Option+drag → pan
+                                        if !isPanning {
+                                            isPanning = true
+                                            panOrigin = (tc.viewStart, tc.window)
+                                        }
+                                        if let o = panOrigin {
+                                            let delta = -Double(val.translation.width / geo.size.width) * o.window
+                                            tc.viewStart = (o.viewStart + delta).clamped(to: 0...(1 - tc.window))
+                                        }
+                                    } else {
+                                        // Drag → time selection
+                                        if !isDragging {
+                                            isDragging = true
+                                            let startFrac = (Double(val.startLocation.x / geo.size.width)
+                                                * tc.window + tc.viewStart).clamped(to: 0...1)
+                                            tc.selStart = startFrac
+                                            tc.selTrack = laneIndex(at: val.startLocation.y,
+                                                                     availH: geo.size.height - Self.rulerH)
+                                        }
+                                        tc.selEnd = curFrac
+                                    }
+                                }
+                                .onEnded { val in
+                                    let dist = hypot(val.translation.width, val.translation.height)
+                                    if dist < 3 {
+                                        // Click → place cursor
+                                        let frac = (Double(val.location.x / geo.size.width)
+                                            * tc.window + tc.viewStart).clamped(to: 0...1)
+                                        tc.selStart = frac
+                                        tc.selEnd   = nil
+                                        tc.selTrack = laneIndex(at: val.location.y,
+                                                                 availH: geo.size.height - Self.rulerH)
+                                        tc.isFocused = true
+                                    } else if isDragging {
+                                        // Normalize selection so start <= end
+                                        if let s = tc.selStart, let e = tc.selEnd, e < s {
+                                            let tmp = tc.selStart; tc.selStart = tc.selEnd; tc.selEnd = tmp
+                                        }
+                                    }
+                                    isDragging = false
+                                    isPanning  = false
+                                    panOrigin  = nil
+                                }
                         )
                 }
             )
 
-            // Fixed info strip below canvas
+            // Info strip
             HStack(spacing: 8) {
-                if let absFrac = hoverAbsFrac {
-                    let secs = absFrac * total / sr
-                    Text(Self.formatTC(secs, fps: frameRate))
-                        .foregroundStyle(.primary)
-                } else {
-                    Text("──:──:──:──")
-                        .foregroundStyle(.tertiary)
+                // Position: click to open TC entry; cursor/selection > hover
+                Button {
+                    tcEntryText = tc.selStart.map { Self.formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                    showTCEntry = true
+                } label: {
+                    Group {
+                        if let s = tc.selStart {
+                            if let e = tc.selEnd {
+                                let lo  = min(s, e)
+                                let dur = abs(e - s) * total / sr
+                                Text("\(Self.formatTC(lo * total / sr, fps: frameRate))  +\(Self.formatTC(dur, fps: frameRate))")
+                                    .foregroundStyle(.primary)
+                            } else {
+                                Text(Self.formatTC(s * total / sr, fps: frameRate))
+                                    .foregroundStyle(.primary)
+                            }
+                        } else if let absFrac = hoverAbsFrac {
+                            Text(Self.formatTC(absFrac * total / sr, fps: frameRate))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("──:──:──:──")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .help("Click to go to timecode")
+                .popover(isPresented: $showTCEntry, arrowEdge: .top) {
+                    TCEntryPopover(text: $tcEntryText) { text in
+                        if let frac = Self.parseTCFrac(text, fps: frameRate,
+                                                       total: total, sr: sr) {
+                            tc.jumpTo(frac)
+                        }
+                        showTCEntry = false
+                    }
                 }
 
                 Divider().frame(height: 10)
 
-                if let lane = hoverLane {
-                    let track = tracks[lane]
-                    let color = Self.trackColor(track, index: lane)
-                    Text(track.name)
-                        .foregroundStyle(color)
-                    Text("[\(track.channelFormat)]")
-                        .foregroundStyle(.secondary)
-                    // Show clip name under cursor
-                    if let absFrac = hoverAbsFrac {
-                        let hovSample = Int64(absFrac * total)
-                        if let clip = track.clips.first(where: {
-                            hovSample >= $0.startSample && hovSample < $0.startSample + $0.lengthSamples
-                        }) {
-                            Text("· \(clip.name)")
-                                .foregroundStyle(color)
+                // Track: selected track takes priority over hovered
+                Group {
+                    let displayIdx = tc.selTrack ?? hoverLane
+                    if let idx = displayIdx, idx < tracks.count {
+                        let track = tracks[idx]
+                        let color = Self.trackColor(track, index: idx)
+                        Text(track.name).foregroundStyle(color)
+                        Text("[\(track.channelFormat)]").foregroundStyle(.secondary)
+                        // Clip name under cursor (hover only, not shown for selection)
+                        if tc.selTrack == nil, let absFrac = hoverAbsFrac {
+                            let hovSample = Int64(absFrac * total)
+                            if let clip = track.clips.first(where: {
+                                hovSample >= $0.startSample
+                                    && hovSample < $0.startSample + $0.lengthSamples
+                            }) {
+                                Text("· \(clip.name)").foregroundStyle(color)
+                            }
                         }
+                    } else {
+                        Text("—").foregroundStyle(.tertiary)
                     }
-                } else {
-                    Text("—")
-                        .foregroundStyle(.tertiary)
                 }
 
                 Spacer()
 
-                if zoom.scale > 1.01 {
-                    Text("×\(String(format: "%.1f", zoom.scale))")
+                // Horizontal zoom controls
+                HStack(spacing: 4) {
+                    Text("H:")
                         .foregroundStyle(.secondary)
+                    Button { tc.zoomOut(anchor: hoverAbsFrac) } label: {
+                        Image(systemName: "minus")
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.mini)
+                    Text(tc.scale > 1.01 ? "×\(String(format: "%.1f", tc.scale))" : "Fit")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 34, alignment: .center)
+                    Button { tc.zoomIn(anchor: hoverAbsFrac) } label: {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.mini)
                 }
+                .foregroundStyle(.secondary)
             }
             .font(.caption.monospacedDigit())
             .padding(.horizontal, 2)
             .frame(height: 14)
         }
-        .onAppear  { zoom.startMonitoring() }
-        .onDisappear { zoom.stopMonitoring() }
+        .onAppear {
+            tc.tracks       = tracks
+            tc.totalSamples = total
+            tc.startMonitoring()
+        }
+        .onDisappear { tc.stopMonitoring() }
     }
 
     private static func formatTC(_ seconds: Double, fps: Double) -> String {
@@ -718,6 +948,54 @@ private struct SessionTimelineView: View {
         let min = (totalFrames / fr / 60) % 60
         let hr  = totalFrames / fr / 3600
         return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
+    }
+
+    /// Parses a timecode string (H:MM:SS:FF or subsets, or plain seconds) into
+    /// an absolute timeline fraction. Returns nil if unparseable.
+    static func parseTCFrac(_ text: String, fps: Double, total: Double, sr: Double) -> Double? {
+        let s = text.trimmingCharacters(in: .whitespaces)
+        guard !s.isEmpty else { return nil }
+        // Plain seconds
+        if let secs = Double(s) {
+            return (secs * sr / total).clamped(to: 0...1)
+        }
+        // H:MM:SS:FF or subsets
+        let parts = s.split(separator: ":", omittingEmptySubsequences: false)
+            .compactMap { Int($0) }
+        var h = 0, m = 0, sec = 0, f = 0
+        switch parts.count {
+        case 1:  sec = parts[0]
+        case 2:  m = parts[0]; sec = parts[1]
+        case 3:  h = parts[0]; m = parts[1]; sec = parts[2]
+        default: h = parts[0]; m = parts[1]; sec = parts[2]; f = parts[3]
+        }
+        let totalSecs = Double(h * 3600 + m * 60 + sec) + Double(f) / max(fps, 1)
+        return (totalSecs * sr / total).clamped(to: 0...1)
+    }
+}
+
+// MARK: - TC entry popover
+
+private struct TCEntryPopover: View {
+    @Binding var text: String
+    let onCommit: (String) -> Void
+
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            TextField("0:00:00:00", text: $text)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 11).monospacedDigit())
+                .frame(width: 90)
+                .focused($focused)
+                .onSubmit { onCommit(text) }
+            Button("Go") { onCommit(text) }
+                .controlSize(.small)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .onAppear { focused = true }
     }
 }
 
