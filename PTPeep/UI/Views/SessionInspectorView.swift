@@ -487,6 +487,10 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
             case "r":      self.zoomOut(anchor: anchor); return nil
             case "e", "E": self.zoomToSelection();       return nil
             case "\u{1b}": self.clearSelection();        return nil  // Escape
+            case "k":      self.prevTrack();             return nil
+            case ";":      self.nextTrack();             return nil
+            case "l":      self.nextClipStart();         return nil
+            case "p":      self.prevClipStart();         return nil
             case "\t":
                 if mods.contains(.option) { self.nextClipEnd()   }
                 else if mods.contains(.shift) { self.prevClipStart() }
@@ -539,41 +543,49 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         selStart = nil; selEnd = nil; selTrack = nil
     }
 
+    // MARK: Track navigation
+
+    func nextTrack() {
+        guard !tracks.isEmpty else { return }
+        selTrack = min(tracks.count - 1, (selTrack ?? -1) + 1)
+    }
+
+    func prevTrack() {
+        guard !tracks.isEmpty else { return }
+        selTrack = max(0, (selTrack ?? tracks.count) - 1)
+    }
+
     // MARK: Clip navigation
+    // Falls back to track 0 when no track is selected, so Tab/Shift+Tab
+    // work immediately without requiring a prior click.
 
     func nextClipStart() {
-        guard let idx = selTrack, idx < tracks.count else { return }
+        let idx = selTrack ?? 0
+        guard !tracks.isEmpty else { return }
         let cursor = selStart ?? 0
-        let starts = tracks[idx].clips
-            .map { Double($0.startSample) / totalSamples }
-            .filter { $0 > cursor + 1e-9 }
-            .sorted()
-        guard let next = starts.first else { return }
-        selStart = next; selEnd = nil
+        guard let next = TimelineNav.nextClipStart(tracks: tracks, total: totalSamples,
+                                                    trackIdx: idx, cursor: cursor) else { return }
+        selTrack = idx; selStart = next; selEnd = nil
         ensureVisible(next)
     }
 
     func prevClipStart() {
-        guard let idx = selTrack, idx < tracks.count else { return }
-        let cursor = selStart ?? 0
-        let starts = tracks[idx].clips
-            .map { Double($0.startSample) / totalSamples }
-            .filter { $0 < cursor - 1e-9 }
-            .sorted()
-        guard let prev = starts.last else { return }
-        selStart = prev; selEnd = nil
+        let idx = selTrack ?? 0
+        guard !tracks.isEmpty else { return }
+        let cursor = selStart ?? 1
+        guard let prev = TimelineNav.prevClipStart(tracks: tracks, total: totalSamples,
+                                                    trackIdx: idx, cursor: cursor) else { return }
+        selTrack = idx; selStart = prev; selEnd = nil
         ensureVisible(prev)
     }
 
     func nextClipEnd() {
-        guard let idx = selTrack, idx < tracks.count else { return }
+        let idx = selTrack ?? 0
+        guard !tracks.isEmpty else { return }
         let cursor = selStart ?? 0
-        let ends: [Double] = tracks[idx].clips
-            .map { clip -> Double in Double(clip.startSample + clip.lengthSamples) / totalSamples }
-            .filter { $0 > cursor + 1e-9 }
-            .sorted()
-        guard let next = ends.first else { return }
-        selStart = next; selEnd = nil
+        guard let next = TimelineNav.nextClipEnd(tracks: tracks, total: totalSamples,
+                                                  trackIdx: idx, cursor: cursor) else { return }
+        selTrack = idx; selStart = next; selEnd = nil
         ensureVisible(next)
     }
 
@@ -872,8 +884,8 @@ private struct SessionTimelineView: View {
                 .help("Click to go to timecode")
                 .popover(isPresented: $showTCEntry, arrowEdge: .top) {
                     TCEntryPopover(text: $tcEntryText) { text in
-                        if let frac = Self.parseTCFrac(text, fps: frameRate,
-                                                       total: total, sr: sr) {
+                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
+                                                              totalSamples: total, sampleRate: sr) {
                             tc.jumpTo(frac)
                         }
                         showTCEntry = false

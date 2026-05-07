@@ -10,6 +10,8 @@
 		1CF105CABB27B81EA9C40007 /* PTPeepApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D7312DDA765BE13DD13FA1 /* PTPeepApp.swift */; };
 		39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */; };
 		3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */; };
+		AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */; };
+		AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */; };
 		444F7D5A52DE9378417AB54D /* PreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */; };
 		64E4CC8FC4A8FCFE7063F524 /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
 		6D20E1B9888CCB8D7BE72499 /* PTXSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */; };
@@ -42,6 +44,7 @@
 		79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
 		7DE1A0204EA264D8B2859DC0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionInspectorView.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeep/UI/TimelineNav.swift; sourceTree = SOURCE_ROOT; };
 		927280E6749AFAE80FE9ABE2 /* PTPeepQL.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PTPeepQL.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B5C2EE3C4A771CD8663C679D /* PTPeep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PTPeep.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BEC0768540CA11F5F2EA46DF /* PTPeep.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PTPeep.entitlements; sourceTree = "<group>"; };
@@ -106,6 +109,14 @@
 				7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		AA11BB22CC33DD44EE55FF65 /* UI extra */ = {
+			isa = PBXGroup;
+			children = (
+				AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */,
+			);
+			path = PTPeep/UI;
 			sourceTree = "<group>";
 		};
 		E935EF30B038543166AFFF5F /* ProTools */ = {
@@ -214,6 +225,7 @@
 				F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */,
 				3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* PTXBlockDecoder.swift in Sources */,
+				AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -228,6 +240,7 @@
 				444F7D5A52DE9378417AB54D /* PreviewViewController.swift in Sources */,
 				39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */,
 				C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */,
+				AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
