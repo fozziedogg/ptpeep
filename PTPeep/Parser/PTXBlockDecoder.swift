@@ -86,9 +86,27 @@ final class PTXBlockDecoder {
         }
 
         var decoded = raw
-        for i in 0..<raw.count {
-            let idx = (fileType == 0x05) ? (i >> 12) & 0xff : i & 0xff
-            decoded[i] = raw[i] ^ table[idx]
+        // Use unsafe buffer pointer access (much faster than Data subscript for large files)
+        decoded.withUnsafeMutableBytes { outBuf in
+            raw.withUnsafeBytes { inBuf in
+                let out = outBuf.bindMemory(to: UInt8.self).baseAddress!
+                let inp = inBuf.bindMemory(to: UInt8.self).baseAddress!
+                let n = raw.count
+                if fileType == 0x05 {
+                    // PT 10+: XOR key changes every 4096 bytes.
+                    // First 4096 bytes use table[0]=0 (no-op), skip them.
+                    let chunkSize = 4096
+                    for chunk in stride(from: chunkSize, to: n, by: chunkSize) {
+                        let xorByte = table[(chunk >> 12) & 0xff]
+                        guard xorByte != 0 else { continue }
+                        let end = min(chunk + chunkSize, n)
+                        for i in chunk..<end { out[i] = inp[i] ^ xorByte }
+                    }
+                } else {
+                    // PT 5–9: table indexed per-byte (256-byte repeating pattern)
+                    for i in 0..<n { out[i] = inp[i] ^ table[i & 0xff] }
+                }
+            }
         }
         return decoded
     }
@@ -186,15 +204,28 @@ final class PTXBlockDecoder {
         // Validate hierarchy: only accept 0x2628 blocks that are contained within a 0x2629
         // parent block. The flat byte-by-byte scanner picks up false positives; containment
         // filtering eliminates them and keeps clip indices stable for the track→clip map.
+        // Sort parent ranges by start offset so each 0x2628 containment check is O(log n)
         let clipParentRanges: [(Int, Int)] = blocks
             .filter { $0.contentType == 0x2629 }
             .map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
+            .sorted { $0.0 < $1.0 }
+
+        func isContained(_ block: PTXBlock) -> Bool {
+            // Binary search for the last parent whose start <= block.dataOffset
+            var lo = 0, hi = clipParentRanges.count
+            while lo < hi {
+                let mid = (lo + hi) / 2
+                if clipParentRanges[mid].0 <= block.dataOffset { lo = mid + 1 } else { hi = mid }
+            }
+            // Check candidates: lo-1 (the last parent starting <= block)
+            let idx = lo - 1
+            guard idx >= 0 else { return false }
+            return block.dataOffset + block.dataSize <= clipParentRanges[idx].1
+        }
 
         var results = [ClipEntry]()
         for block in blocks where block.contentType == 0x2628 {
-            guard clipParentRanges.contains(where: {
-                block.dataOffset >= $0.0 && block.dataOffset + block.dataSize <= $0.1
-            }) else { continue }
+            guard isContained(block) else { continue }
             let pos = block.dataOffset
             guard let nl = safeU32(data, at: pos, be: bigEndian),
                   nl >= 1, nl <= 512,
@@ -433,6 +464,12 @@ final class PTXBlockDecoder {
         var channelCounts: [String: Int] = [:]
         var placementsByName: [String: [ClipPlacement]] = [:]
 
+        // Pre-sort 0x104f blocks by offset once (they're already in order but make it explicit).
+        // This allows O(log n) binary search per track section instead of O(n) linear filter.
+        let sortedRefs = blocks
+            .filter { $0.contentType == 0x104f && $0.dataSize >= 11 }
+            .sorted { $0.dataOffset < $1.dataOffset }
+
         for section in trackSections {
             // Read track name: [u32 nameLen][nameBytes]
             guard let nameLen = safeU32(data, at: section.dataOffset, be: false),
@@ -441,14 +478,21 @@ final class PTXBlockDecoder {
             let nameSlice = data[section.dataOffset + 4 ..< section.dataOffset + 4 + Int(nameLen)]
             guard let name = String(bytes: nameSlice, encoding: .utf8) else { continue }
 
-            // Collect placements from 0x104f blocks within this section
+            // Collect placements from 0x104f blocks within this section using binary search
             let sStart = section.dataOffset
             let sEnd   = section.dataOffset + section.dataSize
-            let refs = blocks.filter {
-                $0.contentType == 0x104f &&
-                $0.dataOffset >= sStart &&
-                $0.dataOffset + $0.dataSize <= sEnd &&
-                $0.dataSize >= 11
+            // Find first ref >= sStart
+            var lo = 0, hi = sortedRefs.count
+            while lo < hi {
+                let mid = (lo + hi) / 2
+                if sortedRefs[mid].dataOffset < sStart { lo = mid + 1 } else { hi = mid }
+            }
+            var refs: [PTXBlock] = []
+            var j = lo
+            while j < sortedRefs.count && sortedRefs[j].dataOffset >= sStart {
+                let r = sortedRefs[j]
+                if r.dataOffset + r.dataSize <= sEnd { refs.append(r) } else { break }
+                j += 1
             }
             let placements: [ClipPlacement] = refs.compactMap { ref in
                 let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))

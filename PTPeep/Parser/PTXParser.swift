@@ -106,7 +106,8 @@ final class PTXParser {
     private static func parseStrings(data: Data, session: inout PTXSession) {
         var seen = Set<String>()
         var i = 0x100   // skip header / memory-locations / path block
-        while i + 4 < data.count {
+        let scanLimit = min(data.count, 0x2000)  // track names live in first few KB; block decoder overrides anyway
+        while i + 4 < scanLimit {
             let slen = Int(data.loadLE(UInt32.self, at: i))
             guard slen >= 2, slen <= 200, i + 4 + slen <= data.count else {
                 i += 1
