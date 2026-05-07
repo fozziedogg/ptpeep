@@ -98,20 +98,18 @@ struct SessionInspectorView: View {
     // MARK: - Overview (Universe-style timeline)
 
     private var overviewSection: some View {
-        let hasHidden   = session.tracks.contains { $0.isHidden }
-        let hasInactive = session.tracks.contains { $0.isInactive }
+        // Only tracks that actually have clips matter for the overview.
+        // Toggles are shown only when there are hidden/inactive/video tracks
+        // with clips — a toggle that reveals nothing would be confusing.
+        let hasHidden   = session.tracks.contains { $0.isHidden   && !$0.clips.isEmpty }
+        let hasInactive = session.tracks.contains { $0.isInactive && !$0.clips.isEmpty }
         let hasVideo    = session.tracks.contains { $0.type == .video && !$0.clips.isEmpty }
         let clippedTracks = session.tracks
             .filter {
-                // Visibility toggles
-                (showHiddenTracks   || !$0.isHidden)
+                !$0.clips.isEmpty
+                && (showHiddenTracks   || !$0.isHidden)
                 && (showInactiveTracks || !$0.isInactive)
                 && (showVideoTrack     || $0.type != .video)
-                // Show tracks with clips; also show empty hidden/inactive tracks
-                // when their toggle is explicitly on so the toggle has visible effect
-                && (!$0.clips.isEmpty
-                    || (showHiddenTracks   && $0.isHidden)
-                    || (showInactiveTracks && $0.isInactive))
             }
             .sorted { a, b in
                 // Video tracks always float to the top
