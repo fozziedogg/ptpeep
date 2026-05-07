@@ -107,10 +107,9 @@ struct SessionInspectorView: View {
         let clippedTracks = session.tracks
             .filter {
                 !$0.clips.isEmpty
-                && (showHiddenTracks   || !$0.isHidden)
-                // Hidden tracks in PT are often also inactive; let showHiddenTracks
-                // bypass the inactive gate so they aren't double-filtered out.
-                && (showInactiveTracks || !$0.isInactive || (showHiddenTracks && $0.isHidden))
+                // Either toggle can reveal a track that is both hidden and inactive.
+                && (showHiddenTracks   || !$0.isHidden   || (showInactiveTracks && $0.isInactive))
+                && (showInactiveTracks || !$0.isInactive || (showHiddenTracks   && $0.isHidden))
                 && (showVideoTrack     || $0.type != .video)
             }
             .sorted { a, b in
