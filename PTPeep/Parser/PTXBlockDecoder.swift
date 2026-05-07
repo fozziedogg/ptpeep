@@ -272,26 +272,34 @@ final class PTXBlockDecoder {
 
     // MARK: Video Clips
     //
-    // Video clips use the same 0x2628 inner format as audio clips, but live inside
-    // 0x262d parent blocks (parallel to audio's 0x2629).
+    // Video timeline placements live in the 0x1055 container (parallel to audio's 0x1054),
+    // in 0x104f clip-reference blocks (same type as audio).
     //
-    // Key difference: the "start" field in the three-point section is the TIMELINE
-    // position in FRAMES (not source offset), and "length" is also in frames.
-    // Convert to samples: frames × (sampleRate / frameRate).
+    // Video 0x104f content layout (all offsets from block dataOffset):
+    //   [0]      size byte (0x10)
+    //   [1]      zero
+    //   [2]      zero
+    //   [3]      clip index (u8, into the video clip pool built from 0x262d→0x2628)
+    //   [4-6]    zeros
+    //   [7-10]   timeline position in FRAMES (LE32) — convert to samples via ×(sr/fps)
+    //   [11+]    further fields (ignored)
     //
-    // Returns PTXClip values with startSample and lengthSamples already in samples.
+    // The video clip pool (0x262d→0x2628) provides clip names and lengths (also in frames).
+    // Pool entries are ordered by file occurrence; clip index 0 = first pool entry, etc.
 
     static func extractVideoClips(blocks: [PTXBlock], data: Data, bigEndian: Bool,
                                    sampleRate: Int, frameRate: Int) -> [PTXClip] {
         guard sampleRate > 0, frameRate > 0 else { return [] }
         let samplesPerFrame = Int64(sampleRate) / Int64(frameRate)
 
+        // Build video clip pool: name + length (frames→samples) from 0x262d→0x2628.
+        // Do NOT deduplicate — pool index must match the clip index stored in 0x104f.
         let parentRanges: [(Int, Int)] = blocks
             .filter { $0.contentType == 0x262d }
             .map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
             .sorted { $0.0 < $1.0 }
 
-        func isContained(_ block: PTXBlock) -> Bool {
+        func isInVideoPool(_ block: PTXBlock) -> Bool {
             var lo = 0, hi = parentRanges.count
             while lo < hi {
                 let mid = (lo + hi) / 2
@@ -302,9 +310,11 @@ final class PTXBlockDecoder {
             return block.dataOffset + block.dataSize <= parentRanges[idx].1
         }
 
-        var results = [PTXClip]()
+        struct VideoPoolEntry { let name: String; let lengthSamples: Int64 }
+        var videoPool = [VideoPoolEntry]()
+
         for block in blocks where block.contentType == 0x2628 {
-            guard isContained(block) else { continue }
+            guard isInVideoPool(block) else { continue }
             let pos = block.dataOffset
             guard let nl = safeU32(data, at: pos, be: bigEndian),
                   nl >= 1, nl <= 512,
@@ -313,31 +323,65 @@ final class PTXBlockDecoder {
             guard nameSlice.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
                   let name = String(bytes: nameSlice, encoding: .utf8) else { continue }
 
+            var lengthSamples: Int64 = 0
             let tp = pos + 4 + Int(nl)
-            guard tp + 5 <= data.count else { continue }
+            if tp + 5 <= data.count {
+                let nSrcOff = Int((data[tp + 1] & 0xf0) >> 4)
+                let nLength = Int((data[tp + 2] & 0xf0) >> 4)
+                if nSrcOff <= 5, nLength <= 5, tp + 5 + nSrcOff + nLength <= data.count {
+                    let vp = tp + 5 + nSrcOff
+                    let lf = readLE(data, at: vp, count: nLength)
+                    if lf > 0, lf < 500_000_000 {
+                        lengthSamples = Int64(bitPattern: lf) * samplesPerFrame
+                    }
+                }
+            }
+            videoPool.append(VideoPoolEntry(name: name, lengthSamples: lengthSamples))
+        }
 
-            let nSrcOff = Int((data[tp + 1] & 0xf0) >> 4)
-            let nLength = Int((data[tp + 2] & 0xf0) >> 4)
-            let nStart  = Int((data[tp + 3] & 0xf0) >> 4)
-            guard nSrcOff <= 5, nLength <= 5, nStart <= 5,
-                  tp + 5 + nSrcOff + nLength + nStart <= data.count else { continue }
+        print("[PTXBlockDecoder] Video clip pool: \(videoPool.count) entries (first 5: \(videoPool.prefix(5).map(\.name)))")
 
-            var vp = tp + 5
-            vp += nSrcOff  // skip source offset (position within the video file)
-            let lengthFrames = readLE(data, at: vp, count: nLength); vp += nLength
-            let startFrames  = readLE(data, at: vp, count: nStart)
+        // Find the 0x1055 video playlist container and collect 0x104f timeline refs within it.
+        guard let container = blocks
+            .filter({ $0.contentType == 0x1055 })
+            .sorted(by: { $0.dataOffset < $1.dataOffset })
+            .first else { return [] }
 
-            guard lengthFrames > 0, lengthFrames < 500_000_000 else { continue }
+        let cStart = container.dataOffset
+        let cEnd   = container.dataOffset + container.dataSize
 
+        // All 0x104f refs pre-sorted; binary-search to the start of the 0x1055 range.
+        let sortedRefs = blocks
+            .filter { $0.contentType == 0x104f && $0.dataSize >= 11 }
+            .sorted { $0.dataOffset < $1.dataOffset }
+
+        var lo = 0, hi = sortedRefs.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if sortedRefs[mid].dataOffset < cStart { lo = mid + 1 } else { hi = mid }
+        }
+
+        var results = [PTXClip]()
+        var j = lo
+        while j < sortedRefs.count {
+            let ref = sortedRefs[j]; j += 1
+            guard ref.dataOffset < cEnd else { break }
+            guard ref.dataOffset + ref.dataSize <= cEnd else { continue }
+
+            // Clip index: single byte at offset+3.
+            // Timeline position: LE32 at offset+7, in frames.
+            let clipIdx       = Int(data[ref.dataOffset + 3])
+            let timelineFrames = Int64(u32(data, at: ref.dataOffset + 7, be: false))
+            guard timelineFrames > 0 else { continue }
+
+            let entry = clipIdx < videoPool.count ? videoPool[clipIdx] : nil
             results.append(PTXClip(
-                name: name,
-                startSample:    Int64(bitPattern: startFrames)  * samplesPerFrame,
-                lengthSamples:  Int64(bitPattern: lengthFrames) * samplesPerFrame
+                name:          entry?.name ?? "Video Clip \(clipIdx)",
+                startSample:   timelineFrames * samplesPerFrame,
+                lengthSamples: entry?.lengthSamples ?? 0
             ))
         }
-        // Deduplicate by start position (stereo/multichannel video has duplicate entries)
-        var seen = Set<Int64>()
-        return results.filter { seen.insert($0.startSample).inserted }
+        return results
     }
 
     // MARK: Track Names
