@@ -13,6 +13,7 @@ struct SessionInspectorView: View {
     @State private var showHiddenTracks:   Bool = false
     @State private var showInactiveTracks: Bool = false
     @State private var showVideoTrack:     Bool = true
+    @State private var verticalScale:      CGFloat = 1.0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -81,17 +82,29 @@ struct SessionInspectorView: View {
     private var sessionSetupSection: some View {
         InspectorSection(title: "Session Setup", systemImage: "info.circle") {
             let rows: [(String, String)] = [
-                ("Sample Rate",   session.sampleRate.isEmpty   ? "—" : "\(session.sampleRate) Hz"),
-                ("Bit Depth",     session.bitDepth.isEmpty     ? "—" : "\(session.bitDepth)-bit"),
-                ("Timecode",      session.tcFormat.isEmpty     ? "—" : session.tcFormat),
-                ("Session Start", session.sessionStart.isEmpty ? "—" : session.sessionStart),
+                ("Sample Rate",   session.sampleRate.isEmpty    ? "—" : "\(session.sampleRate) Hz"),
+                ("Bit Depth",     session.bitDepth.isEmpty      ? "—" : "\(session.bitDepth)-bit"),
+                ("Timecode",      session.tcFormat.isEmpty      ? "—" : session.tcFormat),
+                ("Start",         session.sessionStart.isEmpty  ? "—" : session.sessionStart),
                 ("Duration",      session.sessionLength.isEmpty ? "—" : session.sessionLength),
                 ("Tracks",        "\(session.tracks.count)"),
                 ("Audio Files",   "\(session.audioFileNames.count)"),
             ]
-            ForEach(rows, id: \.0) { label, value in
-                MetadataRow(label: label, value: value)
+            let cols = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+            LazyVGrid(columns: cols, alignment: .leading, spacing: 3) {
+                ForEach(rows, id: \.0) { label, value in
+                    HStack(spacing: 3) {
+                        Text(label + ":")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(value)
+                            .font(.caption.monospacedDigit())
+                            .lineLimit(1)
+                    }
+                }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 5)
         }
     }
 
@@ -113,17 +126,22 @@ struct SessionInspectorView: View {
                 && (showVideoTrack     || $0.type != .video)
             }
             .sorted { a, b in
-                // Video tracks always float to the top
-                if (a.type == .video) != (b.type == .video) { return a.type == .video }
-                return false
+                func rank(_ t: PTXTrack) -> Int {
+                    if t.type == .video            { return 0 }
+                    if t.isInactive && !t.isHidden { return 1 }
+                    if t.isHidden                  { return 2 }
+                    return 3
+                }
+                return rank(a) < rank(b)
             }
         let sr = Double(session.sampleRate) ?? 48000.0
+        let hasClips = !clippedTracks.isEmpty
         return InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
-            if hasHidden || hasInactive || hasVideo {
-                HStack(spacing: 16) {
+            if hasClips || hasHidden || hasInactive || hasVideo {
+                HStack(spacing: 12) {
                     if hasHidden {
                         Toggle(isOn: $showHiddenTracks) {
-                            Text("Show hidden tracks")
+                            Text("Show hidden")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -131,7 +149,7 @@ struct SessionInspectorView: View {
                     }
                     if hasInactive {
                         Toggle(isOn: $showInactiveTracks) {
-                            Text("Show inactive tracks")
+                            Text("Show inactive")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -139,11 +157,33 @@ struct SessionInspectorView: View {
                     }
                     if hasVideo {
                         Toggle(isOn: $showVideoTrack) {
-                            Text("Show video track")
+                            Text("Show video")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         .toggleStyle(.checkbox)
+                    }
+                    Spacer()
+                    if hasClips {
+                        HStack(spacing: 4) {
+                            Text("V:")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button(action: { verticalScale = max(0.5, verticalScale / 1.5) }) {
+                                Image(systemName: "minus")
+                            }
+                            .buttonStyle(.borderless)
+                            .controlSize(.mini)
+                            Text("\(Int(verticalScale * 100))%")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .frame(width: 34, alignment: .center)
+                            Button(action: { verticalScale = min(8, verticalScale * 1.5) }) {
+                                Image(systemName: "plus")
+                            }
+                            .buttonStyle(.borderless)
+                            .controlSize(.mini)
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
@@ -152,11 +192,13 @@ struct SessionInspectorView: View {
             if clippedTracks.isEmpty {
                 PlaceholderRow(text: "No clip position data — binary block decoder pending")
             } else {
-                // Video lanes are taller (16px stride) than audio (8px stride)
                 let videoCount = clippedTracks.filter { $0.type == .video }.count
                 let otherCount = min(clippedTracks.count - videoCount, 32)
-                let timelineH  = CGFloat(videoCount) * 18 + CGFloat(otherCount) * 10 + 46
-                SessionTimelineView(tracks: clippedTracks, sampleRate: sr, frameRate: session.frameRate)
+                let timelineH  = CGFloat(videoCount) * (16 * verticalScale + 2)
+                             + CGFloat(otherCount)  * (8  * verticalScale + 2)
+                             + 46
+                SessionTimelineView(tracks: clippedTracks, sampleRate: sr,
+                                    frameRate: session.frameRate, verticalScale: verticalScale)
                     .frame(height: timelineH)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
@@ -462,6 +504,7 @@ private struct SessionTimelineView: View {
     let tracks: [PTXTrack]
     let sampleRate: Double
     var frameRate: Double = 30
+    var verticalScale: CGFloat = 1.0
 
     @StateObject private var zoom = ZoomController()
     @State private var hoverAbsFrac: Double? = nil
@@ -479,6 +522,9 @@ private struct SessionTimelineView: View {
 
     private static func trackLaneH(_ track: PTXTrack) -> CGFloat {
         track.type == .video ? videoLaneH : audioLaneH
+    }
+    private func scaledLaneH(_ track: PTXTrack) -> CGFloat {
+        Self.trackLaneH(track) * verticalScale
     }
     private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
         track.type == .video ? videoColor : palette[index % palette.count]
@@ -502,7 +548,7 @@ private struct SessionTimelineView: View {
                 // Lanes + clips (variable height: video=16px, audio=8px)
                 var laneY: CGFloat = 0
                 for (i, track) in tracks.enumerated() {
-                    let thisLaneH = Self.trackLaneH(track)
+                    let thisLaneH = scaledLaneH(track)
                     guard laneY + thisLaneH <= availH else { break }
                     let color = Self.trackColor(track, index: i)
 
@@ -587,7 +633,7 @@ private struct SessionTimelineView: View {
                                 var laneTop: CGFloat = 0
                                 let availableH = geo.size.height - Self.rulerH
                                 for (idx, trk) in tracks.enumerated() {
-                                    let h = Self.trackLaneH(trk)
+                                    let h = scaledLaneH(trk)
                                     if laneTop + h > availableH { break }
                                     if loc.y >= laneTop && loc.y < laneTop + h { found = idx; break }
                                     laneTop += h + Self.laneGap
