@@ -11,6 +11,7 @@ struct SessionInspectorView: View {
 
     @State private var showHiddenTracks:   Bool = false
     @State private var showInactiveTracks: Bool = false
+    @State private var showVideoTrack:     Bool = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -88,14 +89,16 @@ struct SessionInspectorView: View {
     private var overviewSection: some View {
         let hasHidden   = session.tracks.contains { $0.isHidden }
         let hasInactive = session.tracks.contains { $0.isInactive }
+        let hasVideo    = session.tracks.contains { $0.type == .video && !$0.clips.isEmpty }
         let clippedTracks = session.tracks.filter {
             !$0.clips.isEmpty
             && (showHiddenTracks   || !$0.isHidden)
             && (showInactiveTracks || !$0.isInactive)
+            && (showVideoTrack     || $0.type != .video)
         }
         let sr = Double(session.sampleRate) ?? 48000.0
         return InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
-            if hasHidden || hasInactive {
+            if hasHidden || hasInactive || hasVideo {
                 HStack(spacing: 16) {
                     if hasHidden {
                         Toggle(isOn: $showHiddenTracks) {
@@ -113,6 +116,14 @@ struct SessionInspectorView: View {
                         }
                         .toggleStyle(.checkbox)
                     }
+                    if hasVideo {
+                        Toggle(isOn: $showVideoTrack) {
+                            Text("Show video track")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 6)
@@ -120,8 +131,12 @@ struct SessionInspectorView: View {
             if clippedTracks.isEmpty {
                 PlaceholderRow(text: "No clip position data — binary block decoder pending")
             } else {
+                // Video lanes are taller (16px stride) than audio (8px stride)
+                let videoCount = clippedTracks.filter { $0.type == .video }.count
+                let otherCount = min(clippedTracks.count - videoCount, 32)
+                let timelineH  = CGFloat(videoCount) * 18 + CGFloat(otherCount) * 10 + 46
                 SessionTimelineView(tracks: clippedTracks, sampleRate: sr, frameRate: session.frameRate)
-                    .frame(height: CGFloat(min(clippedTracks.count, 32)) * 10 + 46)
+                    .frame(height: timelineH)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
             }
@@ -432,13 +447,21 @@ private struct SessionTimelineView: View {
     @State private var hoverLane:    Int?    = nil
     @State private var dragOrigin:   (viewStart: Double, window: Double)? = nil
 
-    private static let palette:    [Color]  = [
+    private static let palette:     [Color]  = [
         .blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown
     ]
-    private static let laneH:      CGFloat = 8
-    private static let laneGap:    CGFloat = 2
-    private static let laneStride: CGFloat = laneH + laneGap
-    private static let rulerH:     CGFloat = 20
+    private static let videoColor:  Color    = Color(hue: 0.09, saturation: 0.95, brightness: 1.0)
+    private static let audioLaneH:  CGFloat  = 8
+    private static let videoLaneH:  CGFloat  = 16
+    private static let laneGap:     CGFloat  = 2
+    private static let rulerH:      CGFloat  = 20
+
+    private static func trackLaneH(_ track: PTXTrack) -> CGFloat {
+        track.type == .video ? videoLaneH : audioLaneH
+    }
+    private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
+        track.type == .video ? videoColor : palette[index % palette.count]
+    }
 
     var body: some View {
         let totalSamples = max(
@@ -455,15 +478,16 @@ private struct SessionTimelineView: View {
                 let vStart  = zoom.viewStart
                 let vWindow = zoom.window
 
-                // Lanes + clips
+                // Lanes + clips (variable height: video=16px, audio=8px)
+                var laneY: CGFloat = 0
                 for (i, track) in tracks.enumerated() {
-                    let y = CGFloat(i) * Self.laneStride
-                    guard y + Self.laneH <= availH else { break }
-                    let color = Self.palette[i % Self.palette.count]
+                    let thisLaneH = Self.trackLaneH(track)
+                    guard laneY + thisLaneH <= availH else { break }
+                    let color = Self.trackColor(track, index: i)
 
                     ctx.fill(
-                        Path(CGRect(x: 0, y: y, width: size.width, height: Self.laneH)),
-                        with: .color(color.opacity(0.10))
+                        Path(CGRect(x: 0, y: laneY, width: size.width, height: thisLaneH)),
+                        with: .color(color.opacity(track.type == .video ? 0.15 : 0.10))
                     )
                     for clip in track.clips {
                         guard clip.startSample >= 0, clip.lengthSamples > 0 else { continue }
@@ -473,10 +497,23 @@ private struct SessionTimelineView: View {
                         let w = max(1, CGFloat(clipFracLen / vWindow) * size.width)
                         guard x + w > 0, x < size.width else { continue }
                         ctx.fill(
-                            Path(CGRect(x: x, y: y, width: w, height: Self.laneH)),
-                            with: .color(color.opacity(0.80))
+                            Path(CGRect(x: x, y: laneY, width: w, height: thisLaneH)),
+                            with: .color(color.opacity(0.82))
                         )
+                        // Clip name label inside clip when wide enough
+                        if w > 32 {
+                            let fontSize: CGFloat = track.type == .video ? 8 : 6
+                            ctx.draw(
+                                Text(clip.name)
+                                    .font(.system(size: fontSize).bold())
+                                    .foregroundStyle(.white),
+                                in: CGRect(x: x + 3,
+                                           y: laneY + (thisLaneH - fontSize) / 2 - 1,
+                                           width: w - 6, height: fontSize + 2)
+                            )
+                        }
                     }
+                    laneY += thisLaneH + Self.laneGap
                 }
 
                 // Ruler
@@ -524,8 +561,17 @@ private struct SessionTimelineView: View {
                                 let absFrac     = zoom.viewStart + screenFrac * zoom.window
                                 hoverAbsFrac    = absFrac
                                 zoom.hoverAbsFrac = absFrac
-                                let lane = Int(loc.y / Self.laneStride)
-                                hoverLane = (lane >= 0 && lane < tracks.count) ? lane : nil
+                                // Variable-height lane hit detection
+                                var found: Int? = nil
+                                var laneTop: CGFloat = 0
+                                let availableH = geo.size.height - Self.rulerH
+                                for (idx, trk) in tracks.enumerated() {
+                                    let h = Self.trackLaneH(trk)
+                                    if laneTop + h > availableH { break }
+                                    if loc.y >= laneTop && loc.y < laneTop + h { found = idx; break }
+                                    laneTop += h + Self.laneGap
+                                }
+                                hoverLane = found
                             case .ended:
                                 zoom.isHovering   = false
                                 zoom.hoverAbsFrac = nil
@@ -561,10 +607,21 @@ private struct SessionTimelineView: View {
 
                 if let lane = hoverLane {
                     let track = tracks[lane]
+                    let color = Self.trackColor(track, index: lane)
                     Text(track.name)
-                        .foregroundStyle(Self.palette[lane % Self.palette.count])
+                        .foregroundStyle(color)
                     Text("[\(track.channelFormat)]")
                         .foregroundStyle(.secondary)
+                    // Show clip name under cursor
+                    if let absFrac = hoverAbsFrac {
+                        let hovSample = Int64(absFrac * total)
+                        if let clip = track.clips.first(where: {
+                            hovSample >= $0.startSample && hovSample < $0.startSample + $0.lengthSamples
+                        }) {
+                            Text("· \(clip.name)")
+                                .foregroundStyle(color)
+                        }
+                    }
                 } else {
                     Text("—")
                         .foregroundStyle(.tertiary)
