@@ -76,8 +76,12 @@ final class AppState: ObservableObject {
         panel.canChooseDirectories = false
         panel.prompt               = "Open"
         panel.message              = "Select a Pro Tools session file"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        Task { await open(url: url) }
+        // Use non-blocking begin() — runModal() blocks the main thread and
+        // causes the panel to become unresponsive when called from SwiftUI.
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { await self?.open(url: url) }
+        }
     }
 
     func open(url: URL) async {
