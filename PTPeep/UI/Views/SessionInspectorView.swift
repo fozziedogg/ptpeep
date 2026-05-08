@@ -141,26 +141,29 @@ struct SessionInspectorView: View {
                 PlaceholderRow(text: "No clip position data — binary block decoder pending")
             } else {
                 let videoCount  = clippedTracks.filter { $0.type == .video }.count
-                let otherCount  = min(clippedTracks.count - videoCount, 32)
+                let otherCount  = clippedTracks.count - videoCount
                 // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                 let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                + CGFloat(max(0, videoCount + otherCount - 1)) * 2
                 // overhead = top control row(24) + checkbox row(28, if shown) + ruler(20) + padding(8)
                 let overhead: CGFloat = (hasHidden || hasInactive || hasVideo) ? 80 : 52
-                // Auto-init height on first render: fit all tracks at scale 1
+                // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                 let effectiveH: CGFloat = {
                     if overviewHeight == 0 {
-                        let h = baseLanesH + overhead
+                        let h = min(baseLanesH + overhead, 300)
                         DispatchQueue.main.async { overviewHeight = h }
                         return h
                     }
                     return overviewHeight
                 }()
-                let vScale = baseLanesH > 0 ? (effectiveH - overhead) / baseLanesH : 1.0
+                // vScale: stretch to fill when few tracks; never compress (scroll handles overflow)
+                let scrollableH = effectiveH - overhead
+                let vScale = baseLanesH > 0 ? max(1.0, scrollableH / baseLanesH) : 1.0
 
                 SessionTimelineView(tracks: clippedTracks, sampleRate: sr,
                                     frameRate: session.frameRate,
-                                    verticalScale: max(0.2, vScale),
+                                    tcFormat:  session.tcFormat,
+                                    verticalScale: vScale,
                                     hasHidden:   hasHidden,
                                     hasInactive: hasInactive,
                                     hasVideo:    hasVideo,
@@ -496,9 +499,10 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
                 }
                 return nil
             } else {
-                // Plain scroll → pan horizontally
+                // Horizontal scroll → pan timeline; vertical → pass through to ScrollView
                 let dx = Double(event.scrollingDeltaX)
-                if abs(dx) > 0.1 {
+                let dy = Double(event.scrollingDeltaY)
+                if abs(dx) > abs(dy) && abs(dx) > 0.1 {
                     let delta = dx / 300.0 * self.window
                     self.viewStart = (self.viewStart + delta).clamped(to: 0...(1 - self.window))
                     return nil
@@ -695,6 +699,7 @@ private struct SessionTimelineView: View {
     let tracks: [PTXTrack]
     let sampleRate: Double
     var frameRate: Double = 30
+    var tcFormat:  String = ""
     var verticalScale: CGFloat = 1.0
 
     // Track filter toggles shown in the checkbox row
@@ -741,14 +746,24 @@ private struct SessionTimelineView: View {
         track.type == .video ? videoColor : palette[index % palette.count]
     }
 
-    /// Returns the track index at a given y position within the canvas lanes.
+    /// Total pixel height of all track lanes at current scale (no ruler).
+    private var totalLaneHeight: CGFloat {
+        var h: CGFloat = 0
+        for (i, t) in tracks.enumerated() {
+            h += scaledLaneH(t, index: i)
+            if i < tracks.count - 1 { h += Self.laneGap }
+        }
+        return max(h, 1)
+    }
+
+    /// Returns the track index at a given y position within the lane canvas.
     private func laneIndex(at y: CGFloat, availH: CGFloat) -> Int? {
         var top: CGFloat = 0
         for (i, track) in tracks.enumerated() {
             let h = scaledLaneH(track, index: i)
-            if top + h > availH { break }
             if y >= top && y < top + h { return i }
             top += h + Self.laneGap
+            if top > availH { break }
         }
         return nil
     }
@@ -810,8 +825,12 @@ private struct SessionTimelineView: View {
                     if let idx = displayIdx, idx < tracks.count {
                         let track = tracks[idx]
                         let color = Self.trackColor(track, index: idx)
+                        let fmtLabel: String = {
+                            guard track.type == .video else { return track.channelFormat }
+                            return tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)"
+                        }()
                         Text(track.name).foregroundStyle(color)
-                        Text("[\(track.channelFormat)]").foregroundStyle(.secondary)
+                        Text("[\(fmtLabel)]").foregroundStyle(.secondary)
                     } else {
                         Text("—").foregroundStyle(.tertiary)
                     }
@@ -890,11 +909,40 @@ private struct SessionTimelineView: View {
                 .padding(.vertical, 4)
             }
 
-            // ── Timeline canvas ───────────────────────────────────────────────
+            // ── Ruler (fixed, above scrollable lanes) ─────────────────────────
             Canvas { ctx, size in
-                let availH  = size.height - Self.rulerH
                 let vStart  = tc.viewStart
                 let vWindow = tc.window
+                ctx.fill(
+                    Path(CGRect(x: 0, y: 0, width: size.width, height: 0.5)),
+                    with: .color(.secondary.opacity(0.35))
+                )
+                let steps = 5
+                for i in 0...steps {
+                    let frac  = Double(i) / Double(steps)
+                    let x     = CGFloat(frac) * size.width
+                    let secs  = (vStart + frac * vWindow) * total / sr
+                    ctx.fill(
+                        Path(CGRect(x: x, y: 0, width: 0.5, height: 5)),
+                        with: .color(.secondary.opacity(0.5))
+                    )
+                    let anchor: UnitPoint = i == 0 ? .topLeading : (i == steps ? .topTrailing : .top)
+                    ctx.draw(
+                        Text(Self.formatTC(secs, fps: frameRate))
+                            .font(.system(size: 9).monospacedDigit()),
+                        at: CGPoint(x: x, y: 6),
+                        anchor: anchor
+                    )
+                }
+            }
+            .frame(height: Self.rulerH)
+
+            // ── Scrollable lane area ──────────────────────────────────────────
+            ScrollView(.vertical, showsIndicators: true) {
+              Canvas { ctx, size in
+                let vStart  = tc.viewStart
+                let vWindow = tc.window
+                let availH  = size.height
 
                 // Lanes + clips
                 let selLo = min(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
@@ -903,7 +951,6 @@ private struct SessionTimelineView: View {
                 var laneY: CGFloat = 0
                 for (i, track) in tracks.enumerated() {
                     let thisLaneH = scaledLaneH(track, index: i)
-                    guard laneY + thisLaneH <= availH else { break }
                     let color      = Self.trackColor(track, index: i)
                     let isSelected = selLo >= 0 && i >= selLo && i <= selHi
                     let bgAlpha: Double = isSelected ? 0.18 : 0.03
@@ -963,30 +1010,6 @@ private struct SessionTimelineView: View {
                     }
                 }
 
-                // Ruler
-                let rulerY = size.height - Self.rulerH
-                ctx.fill(
-                    Path(CGRect(x: 0, y: rulerY, width: size.width, height: 0.5)),
-                    with: .color(.secondary.opacity(0.35))
-                )
-                let steps = 5
-                for i in 0...steps {
-                    let frac  = Double(i) / Double(steps)
-                    let x     = CGFloat(frac) * size.width
-                    let secs  = (vStart + frac * vWindow) * total / sr
-                    ctx.fill(
-                        Path(CGRect(x: x, y: rulerY, width: 0.5, height: 5)),
-                        with: .color(.secondary.opacity(0.5))
-                    )
-                    let anchor: UnitPoint = i == 0 ? .topLeading : (i == steps ? .topTrailing : .top)
-                    ctx.draw(
-                        Text(Self.formatTC(secs, fps: frameRate))
-                            .font(.system(size: 9).monospacedDigit()),
-                        at: CGPoint(x: x, y: rulerY + 6),
-                        anchor: anchor
-                    )
-                }
-
                 // Hover hairline (on top of everything)
                 if let absFrac = hoverAbsFrac {
                     let hx = CGFloat((absFrac - vStart) / vWindow) * size.width
@@ -997,8 +1020,9 @@ private struct SessionTimelineView: View {
                         )
                     }
                 }
-            }
-            .overlay(
+              }
+              .frame(height: totalLaneHeight)
+              .overlay(
                 GeometryReader { geo in
                     Color.clear
                         .contentShape(Rectangle())
@@ -1010,8 +1034,7 @@ private struct SessionTimelineView: View {
                                 let absFrac     = tc.viewStart + screenFrac * tc.window
                                 hoverAbsFrac    = absFrac
                                 tc.hoverAbsFrac = absFrac
-                                hoverLane = laneIndex(at: loc.y,
-                                                      availH: geo.size.height - Self.rulerH)
+                                hoverLane = laneIndex(at: loc.y, availH: geo.size.height)
                             case .ended:
                                 tc.isHovering   = false
                                 tc.hoverAbsFrac = nil
@@ -1049,11 +1072,11 @@ private struct SessionTimelineView: View {
                                                 * tc.window + tc.viewStart).clamped(to: 0...1)
                                             tc.selStart = startFrac
                                             tc.selTrack = laneIndex(at: val.startLocation.y,
-                                                                     availH: geo.size.height - Self.rulerH)
+                                                                     availH: geo.size.height)
                                         }
                                         tc.selEnd = curFrac
                                         let curLane = laneIndex(at: val.location.y,
-                                                                 availH: geo.size.height - Self.rulerH)
+                                                                 availH: geo.size.height)
                                         tc.selTrackEnd = curLane != tc.selTrack ? curLane : nil
                                     }
                                 }
@@ -1066,7 +1089,7 @@ private struct SessionTimelineView: View {
                                         tc.selStart    = frac
                                         tc.selEnd      = nil
                                         tc.selTrack    = laneIndex(at: val.location.y,
-                                                                    availH: geo.size.height - Self.rulerH)
+                                                                    availH: geo.size.height)
                                         tc.selTrackEnd = nil
                                         tc.isFocused   = true
                                     } else if isDragging {
@@ -1081,7 +1104,8 @@ private struct SessionTimelineView: View {
                                 }
                         )
                 }
-            )
+              )
+            } // ScrollView
         }
         .onAppear {
             tc.tracks       = tracks

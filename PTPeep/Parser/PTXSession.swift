@@ -57,6 +57,7 @@ struct PTXTrack {
     var clips:        [PTXClip] = []
 
     var channelFormat: String {
+        if type == .video { return "Video" }
         switch channelCount {
         case 1:  return "Mono"
         case 2:  return "Stereo"

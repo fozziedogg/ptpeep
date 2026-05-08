@@ -16,7 +16,7 @@ struct PTPeepApp: App {
                 .onAppear { appDelegate.appState = appState }
                 .onOpenURL { url in
                     guard url.pathExtension.lowercased() == "ptx" else { return }
-                    Task { await appState.open(url: url) }
+                    appState.open(url: url)
                 }
         }
         .commands {
@@ -38,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func application(_ application: NSApplication, open urls: [URL]) {
         guard let url = urls.first(where: { $0.pathExtension.lowercased() == "ptx" }) else { return }
         bringWindowForward(application)
-        Task { await appState?.open(url: url) }
+        appState?.open(url: url)
     }
 
     // Clicking the Dock icon when all windows are closed reopens the main window.
@@ -68,6 +68,16 @@ final class AppState: ObservableObject {
     @Published var isLoading   = false
     @Published var errorText:  String?
 
+    private var openTask: Task<Void, Never>?
+
+    func close() {
+        openTask?.cancel()
+        openTask    = nil
+        session     = nil
+        sessionURL  = nil
+        isLoading   = false
+    }
+
     func showOpenPanel() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [UTType(filenameExtension: "ptx") ?? .data]
@@ -80,11 +90,16 @@ final class AppState: ObservableObject {
         // causes the panel to become unresponsive when called from SwiftUI.
         panel.begin { [weak self] response in
             guard response == .OK, let url = panel.url else { return }
-            Task { await self?.open(url: url) }
+            self?.open(url: url)
         }
     }
 
-    func open(url: URL) async {
+    func open(url: URL) {
+        openTask?.cancel()
+        openTask = Task { await _open(url: url) }
+    }
+
+    private func _open(url: URL) async {
         isLoading  = true
         errorText  = nil
         sessionURL = url
@@ -98,6 +113,8 @@ final class AppState: ObservableObject {
             isLoading = false
             return
         }
+
+        guard !Task.isCancelled else { isLoading = false; return }
 
         // Resolve audio files
         PTXParser.resolveAudioFiles(session: &parsed, sessionURL: url)
@@ -114,6 +131,9 @@ final class AppState: ObservableObject {
 
         // Augment with PTSL in background (no-op if PT not connected)
         await PTSLSessionInfo.shared.augment(session: &parsed)
+
+        // Discard PTSL result if this open was superseded by close or a newer open
+        guard !Task.isCancelled, sessionURL == url else { return }
         session = parsed
 
         // Write clip log for diagnostics
@@ -149,10 +169,7 @@ struct AppContentView: View {
                 session:          session,
                 sessionURL:       url,
                 onOpenInProTools: { appState.openInProTools() },
-                onClose: {
-                    appState.session    = nil
-                    appState.sessionURL = nil
-                }
+                onClose: { appState.close() }
             )
         } else if appState.isLoading {
             ProgressView("Parsing session…")
