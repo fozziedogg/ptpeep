@@ -234,18 +234,26 @@ final class PTXParser {
         // Use raw timeline positions (true zero = sample 0, no SMPTE offset subtracted).
         // TODO: add a "Offset to first clip" toggle in Settings.
 
-        // Assign clips to tracks
+        // Assign clips to tracks.
+        // Multiple 0x104f refs at the same timeline position arise from PT's comp system
+        // (loop recording / alternate takes). Filter zero-length placeholders; for
+        // genuine duplicates keep the LAST ref per position — in PT's comp workflow the
+        // most-recently-selected take is appended last in the 0x1052 section.
         for (i, tp) in trackPlaylists.enumerated() {
             guard i < session.tracks.count else { continue }
-            session.tracks[i].clips = tp.placements.map { p in
+            var byPos: [Int64: PTXClip] = [:]
+            for p in tp.placements {
                 let clipEntry = p.clipIdx < clips.count ? clips[p.clipIdx] : nil
-                return PTXClip(
+                let len = clipEntry?.lengthSamples ?? 0
+                guard len > 0 else { continue }   // skip zero-length placeholders
+                byPos[p.timelineSample] = PTXClip(
                     name: clipEntry?.name ?? "Clip \(p.clipIdx)",
                     startSample: p.timelineSample,
-                    lengthSamples: clipEntry?.lengthSamples ?? 0,
+                    lengthSamples: len,
                     sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
                 )
             }
+            session.tracks[i].clips = byPos.values.sorted { $0.startSample < $1.startSample }
         }
 
         // Video clips: extracted from 0x262d/0x2628 blocks with frame→sample conversion.
