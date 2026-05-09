@@ -19,19 +19,21 @@ struct PTXSession {
     var sessionLength: String = ""
     var plugins:      [String] = []
 
-    /// Nominal frame rate parsed from tcFormat. Defaults to 29.97 if unknown.
+    /// Exact frame rate for TC math. Pulldown rates use rational values so that
+    /// samples = nominalFrames × (sr / frameRate) works out to an exact integer.
+    /// e.g. 23.976fps @ 48kHz → 48000/(24000/1001) = 2002 samples/frame exactly.
     var frameRate: Double {
         let s = tcFormat.components(separatedBy: " ").first ?? tcFormat
         switch s {
-        case "23.976", "23.98": return 24        // count 24 frames per second
+        case "23.976", "23.98": return 24000.0 / 1001.0   // 2002 samp/frame @ 48kHz
         case "24":              return 24
         case "25":              return 25
-        case "29.97":           return 30         // count 30 frames per second (DF/NDF)
+        case "29.97":           return 30000.0 / 1001.0   // 1601.6 samp/frame @ 48kHz (DF/NDF)
         case "30":              return 30
-        case "47.95", "47.952": return 48
+        case "47.95", "47.952": return 48000.0 / 1001.0
         case "48":              return 48
         case "50":              return 50
-        case "59.94":           return 60
+        case "59.94":           return 60000.0 / 1001.0
         case "60":              return 60
         default:                return 30
         }

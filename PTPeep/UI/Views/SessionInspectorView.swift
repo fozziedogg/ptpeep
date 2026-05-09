@@ -538,6 +538,13 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
                 }
                 return nil
             case "\u{1b}": self.clearSelection();        return nil  // Escape
+            case "\u{f729}":                                        // Home → go to start
+                self.selStart = 0.0; self.selEnd = nil; self.viewStart = 0.0
+                return nil
+            case "\u{f72b}":                                        // End → go to end
+                self.selStart = 1.0; self.selEnd = nil
+                let w = self.window; self.viewStart = (1.0 - w).clamped(to: 0...1)
+                return nil
             case "p":      self.prevTrack();             return nil
             case ";":      self.nextTrack();             return nil
             case "l":      self.prevBoundary();          return nil
@@ -1138,7 +1145,10 @@ private struct SessionTimelineView: View {
         if let secs = Double(s) {
             return (secs * sr / total).clamped(to: 0...1)
         }
-        // H:MM:SS:FF or subsets
+        // H:MM:SS:FF or subsets — convert via nominal frame count so pulldown rates are exact.
+        // fps may be rational (e.g. 24000/1001 for 23.976fps); nomFPS is the integer count (24).
+        // samples = nominalFrames × (sr / fps)  →  48000/(24000/1001) = 2002 samp/frame ✓
+        let nomFPS = fps.rounded()
         let parts = s.split(separator: ":", omittingEmptySubsequences: false)
             .compactMap { Int($0) }
         var h = 0, m = 0, sec = 0, f = 0
@@ -1148,8 +1158,8 @@ private struct SessionTimelineView: View {
         case 3:  h = parts[0]; m = parts[1]; sec = parts[2]
         default: h = parts[0]; m = parts[1]; sec = parts[2]; f = parts[3]
         }
-        let totalSecs = Double(h * 3600 + m * 60 + sec) + Double(f) / max(fps, 1)
-        return (totalSecs * sr / total).clamped(to: 0...1)
+        let frames = Double(h) * 3600 * nomFPS + Double(m) * 60 * nomFPS + Double(sec) * nomFPS + Double(f)
+        return (frames * sr / fps / total).clamped(to: 0...1)
     }
 }
 

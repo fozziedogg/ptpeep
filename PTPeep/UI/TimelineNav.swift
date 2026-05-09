@@ -77,6 +77,15 @@ enum TimelineNav {
         let s = text.trimmingCharacters(in: .whitespaces)
         guard !s.isEmpty, totalSamples > 0, sampleRate > 0 else { return nil }
 
+        // Converts TC components → sample position using nominal frame count.
+        // For pulldown rates (23.976, 29.97) fps is exact rational (e.g. 24000/1001),
+        // so sampleRate/fps = exact samples-per-nominal-frame (e.g. 2002 at 48kHz).
+        let nomFPS = fps.rounded()  // 24 for 23.976fps, 30 for 29.97fps, etc.
+        func tcToFrac(h: Int, m: Int, sec: Int, f: Int) -> Double {
+            let frames = Double(h) * 3600 * nomFPS + Double(m) * 60 * nomFPS + Double(sec) * nomFPS + Double(f)
+            return clamp(frames * sampleRate / fps / totalSamples)
+        }
+
         // All-digit string with 4+ digits: right-align into HHMMSSFF
         // e.g. "01123714" → 01:12:37:14,  "123714" → 00:12:37:14
         if s.count >= 4, s.allSatisfy({ $0.isNumber }) {
@@ -86,8 +95,7 @@ enum TimelineNav {
             let m   = Int(padded.dropFirst(2).prefix(2)) ?? 0
             let sec = Int(padded.dropFirst(4).prefix(2)) ?? 0
             let f   = Int(padded.dropFirst(6).prefix(2)) ?? 0
-            let totalSecs = Double(h * 3600 + m * 60 + sec) + Double(f) / max(fps, 1)
-            return clamp(totalSecs * sampleRate / totalSamples)
+            return tcToFrac(h: h, m: m, sec: sec, f: f)
         }
 
         // Plain seconds (1–3 digit strings or decimal)
@@ -107,8 +115,7 @@ enum TimelineNav {
         case 3:  h = parts[0];  m = parts[1]; sec = parts[2]
         default: h = parts[0];  m = parts[1]; sec = parts[2]; f = parts[3]
         }
-        let totalSecs = Double(h * 3600 + m * 60 + sec) + Double(f) / max(fps, 1)
-        return clamp(totalSecs * sampleRate / totalSamples)
+        return tcToFrac(h: h, m: m, sec: sec, f: f)
     }
 
     // MARK: Private
