@@ -584,6 +584,26 @@ final class PTXBlockDecoder {
         var channelCounts: [String: Int] = [:]
         var placementsByName: [String: [ClipPlacement]] = [:]
 
+        // Build sorted 0x1050 parent ranges within the container.
+        // Every real 0x104f lives inside a 0x1050 clip-placement wrapper; any 0x104f block
+        // found by the flat scanner that is NOT inside a 0x1050 is a false positive produced
+        // by the scanner reading block-like bytes within data payloads.
+        let sorted1050 = blocks
+            .filter { $0.contentType == 0x1050 && $0.dataOffset >= cStart && $0.dataOffset + $0.dataSize <= cEnd }
+            .sorted { $0.dataOffset < $1.dataOffset }
+        let ranges1050 = sorted1050.map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
+
+        func isIn1050(_ ref: PTXBlock) -> Bool {
+            var lo = 0, hi = ranges1050.count
+            while lo < hi {
+                let mid = (lo + hi) / 2
+                if ranges1050[mid].0 <= ref.dataOffset { lo = mid + 1 } else { hi = mid }
+            }
+            let idx = lo - 1
+            guard idx >= 0 else { return false }
+            return ref.dataOffset + ref.dataSize <= ranges1050[idx].1
+        }
+
         // Pre-sort 0x104f blocks by offset once (they're already in order but make it explicit).
         // This allows O(log n) binary search per track section instead of O(n) linear filter.
         let sortedRefs = blocks
@@ -615,24 +635,27 @@ final class PTXBlockDecoder {
                 j += 1
             }
             let placements: [ClipPlacement] = refs.compactMap { ref in
+                guard isIn1050(ref) else { return nil }   // reject scanner false positives
                 let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
                 let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
                 guard timeline > 0 else { return nil }
                 return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0)
             }
 
-            // Merge channels: first occurrence defines the track, duplicates add to channel count
-            // Use the first channel's placements (L channel); all channels share the same positions
+            // Only the FIRST 0x1052 section for each track name is the active playlist.
+            // Subsequent sections are alternate playlists (created during loop recording /
+            // comping) — they share the same track name but contain different clip sets.
+            // Including their "novel" positions would produce ghost clips (positions that
+            // exist in alternates but not on the active timeline).
+            // For stereo tracks the R-channel section follows L and has the same positions,
+            // so skipping it is also correct (no information lost).
             if channelCounts[name] == nil {
                 nameOrder.append(name)
                 placementsByName[name] = placements
                 channelCounts[name] = 1
             } else {
                 channelCounts[name]! += 1
-                // Merge any placements not already present (by timeline position)
-                let existingPositions = Set(placementsByName[name]!.map(\.timelineSample))
-                let novel = placements.filter { !existingPositions.contains($0.timelineSample) }
-                placementsByName[name]!.append(contentsOf: novel)
+                // Ignore subsequent sections — do not add novel positions from alternates.
             }
         }
 
