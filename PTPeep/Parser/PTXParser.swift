@@ -160,8 +160,8 @@ final class PTXParser {
         if params.bitDepth > 0 && session.bitDepth.isEmpty {
             session.bitDepth = "\(params.bitDepth)"
         }
-        if params.tcFrameRate > 0 && session.tcFormat.isEmpty {
-            session.tcFormat = "\(params.tcFrameRate)"
+        if !params.tcFormatString.isEmpty && session.tcFormat.isEmpty {
+            session.tcFormat = params.tcFormatString
         }
         if session.sessionStart.isEmpty {
             let fps = params.tcFrameRate > 0 ? Int64(params.tcFrameRate) : 30

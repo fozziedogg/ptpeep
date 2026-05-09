@@ -669,7 +669,8 @@ final class PTXBlockDecoder {
     struct SessionParams {
         var sampleRate:   Int    = 0     // e.g. 48000
         var bitDepth:     Int    = 0     // e.g. 24
-        var tcFrameRate:  Int    = 0     // e.g. 24 (frames per second, integer)
+        var tcFrameRate:  Int    = 0     // nominal fps integer (24 for 23.976, 30 for 29.97)
+        var tcFormatString: String = "" // human-readable TC format, e.g. "23.976", "29.97 DF"
         var sessionStartFrames: Int64 = 0  // session start time in frames
     }
 
@@ -699,14 +700,22 @@ final class PTXBlockDecoder {
                       pos + 4 + Int(len) <= b.dataOffset + b.dataSize else { break }
                 pos += 4 + Int(len)
             }
-            // Tail: 5 zeros + 3 bytes + 1 byte flag + 1 byte TC rate + 4 bytes session start
-            let tcOff = pos + 5 + 3 + 1   // skip 5 zeros, 02 02 00, and 01 flag
-            let startOff = tcOff + 1
+            // Tail: 5 zeros + 3 bytes (02 02 00) + 1 byte TC enum + 1 byte nominal fps + 4 bytes session start
+            // TC enum: 0=23.976, 1=24, 2=25, 3=29.97DF, 4=29.97NDF, 5=30DF, 6=30NDF,
+            //          7=47.952, 8=48, 9=50, 10=59.94DF, 11=59.94NDF, 12=60
+            let enumOff  = pos + 5 + 3          // skip 5 zeros and 02 02 00
+            let nomOff   = enumOff + 1           // nominal fps raw int (24, 25, 30 …)
+            let startOff = enumOff + 2           // session start in frames LE32
             guard startOff + 4 <= b.dataOffset + b.dataSize else { return params }
-            let fps = Int(data[tcOff])
-            let startFrames = Int64(u32(data, at: startOff, be: false))
-            if fps >= 23 && fps <= 60 { params.tcFrameRate = fps }
-            params.sessionStartFrames = startFrames
+            let tcEnum = Int(data[enumOff])
+            let nomFps = Int(data[nomOff])
+            let tcFormats = ["23.976","24","25","29.97 DF","29.97","30 DF","30",
+                             "47.952","48","50","59.94 DF","59.94","60"]
+            if tcEnum >= 0 && tcEnum < tcFormats.count {
+                params.tcFormatString = tcFormats[tcEnum]
+            }
+            if nomFps >= 23 && nomFps <= 60 { params.tcFrameRate = nomFps }
+            params.sessionStartFrames = Int64(u32(data, at: startOff, be: false))
         }
 
         return params
