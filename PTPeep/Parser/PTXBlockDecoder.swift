@@ -189,43 +189,50 @@ final class PTXBlockDecoder {
     //     [+5+nStart+nSrcOff ...] length (big-endian, nLength bytes)
     //   File index: last 4 bytes of block content
 
-    static func extractClips(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [ClipEntry] {
-        // Use 0x2628 blocks — the inner content blocks found directly by the flat scanner.
-        // Format: [u32 nameLen][name]
+    static func extractClips(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [ClipEntry?] {
+        // Each 0x2629 block is a clip-pool container; its ordinal position (sorted by file offset)
+        // is the clipIdx referenced in 0x104f playlist entries.  We must preserve that mapping
+        // exactly — do NOT build a compact array by skipping entries, or every subsequent clipIdx
+        // will point to the wrong name.
+        //
+        // Strategy: sort the 0x2629 parents, assign each an index, then for every 0x2628 child
+        // found within a parent, store the parsed ClipEntry at that parent's index.  The result
+        // is a sparse [ClipEntry?] where nil means "no valid clip at this pool position".
+        //
+        // 0x2628 block format: [u32 nameLen][name bytes]
         //   Three-point section immediately after name:
         //     [+0] leading byte
         //     [+1] HIGH nibble = byte count for sourceOffset (0 = value is zero)
         //     [+2] HIGH nibble = byte count for length
-        //     [+3] HIGH nibble = byte count for start (timeline position)
+        //     [+3] HIGH nibble = byte count for start (source start position)
         //     [+4] skip
         //     [+5..] sourceOffset (LE), length (LE), start (LE)
         //   File index: u16 LE at last 2 bytes of block content
-        //
-        // Validate hierarchy: only accept 0x2628 blocks that are contained within a 0x2629
-        // parent block. The flat byte-by-byte scanner picks up false positives; containment
-        // filtering eliminates them and keeps clip indices stable for the track→clip map.
-        // Sort parent ranges by start offset so each 0x2628 containment check is O(log n)
-        let clipParentRanges: [(Int, Int)] = blocks
-            .filter { $0.contentType == 0x2629 }
-            .map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
-            .sorted { $0.0 < $1.0 }
 
-        func isContained(_ block: PTXBlock) -> Bool {
-            // Binary search for the last parent whose start <= block.dataOffset
-            var lo = 0, hi = clipParentRanges.count
+        // Sort 0x2629 parents by position — index in this array == clipIdx
+        let parentBlocks = blocks
+            .filter { $0.contentType == 0x2629 }
+            .sorted { $0.dataOffset < $1.dataOffset }
+        let parentRanges = parentBlocks.map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
+
+        // Binary search: which parent (by index) contains a given 0x2628 block?
+        func parentIndex(of block: PTXBlock) -> Int? {
+            var lo = 0, hi = parentRanges.count
             while lo < hi {
                 let mid = (lo + hi) / 2
-                if clipParentRanges[mid].0 <= block.dataOffset { lo = mid + 1 } else { hi = mid }
+                if parentRanges[mid].0 <= block.dataOffset { lo = mid + 1 } else { hi = mid }
             }
-            // Check candidates: lo-1 (the last parent starting <= block)
             let idx = lo - 1
-            guard idx >= 0 else { return false }
-            return block.dataOffset + block.dataSize <= clipParentRanges[idx].1
+            guard idx >= 0 else { return nil }
+            return block.dataOffset + block.dataSize <= parentRanges[idx].1 ? idx : nil
         }
 
-        var results = [ClipEntry]()
+        var poolByIndex: [Int: ClipEntry] = [:]
+
         for block in blocks where block.contentType == 0x2628 {
-            guard isContained(block) else { continue }
+            guard let pIdx = parentIndex(of: block) else { continue }
+            guard poolByIndex[pIdx] == nil else { continue }   // first child per parent wins
+
             let pos = block.dataOffset
             guard let nl = safeU32(data, at: pos, be: bigEndian),
                   nl >= 1, nl <= 512,
@@ -255,19 +262,18 @@ final class PTXBlockDecoder {
                 ? Int(u16(data, at: block.dataOffset + block.dataSize - 2, be: false))
                 : 0
 
-            // Timeline position comes from the playlist (0x104f), not the clip bin.
-            // Only filter on length — zero-length and implausibly large are invalid.
-            guard lengthVal > 0, lengthVal < 10_000_000_000 else { continue }
+            guard lengthVal < 10_000_000_000 else { continue }
 
-            results.append(ClipEntry(
+            poolByIndex[pIdx] = ClipEntry(
                 name: name,
                 startSample: Int64(bitPattern: startVal),
                 sourceOffset: Int64(bitPattern: srcOff),
                 lengthSamples: Int64(bitPattern: lengthVal),
                 audioFileIndex: fileIdx
-            ))
+            )
         }
-        return results
+
+        return (0..<parentBlocks.count).map { poolByIndex[$0] }
     }
 
     // MARK: Video Clips

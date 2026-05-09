@@ -180,7 +180,8 @@ final class PTXParser {
 
         // Clip pool: name + duration from the clip bin (0x2628 blocks)
         let clips = PTXBlockDecoder.extractClips(blocks: blocks, data: decoded, bigEndian: bigEndian)
-        print("[PTXParser] Clip pool: \(clips.count) entries (first 3: \(clips.prefix(3).map { "\($0.name) len=\($0.lengthSamples)" }))")
+        let validCount = clips.compactMap { $0 }.count
+        print("[PTXParser] Clip pool: \(clips.count) slots, \(validCount) valid (first 3: \(clips.prefix(3).compactMap { $0.map { "\($0.name) len=\($0.lengthSamples)" } }))")
 
         // Track display info (hidden + folder membership) from the 0x2519 display list block
         let displayInfo = PTXBlockDecoder.extractTrackDisplayInfo(blocks: blocks, data: decoded, bigEndian: bigEndian)
