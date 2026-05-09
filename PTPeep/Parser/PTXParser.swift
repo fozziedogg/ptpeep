@@ -240,21 +240,14 @@ final class PTXParser {
         // genuine duplicates keep the LAST ref per position — in PT's comp workflow the
         // most-recently-selected take is appended last in the 0x1052 section.
         //
-        // Fade handles (isFade==true) are tail regions that Pro Tools appends when a clip
-        // has a fade-out. They are NOT shown as separate clips — instead we extend the
-        // preceding real clip's length to cover the fade handle's range, so the clip rect
-        // in the overview includes its fade tail.
+        // byte15==0x03 placements (isFade) are filtered out entirely — they are ghost
+        // regions whose pool entries point to full-length source files, not short fades,
+        // so extending clips by their length produced multi-minute visual artefacts.
         for (i, tp) in trackPlaylists.enumerated() {
             guard i < session.tracks.count else { continue }
 
-            // Separate real clips and fade handles while preserving file order.
-            // PT appends the most-recently-selected comp take last in the 0x1052 section,
-            // so file order (not timeline order) determines which take "wins" for a position.
-            let realPlacements = tp.placements.filter { !$0.isFade }
-            let fadePlacements = tp.placements.filter {  $0.isFade }
-
             var byPos: [Int64: PTXClip] = [:]
-            for p in realPlacements {
+            for p in tp.placements where !p.isFade {
                 // Group placements reference the compound pool (0x262b), not the audio pool (0x2629).
                 // Use groupLength/groupName directly; for audio placements fall back to the audio pool.
                 let clipEntry = !p.isGroup && p.clipIdx < clips.count ? clips[p.clipIdx] : nil
@@ -268,26 +261,6 @@ final class PTXParser {
                     lengthSamples: len,
                     sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
                 )
-            }
-
-            // Extend preceding real clip to cover each fade handle.
-            for fade in fadePlacements {
-                let fadeEntry = fade.clipIdx < clips.count ? clips[fade.clipIdx] : nil
-                let fadeLen = fadeEntry?.lengthSamples ?? 0
-                guard fadeLen > 0 else { continue }
-                let fadeEnd = fade.timelineSample + fadeLen
-                // Find the real clip that ends nearest to (and before) the fade start.
-                let precedingStart = byPos.keys.filter { $0 <= fade.timelineSample }.max()
-                if let ps = precedingStart, var clip = byPos[ps] {
-                    let naturalEnd = clip.startSample + clip.lengthSamples
-                    if fadeEnd > naturalEnd {
-                        clip = PTXClip(name: clip.name,
-                                       startSample: clip.startSample,
-                                       lengthSamples: fadeEnd - clip.startSample,
-                                       sourceFile: clip.sourceFile)
-                        byPos[ps] = clip
-                    }
-                }
             }
 
             session.tracks[i].clips = byPos.values.sorted { $0.startSample < $1.startSample }
