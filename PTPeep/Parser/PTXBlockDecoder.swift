@@ -52,7 +52,10 @@ struct ClipPlacement {
     let clipIdx: Int        // index into the ClipEntry list (u16 at 0x104f offset+2)
     let timelineSample: Int64   // actual position on timeline (u32 at 0x104f offset+7)
     let trackHint: Int      // raw value from 0x104f that may indicate track (TBD)
-    var isFade: Bool = false  // true if this is a fade handle (extends preceding clip)
+    var isFade: Bool = false      // true if this is a fade handle (extends preceding clip)
+    var isGroup: Bool = false    // true if this is a clip group placement
+    var groupName: String? = nil // compound clip name ("1 src.grp.L") when isGroup==true
+    var groupLength: Int64? = nil // compound clip length in samples when isGroup==true
 }
 
 struct TrackEntry {
@@ -554,8 +557,62 @@ final class PTXBlockDecoder {
         return info
     }
 
+    /// Builds the compound clip pool from 0x262b parent blocks and their 0x2628 children.
+    /// 0x262b blocks are the compound/group clip pool parents (analogous to 0x2629 for audio).
+    /// Each 0x2628 child uses the same encoding as audio clip entries.
+    /// Returns sparse array indexed by file-order position of the 0x262b parent.
+    static func extractCompoundClips(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [(name: String, lengthSamples: Int64)?] {
+        let parentBlocks = blocks
+            .filter { $0.contentType == 0x262b }
+            .sorted { $0.dataOffset < $1.dataOffset }
+        let parentRanges = parentBlocks.map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
+
+        func parentIndex(of block: PTXBlock) -> Int? {
+            var lo = 0, hi = parentRanges.count
+            while lo < hi {
+                let mid = (lo + hi) / 2
+                if parentRanges[mid].0 <= block.dataOffset { lo = mid + 1 } else { hi = mid }
+            }
+            let idx = lo - 1
+            guard idx >= 0, block.dataOffset + block.dataSize <= parentRanges[idx].1 else { return nil }
+            return idx
+        }
+
+        var poolByIndex: [Int: (name: String, lengthSamples: Int64)] = [:]
+        for block in blocks where block.contentType == 0x2628 {
+            guard let pIdx = parentIndex(of: block) else { continue }
+            guard poolByIndex[pIdx] == nil else { continue }
+
+            let pos = block.dataOffset
+            guard let nl = safeU32(data, at: pos, be: bigEndian),
+                  nl >= 1, nl <= 512,
+                  pos + 4 + Int(nl) <= data.count else { continue }
+            guard let name = String(bytes: data[pos+4 ..< pos+4+Int(nl)], encoding: .utf8) else { continue }
+
+            let tp = pos + 4 + Int(nl)
+            guard tp + 5 <= data.count else { continue }
+            let nLength = Int((data[tp + 2] & 0xf0) >> 4)
+            let nSrcOff = Int((data[tp + 1] & 0xf0) >> 4)
+            let nStart  = Int((data[tp + 3] & 0xf0) >> 4)
+            guard nSrcOff <= 5, nLength <= 5, nStart <= 5,
+                  tp + 5 + nSrcOff + nLength + nStart <= data.count else { continue }
+            var vp = tp + 5
+            vp += nSrcOff  // skip sourceOffset
+            let lengthVal = readLE(data, at: vp, count: nLength)
+            guard lengthVal > 0, lengthVal < 10_000_000_000 else { continue }
+
+            poolByIndex[pIdx] = (name: name, lengthSamples: Int64(bitPattern: lengthVal))
+        }
+
+        return (0..<parentBlocks.count).map { poolByIndex[$0] }
+    }
+
     static func buildTrackPlaylists(blocks: [PTXBlock], data: Data, bigEndian: Bool,
                                     displayInfo: TrackDisplayInfo = TrackDisplayInfo()) -> [TrackPlaylist] {
+        // Build compound clip pool: poolIndex → (name, lengthSamples)
+        // Used for group placements (byte0==0x01); pool is 0x262b→0x2628.
+        let compoundPool = extractCompoundClips(blocks: blocks, data: data, bigEndian: bigEndian)
+
         // Use the first non-empty 0x1054 (main active playlist set)
         guard let container = blocks
             .filter({ $0.contentType == 0x1054 })
@@ -639,15 +696,23 @@ final class PTXBlockDecoder {
             }
             let placements: [ClipPlacement] = refs.compactMap { ref in
                 guard let p = parent1050(of: ref) else { return nil }  // reject false positives
-                // Byte at 0x1050.dataOffset+24: 0x01 = real clip, 0x03 = fade handle.
-                // Fade handles are tail extensions of the preceding clip; we still include them
-                // so PTXParser can extend the preceding clip's length to cover the fade.
-                let fadeFlag = p.dataOffset + 24 < p.dataOffset + p.dataSize ? data[p.dataOffset + 24] : 0x01
-                let isFade = fadeFlag == 0x03
+                // 0x1050 data begins with the 9-byte nested 0x104f block header, so:
+                //   p.dataOffset+9  = 0x104f byte[0]: 0x00=audio/fade, 0x01=clip group
+                //   p.dataOffset+24 = 0x104f byte[15]: 0x01=audio, 0x02=group primary,
+                //                                      0x03=fade (when byte[0]=0x00) or
+                //                                           group continuation (when byte[0]=0x01)
+                let byte0  = p.dataOffset + 9  < p.dataOffset + p.dataSize ? data[p.dataOffset + 9]  : 0x00
+                let byte15 = p.dataOffset + 24 < p.dataOffset + p.dataSize ? data[p.dataOffset + 24] : 0x01
+                let isGroup = byte0 == 0x01
+                let isFade  = !isGroup && byte15 == 0x03
                 let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
                 let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
                 guard timeline > 0 else { return nil }
-                return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0, isFade: isFade)
+                let compoundEntry = isGroup && clipIdx < compoundPool.count ? compoundPool[clipIdx] : nil
+                let groupName   = compoundEntry?.name
+                let groupLength = compoundEntry?.lengthSamples
+                return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0,
+                                     isFade: isFade, isGroup: isGroup, groupName: groupName, groupLength: groupLength)
             }
 
             // Only the FIRST 0x1052 section for each track name is the active playlist.

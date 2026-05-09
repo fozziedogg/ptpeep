@@ -255,11 +255,15 @@ final class PTXParser {
 
             var byPos: [Int64: PTXClip] = [:]
             for p in realPlacements {
-                let clipEntry = p.clipIdx < clips.count ? clips[p.clipIdx] : nil
-                let len = clipEntry?.lengthSamples ?? 0
+                // Group placements reference the compound pool (0x262b), not the audio pool (0x2629).
+                // Use groupLength/groupName directly; for audio placements fall back to the audio pool.
+                let clipEntry = !p.isGroup && p.clipIdx < clips.count ? clips[p.clipIdx] : nil
+                let len = p.groupLength ?? clipEntry?.lengthSamples ?? 0
                 guard len > 0 else { continue }   // skip zero-length placeholders
+                // Clip groups use their group name; audio clips use the pool entry name.
+                let name = p.groupName ?? clipEntry?.name ?? "Clip \(p.clipIdx)"
                 byPos[p.timelineSample] = PTXClip(
-                    name: clipEntry?.name ?? "Clip \(p.clipIdx)",
+                    name: name,
                     startSample: p.timelineSample,
                     lengthSamples: len,
                     sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
