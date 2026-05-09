@@ -20,10 +20,11 @@ struct SessionInspectorView: View {
         VStack(spacing: 0) {
             header
             Divider()
+            overviewSection
+            Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     sessionSetupSection
-                    overviewSection
                     tracksSection
                     audioFilesSection
                     pluginsSection
@@ -792,18 +793,20 @@ private struct SessionTimelineView: View {
                                 Text("\(Self.formatTC(lo * total / sr, fps: frameRate))  +\(Self.formatTC(dur, fps: frameRate))")
                                     .foregroundStyle(.primary)
                             } else {
-                                Text(Self.formatTC(s * total / sr, fps: frameRate))
+                                let samp = Int64((s * total).rounded())
+                                Text("\(Self.formatTC(s * total / sr, fps: frameRate))  (\(samp))")
                                     .foregroundStyle(.primary)
                             }
                         } else if let absFrac = hoverAbsFrac {
-                            Text(Self.formatTC(absFrac * total / sr, fps: frameRate))
+                            let samp = Int64((absFrac * total).rounded())
+                            Text("\(Self.formatTC(absFrac * total / sr, fps: frameRate))  (\(samp))")
                                 .foregroundStyle(.secondary)
                         } else {
                             Text("──:──:──:──")
                                 .foregroundStyle(.tertiary)
                         }
                     }
-                    .frame(width: 80, alignment: .leading)
+                    .frame(width: 200, alignment: .leading)
                 }
                 .buttonStyle(.plain)
                 .help("Click to go to timecode")
@@ -1117,8 +1120,8 @@ private struct SessionTimelineView: View {
 
     private static func formatTC(_ seconds: Double, fps: Double) -> String {
         guard seconds.isFinite, seconds >= 0, fps > 0 else { return "0:00:00:00" }
-        let totalFrames = Int(seconds * fps)
-        let fr  = Int(fps)
+        let totalFrames = Int((seconds * fps).rounded())
+        let fr  = Int(fps.rounded())
         let f   = totalFrames % fr
         let sec = (totalFrames / fr) % 60
         let min = (totalFrames / fr / 60) % 60
