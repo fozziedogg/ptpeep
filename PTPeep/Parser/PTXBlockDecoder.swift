@@ -52,6 +52,7 @@ struct ClipPlacement {
     let clipIdx: Int        // index into the ClipEntry list (u16 at 0x104f offset+2)
     let timelineSample: Int64   // actual position on timeline (u32 at 0x104f offset+7)
     let trackHint: Int      // raw value from 0x104f that may indicate track (TBD)
+    var isFade: Bool = false  // true if this is a fade handle (extends preceding clip)
 }
 
 struct TrackEntry {
@@ -593,15 +594,17 @@ final class PTXBlockDecoder {
             .sorted { $0.dataOffset < $1.dataOffset }
         let ranges1050 = sorted1050.map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
 
-        func isIn1050(_ ref: PTXBlock) -> Bool {
+        // Returns the 0x1050 parent of ref, or nil if no valid parent (false positive).
+        func parent1050(of ref: PTXBlock) -> PTXBlock? {
             var lo = 0, hi = ranges1050.count
             while lo < hi {
                 let mid = (lo + hi) / 2
                 if ranges1050[mid].0 <= ref.dataOffset { lo = mid + 1 } else { hi = mid }
             }
             let idx = lo - 1
-            guard idx >= 0 else { return false }
-            return ref.dataOffset + ref.dataSize <= ranges1050[idx].1
+            guard idx >= 0,
+                  ref.dataOffset + ref.dataSize <= ranges1050[idx].1 else { return nil }
+            return sorted1050[idx]
         }
 
         // Pre-sort 0x104f blocks by offset once (they're already in order but make it explicit).
@@ -635,11 +638,16 @@ final class PTXBlockDecoder {
                 j += 1
             }
             let placements: [ClipPlacement] = refs.compactMap { ref in
-                guard isIn1050(ref) else { return nil }   // reject scanner false positives
+                guard let p = parent1050(of: ref) else { return nil }  // reject false positives
+                // Byte at 0x1050.dataOffset+24: 0x01 = real clip, 0x03 = fade handle.
+                // Fade handles are tail extensions of the preceding clip; we still include them
+                // so PTXParser can extend the preceding clip's length to cover the fade.
+                let fadeFlag = p.dataOffset + 24 < p.dataOffset + p.dataSize ? data[p.dataOffset + 24] : 0x01
+                let isFade = fadeFlag == 0x03
                 let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
                 let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
                 guard timeline > 0 else { return nil }
-                return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0)
+                return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0, isFade: isFade)
             }
 
             // Only the FIRST 0x1052 section for each track name is the active playlist.
