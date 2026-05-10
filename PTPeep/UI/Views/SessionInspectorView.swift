@@ -1269,104 +1269,26 @@ private struct SessionTimelineView: View {
 
             // ── Scrollable lane area ──────────────────────────────────────────
             ScrollView(.vertical, showsIndicators: false) {
-              Canvas { ctx, size in
-                let vStart  = tc.viewStart
-                let vWindow = tc.window
-                let availH  = size.height
+              ZStack(alignment: .topLeading) {
+                // Clip canvas — Equatable so hover moves don't trigger a repaint.
+                // Only redraws when tc publishes (pan/zoom/cursor) or selection changes.
+                TimelineLaneCanvas(
+                    tc: tc,
+                    tracks: tracks,
+                    total: total,
+                    hideMuted: hideMuted,
+                    verticalScale: verticalScale
+                )
+                .equatable()
 
-                // Lanes + clips
-                let selLo = min(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
-                let selHi = max(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
-
-                // Visible window in sample space — used for early-exit in clip loop
-                let winStartSamp = Int64((vStart * total).rounded(.down))
-                let winEndSamp   = Int64(((vStart + vWindow) * total).rounded(.up))
-
-                var laneY: CGFloat = 0
-                for (i, track) in tracks.enumerated() {
-                    let thisLaneH  = scaledLaneH(track, index: i)
-                    let color      = Self.trackColor(track, index: i)
-                    let isSelected = selLo >= 0 && i >= selLo && i <= selHi
-                    let bgAlpha: Double = isSelected ? 0.18 : 0.03
-
-                    ctx.fill(
-                        Path(CGRect(x: 0, y: laneY, width: size.width, height: thisLaneH)),
-                        with: .color(color.opacity(bgAlpha))
-                    )
-
-                    // PT playlists are in time order, so we can break once past the window.
-                    for clip in track.clips {
-                        guard clip.lengthSamples > 0 else { continue }
-                        // Past visible window — clips are sorted, remaining clips also invisible
-                        if clip.startSample >= winEndSamp { break }
-                        // Before visible window
-                        if clip.startSample + clip.lengthSamples <= winStartSamp { continue }
-                        if hideMuted && clip.isMuted { continue }
-
-                        let clipFracStart = Double(clip.startSample) / total
-                        let clipFracLen   = Double(clip.lengthSamples) / total
-                        let x = CGFloat((clipFracStart - vStart) / vWindow) * size.width
-                        let w = max(1, CGFloat(clipFracLen / vWindow) * size.width)
-                        let fillAlpha: Double = clip.isMuted ? 0.28 : 0.88
-                        let clipRect = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
-
-                        ctx.fill(Path(clipRect), with: .color(color.opacity(fillAlpha)))
-
-                        // Stroke and label only for clips wider than 2px
-                        if w >= 2 {
-                            let edgeAlpha: Double = clip.isMuted ? 0.45 : 1.0
-                            ctx.stroke(Path(clipRect), with: .color(color.opacity(edgeAlpha)),
-                                       style: StrokeStyle(lineWidth: 1))
-                            if w > 32 {
-                                let fontSize: CGFloat = track.type == .video ? 8 : 6
-                                let labelAlpha: Double = clip.isMuted ? 0.5 : 1.0
-                                ctx.draw(
-                                    Text(clip.name)
-                                        .font(.system(size: fontSize).bold())
-                                        .foregroundColor(.white.opacity(labelAlpha)),
-                                    in: CGRect(x: x + 3,
-                                               y: laneY + (thisLaneH - fontSize) / 2 - 1,
-                                               width: w - 6, height: fontSize + 2)
-                                )
-                            }
-                        }
-                    }
-                    laneY += thisLaneH + Self.laneGap
-                }
-
-                // Selection band or cursor line (drawn on top of clips)
-                if let sStart = tc.selStart {
-                    let sx = CGFloat((sStart - vStart) / vWindow) * size.width
-                    if let sEnd = tc.selEnd {
-                        let ex = CGFloat((sEnd - vStart) / vWindow) * size.width
-                        let x  = min(sx, ex)
-                        let w  = max(1, abs(ex - sx))
-                        ctx.fill(
-                            Path(CGRect(x: x, y: 0, width: w, height: availH)),
-                            with: .color(Color.accentColor.opacity(0.18))
-                        )
-                        ctx.fill(Path(CGRect(x: x,         y: 0, width: 1, height: availH)),
-                                 with: .color(Color.accentColor.opacity(0.7)))
-                        ctx.fill(Path(CGRect(x: x + w - 1, y: 0, width: 1, height: availH)),
-                                 with: .color(Color.accentColor.opacity(0.7)))
-                    } else if sx >= 0, sx <= size.width {
-                        ctx.fill(
-                            Path(CGRect(x: sx - 0.5, y: 0, width: 1, height: availH)),
-                            with: .color(.primary.opacity(0.75))
-                        )
-                    }
-                }
-
-                // Hover hairline (on top of everything)
-                if let absFrac = hoverAbsFrac {
-                    let hx = CGFloat((absFrac - vStart) / vWindow) * size.width
-                    if hx >= 0, hx <= size.width {
-                        ctx.fill(
-                            Path(CGRect(x: hx, y: 0, width: 0.5, height: availH)),
-                            with: .color(.primary.opacity(0.35))
-                        )
-                    }
-                }
+                // Hover hairline — cheap 0.5px canvas, redraws on every mouse move.
+                HoverHairline(
+                    hoverAbsFrac: hoverAbsFrac,
+                    viewStart: tc.viewStart,
+                    window: tc.window
+                )
+                .equatable()
+                .allowsHitTesting(false)
               }
               .frame(height: totalLaneHeight)
               .overlay(
@@ -1627,6 +1549,146 @@ private struct SessionTimelineView: View {
         return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
     }
 
+}
+
+// MARK: - Timeline lane canvas (Equatable → skips repaint on hover-only state changes)
+
+private struct TimelineLaneCanvas: View, Equatable {
+    @ObservedObject var tc: TimelineController
+
+    let tracks:       [PTXTrack]
+    let total:        Double
+    let hideMuted:    Bool
+    let verticalScale: CGFloat
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.tc === rhs.tc &&
+        lhs.tracks.count == rhs.tracks.count &&
+        lhs.total == rhs.total &&
+        lhs.hideMuted == rhs.hideMuted &&
+        lhs.verticalScale == rhs.verticalScale
+    }
+
+    private static let palette:    [Color] = [
+        .blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown
+    ]
+    private static let audioLaneH: CGFloat = 8
+    private static let videoLaneH: CGFloat = 16
+    private static let laneGap:    CGFloat = 2
+
+    private func scaledLaneH(_ track: PTXTrack, index: Int) -> CGFloat {
+        let base: CGFloat = track.type == .video ? Self.videoLaneH : Self.audioLaneH
+        return (tc.expandedTracks.contains(index) ? base * 4 : base) * verticalScale
+    }
+
+    private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
+        track.type == .video ? Color(white: 0.52) : palette[index % palette.count]
+    }
+
+    var body: some View {
+        Canvas { ctx, size in
+            let vStart  = tc.viewStart
+            let vWindow = tc.window
+            let availH  = size.height
+
+            let selLo = min(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
+            let selHi = max(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
+
+            let winStartSamp = Int64((vStart * total).rounded(.down))
+            let winEndSamp   = Int64(((vStart + vWindow) * total).rounded(.up))
+
+            var laneY: CGFloat = 0
+            for (i, track) in tracks.enumerated() {
+                let thisLaneH  = scaledLaneH(track, index: i)
+                let color      = Self.trackColor(track, index: i)
+                let isSelected = selLo >= 0 && i >= selLo && i <= selHi
+                let bgAlpha: Double = isSelected ? 0.18 : 0.03
+
+                ctx.fill(
+                    Path(CGRect(x: 0, y: laneY, width: size.width, height: thisLaneH)),
+                    with: .color(color.opacity(bgAlpha))
+                )
+
+                for clip in track.clips {
+                    guard clip.lengthSamples > 0 else { continue }
+                    if clip.startSample >= winEndSamp { break }
+                    if clip.startSample + clip.lengthSamples <= winStartSamp { continue }
+                    if hideMuted && clip.isMuted { continue }
+
+                    let clipFracStart = Double(clip.startSample) / total
+                    let clipFracLen   = Double(clip.lengthSamples) / total
+                    let x = CGFloat((clipFracStart - vStart) / vWindow) * size.width
+                    let w = max(1, CGFloat(clipFracLen / vWindow) * size.width)
+                    let clipRect  = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
+                    let fillAlpha: Double = clip.isMuted ? 0.28 : 0.88
+                    ctx.fill(Path(clipRect), with: .color(color.opacity(fillAlpha)))
+
+                    if w >= 2 {
+                        let edgeAlpha: Double = clip.isMuted ? 0.45 : 1.0
+                        ctx.stroke(Path(clipRect), with: .color(color.opacity(edgeAlpha)),
+                                   style: StrokeStyle(lineWidth: 1))
+                        if w > 32 {
+                            let fontSize: CGFloat = track.type == .video ? 8 : 6
+                            let labelAlpha: Double = clip.isMuted ? 0.5 : 1.0
+                            ctx.draw(
+                                Text(clip.name)
+                                    .font(.system(size: fontSize).bold())
+                                    .foregroundColor(.white.opacity(labelAlpha)),
+                                in: CGRect(x: x + 3,
+                                           y: laneY + (thisLaneH - fontSize) / 2 - 1,
+                                           width: w - 6, height: fontSize + 2)
+                            )
+                        }
+                    }
+                }
+                laneY += thisLaneH + Self.laneGap
+            }
+
+            // Cursor / selection band (drawn over clips)
+            if let sStart = tc.selStart {
+                let sx = CGFloat((sStart - vStart) / vWindow) * size.width
+                if let sEnd = tc.selEnd {
+                    let ex = CGFloat((sEnd - vStart) / vWindow) * size.width
+                    let x  = min(sx, ex)
+                    let w  = max(1, abs(ex - sx))
+                    ctx.fill(
+                        Path(CGRect(x: x, y: 0, width: w, height: availH)),
+                        with: .color(Color.accentColor.opacity(0.18))
+                    )
+                    ctx.fill(Path(CGRect(x: x,         y: 0, width: 1, height: availH)),
+                             with: .color(Color.accentColor.opacity(0.7)))
+                    ctx.fill(Path(CGRect(x: x + w - 1, y: 0, width: 1, height: availH)),
+                             with: .color(Color.accentColor.opacity(0.7)))
+                } else if sx >= 0, sx <= size.width {
+                    ctx.fill(
+                        Path(CGRect(x: sx - 0.5, y: 0, width: 1, height: availH)),
+                        with: .color(.primary.opacity(0.75))
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Hover hairline (Equatable → only redraws when hoverAbsFrac actually changes)
+
+private struct HoverHairline: View, Equatable {
+    var hoverAbsFrac: Double?
+    var viewStart:    Double
+    var window:       Double
+
+    var body: some View {
+        Canvas { ctx, size in
+            guard let absFrac = hoverAbsFrac else { return }
+            let hx = CGFloat((absFrac - viewStart) / window) * size.width
+            if hx >= 0, hx <= size.width {
+                ctx.fill(
+                    Path(CGRect(x: hx, y: 0, width: 0.5, height: size.height)),
+                    with: .color(.primary.opacity(0.35))
+                )
+            }
+        }
+    }
 }
 
 // MARK: - TC entry popover
