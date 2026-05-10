@@ -693,10 +693,6 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     // Signal to view to open the TC entry popover (numpad *)
     @Published var openTCEntry: Bool = false
 
-    // Selected clip (set on click; nil when cursor is in empty space)
-    @Published var selectedClip:         PTXClip? = nil
-    @Published var selectedClipTrackIdx: Int?     = nil
-
     // Navigation context — set by view on appear
     var tracks:       [PTXTrack] = []
     var totalSamples: Double     = 1.0
@@ -831,7 +827,6 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
     func clearSelection() {
         selStart = nil; selEnd = nil; selTrack = nil; selTrackEnd = nil
-        selectedClip = nil; selectedClipTrackIdx = nil
     }
 
     // MARK: Track navigation
@@ -964,10 +959,15 @@ private struct SessionTimelineView: View {
     @Binding var overviewHeight: CGFloat
 
     // Hover state (view-owned for rendering; tc.hoverAbsFrac mirrors it for key handler)
-    @State private var hoverAbsFrac:      Double?   = nil
-    @State private var hoverLane:         Int?       = nil
-    @State private var hoverClip:         PTXClip?  = nil
-    @State private var hoverClipTrackIdx: Int?       = nil
+    @State private var hoverAbsFrac:      Double?  = nil
+    @State private var hoverLane:         Int?     = nil
+    @State private var hoverClip:         PTXClip? = nil
+    @State private var hoverClipTrackIdx: Int?     = nil
+
+    // Selected clip — local state so changes don't trigger tc.objectWillChange
+    // (which would force an expensive canvas repaint)
+    @State private var selectedClip:         PTXClip? = nil
+    @State private var selectedClipTrackIdx: Int?     = nil
 
     // Drag/gesture state
     @State private var isDragging:  Bool   = false   // dragging a selection
@@ -1130,7 +1130,7 @@ private struct SessionTimelineView: View {
 
             // ── Row 3: selected clip (persistent — set by click) ─────────────
             clipInfoRow(
-                clip: tc.selectedClip, trackIdx: tc.selectedClipTrackIdx,
+                clip: selectedClip, trackIdx: selectedClipTrackIdx,
                 label: "SEL", sr: sr, isSelected: true
             )
 
@@ -1259,8 +1259,8 @@ private struct SessionTimelineView: View {
                                         }
                                     }
                                     tc.jumpTo(dest)
-                                    tc.selectedClip         = nil
-                                    tc.selectedClipTrackIdx = nil
+                                    selectedClip         = nil
+                                    selectedClipTrackIdx = nil
                                     tc.isFocused            = true
                                 }
                         )
@@ -1278,9 +1278,13 @@ private struct SessionTimelineView: View {
                 let selLo = min(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
                 let selHi = max(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
 
+                // Visible window in sample space — used for early-exit in clip loop
+                let winStartSamp = Int64((vStart * total).rounded(.down))
+                let winEndSamp   = Int64(((vStart + vWindow) * total).rounded(.up))
+
                 var laneY: CGFloat = 0
                 for (i, track) in tracks.enumerated() {
-                    let thisLaneH = scaledLaneH(track, index: i)
+                    let thisLaneH  = scaledLaneH(track, index: i)
                     let color      = Self.trackColor(track, index: i)
                     let isSelected = selLo >= 0 && i >= selLo && i <= selHi
                     let bgAlpha: Double = isSelected ? 0.18 : 0.03
@@ -1290,32 +1294,41 @@ private struct SessionTimelineView: View {
                         with: .color(color.opacity(bgAlpha))
                     )
 
+                    // PT playlists are in time order, so we can break once past the window.
                     for clip in track.clips {
-                        guard clip.startSample >= 0, clip.lengthSamples > 0 else { continue }
+                        guard clip.lengthSamples > 0 else { continue }
+                        // Past visible window — clips are sorted, remaining clips also invisible
+                        if clip.startSample >= winEndSamp { break }
+                        // Before visible window
+                        if clip.startSample + clip.lengthSamples <= winStartSamp { continue }
                         if hideMuted && clip.isMuted { continue }
-                        let clipFracStart = Double(clip.startSample)   / total
+
+                        let clipFracStart = Double(clip.startSample) / total
                         let clipFracLen   = Double(clip.lengthSamples) / total
                         let x = CGFloat((clipFracStart - vStart) / vWindow) * size.width
                         let w = max(1, CGFloat(clipFracLen / vWindow) * size.width)
-                        guard x + w > 0, x < size.width else { continue }
-                        let clipRect = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
                         let fillAlpha: Double = clip.isMuted ? 0.28 : 0.88
-                        let edgeAlpha: Double = clip.isMuted ? 0.45 : 1.0
+                        let clipRect = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
+
                         ctx.fill(Path(clipRect), with: .color(color.opacity(fillAlpha)))
-                        // 1px bright border for crisp clip edges
-                        ctx.stroke(Path(clipRect), with: .color(color.opacity(edgeAlpha)),
-                                   style: StrokeStyle(lineWidth: 1))
-                        if w > 32 {
-                            let fontSize: CGFloat = track.type == .video ? 8 : 6
-                            let labelAlpha: Double = clip.isMuted ? 0.5 : 1.0
-                            ctx.draw(
-                                Text(clip.name)
-                                    .font(.system(size: fontSize).bold())
-                                    .foregroundColor(.white.opacity(labelAlpha)),
-                                in: CGRect(x: x + 3,
-                                           y: laneY + (thisLaneH - fontSize) / 2 - 1,
-                                           width: w - 6, height: fontSize + 2)
-                            )
+
+                        // Stroke and label only for clips wider than 2px
+                        if w >= 2 {
+                            let edgeAlpha: Double = clip.isMuted ? 0.45 : 1.0
+                            ctx.stroke(Path(clipRect), with: .color(color.opacity(edgeAlpha)),
+                                       style: StrokeStyle(lineWidth: 1))
+                            if w > 32 {
+                                let fontSize: CGFloat = track.type == .video ? 8 : 6
+                                let labelAlpha: Double = clip.isMuted ? 0.5 : 1.0
+                                ctx.draw(
+                                    Text(clip.name)
+                                        .font(.system(size: fontSize).bold())
+                                        .foregroundColor(.white.opacity(labelAlpha)),
+                                    in: CGRect(x: x + 3,
+                                               y: laneY + (thisLaneH - fontSize) / 2 - 1,
+                                               width: w - 6, height: fontSize + 2)
+                                )
+                            }
                         }
                     }
                     laneY += thisLaneH + Self.laneGap
@@ -1481,19 +1494,19 @@ private struct SessionTimelineView: View {
                                             // Place cursor at clip in-point; info row shows full in/out
                                             tc.selStart              = Double(clip.startSample) / total
                                             tc.selEnd                = nil
-                                            tc.selectedClip          = clip
-                                            tc.selectedClipTrackIdx  = idx
+                                            selectedClip          = clip
+                                            selectedClipTrackIdx  = idx
                                         } else {
                                             // Empty space → cursor only
                                             tc.selStart             = frac
                                             tc.selEnd               = nil
-                                            tc.selectedClip         = nil
-                                            tc.selectedClipTrackIdx = nil
+                                            selectedClip         = nil
+                                            selectedClipTrackIdx = nil
                                         }
                                     } else if isDragging {
                                         // Drag selection clears any clip selection
-                                        tc.selectedClip         = nil
-                                        tc.selectedClipTrackIdx = nil
+                                        selectedClip         = nil
+                                        selectedClipTrackIdx = nil
                                         // Normalize selection so start <= end
                                         if let s = tc.selStart, let e = tc.selEnd, e < s {
                                             let tmp = tc.selStart; tc.selStart = tc.selEnd; tc.selEnd = tmp
@@ -1516,6 +1529,8 @@ private struct SessionTimelineView: View {
         }
         .onDisappear { tc.stopMonitoring() }
         .onChange(of: hideMuted) { tc.hideMuted = $0 }
+        // Clear selected clip when cursor is cleared (Escape key via tc.clearSelection)
+        .onChange(of: tc.selStart) { if $0 == nil { selectedClip = nil; selectedClipTrackIdx = nil } }
         .onChange(of: tc.openTCEntry) { wants in
             guard wants else { return }
             tc.openTCEntry = false
@@ -1560,12 +1575,21 @@ private struct SessionTimelineView: View {
                         .frame(maxWidth: 110, alignment: .leading)
                 }
 
-                // Clip name
+                // Clip name (+ muted badge)
                 Text(clip.name)
                     .foregroundStyle(isSelected ? color : Color(nsColor: .secondaryLabelColor))
                     .fontWeight(isSelected ? .semibold : .regular)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                if clip.isMuted {
+                    Text("muted")
+                        .font(.system(size: 9).weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(RoundedRectangle(cornerRadius: 3)
+                            .fill(Color(nsColor: .separatorColor).opacity(0.6)))
+                }
 
                 Spacer()
 
