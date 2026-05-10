@@ -161,8 +161,8 @@ struct SessionInspectorView: View {
                 // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                 let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                // overhead = row1(24) + hover row(24) + sel row(24) + checkbox row(28, if shown) + ruler(20) + padding(8)
-                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 128 : 100
+                // overhead = row1(24) + hover row(24) + sel row(24) + checkbox row(28, if shown) + ruler(30) + padding(8)
+                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 138 : 110
                 // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                 let effectiveH: CGFloat = {
                     if overviewHeight == 0 {
@@ -177,7 +177,9 @@ struct SessionInspectorView: View {
                 let vScale = baseLanesH > 0 ? max(1.0, scrollableH / baseLanesH) : 1.0
 
                 SessionTimelineView(tc: tc,
-                                    tracks: clippedTracks, sampleRate: sr,
+                                    tracks: clippedTracks,
+                                    allTracksSamples: totalSamples,
+                                    sampleRate: sr,
                                     frameRate: session.frameRate,
                                     tcFormat:  session.tcFormat,
                                     verticalScale: vScale,
@@ -940,6 +942,7 @@ private struct SessionTimelineView: View {
     @ObservedObject var tc: TimelineController
 
     let tracks: [PTXTrack]
+    var allTracksSamples: Double = 0   // max end-sample across ALL tracks (incl. hidden/inactive)
     let sampleRate: Double
     var frameRate: Double = 30
     var tcFormat:  String = ""
@@ -982,7 +985,7 @@ private struct SessionTimelineView: View {
     private static let audioLaneH: CGFloat = 8
     private static let videoLaneH: CGFloat = 16
     private static let laneGap:    CGFloat = 2
-    private static let rulerH:     CGFloat = 20
+    private static let rulerH:     CGFloat = 30
 
     private static func trackLaneH(_ track: PTXTrack) -> CGFloat {
         track.type == .video ? videoLaneH : audioLaneH
@@ -1018,12 +1021,13 @@ private struct SessionTimelineView: View {
     }
 
     var body: some View {
-        let totalSamples = max(
-            tracks.flatMap(\.clips).map { $0.startSample + $0.lengthSamples }.max() ?? 1,
-            1
-        )
+        // Use allTracksSamples if provided so ruler markers and the cursor always share
+        // the same denominator, even when some tracks are hidden/filtered from the canvas.
+        let visibleMax = Double(max(
+            tracks.flatMap(\.clips).map { $0.startSample + $0.lengthSamples }.max() ?? 1, 1
+        ))
         let sr    = max(sampleRate, 1)
-        let total = Double(totalSamples)
+        let total = allTracksSamples > 0 ? allTracksSamples : visibleMax
 
         VStack(spacing: 0) {
             // ── Row 1: TC cursor | track label | zoom ────────────────────────
@@ -1179,33 +1183,7 @@ private struct SessionTimelineView: View {
                 ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: 0.5)),
                          with: .color(.secondary.opacity(0.35)))
 
-                // Memory location markers (drawn first so TC labels render on top)
-                if showMarkers {
-                    var prevLabelX: CGFloat = -100
-                    for loc in memoryLocations where loc.samplePosition > 0 {
-                        let frac = Double(loc.samplePosition) / total
-                        let x    = CGFloat((frac - vStart) / vWindow) * size.width
-                        guard x >= -1, x <= size.width + 1 else { continue }
-                        // Thin orange line spanning the full ruler height
-                        ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: size.height)),
-                                 with: .color(.orange.opacity(0.65)))
-                        // Name label — skip if too close to previous to avoid overlap
-                        if x - prevLabelX > 38 {
-                            let anchor: UnitPoint = x < 20 ? .topLeading
-                                                 : x > size.width - 20 ? .topTrailing : .topLeading
-                            ctx.draw(
-                                Text(loc.name)
-                                    .font(.system(size: 7).bold())
-                                    .foregroundColor(.orange),
-                                at: CGPoint(x: x + 2, y: 1),
-                                anchor: anchor
-                            )
-                            prevLabelX = x
-                        }
-                    }
-                }
-
-                // Regular TC ticks (on top of marker lines)
+                // ── TC ticks — top zone (y 0…18) ──────────────────────────────
                 let fps = frameRate
                 let stepCandidates: [Double] = [
                     1/fps, 2/fps, 5/fps, 10/fps,
@@ -1231,6 +1209,32 @@ private struct SessionTimelineView: View {
                         anchor: anchor
                     )
                     tickSec += step
+                }
+
+                // ── Memory location markers — bottom zone (y 18…30) ───────────
+                if showMarkers {
+                    var prevLabelX: CGFloat = -100
+                    for loc in memoryLocations where loc.samplePosition > 0 {
+                        let frac = Double(loc.samplePosition) / total
+                        let x    = CGFloat((frac - vStart) / vWindow) * size.width
+                        guard x >= -1, x <= size.width + 1 else { continue }
+                        // Full-height orange line (hairline, behind tick labels)
+                        ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: size.height)),
+                                 with: .color(.orange.opacity(0.55)))
+                        // Marker name in the bottom strip — skip if too close to previous
+                        if x - prevLabelX > 34 {
+                            let anchor: UnitPoint = x < 20 ? .bottomLeading
+                                : x > size.width - 20 ? .bottomTrailing : .bottomLeading
+                            ctx.draw(
+                                Text(loc.name)
+                                    .font(.system(size: 8).weight(.medium))
+                                    .foregroundColor(.orange),
+                                at: CGPoint(x: x + 3, y: size.height - 1),
+                                anchor: anchor
+                            )
+                            prevLabelX = x
+                        }
+                    }
                 }
             }
             .frame(height: Self.rulerH)
@@ -1264,7 +1268,7 @@ private struct SessionTimelineView: View {
             )
 
             // ── Scrollable lane area ──────────────────────────────────────────
-            ScrollView(.vertical, showsIndicators: true) {
+            ScrollView(.vertical, showsIndicators: false) {
               Canvas { ctx, size in
                 let vStart  = tc.viewStart
                 let vWindow = tc.window
@@ -1474,9 +1478,9 @@ private struct SessionTimelineView: View {
                                         }()
 
                                         if let clip = clickedClip, let idx = clickLane {
-                                            // Select the full clip
+                                            // Place cursor at clip in-point; info row shows full in/out
                                             tc.selStart              = Double(clip.startSample) / total
-                                            tc.selEnd                = Double(clip.startSample + clip.lengthSamples) / total
+                                            tc.selEnd                = nil
                                             tc.selectedClip          = clip
                                             tc.selectedClipTrackIdx  = idx
                                         } else {
@@ -1506,7 +1510,7 @@ private struct SessionTimelineView: View {
         }
         .onAppear {
             tc.tracks       = tracks
-            tc.totalSamples = total
+            tc.totalSamples = allTracksSamples > 0 ? allTracksSamples : visibleMax
             tc.hideMuted    = hideMuted
             tc.startMonitoring()
         }
