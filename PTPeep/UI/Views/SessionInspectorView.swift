@@ -161,8 +161,8 @@ struct SessionInspectorView: View {
                 // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                 let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                // overhead = row1(24) + clip row(18) + checkbox row(28, if shown) + ruler(20) + padding(8)
-                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 98 : 70
+                // overhead = row1(24) + hover row(17) + sel row(17) + checkbox row(28, if shown) + ruler(20) + padding(8)
+                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 114 : 86
                 // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                 let effectiveH: CGFloat = {
                     if overviewHeight == 0 {
@@ -1025,13 +1025,6 @@ private struct SessionTimelineView: View {
         let sr    = max(sampleRate, 1)
         let total = Double(totalSamples)
 
-        // Clip to display: hover takes priority over selected
-        let clipDisplay: (clip: PTXClip, trackIdx: Int)? = {
-            if let c = hoverClip, let i = hoverClipTrackIdx { return (c, i) }
-            if let c = tc.selectedClip, let i = tc.selectedClipTrackIdx { return (c, i) }
-            return nil
-        }()
-
         VStack(spacing: 0) {
             // ── Row 1: TC cursor | track label | zoom ────────────────────────
             HStack(spacing: 8) {
@@ -1125,38 +1118,17 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 8)
             .frame(height: 24)
 
-            // ── Row 2: clip info (slides in when hovering/selecting a clip) ──
-            if let (clip, tIdx) = clipDisplay {
-                let clipColor = tIdx < tracks.count ? Self.trackColor(tracks[tIdx], index: tIdx) : Color.secondary
-                let inTC  = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
-                let outTC = Self.formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
-                let durTC = Self.formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
-                HStack(spacing: 6) {
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(clipColor)
-                        .frame(width: 3, height: 12)
-                    Text(clip.name)
-                        .foregroundStyle(clipColor)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer()
-                    Text("In")
-                        .foregroundStyle(.tertiary)
-                    Text(inTC)
-                        .foregroundStyle(.secondary)
-                    Text("Out")
-                        .foregroundStyle(.tertiary)
-                    Text(outTC)
-                        .foregroundStyle(.secondary)
-                    Text("+\(durTC)")
-                        .foregroundStyle(.tertiary)
-                }
-                .font(.system(size: 10).monospacedDigit())
-                .padding(.horizontal, 10)
-                .frame(height: 18)
-                .background(Color(nsColor: .separatorColor).opacity(0.08))
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            // ── Row 2: hover clip (ephemeral — follows cursor) ───────────────
+            clipInfoRow(
+                clip: hoverClip, trackIdx: hoverClipTrackIdx,
+                label: "HOVER", sr: sr, isSelected: false
+            )
+
+            // ── Row 3: selected clip (persistent — set by click) ─────────────
+            clipInfoRow(
+                clip: tc.selectedClip, trackIdx: tc.selectedClipTrackIdx,
+                label: "SEL", sr: sr, isSelected: true
+            )
 
             // ── Checkbox row ─────────────────────────────────────────────────
             if hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers {
@@ -1517,6 +1489,59 @@ private struct SessionTimelineView: View {
             tc.openTCEntry = false
             tcEntryText = tc.selStart.map { Self.formatTC($0 * total / sr, fps: frameRate) } ?? ""
             showTCEntry = true
+        }
+    }
+
+    @ViewBuilder
+    private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
+                             label: String, sr: Double, isSelected: Bool) -> some View {
+        if let clip, let tIdx = trackIdx {
+            let color  = tIdx < tracks.count ? Self.trackColor(tracks[tIdx], index: tIdx) : Color.secondary
+            let inTC   = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
+            let outTC  = Self.formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
+            let durTC  = Self.formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
+            let trackName = tIdx < tracks.count ? tracks[tIdx].name : ""
+            HStack(spacing: 5) {
+                // Label badge
+                Text(label)
+                    .font(.system(size: 8).weight(.semibold))
+                    .foregroundStyle(isSelected ? color : .secondary)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(isSelected ? color.opacity(0.15) : Color(nsColor: .separatorColor).opacity(0.4))
+                    )
+                // Track name (dimmer)
+                if !trackName.isEmpty {
+                    Text(trackName)
+                        .foregroundStyle(isSelected ? color.opacity(0.7) : Color.secondary.opacity(0.6))
+                        .lineLimit(1)
+                        .frame(maxWidth: 80, alignment: .leading)
+                }
+                // Clip name
+                Text(clip.name)
+                    .foregroundStyle(isSelected ? color : Color.secondary)
+                    .fontWeight(isSelected ? .medium : .regular)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer()
+                // Timecodes
+                Group {
+                    Text("In").foregroundStyle(.tertiary)
+                    Text(inTC).foregroundStyle(isSelected ? .primary : .secondary)
+                    Text("Out").foregroundStyle(.tertiary)
+                    Text(outTC).foregroundStyle(isSelected ? .primary : .secondary)
+                    Text("+\(durTC)").foregroundStyle(.tertiary)
+                }
+            }
+            .font(.system(size: 10).monospacedDigit())
+            .padding(.horizontal, 10)
+            .frame(height: 17)
+            .background(isSelected
+                ? color.opacity(0.06)
+                : Color(nsColor: .separatorColor).opacity(0.04))
+            .transition(.opacity)
         }
     }
 
