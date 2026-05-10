@@ -212,15 +212,69 @@ final class PTXParser {
             for i in session.tracks.indices { session.tracks[i].index = i }
         }
 
-        // Assign per-track plugins. 0x102d strips are keyed by the ACTIVE PLAYLIST name,
-        // which may be "TrackName.dup1" etc. when an alternate playlist is active.
-        // Try exact match first, then fall back to the first .dupN variant found.
+        // Assign per-track plugins. 0x102d strips are keyed by the name the track had when
+        // the session was last written — which may differ from the current track name if the
+        // user renamed the track in Pro Tools afterward. Fall-back order:
+        //   1. Exact match
+        //   2. Exact + .dupN suffix (active alternate playlist)
+        //   3. Sorted-tokens match — handles word-reversed renames ("1 adr" ↔ "adr 1")
+        //   4. Number-anchored subsequence — handles abbreviated words ("1 ftz" ↔ "futz 1")
         for i in session.tracks.indices {
             let name = session.tracks[i].name
+            // 1. Exact
             if let plugins = trackPlugins[name] {
-                session.tracks[i].plugins = plugins
-            } else if let dupKey = trackPlugins.keys.first(where: { $0.hasPrefix(name + ".dup") }) {
-                session.tracks[i].plugins = trackPlugins[dupKey] ?? []
+                session.tracks[i].plugins = plugins; continue
+            }
+            // 2. Exact + .dupN
+            if let key = trackPlugins.keys.first(where: { $0.hasPrefix(name + ".dup") }) {
+                session.tracks[i].plugins = trackPlugins[key] ?? []; continue
+            }
+            // 3. Sorted-tokens (case-insensitive, strip .dupN suffix from strip key)
+            let trackSorted = name.lowercased().split(separator: " ").sorted()
+            if let key = trackPlugins.keys.first(where: {
+                stripDupSuffix($0).lowercased().split(separator: " ").sorted() == trackSorted
+            }) {
+                session.tracks[i].plugins = trackPlugins[key] ?? []; continue
+            }
+            // 4. Number-anchored fuzzy: same numeric tokens, non-numeric tokens are subsequences
+            let trackParts = name.lowercased().split(separator: " ").map(String.init)
+            let trackNums  = trackParts.filter { $0.allSatisfy(\.isNumber) }
+            let trackWords = trackParts.filter { !$0.allSatisfy(\.isNumber) }.sorted()
+            guard !trackNums.isEmpty, !trackWords.isEmpty else { continue }
+            if let key = trackPlugins.keys.first(where: {
+                let parts = stripDupSuffix($0).lowercased().split(separator: " ").map(String.init)
+                let nums  = parts.filter { $0.allSatisfy(\.isNumber) }
+                let words = parts.filter { !$0.allSatisfy(\.isNumber) }.sorted()
+                guard nums == trackNums, words.count == trackWords.count else { return false }
+                return zip(trackWords, words).allSatisfy { tw, sw in
+                    isSubsequence(tw, of: sw) || isSubsequence(sw, of: tw)
+                }
+            }) {
+                session.tracks[i].plugins = trackPlugins[key] ?? []
+            }
+        }
+
+        // 5. Group template inference (second pass): if a numbered track still has no plugins,
+        //    look for another track in the same "word group" (same non-numeric suffix words) that
+        //    got plugins via any earlier fallback and copy them.
+        //    e.g. "3 ftz" borrows from "1 ftz" when the binary only has state for futz 1.
+        let wordSuffix: (PTXTrack) -> String? = { t in
+            let parts = t.name.lowercased().split(separator: " ").map(String.init)
+            let nums  = parts.filter { $0.allSatisfy(\.isNumber) }
+            let words = parts.filter { !$0.allSatisfy(\.isNumber) }
+            guard !nums.isEmpty, !words.isEmpty else { return nil }
+            return words.sorted().joined(separator: " ")
+        }
+        // Build suffix → first resolved plugins
+        var groupPlugins: [String: [String]] = [:]
+        for t in session.tracks where !t.plugins.isEmpty {
+            if let suf = wordSuffix(t), groupPlugins[suf] == nil {
+                groupPlugins[suf] = t.plugins
+            }
+        }
+        for i in session.tracks.indices where session.tracks[i].plugins.isEmpty {
+            if let suf = wordSuffix(session.tracks[i]), let inherited = groupPlugins[suf] {
+                session.tracks[i].plugins = inherited
             }
         }
 
@@ -591,6 +645,24 @@ final class PTXParser {
 
     // MARK: - Resolve audio files
     // Locate actual WAV/AIFF files in the session's "Audio Files" folder.
+
+    // MARK: - Plugin matching helpers
+
+    /// Strips a trailing `.dupN` suffix from a strip name (e.g. "adr 1.dup2" → "adr 1").
+    private static func stripDupSuffix(_ s: String) -> String {
+        guard let r = s.range(of: #"\.dup\d+$"#, options: .regularExpression) else { return s }
+        return String(s[s.startIndex..<r.lowerBound])
+    }
+
+    /// Returns true if `sub` is a subsequence of `str` (both lowercase, single-word strings).
+    private static func isSubsequence(_ sub: String, of str: String) -> Bool {
+        var it = sub.makeIterator()
+        guard var sc = it.next() else { return true }
+        for c in str {
+            if c == sc { guard let n = it.next() else { return true }; sc = n }
+        }
+        return false
+    }
 
     static func resolveAudioFiles(session: inout PTXSession, sessionURL: URL) {
         let audioFilesDir = sessionURL.deletingLastPathComponent()
