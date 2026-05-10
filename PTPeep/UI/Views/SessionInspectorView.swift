@@ -161,8 +161,8 @@ struct SessionInspectorView: View {
                 // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                 let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                // overhead = top control row(24) + checkbox row(28, if shown) + ruler(20) + padding(8)
-                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 80 : 52
+                // overhead = row1(24) + clip row(18) + checkbox row(28, if shown) + ruler(20) + padding(8)
+                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 98 : 70
                 // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                 let effectiveH: CGFloat = {
                     if overviewHeight == 0 {
@@ -691,9 +691,14 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     // Signal to view to open the TC entry popover (numpad *)
     @Published var openTCEntry: Bool = false
 
+    // Selected clip (set on click; nil when cursor is in empty space)
+    @Published var selectedClip:         PTXClip? = nil
+    @Published var selectedClipTrackIdx: Int?     = nil
+
     // Navigation context — set by view on appear
     var tracks:       [PTXTrack] = []
     var totalSamples: Double     = 1.0
+    var hideMuted:    Bool       = false
 
     private var keyMonitor:      Any?
     private var scrollMonitor:   Any?
@@ -824,6 +829,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
     func clearSelection() {
         selStart = nil; selEnd = nil; selTrack = nil; selTrackEnd = nil
+        selectedClip = nil; selectedClipTrackIdx = nil
     }
 
     // MARK: Track navigation
@@ -849,7 +855,8 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         guard !tracks.isEmpty else { return }
         let cursor = selStart ?? 0
         guard let next = TimelineNav.nextClipStart(tracks: tracks, total: totalSamples,
-                                                    trackIdx: idx, cursor: cursor) else { return }
+                                                    trackIdx: idx, cursor: cursor,
+                                                    hideMuted: hideMuted) else { return }
         selTrack = idx; selStart = next; selEnd = nil
         ensureVisible(next)
     }
@@ -859,7 +866,8 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         guard !tracks.isEmpty else { return }
         let cursor = selStart ?? 1
         guard let prev = TimelineNav.prevClipStart(tracks: tracks, total: totalSamples,
-                                                    trackIdx: idx, cursor: cursor) else { return }
+                                                    trackIdx: idx, cursor: cursor,
+                                                    hideMuted: hideMuted) else { return }
         selTrack = idx; selStart = prev; selEnd = nil
         ensureVisible(prev)
     }
@@ -869,7 +877,8 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         guard !tracks.isEmpty else { return }
         let cursor = selStart ?? 0
         guard let next = TimelineNav.nextClipEnd(tracks: tracks, total: totalSamples,
-                                                  trackIdx: idx, cursor: cursor) else { return }
+                                                  trackIdx: idx, cursor: cursor,
+                                                  hideMuted: hideMuted) else { return }
         selTrack = idx; selStart = next; selEnd = nil
         ensureVisible(next)
     }
@@ -882,7 +891,8 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         var best: Double? = nil
         for idx in lo...hi {
             if let b = TimelineNav.nextBoundary(tracks: tracks, total: totalSamples,
-                                                trackIdx: idx, cursor: cursor) {
+                                                trackIdx: idx, cursor: cursor,
+                                                hideMuted: hideMuted) {
                 if best == nil || b < best! { best = b }
             }
         }
@@ -899,7 +909,8 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         var best: Double? = nil
         for idx in lo...hi {
             if let b = TimelineNav.prevBoundary(tracks: tracks, total: totalSamples,
-                                                trackIdx: idx, cursor: cursor) {
+                                                trackIdx: idx, cursor: cursor,
+                                                hideMuted: hideMuted) {
                 if best == nil || b > best! { best = b }
             }
         }
@@ -950,8 +961,10 @@ private struct SessionTimelineView: View {
     @Binding var overviewHeight: CGFloat
 
     // Hover state (view-owned for rendering; tc.hoverAbsFrac mirrors it for key handler)
-    @State private var hoverAbsFrac: Double? = nil
-    @State private var hoverLane:    Int?    = nil
+    @State private var hoverAbsFrac:      Double?   = nil
+    @State private var hoverLane:         Int?       = nil
+    @State private var hoverClip:         PTXClip?  = nil
+    @State private var hoverClipTrackIdx: Int?       = nil
 
     // Drag/gesture state
     @State private var isDragging:  Bool   = false   // dragging a selection
@@ -1012,10 +1025,17 @@ private struct SessionTimelineView: View {
         let sr    = max(sampleRate, 1)
         let total = Double(totalSamples)
 
+        // Clip to display: hover takes priority over selected
+        let clipDisplay: (clip: PTXClip, trackIdx: Int)? = {
+            if let c = hoverClip, let i = hoverClipTrackIdx { return (c, i) }
+            if let c = tc.selectedClip, let i = tc.selectedClipTrackIdx { return (c, i) }
+            return nil
+        }()
+
         VStack(spacing: 0) {
-            // ── Top control row ──────────────────────────────────────────────
+            // ── Row 1: TC cursor | track label | zoom ────────────────────────
             HStack(spacing: 8) {
-                // TC position display / entry
+                // TC position / entry button
                 Button {
                     tcEntryText = tc.selStart.map { Self.formatTC($0 * total / sr, fps: frameRate) } ?? ""
                     showTCEntry = true
@@ -1033,18 +1053,17 @@ private struct SessionTimelineView: View {
                                     .foregroundStyle(.primary)
                             }
                         } else if let absFrac = hoverAbsFrac {
-                            let samp = Int64((absFrac * total).rounded())
-                            Text("\(Self.formatTC(absFrac * total / sr, fps: frameRate))  (\(samp))")
+                            Text(Self.formatTC(absFrac * total / sr, fps: frameRate))
                                 .foregroundStyle(.secondary)
                         } else {
                             Text("──:──:──:──")
                                 .foregroundStyle(.tertiary)
                         }
                     }
-                    .frame(width: 200, alignment: .leading)
+                    .frame(width: 160, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-                .help("Click to go to timecode")
+                .help("Click or press numpad * to go to timecode")
                 .popover(isPresented: $showTCEntry, arrowEdge: .bottom) {
                     TCEntryPopover(text: $tcEntryText) { text in
                         if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
@@ -1057,33 +1076,19 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
-                // Track name + clip name under cursor
-                Group {
-                    let displayIdx = tc.selTrack ?? hoverLane
-                    if let idx = displayIdx, idx < tracks.count {
-                        let track = tracks[idx]
-                        let color = Self.trackColor(track, index: idx)
-                        let fmtLabel: String = {
-                            guard track.type == .video else { return track.channelFormat }
-                            return tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)"
-                        }()
-                        Text(track.name).foregroundStyle(color)
-                        Text("[\(fmtLabel)]").foregroundStyle(.secondary)
-                    } else {
-                        Text("—").foregroundStyle(.tertiary)
-                    }
-                    // Clip under cursor — always from hoverLane, regardless of selTrack
-                    if let absFrac = hoverAbsFrac,
-                       let laneIdx = hoverLane, laneIdx < tracks.count {
-                        let hovSample = Int64(absFrac * total)
-                        let clipColor = Self.trackColor(tracks[laneIdx], index: laneIdx)
-                        if let clip = tracks[laneIdx].clips.first(where: {
-                            hovSample >= $0.startSample
-                                && hovSample < $0.startSample + $0.lengthSamples
-                        }) {
-                            Text("· \(clip.name)").foregroundStyle(clipColor)
-                        }
-                    }
+                // Track name + format
+                let displayIdx = tc.selTrack ?? hoverLane
+                if let idx = displayIdx, idx < tracks.count {
+                    let track = tracks[idx]
+                    let color = Self.trackColor(track, index: idx)
+                    let fmtLabel: String = {
+                        guard track.type == .video else { return track.channelFormat }
+                        return tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)"
+                    }()
+                    Text(track.name).foregroundStyle(color)
+                    Text("[\(fmtLabel)]").foregroundStyle(.secondary)
+                } else {
+                    Text("—").foregroundStyle(.tertiary)
                 }
 
                 Spacer()
@@ -1119,6 +1124,39 @@ private struct SessionTimelineView: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .frame(height: 24)
+
+            // ── Row 2: clip info (slides in when hovering/selecting a clip) ──
+            if let (clip, tIdx) = clipDisplay {
+                let clipColor = tIdx < tracks.count ? Self.trackColor(tracks[tIdx], index: tIdx) : Color.secondary
+                let inTC  = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
+                let outTC = Self.formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
+                let durTC = Self.formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
+                HStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(clipColor)
+                        .frame(width: 3, height: 12)
+                    Text(clip.name)
+                        .foregroundStyle(clipColor)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer()
+                    Text("In")
+                        .foregroundStyle(.tertiary)
+                    Text(inTC)
+                        .foregroundStyle(.secondary)
+                    Text("Out")
+                        .foregroundStyle(.tertiary)
+                    Text(outTC)
+                        .foregroundStyle(.secondary)
+                    Text("+\(durTC)")
+                        .foregroundStyle(.tertiary)
+                }
+                .font(.system(size: 10).monospacedDigit())
+                .padding(.horizontal, 10)
+                .frame(height: 18)
+                .background(Color(nsColor: .separatorColor).opacity(0.08))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
 
             // ── Checkbox row ─────────────────────────────────────────────────
             if hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers {
@@ -1350,12 +1388,29 @@ private struct SessionTimelineView: View {
                                 let absFrac     = tc.viewStart + screenFrac * tc.window
                                 hoverAbsFrac    = absFrac
                                 tc.hoverAbsFrac = absFrac
-                                hoverLane = laneIndex(at: loc.y, availH: geo.size.height)
+                                let lane        = laneIndex(at: loc.y, availH: geo.size.height)
+                                hoverLane       = lane
+                                // Find clip under cursor
+                                if let idx = lane, idx < tracks.count {
+                                    let samp = Int64(absFrac * total)
+                                    let clip = tracks[idx].clips.first(where: {
+                                        (!hideMuted || !$0.isMuted) &&
+                                        samp >= $0.startSample &&
+                                        samp < $0.startSample + $0.lengthSamples
+                                    })
+                                    hoverClip         = clip
+                                    hoverClipTrackIdx = clip != nil ? idx : nil
+                                } else {
+                                    hoverClip         = nil
+                                    hoverClipTrackIdx = nil
+                                }
                             case .ended:
-                                tc.isHovering   = false
-                                tc.hoverAbsFrac = nil
-                                hoverAbsFrac    = nil
-                                hoverLane       = nil
+                                tc.isHovering     = false
+                                tc.hoverAbsFrac   = nil
+                                hoverAbsFrac      = nil
+                                hoverLane         = nil
+                                hoverClip         = nil
+                                hoverClipTrackIdx = nil
                             }
                         }
                         .gesture(
@@ -1399,16 +1454,42 @@ private struct SessionTimelineView: View {
                                 .onEnded { val in
                                     let dist = hypot(val.translation.width, val.translation.height)
                                     if dist < 3 {
-                                        // Click → place cursor, lock zoom anchor
-                                        let frac = (Double(val.location.x / geo.size.width)
+                                        // Click: place cursor, or select clip if one is under the click
+                                        let frac     = (Double(val.location.x / geo.size.width)
                                             * tc.window + tc.viewStart).clamped(to: 0...1)
-                                        tc.selStart    = frac
-                                        tc.selEnd      = nil
-                                        tc.selTrack    = laneIndex(at: val.location.y,
-                                                                    availH: geo.size.height)
+                                        let clickLane = laneIndex(at: val.location.y, availH: geo.size.height)
                                         tc.selTrackEnd = nil
                                         tc.isFocused   = true
+                                        tc.selTrack    = clickLane
+
+                                        // Find clip under click
+                                        let clickedClip: PTXClip? = {
+                                            guard let idx = clickLane, idx < tracks.count else { return nil }
+                                            let samp = Int64(frac * total)
+                                            return tracks[idx].clips.first(where: {
+                                                (!hideMuted || !$0.isMuted) &&
+                                                samp >= $0.startSample &&
+                                                samp < $0.startSample + $0.lengthSamples
+                                            })
+                                        }()
+
+                                        if let clip = clickedClip, let idx = clickLane {
+                                            // Select the full clip
+                                            tc.selStart              = Double(clip.startSample) / total
+                                            tc.selEnd                = Double(clip.startSample + clip.lengthSamples) / total
+                                            tc.selectedClip          = clip
+                                            tc.selectedClipTrackIdx  = idx
+                                        } else {
+                                            // Empty space → cursor only
+                                            tc.selStart             = frac
+                                            tc.selEnd               = nil
+                                            tc.selectedClip         = nil
+                                            tc.selectedClipTrackIdx = nil
+                                        }
                                     } else if isDragging {
+                                        // Drag selection clears any clip selection
+                                        tc.selectedClip         = nil
+                                        tc.selectedClipTrackIdx = nil
                                         // Normalize selection so start <= end
                                         if let s = tc.selStart, let e = tc.selEnd, e < s {
                                             let tmp = tc.selStart; tc.selStart = tc.selEnd; tc.selEnd = tmp
@@ -1426,9 +1507,11 @@ private struct SessionTimelineView: View {
         .onAppear {
             tc.tracks       = tracks
             tc.totalSamples = total
+            tc.hideMuted    = hideMuted
             tc.startMonitoring()
         }
         .onDisappear { tc.stopMonitoring() }
+        .onChange(of: hideMuted) { tc.hideMuted = $0 }
         .onChange(of: tc.openTCEntry) { wants in
             guard wants else { return }
             tc.openTCEntry = false

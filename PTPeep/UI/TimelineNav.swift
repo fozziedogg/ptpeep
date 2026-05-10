@@ -12,9 +12,11 @@ enum TimelineNav {
 
     /// Absolute fraction of the next clip start after `cursor` on `trackIdx`.
     static func nextClipStart(tracks: [PTXTrack], total: Double,
-                               trackIdx: Int, cursor: Double) -> Double? {
+                               trackIdx: Int, cursor: Double,
+                               hideMuted: Bool = false) -> Double? {
         guard trackIdx < tracks.count else { return nil }
         return tracks[trackIdx].clips
+            .filter { !hideMuted || !$0.isMuted }
             .map { Double($0.startSample) / total }
             .filter { $0 > cursor + 1e-9 }
             .min()
@@ -22,9 +24,11 @@ enum TimelineNav {
 
     /// Absolute fraction of the previous clip start before `cursor` on `trackIdx`.
     static func prevClipStart(tracks: [PTXTrack], total: Double,
-                               trackIdx: Int, cursor: Double) -> Double? {
+                               trackIdx: Int, cursor: Double,
+                               hideMuted: Bool = false) -> Double? {
         guard trackIdx < tracks.count else { return nil }
         return tracks[trackIdx].clips
+            .filter { !hideMuted || !$0.isMuted }
             .map { Double($0.startSample) / total }
             .filter { $0 < cursor - 1e-9 }
             .max()
@@ -32,21 +36,22 @@ enum TimelineNav {
 
     /// Absolute fraction of the next clip end after `cursor` on `trackIdx`.
     static func nextClipEnd(tracks: [PTXTrack], total: Double,
-                             trackIdx: Int, cursor: Double) -> Double? {
+                             trackIdx: Int, cursor: Double,
+                             hideMuted: Bool = false) -> Double? {
         guard trackIdx < tracks.count else { return nil }
-        let ends: [Double] = tracks[trackIdx].clips.map { clip -> Double in
-            Double(clip.startSample + clip.lengthSamples) / total
-        }
+        let ends: [Double] = tracks[trackIdx].clips
+            .filter { !hideMuted || !$0.isMuted }
+            .map { Double($0.startSample + $0.lengthSamples) / total }
         return ends.filter { $0 > cursor + 1e-9 }.min()
     }
 
     /// Next clip boundary (start or end) after `cursor` — Tab behaviour.
     static func nextBoundary(tracks: [PTXTrack], total: Double,
-                              trackIdx: Int, cursor: Double) -> Double? {
+                              trackIdx: Int, cursor: Double,
+                              hideMuted: Bool = false) -> Double? {
         guard trackIdx < tracks.count else { return nil }
-        let clips = tracks[trackIdx].clips
         var boundaries: [Double] = []
-        for clip in clips {
+        for clip in tracks[trackIdx].clips where !hideMuted || !clip.isMuted {
             boundaries.append(Double(clip.startSample) / total)
             boundaries.append(Double(clip.startSample + clip.lengthSamples) / total)
         }
@@ -55,11 +60,11 @@ enum TimelineNav {
 
     /// Previous clip boundary (start or end) before `cursor` — Shift+Tab behaviour.
     static func prevBoundary(tracks: [PTXTrack], total: Double,
-                              trackIdx: Int, cursor: Double) -> Double? {
+                              trackIdx: Int, cursor: Double,
+                              hideMuted: Bool = false) -> Double? {
         guard trackIdx < tracks.count else { return nil }
-        let clips = tracks[trackIdx].clips
         var boundaries: [Double] = []
-        for clip in clips {
+        for clip in tracks[trackIdx].clips where !hideMuted || !clip.isMuted {
             boundaries.append(Double(clip.startSample) / total)
             boundaries.append(Double(clip.startSample + clip.lengthSamples) / total)
         }
