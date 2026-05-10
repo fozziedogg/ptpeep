@@ -161,8 +161,8 @@ struct SessionInspectorView: View {
                 // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                 let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                // overhead = row1(24) + hover row(17) + sel row(17) + checkbox row(28, if shown) + ruler(20) + padding(8)
-                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 114 : 86
+                // overhead = row1(24) + hover row(24) + sel row(24) + checkbox row(28, if shown) + ruler(20) + padding(8)
+                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 128 : 100
                 // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                 let effectiveH: CGFloat = {
                     if overviewHeight == 0 {
@@ -1234,6 +1234,34 @@ private struct SessionTimelineView: View {
                 }
             }
             .frame(height: Self.rulerH)
+            .overlay(
+                GeometryReader { geo in
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                                .onEnded { val in
+                                    let x    = val.location.x
+                                    let raw  = (tc.viewStart + Double(x / geo.size.width) * tc.window)
+                                        .clamped(to: 0...1)
+                                    // Snap to nearest visible marker within 12px
+                                    var dest = raw
+                                    for loc in memoryLocations where loc.samplePosition > 0 {
+                                        let mFrac = Double(loc.samplePosition) / total
+                                        let mx    = CGFloat((mFrac - tc.viewStart) / tc.window) * geo.size.width
+                                        if abs(mx - x) < 12 {
+                                            let d = abs(mFrac - raw)
+                                            if d < abs(dest - raw) || dest == raw { dest = mFrac }
+                                        }
+                                    }
+                                    tc.jumpTo(dest)
+                                    tc.selectedClip         = nil
+                                    tc.selectedClipTrackIdx = nil
+                                    tc.isFocused            = true
+                                }
+                        )
+                }
+            )
 
             // ── Scrollable lane area ──────────────────────────────────────────
             ScrollView(.vertical, showsIndicators: true) {
@@ -1496,51 +1524,66 @@ private struct SessionTimelineView: View {
     private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
                              label: String, sr: Double, isSelected: Bool) -> some View {
         if let clip, let tIdx = trackIdx {
-            let color  = tIdx < tracks.count ? Self.trackColor(tracks[tIdx], index: tIdx) : Color.secondary
-            let inTC   = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
-            let outTC  = Self.formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
-            let durTC  = Self.formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
+            let color     = tIdx < tracks.count ? Self.trackColor(tracks[tIdx], index: tIdx) : Color.secondary
+            let inTC      = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
+            let outTC     = Self.formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
+            let durTC     = Self.formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
             let trackName = tIdx < tracks.count ? tracks[tIdx].name : ""
-            HStack(spacing: 5) {
+            HStack(spacing: 8) {
                 // Label badge
                 Text(label)
-                    .font(.system(size: 8).weight(.semibold))
-                    .foregroundStyle(isSelected ? color : .secondary)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
+                    .font(.system(size: 9).weight(.bold))
+                    .foregroundStyle(isSelected ? color : Color.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
                     .background(
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(isSelected ? color.opacity(0.15) : Color(nsColor: .separatorColor).opacity(0.4))
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(isSelected
+                                  ? color.opacity(0.18)
+                                  : Color(nsColor: .separatorColor).opacity(0.5))
                     )
-                // Track name (dimmer)
+
+                // Color swatch
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(isSelected ? color : color.opacity(0.5))
+                    .frame(width: 3, height: 14)
+
+                // Track name
                 if !trackName.isEmpty {
                     Text(trackName)
-                        .foregroundStyle(isSelected ? color.opacity(0.7) : Color.secondary.opacity(0.6))
+                        .foregroundStyle(isSelected ? color.opacity(0.75) : Color.secondary)
                         .lineLimit(1)
-                        .frame(maxWidth: 80, alignment: .leading)
+                        .frame(maxWidth: 110, alignment: .leading)
                 }
+
                 // Clip name
                 Text(clip.name)
-                    .foregroundStyle(isSelected ? color : Color.secondary)
-                    .fontWeight(isSelected ? .medium : .regular)
+                    .foregroundStyle(isSelected ? color : Color(nsColor: .secondaryLabelColor))
+                    .fontWeight(isSelected ? .semibold : .regular)
                     .lineLimit(1)
                     .truncationMode(.middle)
+
                 Spacer()
-                // Timecodes
-                Group {
-                    Text("In").foregroundStyle(.tertiary)
-                    Text(inTC).foregroundStyle(isSelected ? .primary : .secondary)
-                    Text("Out").foregroundStyle(.tertiary)
-                    Text(outTC).foregroundStyle(isSelected ? .primary : .secondary)
-                    Text("+\(durTC)").foregroundStyle(.tertiary)
+
+                // Timecodes — larger, clearly labelled
+                HStack(spacing: 6) {
+                    Label(inTC, systemImage: "arrow.right.to.line")
+                        .foregroundStyle(isSelected ? .primary : .secondary)
+                    Text("→")
+                        .foregroundStyle(.tertiary)
+                    Label(outTC, systemImage: "arrow.left.to.line")
+                        .foregroundStyle(isSelected ? .primary : .secondary)
+                    Text("· \(durTC)")
+                        .foregroundStyle(.tertiary)
                 }
+                .labelStyle(.titleAndIcon)
             }
-            .font(.system(size: 10).monospacedDigit())
-            .padding(.horizontal, 10)
-            .frame(height: 17)
+            .font(.system(size: 11).monospacedDigit())
+            .padding(.horizontal, 12)
+            .frame(height: 24)
             .background(isSelected
-                ? color.opacity(0.06)
-                : Color(nsColor: .separatorColor).opacity(0.04))
+                ? color.opacity(0.07)
+                : Color(nsColor: .separatorColor).opacity(0.05))
             .transition(.opacity)
         }
     }
