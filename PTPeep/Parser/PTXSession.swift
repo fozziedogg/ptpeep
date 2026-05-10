@@ -90,6 +90,7 @@ struct PTXClip {
     var startSample: Int64  = 0
     var lengthSamples: Int64 = 0
     var sourceFile:  String = ""    // base filename (no extension)
+    var isMuted:     Bool   = false
 }
 
 struct ResolvedAudioFile: Identifiable {

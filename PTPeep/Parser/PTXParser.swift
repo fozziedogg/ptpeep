@@ -235,46 +235,24 @@ final class PTXParser {
         // TODO: add a "Offset to first clip" toggle in Settings.
 
         // Assign clips to tracks.
-        // Multiple 0x104f refs at the same timeline position arise from PT's comp system
-        // (loop recording / alternate takes). Filter zero-length placeholders; for
-        // genuine duplicates keep the LAST ref per position — in PT's comp workflow the
-        // most-recently-selected take is appended last in the 0x1052 section.
-        //
-        // byte15==0x03 placements (isFade) are filtered out entirely — they are ghost
-        // regions whose pool entries point to full-length source files, not short fades,
-        // so extending clips by their length produced multi-minute visual artefacts.
+        // 0x104f placements with byte[35]==0x01 are hidden sync/dialog references — they are
+        // the underlying locked-picture refs that PT keeps but never shows on the timeline.
+        // Only byte[35]==0x00 placements are actual timeline clips (music, group, or SFX).
+        // Last entry per timeline position wins (handles comp-recorded alternate takes).
         for (i, tp) in trackPlaylists.enumerated() {
             guard i < session.tracks.count else { continue }
 
             var byPos: [Int64: PTXClip] = [:]
 
-            // Pass 1 — primary placements (byte15 != 0x03): audio clips and groups.
-            // Establishes which timeline positions are active. Last entry per position wins
-            // (handles comp-recorded alternate takes — most-recently-selected is appended last).
-            for p in tp.placements where !p.isFade {
+            for p in tp.placements where !p.isHidden {
                 let clipEntry = !p.isGroup && p.clipIdx < clips.count ? clips[p.clipIdx] : nil
                 let len = p.groupLength ?? clipEntry?.lengthSamples ?? 0
                 guard len > 0 else { continue }
                 let name = p.groupName ?? clipEntry?.name ?? "Clip \(p.clipIdx)"
                 byPos[p.timelineSample] = PTXClip(
                     name: name, startSample: p.timelineSample, lengthSamples: len,
-                    sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
-                )
-            }
-
-            // Pass 2 — "processed" clips (byte15 == 0x03, isFade flag).
-            // These override the primary at the same position (e.g. a processed music clip
-            // replaces the underlying sync clip reference). A byte15=0x03 clip with no
-            // primary companion is a ghost placeholder — skip it.
-            for p in tp.placements where p.isFade && !p.isGroup {
-                guard byPos[p.timelineSample] != nil else { continue }
-                let clipEntry = p.clipIdx < clips.count ? clips[p.clipIdx] : nil
-                let len = clipEntry?.lengthSamples ?? 0
-                guard len > 0 else { continue }
-                let name = clipEntry?.name ?? "Clip \(p.clipIdx)"
-                byPos[p.timelineSample] = PTXClip(
-                    name: name, startSample: p.timelineSample, lengthSamples: len,
-                    sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
+                    sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? "",
+                    isMuted: p.isMuted
                 )
             }
 
@@ -343,7 +321,8 @@ final class PTXParser {
                     let startPad = start.padding(toLength: 12, withPad: " ", startingAt: 0)
                     let lenPad   = len.padding(toLength: 12, withPad: " ", startingAt: 0)
                     let num      = String(format: "%02d", i + 1)
-                    lines.append("  [\(num)] \(namePad)  start=\(startPad)  len=\(lenPad)  file=\(file)  [\(clip.startSample)]")
+                    let muted    = clip.isMuted ? "  Muted" : ""
+                    lines.append("  [\(num)] \(namePad)  start=\(startPad)  len=\(lenPad)  file=\(file)  [\(clip.startSample)]\(muted)")
                 }
             }
             lines.append("")

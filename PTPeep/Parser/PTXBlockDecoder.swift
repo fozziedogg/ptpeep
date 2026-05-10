@@ -52,8 +52,9 @@ struct ClipPlacement {
     let clipIdx: Int        // index into the ClipEntry list (u16 at 0x104f offset+2)
     let timelineSample: Int64   // actual position on timeline (u32 at 0x104f offset+7)
     let trackHint: Int      // raw value from 0x104f that may indicate track (TBD)
-    var isFade: Bool = false      // true if this is a fade handle (extends preceding clip)
-    var isGroup: Bool = false    // true if this is a clip group placement
+    var isHidden: Bool = false    // true if byte[35]==0x01: sync/dialog ref, not shown on timeline
+    var isMuted:  Bool = false    // true if byte[0]==0x01 in 0x104f content
+    var isGroup: Bool = false    // true if byte[0]==0x01 AND byte[18]==0x01 (compound group)
     var groupName: String? = nil // compound clip name ("1 src.grp.L") when isGroup==true
     var groupLength: Int64? = nil // compound clip length in samples when isGroup==true
 }
@@ -242,8 +243,8 @@ final class PTXBlockDecoder {
                   nl >= 1, nl <= 512,
                   pos + 4 + Int(nl) <= data.count else { continue }
             let nameSlice = data[pos+4 ..< pos+4+Int(nl)]
-            guard nameSlice.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
-                  let name = String(bytes: nameSlice, encoding: .utf8) else { continue }
+            // Accept any valid UTF-8 (including non-ASCII: accented chars, Unicode filenames)
+            guard let name = String(bytes: nameSlice, encoding: .utf8), !name.isEmpty else { continue }
 
             let tp = pos + 4 + Int(nl)
             guard tp + 5 <= data.count else { continue }
@@ -587,7 +588,9 @@ final class PTXBlockDecoder {
             guard let nl = safeU32(data, at: pos, be: bigEndian),
                   nl >= 1, nl <= 512,
                   pos + 4 + Int(nl) <= data.count else { continue }
-            guard let name = String(bytes: data[pos+4 ..< pos+4+Int(nl)], encoding: .utf8) else { continue }
+            // Accept any valid UTF-8 (including non-ASCII filenames)
+            guard let name = String(bytes: data[pos+4 ..< pos+4+Int(nl)], encoding: .utf8),
+                  !name.isEmpty else { continue }
 
             let tp = pos + 4 + Int(nl)
             guard tp + 5 <= data.count else { continue }
@@ -695,16 +698,16 @@ final class PTXBlockDecoder {
                 j += 1
             }
             let placements: [ClipPlacement] = refs.compactMap { ref in
-                guard let p = parent1050(of: ref) else { return nil }  // reject false positives
-                // 0x1050 data begins with the 9-byte nested 0x104f block header, so:
-                //   p.dataOffset+9  = 0x104f byte[0]: 0x00=audio/fade, 0x01=clip group
-                //   p.dataOffset+24 = 0x104f byte[15]: 0x01=audio, 0x02=group primary,
-                //                                      0x03=fade (when byte[0]=0x00) or
-                //                                           group continuation (when byte[0]=0x01)
-                let byte0  = p.dataOffset + 9  < p.dataOffset + p.dataSize ? data[p.dataOffset + 9]  : 0x00
-                let byte15 = p.dataOffset + 24 < p.dataOffset + p.dataSize ? data[p.dataOffset + 24] : 0x01
-                let isGroup = byte0 == 0x01
-                let isFade  = !isGroup && byte15 == 0x03
+                guard parent1050(of: ref) != nil else { return nil }  // reject false positives
+                // 0x104f byte[0]: 0x01 = muted clip (individual audio or compound group)
+                // 0x104f byte[18]: 0x01 = compound group (uses compound pool for name/length)
+                //                  0x00 = muted individual audio clip (uses audio pool)
+                // 0x104f byte[35]: 0x00 = visible on timeline, 0x01 = hidden dialog/sync ref
+                let byte0   = ref.dataSize >= 1  ? data[ref.dataOffset]      : 0x00
+                let byte18  = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x00
+                let isMuted  = byte0 == 0x01
+                let isGroup  = isMuted && byte18 == 0x01   // compound group → compound pool
+                let isHidden = ref.dataSize >= 36 && data[ref.dataOffset + 35] == 0x01
                 let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
                 let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
                 guard timeline > 0 else { return nil }
@@ -712,7 +715,8 @@ final class PTXBlockDecoder {
                 let groupName   = compoundEntry?.name
                 let groupLength = compoundEntry?.lengthSamples
                 return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0,
-                                     isFade: isFade, isGroup: isGroup, groupName: groupName, groupLength: groupLength)
+                                     isHidden: isHidden, isMuted: isMuted, isGroup: isGroup,
+                                     groupName: groupName, groupLength: groupLength)
             }
 
             // Only the FIRST 0x1052 section for each track name is the active playlist.

@@ -978,16 +978,19 @@ private struct SessionTimelineView: View {
                         let w = max(1, CGFloat(clipFracLen / vWindow) * size.width)
                         guard x + w > 0, x < size.width else { continue }
                         let clipRect = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
-                        ctx.fill(Path(clipRect), with: .color(color.opacity(0.88)))
+                        let fillAlpha: Double = clip.isMuted ? 0.28 : 0.88
+                        let edgeAlpha: Double = clip.isMuted ? 0.45 : 1.0
+                        ctx.fill(Path(clipRect), with: .color(color.opacity(fillAlpha)))
                         // 1px bright border for crisp clip edges
-                        ctx.stroke(Path(clipRect), with: .color(color.opacity(1.0)),
+                        ctx.stroke(Path(clipRect), with: .color(color.opacity(edgeAlpha)),
                                    style: StrokeStyle(lineWidth: 1))
                         if w > 32 {
                             let fontSize: CGFloat = track.type == .video ? 8 : 6
+                            let labelAlpha: Double = clip.isMuted ? 0.5 : 1.0
                             ctx.draw(
                                 Text(clip.name)
                                     .font(.system(size: fontSize).bold())
-                                    .foregroundColor(.white),
+                                    .foregroundColor(.white.opacity(labelAlpha)),
                                 in: CGRect(x: x + 3,
                                            y: laneY + (thisLaneH - fontSize) / 2 - 1,
                                            width: w - 6, height: fontSize + 2)
