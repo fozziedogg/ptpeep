@@ -12,6 +12,8 @@ struct PTXParserMain {
             var session = try PTXParser.parse(url: url)
             PTXParser.resolveAudioFiles(session: &session, sessionURL: url)
             PTXParser.writeClipLog(session: session, sessionURL: url)
+            PTXParser.writeTextExport(session: session, sessionURL: url)
+            PTXParser.writeEDL(session: session, sessionURL: url)
         } catch {
             fputs("Parse error: \(error)\n", stderr)
             exit(1)

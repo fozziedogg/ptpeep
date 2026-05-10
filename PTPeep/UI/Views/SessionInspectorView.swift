@@ -13,8 +13,21 @@ struct SessionInspectorView: View {
     @State private var showHiddenTracks:   Bool    = false
     @State private var showInactiveTracks: Bool    = false
     @State private var showVideoTrack:     Bool    = true
+    @State private var hideMutedClips:     Bool    = false
+    @State private var showMarkers:        Bool    = false
+    @State private var markerSearch:       String  = ""
     @State private var overviewHeight:     CGFloat = 0     // 0 = auto-init on first render
     @State private var overviewDragStart:  CGFloat = 0
+    @State private var selectedTrackNames: Set<String> = []
+    @State private var trackSelectionMode: Bool   = false
+    @State private var showTrackPlugins:   Bool   = true
+    @StateObject private var tc = TimelineController()
+
+    /// Max end-sample across all tracks — used to convert sample positions to timeline fractions.
+    private var totalSamples: Double {
+        let m = session.tracks.flatMap(\.clips).map { $0.startSample + $0.lengthSamples }.max() ?? 1
+        return Double(max(m, 1))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -82,7 +95,7 @@ struct SessionInspectorView: View {
     // MARK: - Session Setup
 
     private var sessionSetupSection: some View {
-        InspectorSection(title: "Session Setup", systemImage: "info.circle") {
+        InspectorSection(title: "Session Setup", systemImage: "info.circle", initiallyExpanded: false) {
             let rows: [(String, String)] = [
                 ("Sample Rate",   session.sampleRate.isEmpty    ? "—" : "\(session.sampleRate) Hz"),
                 ("Bit Depth",     session.bitDepth.isEmpty      ? "—" : "\(session.bitDepth)-bit"),
@@ -119,6 +132,8 @@ struct SessionInspectorView: View {
         let hasHidden   = session.tracks.contains { $0.isHidden   && !$0.clips.isEmpty }
         let hasInactive = session.tracks.contains { $0.isInactive && !$0.clips.isEmpty }
         let hasVideo    = session.tracks.contains { $0.type == .video && !$0.clips.isEmpty }
+        let hasMuted    = session.tracks.contains { $0.clips.contains { $0.isMuted } }
+        let hasMarkers  = session.memoryLocations.contains { $0.samplePosition > 0 }
         let clippedTracks = session.tracks
             .filter {
                 !$0.clips.isEmpty
@@ -147,7 +162,7 @@ struct SessionInspectorView: View {
                 let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                + CGFloat(max(0, videoCount + otherCount - 1)) * 2
                 // overhead = top control row(24) + checkbox row(28, if shown) + ruler(20) + padding(8)
-                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo) ? 80 : 52
+                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 80 : 52
                 // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                 let effectiveH: CGFloat = {
                     if overviewHeight == 0 {
@@ -161,16 +176,23 @@ struct SessionInspectorView: View {
                 let scrollableH = effectiveH - overhead
                 let vScale = baseLanesH > 0 ? max(1.0, scrollableH / baseLanesH) : 1.0
 
-                SessionTimelineView(tracks: clippedTracks, sampleRate: sr,
+                SessionTimelineView(tc: tc,
+                                    tracks: clippedTracks, sampleRate: sr,
                                     frameRate: session.frameRate,
                                     tcFormat:  session.tcFormat,
                                     verticalScale: vScale,
+                                    resolvedFiles: session.resolvedAudioFiles,
+                                    memoryLocations: session.memoryLocations,
                                     hasHidden:   hasHidden,
                                     hasInactive: hasInactive,
                                     hasVideo:    hasVideo,
+                                    hasMuted:    hasMuted,
+                                    hasMarkers:  hasMarkers,
                                     showHidden:    $showHiddenTracks,
                                     showInactive:  $showInactiveTracks,
                                     showVideo:     $showVideoTrack,
+                                    hideMuted:     $hideMutedClips,
+                                    showMarkers:   $showMarkers,
                                     overviewHeight: $overviewHeight)
                     .frame(height: effectiveH)
                     .padding(.horizontal, 16)
@@ -186,13 +208,96 @@ struct SessionInspectorView: View {
     // MARK: - Tracks
 
     private var tracksSection: some View {
-        InspectorSection(title: "Tracks", systemImage: "slider.horizontal.3",
+        let audioTracks = session.tracks.filter { $0.type == .audio }
+        let hasPlugins  = session.tracks.contains { !$0.plugins.isEmpty }
+        return InspectorSection(title: "Tracks", systemImage: "slider.horizontal.3",
                          count: session.tracks.count, initiallyExpanded: false) {
             if session.tracks.isEmpty {
                 PlaceholderRow(text: "No tracks found")
             } else {
+                // ── Toolbar ────────────────────────────────────────────────────
+                HStack(spacing: 8) {
+                    // Plug-ins toggle — only shown when at least one track has plugins
+                    if hasPlugins {
+                        Toggle(isOn: $showTrackPlugins) {
+                            Text("Plug-ins").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+
+                    Spacer()
+
+                    if trackSelectionMode {
+                        // Select All / None
+                        Button(selectedTrackNames.count == audioTracks.count ? "None" : "All") {
+                            if selectedTrackNames.count == audioTracks.count {
+                                selectedTrackNames.removeAll()
+                            } else {
+                                selectedTrackNames = Set(audioTracks.map(\.name))
+                            }
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                        // Export button — only active when tracks are selected
+                        Button {
+                            let names = session.tracks
+                                .filter { selectedTrackNames.contains($0.name) }
+                                .map(\.name)
+                            if let url = PTXParser.writeEDL(session: session,
+                                                            sessionURL: sessionURL,
+                                                            trackNames: names) {
+                                NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                            }
+                        } label: {
+                            Label("Export EDL\(selectedTrackNames.isEmpty ? "" : " (\(selectedTrackNames.count))")",
+                                  systemImage: "square.and.arrow.up")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.mini)
+                        .disabled(selectedTrackNames.isEmpty)
+
+                        // Done
+                        Button("Done") {
+                            trackSelectionMode = false
+                            selectedTrackNames.removeAll()
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    } else {
+                        if !audioTracks.isEmpty {
+                            Button {
+                                trackSelectionMode = true
+                            } label: {
+                                Label("EDL Export…", systemImage: "film.stack")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 5)
+
+                // ── Track rows ─────────────────────────────────────────────────
                 ForEach(session.tracks, id: \.index) { track in
-                    TrackRow(track: track)
+                    SelectableTrackRow(
+                        track: track,
+                        isSelected: selectedTrackNames.contains(track.name),
+                        selectionMode: trackSelectionMode,
+                        showPlugins: showTrackPlugins,
+                        onToggle: {
+                            if selectedTrackNames.contains(track.name) {
+                                selectedTrackNames.remove(track.name)
+                            } else {
+                                selectedTrackNames.insert(track.name)
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -218,11 +323,9 @@ struct SessionInspectorView: View {
 
     private var pluginsSection: some View {
         InspectorSection(title: "Plug-Ins Used", systemImage: "puzzlepiece.extension",
-                         count: session.plugins.count) {
+                         count: session.plugins.count, initiallyExpanded: false) {
             if session.plugins.isEmpty {
-                PlaceholderRow(text: session.sampleRate.isEmpty
-                    ? "Connect to Pro Tools for plug-in list"
-                    : "No plug-ins found")
+                PlaceholderRow(text: "No plug-ins found")
             } else {
                 ForEach(session.plugins, id: \.self) { plugin in
                     ListRow(text: plugin, systemImage: "puzzlepiece")
@@ -234,25 +337,86 @@ struct SessionInspectorView: View {
     // MARK: - Memory Locations
 
     private var memoryLocationsSection: some View {
-        InspectorSection(title: "Memory Locations", systemImage: "mappin.and.ellipse",
-                         count: session.memoryLocations.count) {
+        let sr       = Double(session.sampleRate) ?? 48000.0
+        let fps      = session.frameRate
+        let total    = totalSamples
+        let filtered = markerSearch.isEmpty
+            ? session.memoryLocations
+            : session.memoryLocations.filter { $0.name.localizedCaseInsensitiveContains(markerSearch) }
+        return InspectorSection(title: "Memory Locations", systemImage: "mappin.and.ellipse",
+                                count: session.memoryLocations.count, initiallyExpanded: false) {
             if session.memoryLocations.isEmpty {
                 PlaceholderRow(text: "No memory locations")
             } else {
-                ForEach(session.memoryLocations, id: \.number) { loc in
-                    HStack(spacing: 8) {
-                        Text("\(loc.number)")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                            .frame(width: 24, alignment: .trailing)
-                        Text(loc.name)
-                            .font(.subheadline)
+                // Search field
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    TextField("Search", text: $markerSearch)
+                        .textFieldStyle(.plain)
+                        .font(.subheadline)
+                    if !markerSearch.isEmpty {
+                        Button { markerSearch = "" } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 3)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 5)
+
+                if filtered.isEmpty {
+                    PlaceholderRow(text: "No results for \"\(markerSearch)\"")
+                } else {
+                    ForEach(filtered, id: \.number) { loc in
+                        let hasFrac = loc.samplePosition > 0 && total > 1
+                        let frac    = hasFrac ? Double(loc.samplePosition) / total : 0.0
+                        Button {
+                            guard hasFrac else { return }
+                            tc.jumpTo(frac)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text("\(loc.number)")
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 24, alignment: .trailing)
+                                Text(loc.name)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if hasFrac {
+                                    Text(Self.formatTC(samples: loc.samplePosition, sr: sr, fps: fps))
+                                        .font(.caption.monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                    Image(systemName: "arrow.up.left")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 3)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!hasFrac)
+                    }
                 }
             }
         }
+    }
+
+    private static func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
+        guard sr > 0, fps > 0, samples >= 0 else { return "—" }
+        let totalFrames = Int64((Double(samples) / sr * fps).rounded())
+        let fr  = Int64(fps.rounded())
+        let f   = totalFrames % fr
+        let sec = (totalFrames / fr) % 60
+        let min = (totalFrames / fr / 60) % 60
+        let hr  = totalFrames / fr / 3600
+        return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
     }
 }
 
@@ -336,37 +500,87 @@ private struct MetadataRow: View {
     }
 }
 
-private struct TrackRow: View {
+private struct SelectableTrackRow: View {
     let track: PTXTrack
+    let isSelected: Bool
+    let selectionMode: Bool
+    let showPlugins: Bool
+    let onToggle: () -> Void
+
     var body: some View {
-        let dimmed = track.isHidden || track.isInactive
-        HStack(spacing: 8) {
-            Image(systemName: track.type.systemImage)
-                .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : track.type.tintColor)
-                .frame(width: 16)
-            Text(track.name)
-                .font(.subheadline)
-                .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
-                .italic(track.isInactive)
-            HStack(spacing: 4) {
-                if track.isHidden {
-                    Image(systemName: "eye.slash")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+        let dimmed     = track.isHidden || track.isInactive
+        let canSelect  = track.type == .audio && selectionMode
+        let leadingPad = selectionMode ? 38.0 : 22.0   // extra space for checkbox when in mode
+
+        Button(action: { if canSelect { onToggle() } }) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
+                    // Leading icon: checkbox (selection mode, audio) or track-type icon
+                    if selectionMode && track.type == .audio {
+                        Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                            .foregroundStyle(isSelected ? Color.accentColor : Color(nsColor: .tertiaryLabelColor))
+                            .frame(width: 16)
+                    } else {
+                        Image(systemName: track.type.systemImage)
+                            .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : track.type.tintColor)
+                            .frame(width: 16)
+                    }
+
+                    // In selection mode, show type icon after the checkbox
+                    if selectionMode && track.type == .audio {
+                        Image(systemName: track.type.systemImage)
+                            .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary))
+                            .frame(width: 14)
+                    }
+
+                    Text(track.name)
+                        .font(.subheadline)
+                        .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+                        .italic(track.isInactive)
+
+                    if track.isHidden {
+                        Image(systemName: "eye.slash")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    if track.isInactive {
+                        Text("inactive")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+
+                    Spacer()
+
+                    Text(track.channelFormat)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                if track.isInactive {
-                    Text("inactive")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+
+                // Plugin pills
+                if showPlugins && !track.plugins.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 4) {
+                            ForEach(track.plugins, id: \.self) { plugin in
+                                Text(plugin)
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(Color(nsColor: .separatorColor).opacity(0.5))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                    .padding(.leading, leadingPad)
                 }
             }
-            Spacer()
-            Text(track.type.rawValue)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, canSelect ? 4 : 3)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 3)
+        .buttonStyle(.plain)
+        .background(isSelected && selectionMode ? Color.accentColor.opacity(0.07) : Color.clear)
+        .animation(.easeInOut(duration: 0.12), value: selectionMode)
     }
 }
 
@@ -474,6 +688,9 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     var isFocused:    Bool    = false
     var hoverAbsFrac: Double? = nil
 
+    // Signal to view to open the TC entry popover (numpad *)
+    @Published var openTCEntry: Bool = false
+
     // Navigation context — set by view on appear
     var tracks:       [PTXTrack] = []
     var totalSamples: Double     = 1.0
@@ -517,7 +734,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
             guard let self, self.isHovering || self.isFocused else { return event }
             let factor = 1.0 + Double(event.magnification)
             let anchor = self.hoverAbsFrac ?? (self.viewStart + self.window / 2)
-            let newSc  = (self.scale * factor).clamped(to: 1...512)
+            let newSc  = (self.scale * factor).clamped(to: 1...4096)
             let newWin = 1.0 / newSc
             self.viewStart = (anchor - newWin / 2).clamped(to: 0...(1 - newWin))
             self.scale     = newSc
@@ -526,6 +743,11 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, self.isHovering || self.isFocused else { return event }
+            // Numpad * (keyCode 67) → open TC entry popover (mirrors Pro Tools behaviour)
+            if event.keyCode == 67 {
+                self.openTCEntry = true
+                return nil
+            }
             guard let ch = event.charactersIgnoringModifiers else { return event }
             let mods   = event.modifierFlags
             switch ch {
@@ -570,7 +792,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
     func zoomIn(anchor: Double? = nil) {
         let a      = anchor ?? selStart ?? (viewStart + window / 2)
-        let newSc  = min(scale * 1.5, 512)
+        let newSc  = min(scale * 1.5, 4096)
         let newWin = 1.0 / newSc
         viewStart  = (a - newWin / 2).clamped(to: 0...(1 - newWin))
         scale      = newSc
@@ -704,22 +926,28 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 // MARK: - Universe-style timeline
 
 private struct SessionTimelineView: View {
+    @ObservedObject var tc: TimelineController
+
     let tracks: [PTXTrack]
     let sampleRate: Double
     var frameRate: Double = 30
     var tcFormat:  String = ""
     var verticalScale: CGFloat = 1.0
+    var resolvedFiles: [ResolvedAudioFile] = []
+    var memoryLocations: [PTXMemoryLocation] = []
 
     // Track filter toggles shown in the checkbox row
     var hasHidden:   Bool = false
     var hasInactive: Bool = false
     var hasVideo:    Bool = false
+    var hasMuted:    Bool = false
+    var hasMarkers:  Bool = false
     @Binding var showHidden:    Bool
     @Binding var showInactive:  Bool
     @Binding var showVideo:     Bool
+    @Binding var hideMuted:     Bool
+    @Binding var showMarkers:   Bool
     @Binding var overviewHeight: CGFloat
-
-    @StateObject private var tc = TimelineController()
 
     // Hover state (view-owned for rendering; tc.hoverAbsFrac mirrors it for key handler)
     @State private var hoverAbsFrac: Double? = nil
@@ -893,7 +1121,7 @@ private struct SessionTimelineView: View {
             .frame(height: 24)
 
             // ── Checkbox row ─────────────────────────────────────────────────
-            if hasHidden || hasInactive || hasVideo {
+            if hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers {
                 HStack(spacing: 12) {
                     if hasHidden {
                         Toggle(isOn: $showHidden) {
@@ -913,36 +1141,86 @@ private struct SessionTimelineView: View {
                         }
                         .toggleStyle(.checkbox)
                     }
+                    if hasMuted {
+                        Toggle(isOn: $hideMuted) {
+                            Text("Hide muted").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    if hasMarkers {
+                        Toggle(isOn: $showMarkers) {
+                            Text("Show markers").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
                     Spacer()
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
             }
 
-            // ── Ruler (fixed, above scrollable lanes) ─────────────────────────
+            // ── Ruler (adaptive tick spacing) ─────────────────────────────────
             Canvas { ctx, size in
-                let vStart  = tc.viewStart
-                let vWindow = tc.window
-                ctx.fill(
-                    Path(CGRect(x: 0, y: 0, width: size.width, height: 0.5)),
-                    with: .color(.secondary.opacity(0.35))
-                )
-                let steps = 5
-                for i in 0...steps {
-                    let frac  = Double(i) / Double(steps)
-                    let x     = CGFloat(frac) * size.width
-                    let secs  = (vStart + frac * vWindow) * total / sr
-                    ctx.fill(
-                        Path(CGRect(x: x, y: 0, width: 0.5, height: 5)),
-                        with: .color(.secondary.opacity(0.5))
-                    )
-                    let anchor: UnitPoint = i == 0 ? .topLeading : (i == steps ? .topTrailing : .top)
+                let vStart      = tc.viewStart
+                let vWindow     = tc.window
+                let visibleSecs = vWindow * total / sr
+
+                // Baseline rule
+                ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: 0.5)),
+                         with: .color(.secondary.opacity(0.35)))
+
+                // Memory location markers (drawn first so TC labels render on top)
+                if showMarkers {
+                    var prevLabelX: CGFloat = -100
+                    for loc in memoryLocations where loc.samplePosition > 0 {
+                        let frac = Double(loc.samplePosition) / total
+                        let x    = CGFloat((frac - vStart) / vWindow) * size.width
+                        guard x >= -1, x <= size.width + 1 else { continue }
+                        // Thin orange line spanning the full ruler height
+                        ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: size.height)),
+                                 with: .color(.orange.opacity(0.65)))
+                        // Name label — skip if too close to previous to avoid overlap
+                        if x - prevLabelX > 38 {
+                            let anchor: UnitPoint = x < 20 ? .topLeading
+                                                 : x > size.width - 20 ? .topTrailing : .topLeading
+                            ctx.draw(
+                                Text(loc.name)
+                                    .font(.system(size: 7).bold())
+                                    .foregroundColor(.orange),
+                                at: CGPoint(x: x + 2, y: 1),
+                                anchor: anchor
+                            )
+                            prevLabelX = x
+                        }
+                    }
+                }
+
+                // Regular TC ticks (on top of marker lines)
+                let fps = frameRate
+                let stepCandidates: [Double] = [
+                    1/fps, 2/fps, 5/fps, 10/fps,
+                    1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600
+                ]
+                let step = stepCandidates.last { visibleSecs / $0 >= 3 } ?? stepCandidates.last!
+
+                let winStartSec  = vStart * total / sr
+                let winEndSec    = (vStart + vWindow) * total / sr
+                let firstTickSec = ceil(winStartSec / step) * step
+                var tickSec      = firstTickSec
+                while tickSec <= winEndSec + step * 0.001 {
+                    let frac = tickSec / (total / sr)
+                    let x    = CGFloat((frac - vStart) / vWindow) * size.width
+                    guard x >= -2 && x <= size.width + 2 else { tickSec += step; continue }
+                    ctx.fill(Path(CGRect(x: x, y: 0, width: 0.5, height: 5)),
+                             with: .color(.secondary.opacity(0.5)))
+                    let anchor: UnitPoint = x < 20 ? .topLeading : (x > size.width - 20 ? .topTrailing : .top)
                     ctx.draw(
-                        Text(Self.formatTC(secs, fps: frameRate))
+                        Text(Self.formatTC(tickSec, fps: fps))
                             .font(.system(size: 9).monospacedDigit()),
                         at: CGPoint(x: x, y: 6),
                         anchor: anchor
                     )
+                    tickSec += step
                 }
             }
             .frame(height: Self.rulerH)
@@ -972,6 +1250,7 @@ private struct SessionTimelineView: View {
 
                     for clip in track.clips {
                         guard clip.startSample >= 0, clip.lengthSamples > 0 else { continue }
+                        if hideMuted && clip.isMuted { continue }
                         let clipFracStart = Double(clip.startSample)   / total
                         let clipFracLen   = Double(clip.lengthSamples) / total
                         let x = CGFloat((clipFracStart - vStart) / vWindow) * size.width
@@ -1039,6 +1318,30 @@ private struct SessionTimelineView: View {
                 GeometryReader { geo in
                     Color.clear
                         .contentShape(Rectangle())
+                        .contextMenu {
+                            // Find the clip under the last known hover position
+                            if let laneIdx = hoverLane,
+                               let absFrac = hoverAbsFrac,
+                               laneIdx < tracks.count {
+                                let hovSample = Int64(absFrac * total)
+                                if let clip = tracks[laneIdx].clips.first(where: {
+                                    hovSample >= $0.startSample
+                                        && hovSample < $0.startSample + $0.lengthSamples
+                                }) {
+                                    let resolved = resolvedFiles.first { $0.name == clip.sourceFile }
+                                    if let url = resolved?.url {
+                                        Button("Reveal \"\(clip.sourceFile)\" in Finder") {
+                                            NSWorkspace.shared.selectFile(
+                                                url.path,
+                                                inFileViewerRootedAtPath: "")
+                                        }
+                                    } else {
+                                        Text(clip.name)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
                         .onContinuousHover { phase in
                             switch phase {
                             case .active(let loc):
@@ -1126,6 +1429,12 @@ private struct SessionTimelineView: View {
             tc.startMonitoring()
         }
         .onDisappear { tc.stopMonitoring() }
+        .onChange(of: tc.openTCEntry) { wants in
+            guard wants else { return }
+            tc.openTCEntry = false
+            tcEntryText = tc.selStart.map { Self.formatTC($0 * total / sr, fps: frameRate) } ?? ""
+            showTCEntry = true
+        }
     }
 
     private static func formatTC(_ seconds: Double, fps: Double) -> String {
@@ -1139,31 +1448,6 @@ private struct SessionTimelineView: View {
         return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
     }
 
-    /// Parses a timecode string (H:MM:SS:FF or subsets, or plain seconds) into
-    /// an absolute timeline fraction. Returns nil if unparseable.
-    static func parseTCFrac(_ text: String, fps: Double, total: Double, sr: Double) -> Double? {
-        let s = text.trimmingCharacters(in: .whitespaces)
-        guard !s.isEmpty else { return nil }
-        // Plain seconds
-        if let secs = Double(s) {
-            return (secs * sr / total).clamped(to: 0...1)
-        }
-        // H:MM:SS:FF or subsets — convert via nominal frame count so pulldown rates are exact.
-        // fps may be rational (e.g. 24000/1001 for 23.976fps); nomFPS is the integer count (24).
-        // samples = nominalFrames × (sr / fps)  →  48000/(24000/1001) = 2002 samp/frame ✓
-        let nomFPS = fps.rounded()
-        let parts = s.split(separator: ":", omittingEmptySubsequences: false)
-            .compactMap { Int($0) }
-        var h = 0, m = 0, sec = 0, f = 0
-        switch parts.count {
-        case 1:  sec = parts[0]
-        case 2:  m = parts[0]; sec = parts[1]
-        case 3:  h = parts[0]; m = parts[1]; sec = parts[2]
-        default: h = parts[0]; m = parts[1]; sec = parts[2]; f = parts[3]
-        }
-        let frames = Double(h) * 3600 * nomFPS + Double(m) * 60 * nomFPS + Double(sec) * nomFPS + Double(f)
-        return (frames * sr / fps / total).clamped(to: 0...1)
-    }
 }
 
 // MARK: - TC entry popover
