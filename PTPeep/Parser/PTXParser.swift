@@ -295,14 +295,15 @@ final class PTXParser {
         let sr = Double(session.sampleRate) ?? 48000.0
         let fps = session.frameRate
         let srLabel = session.sampleRate.isEmpty ? "48000 (assumed)" : "\(session.sampleRate)"
-        let totalClips = session.tracks.reduce(0) { $0 + $1.clips.count }
+        let audioTracks = session.tracks.filter { $0.type == .audio }
+        let totalClips  = audioTracks.reduce(0) { $0 + $1.clips.count }
 
         var lines: [String] = []
 
         let stamp = ISO8601DateFormatter().string(from: Date())
         lines.append("=== \(session.sessionName)  |  \(stamp) ===")
         lines.append("Sample Rate : \(srLabel) Hz")
-        lines.append("Tracks      : \(session.tracks.count)")
+        lines.append("Tracks      : \(audioTracks.count)")
         lines.append("Total Clips : \(totalClips)")
         lines.append("")
 

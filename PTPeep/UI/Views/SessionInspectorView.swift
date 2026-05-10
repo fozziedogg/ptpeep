@@ -89,7 +89,7 @@ struct SessionInspectorView: View {
                 ("Timecode",      session.tcFormat.isEmpty      ? "—" : session.tcFormat),
                 ("Start",         session.sessionStart.isEmpty  ? "—" : session.sessionStart),
                 ("Duration",      session.sessionLength.isEmpty ? "—" : session.sessionLength),
-                ("Tracks",        "\(session.tracks.count)"),
+                ("Tracks",        "\(session.tracks.filter { $0.type == .audio }.count)"),
                 ("Audio Files",   "\(session.audioFileNames.count)"),
             ]
             let cols = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
