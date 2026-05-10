@@ -247,18 +247,33 @@ final class PTXParser {
             guard i < session.tracks.count else { continue }
 
             var byPos: [Int64: PTXClip] = [:]
+
+            // Pass 1 — primary placements (byte15 != 0x03): audio clips and groups.
+            // Establishes which timeline positions are active. Last entry per position wins
+            // (handles comp-recorded alternate takes — most-recently-selected is appended last).
             for p in tp.placements where !p.isFade {
-                // Group placements reference the compound pool (0x262b), not the audio pool (0x2629).
-                // Use groupLength/groupName directly; for audio placements fall back to the audio pool.
                 let clipEntry = !p.isGroup && p.clipIdx < clips.count ? clips[p.clipIdx] : nil
                 let len = p.groupLength ?? clipEntry?.lengthSamples ?? 0
-                guard len > 0 else { continue }   // skip zero-length placeholders
-                // Clip groups use their group name; audio clips use the pool entry name.
+                guard len > 0 else { continue }
                 let name = p.groupName ?? clipEntry?.name ?? "Clip \(p.clipIdx)"
                 byPos[p.timelineSample] = PTXClip(
-                    name: name,
-                    startSample: p.timelineSample,
-                    lengthSamples: len,
+                    name: name, startSample: p.timelineSample, lengthSamples: len,
+                    sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
+                )
+            }
+
+            // Pass 2 — "processed" clips (byte15 == 0x03, isFade flag).
+            // These override the primary at the same position (e.g. a processed music clip
+            // replaces the underlying sync clip reference). A byte15=0x03 clip with no
+            // primary companion is a ghost placeholder — skip it.
+            for p in tp.placements where p.isFade && !p.isGroup {
+                guard byPos[p.timelineSample] != nil else { continue }
+                let clipEntry = p.clipIdx < clips.count ? clips[p.clipIdx] : nil
+                let len = clipEntry?.lengthSamples ?? 0
+                guard len > 0 else { continue }
+                let name = clipEntry?.name ?? "Clip \(p.clipIdx)"
+                byPos[p.timelineSample] = PTXClip(
+                    name: name, startSample: p.timelineSample, lengthSamples: len,
                     sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
                 )
             }
