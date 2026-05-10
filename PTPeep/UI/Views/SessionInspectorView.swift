@@ -1273,11 +1273,17 @@ private struct SessionTimelineView: View {
                 // Clip canvas — Equatable so hover moves don't trigger a repaint.
                 // Only redraws when tc publishes (pan/zoom/cursor) or selection changes.
                 TimelineLaneCanvas(
-                    tc: tc,
-                    tracks: tracks,
-                    total: total,
-                    hideMuted: hideMuted,
-                    verticalScale: verticalScale
+                    viewStart:      tc.viewStart,
+                    window:         tc.window,
+                    selStart:       tc.selStart,
+                    selEnd:         tc.selEnd,
+                    selTrack:       tc.selTrack,
+                    selTrackEnd:    tc.selTrackEnd,
+                    expandedTracks: tc.expandedTracks,
+                    tracks:         tracks,
+                    total:          total,
+                    hideMuted:      hideMuted,
+                    verticalScale:  verticalScale
                 )
                 .equatable()
 
@@ -1554,18 +1560,35 @@ private struct SessionTimelineView: View {
 // MARK: - Timeline lane canvas (Equatable → skips repaint on hover-only state changes)
 
 private struct TimelineLaneCanvas: View, Equatable {
-    @ObservedObject var tc: TimelineController
+    // All tc values that affect rendering passed as plain params so == can compare them.
+    // No @ObservedObject — SessionTimelineView.body re-runs on tc changes and passes
+    // updated values; == returns false → canvas redraws. Hover changes don't touch
+    // these params → == returns true → canvas skipped.
+    let viewStart:      Double
+    let window:         Double
+    let selStart:       Double?
+    let selEnd:         Double?
+    let selTrack:       Int?
+    let selTrackEnd:    Int?
+    let expandedTracks: Set<Int>
 
-    let tracks:       [PTXTrack]
-    let total:        Double
-    let hideMuted:    Bool
-    let verticalScale: CGFloat
+    let tracks:         [PTXTrack]
+    let total:          Double
+    let hideMuted:      Bool
+    let verticalScale:  CGFloat
 
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.tracks.count == rhs.tracks.count &&
-        lhs.total == rhs.total &&
-        lhs.hideMuted == rhs.hideMuted &&
-        lhs.verticalScale == rhs.verticalScale
+        lhs.viewStart      == rhs.viewStart      &&
+        lhs.window         == rhs.window         &&
+        lhs.selStart       == rhs.selStart       &&
+        lhs.selEnd         == rhs.selEnd         &&
+        lhs.selTrack       == rhs.selTrack       &&
+        lhs.selTrackEnd    == rhs.selTrackEnd    &&
+        lhs.expandedTracks == rhs.expandedTracks &&
+        lhs.tracks.count   == rhs.tracks.count   &&
+        lhs.total          == rhs.total          &&
+        lhs.hideMuted      == rhs.hideMuted      &&
+        lhs.verticalScale  == rhs.verticalScale
     }
 
     private static let palette:    [Color] = [
@@ -1577,7 +1600,7 @@ private struct TimelineLaneCanvas: View, Equatable {
 
     private func scaledLaneH(_ track: PTXTrack, index: Int) -> CGFloat {
         let base: CGFloat = track.type == .video ? Self.videoLaneH : Self.audioLaneH
-        return (tc.expandedTracks.contains(index) ? base * 4 : base) * verticalScale
+        return (expandedTracks.contains(index) ? base * 4 : base) * verticalScale
     }
 
     private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
@@ -1586,12 +1609,12 @@ private struct TimelineLaneCanvas: View, Equatable {
 
     var body: some View {
         Canvas { ctx, size in
-            let vStart  = tc.viewStart
-            let vWindow = tc.window
+            let vStart  = viewStart
+            let vWindow = window
             let availH  = size.height
 
-            let selLo = min(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
-            let selHi = max(tc.selTrack ?? -1, tc.selTrackEnd ?? tc.selTrack ?? -1)
+            let selLo = min(selTrack ?? -1, selTrackEnd ?? selTrack ?? -1)
+            let selHi = max(selTrack ?? -1, selTrackEnd ?? selTrack ?? -1)
 
             let winStartSamp = Int64((vStart * total).rounded(.down))
             let winEndSamp   = Int64(((vStart + vWindow) * total).rounded(.up))
@@ -1644,9 +1667,9 @@ private struct TimelineLaneCanvas: View, Equatable {
             }
 
             // Cursor / selection band (drawn over clips)
-            if let sStart = tc.selStart {
+            if let sStart = selStart {
                 let sx = CGFloat((sStart - vStart) / vWindow) * size.width
-                if let sEnd = tc.selEnd {
+                if let sEnd = selEnd {
                     let ex = CGFloat((sEnd - vStart) / vWindow) * size.width
                     let x  = min(sx, ex)
                     let w  = max(1, abs(ex - sx))
