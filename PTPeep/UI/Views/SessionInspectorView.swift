@@ -964,11 +964,6 @@ private struct SessionTimelineView: View {
     @State private var hoverClip:         PTXClip? = nil
     @State private var hoverClipTrackIdx: Int?     = nil
 
-    // Selected clip — local state so changes don't trigger tc.objectWillChange
-    // (which would force an expensive canvas repaint)
-    @State private var selectedClip:         PTXClip? = nil
-    @State private var selectedClipTrackIdx: Int?     = nil
-
     // Drag/gesture state
     @State private var isDragging:  Bool   = false   // dragging a selection
     @State private var isPanning:   Bool   = false   // option+dragging to pan
@@ -1029,16 +1024,28 @@ private struct SessionTimelineView: View {
         let sr    = max(sampleRate, 1)
         let total = allTracksSamples > 0 ? allTracksSamples : visibleMax
 
+        // Derive selected clip from cursor position — no separate @State needed.
+        // When tc.selStart changes (Published), body re-runs and this is already correct.
+        let selectedClipSamp: Int64? = (tc.selEnd == nil) ? tc.selStart.map { Int64(($0 * total).rounded()) } : nil
+        let selectedClip: PTXClip? = selectedClipSamp.flatMap { samp in
+            guard let idx = tc.selTrack, idx < tracks.count else { return nil }
+            return tracks[idx].clips.first { $0.startSample == samp }
+        }
+        let selectedClipTrackIdx: Int? = selectedClip != nil ? tc.selTrack : nil
+
         VStack(spacing: 0) {
             // ── Row 1: TC cursor | track label | zoom ────────────────────────
             HStack(spacing: 8) {
-                // TC position / entry button
+                // TC position / entry button — hover takes priority over cursor
                 Button {
                     tcEntryText = tc.selStart.map { Self.formatTC($0 * total / sr, fps: frameRate) } ?? ""
                     showTCEntry = true
                 } label: {
                     Group {
-                        if let s = tc.selStart {
+                        if let absFrac = hoverAbsFrac {
+                            Text(Self.formatTC(absFrac * total / sr, fps: frameRate))
+                                .foregroundStyle(.secondary)
+                        } else if let s = tc.selStart {
                             if let e = tc.selEnd {
                                 let lo  = min(s, e)
                                 let dur = abs(e - s) * total / sr
@@ -1049,9 +1056,6 @@ private struct SessionTimelineView: View {
                                 Text("\(Self.formatTC(s * total / sr, fps: frameRate))  (\(samp))")
                                     .foregroundStyle(.primary)
                             }
-                        } else if let absFrac = hoverAbsFrac {
-                            Text(Self.formatTC(absFrac * total / sr, fps: frameRate))
-                                .foregroundStyle(.secondary)
                         } else {
                             Text("──:──:──:──")
                                 .foregroundStyle(.tertiary)
@@ -1073,8 +1077,8 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
-                // Track name + format
-                let displayIdx = tc.selTrack ?? hoverLane
+                // Track name — hover takes priority over selected track
+                let displayIdx = hoverLane ?? tc.selTrack
                 if let idx = displayIdx, idx < tracks.count {
                     let track = tracks[idx]
                     let color = Self.trackColor(track, index: idx)
@@ -1259,9 +1263,7 @@ private struct SessionTimelineView: View {
                                         }
                                     }
                                     tc.jumpTo(dest)
-                                    selectedClip         = nil
-                                    selectedClipTrackIdx = nil
-                                    tc.isFocused            = true
+                                    tc.isFocused = true
                                 }
                         )
                 }
@@ -1418,23 +1420,16 @@ private struct SessionTimelineView: View {
                                             })
                                         }()
 
-                                        if let clip = clickedClip, let idx = clickLane {
-                                            // Place cursor at clip in-point; info row shows full in/out
-                                            tc.selStart              = Double(clip.startSample) / total
-                                            tc.selEnd                = nil
-                                            selectedClip          = clip
-                                            selectedClipTrackIdx  = idx
+                                        if let clip = clickedClip {
+                                            // Place cursor at clip in-point; SEL row derives from this
+                                            tc.selStart = Double(clip.startSample) / total
+                                            tc.selEnd   = nil
                                         } else {
-                                            // Empty space → cursor only
-                                            tc.selStart             = frac
-                                            tc.selEnd               = nil
-                                            selectedClip         = nil
-                                            selectedClipTrackIdx = nil
+                                            // Empty space → cursor only, no clip selected
+                                            tc.selStart = frac
+                                            tc.selEnd   = nil
                                         }
                                     } else if isDragging {
-                                        // Drag selection clears any clip selection
-                                        selectedClip         = nil
-                                        selectedClipTrackIdx = nil
                                         // Normalize selection so start <= end
                                         if let s = tc.selStart, let e = tc.selEnd, e < s {
                                             let tmp = tc.selStart; tc.selStart = tc.selEnd; tc.selEnd = tmp
@@ -1457,8 +1452,6 @@ private struct SessionTimelineView: View {
         }
         .onDisappear { tc.stopMonitoring() }
         .onChange(of: hideMuted) { tc.hideMuted = $0 }
-        // Clear selected clip when cursor is cleared (Escape key via tc.clearSelection)
-        .onChange(of: tc.selStart) { if $0 == nil { selectedClip = nil; selectedClipTrackIdx = nil } }
         .onChange(of: tc.openTCEntry) { wants in
             guard wants else { return }
             tc.openTCEntry = false
@@ -1467,35 +1460,38 @@ private struct SessionTimelineView: View {
         }
     }
 
-    @ViewBuilder
     private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
                              label: String, sr: Double, isSelected: Bool) -> some View {
-        if let clip, let tIdx = trackIdx {
-            let color     = tIdx < tracks.count ? Self.trackColor(tracks[tIdx], index: tIdx) : Color.secondary
-            let inTC      = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
-            let outTC     = Self.formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
-            let durTC     = Self.formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
-            let trackName = tIdx < tracks.count ? tracks[tIdx].name : ""
-            HStack(spacing: 8) {
-                // Label badge
-                Text(label)
-                    .font(.system(size: 9).weight(.bold))
-                    .foregroundStyle(isSelected ? color : Color.secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(isSelected
-                                  ? color.opacity(0.18)
-                                  : Color(nsColor: .separatorColor).opacity(0.5))
-                    )
+        // Row always occupies 24px — no layout shift or flicker when clip changes.
+        let color = trackIdx.map { t in
+            t < tracks.count ? Self.trackColor(tracks[t], index: t) : Color.secondary
+        } ?? Color.secondary
+
+        return HStack(spacing: 8) {
+            // Label badge
+            Text(label)
+                .font(.system(size: 9).weight(.bold))
+                .foregroundStyle(isSelected ? color : Color.secondary)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(isSelected
+                              ? color.opacity(0.18)
+                              : Color(nsColor: .separatorColor).opacity(0.5))
+                )
+
+            if let clip, let tIdx = trackIdx {
+                let inTC      = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
+                let outTC     = Self.formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
+                let durTC     = Self.formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
+                let trackName = tIdx < tracks.count ? tracks[tIdx].name : ""
 
                 // Color swatch
                 RoundedRectangle(cornerRadius: 1.5)
                     .fill(isSelected ? color : color.opacity(0.5))
                     .frame(width: 3, height: 14)
 
-                // Track name
                 if !trackName.isEmpty {
                     Text(trackName)
                         .foregroundStyle(isSelected ? color.opacity(0.75) : Color.secondary)
@@ -1503,12 +1499,12 @@ private struct SessionTimelineView: View {
                         .frame(maxWidth: 110, alignment: .leading)
                 }
 
-                // Clip name (+ muted badge)
                 Text(clip.name)
                     .foregroundStyle(isSelected ? color : Color(nsColor: .secondaryLabelColor))
                     .fontWeight(isSelected ? .semibold : .regular)
                     .lineLimit(1)
                     .truncationMode(.middle)
+
                 if clip.isMuted {
                     Text("muted")
                         .font(.system(size: 9).weight(.medium))
@@ -1521,27 +1517,26 @@ private struct SessionTimelineView: View {
 
                 Spacer()
 
-                // Timecodes — larger, clearly labelled
                 HStack(spacing: 6) {
                     Label(inTC, systemImage: "arrow.right.to.line")
                         .foregroundStyle(isSelected ? .primary : .secondary)
-                    Text("→")
-                        .foregroundStyle(.tertiary)
+                    Text("→").foregroundStyle(.tertiary)
                     Label(outTC, systemImage: "arrow.left.to.line")
                         .foregroundStyle(isSelected ? .primary : .secondary)
-                    Text("· \(durTC)")
-                        .foregroundStyle(.tertiary)
+                    Text("· \(durTC)").foregroundStyle(.tertiary)
                 }
                 .labelStyle(.titleAndIcon)
+            } else {
+                Text("—").foregroundStyle(.tertiary)
+                Spacer()
             }
-            .font(.system(size: 11).monospacedDigit())
-            .padding(.horizontal, 12)
-            .frame(height: 24)
-            .background(isSelected
-                ? color.opacity(0.07)
-                : Color(nsColor: .separatorColor).opacity(0.05))
-            .transition(.opacity)
         }
+        .font(.system(size: 11).monospacedDigit())
+        .padding(.horizontal, 12)
+        .frame(height: 24)
+        .background(isSelected
+            ? color.opacity(0.07)
+            : Color(nsColor: .separatorColor).opacity(0.05))
     }
 
     private static func formatTC(_ seconds: Double, fps: Double) -> String {
