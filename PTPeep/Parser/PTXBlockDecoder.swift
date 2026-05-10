@@ -253,7 +253,7 @@ final class PTXBlockDecoder {
             let nLength = Int((data[tp + 2] & 0xf0) >> 4)
             let nStart  = Int((data[tp + 3] & 0xf0) >> 4)
 
-            guard nSrcOff <= 5, nLength <= 5, nStart <= 5,
+            guard nSrcOff <= 8, nLength <= 8, nStart <= 8,
                   tp + 5 + nSrcOff + nLength + nStart <= data.count else { continue }
 
             var vp = tp + 5
@@ -594,7 +594,7 @@ final class PTXBlockDecoder {
             let nLength = Int((data[tp + 2] & 0xf0) >> 4)
             let nSrcOff = Int((data[tp + 1] & 0xf0) >> 4)
             let nStart  = Int((data[tp + 3] & 0xf0) >> 4)
-            guard nSrcOff <= 5, nLength <= 5, nStart <= 5,
+            guard nSrcOff <= 8, nLength <= 8, nStart <= 8,
                   tp + 5 + nSrcOff + nLength + nStart <= data.count else { continue }
             var vp = tp + 5
             vp += nSrcOff  // skip sourceOffset
