@@ -153,27 +153,36 @@ final class PTXBlockDecoder {
     // MARK: Audio File Names
     //
     // Block 0x103a layout (content starts at dataOffset):
-    //   [2-byte skip]
-    //   Repeated entries:
-    //     [u32 nameLen][name bytes]["WAVE"/"AIFF"/"EVAW"/"FFIA" 4 bytes][9-byte padding]
+    //   [9-byte header: u32 unknown, u8 version, u32 entry count]
+    //   Repeated entries (including directory entries):
+    //     [u32 nameLen][name bytes][4-byte type tag]["WAVE"/"AIFF"/"EVAW"/"FFIA" or zeros][5-byte trailing]
+    //   Only entries whose type tag is a recognised audio format are actual audio files.
+    //   Directory entries (e.g. "Audio Files") have a zero type tag and are skipped.
+
+    private static let audioTypeTags: Set<String> = ["WAVE", "AIFF", "EVAW", "FFIA"]
 
     static func extractAudioFiles(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [AudioFileEntry] {
         var results = [AudioFileEntry]()
         for block in blocks where block.contentType == 0x103a {
-            var pos = block.dataOffset + 2
+            var pos = block.dataOffset + 9   // skip 9-byte block header
             let end = block.dataOffset + block.dataSize
-            var idx = 0
             while pos + 4 <= end {
                 guard let nl = safeU32(data, at: pos, be: bigEndian),
                       nl >= 1, nl <= 512,
-                      pos + 4 + Int(nl) + 13 <= data.count else { break }
-                let nameSlice = data[pos+4 ..< pos+4+Int(nl)]
-                if nameSlice.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
-                   let name = String(bytes: nameSlice, encoding: .utf8) {
-                    results.append(AudioFileEntry(index: idx, name: name))
-                    idx += 1
+                      pos + 4 + Int(nl) + 9 <= end else { break }
+                // Type tag: 4 bytes immediately after name
+                let tagStart = pos + 4 + Int(nl)
+                let tagBytes = data[tagStart ..< tagStart + 4]
+                let tag = String(bytes: tagBytes, encoding: .ascii) ?? ""
+                if Self.audioTypeTags.contains(tag) {
+                    let nameSlice = data[pos+4 ..< pos+4+Int(nl)]
+                    if let rawName = String(bytes: nameSlice, encoding: .utf8), !rawName.isEmpty {
+                        // Strip extension — AudioFileEntry stores base name only
+                        let name = (rawName as NSString).deletingPathExtension
+                        results.append(AudioFileEntry(index: results.count, name: name))
+                    }
                 }
-                pos += 4 + Int(nl) + 4 + 9   // name + type tag + padding
+                pos += 4 + Int(nl) + 4 + 5   // nameLen + name + type tag + 5 trailing bytes
             }
         }
         return results

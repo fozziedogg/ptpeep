@@ -1,105 +1,105 @@
-=== PeepTest  |  2026-05-10T12:08:07Z ===
+=== PeepTest  |  2026-05-10T12:26:16Z ===
 Sample Rate : 48000 Hz
 Tracks      : 11
 Total Clips : 76
 
 ── GT PIX [Stereo] ───────────────────────────────────────── (10 clips)
-  [01] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:12:29:07    len=0:00:08:14    file=—  [35966000]
-  [02] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:12:37:21    len=0:00:09:07    file=—  [36378000]
-  [03] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:12:47:04    len=0:00:30:19    file=—  [36824000]
-  [04] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:13:17:23    len=0:01:13:21    file=—  [38302000]
-  [05] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:14:31:20    len=0:02:38:00    file=—  [41848000]
-  [06] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:17:09:20    len=0:00:06:20    file=—  [49432000]
-  [07] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:17:16:16    len=0:00:12:08    file=—  [49760000]
-  [08] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:00:00:00    len=0:00:09:07    file=—  [172800000]
-  [09] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:00:09:07    len=0:01:13:21    file=—  [173246000]
-  [10] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:01:23:04    len=0:00:06:20    file=—  [176792000]
+  [01] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:12:29:07    len=0:00:08:14    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [35966000]
+  [02] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:12:37:21    len=0:00:09:07    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [36378000]
+  [03] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:12:47:04    len=0:00:30:19    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [36824000]
+  [04] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:13:17:23    len=0:01:13:21    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [38302000]
+  [05] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:14:31:20    len=0:02:38:00    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [41848000]
+  [06] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:17:09:20    len=0:00:06:20    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [49432000]
+  [07] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:17:16:16    len=0:00:12:08    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [49760000]
+  [08] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:00:00:00    len=0:00:09:07    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [172800000]
+  [09] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:00:09:07    len=0:01:13:21    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [173246000]
+  [10] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:01:23:04    len=0:00:06:20    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [176792000]
 
 ── SVB_BTS_InstagramMix [Stereo] ─────────────────────────── (1 clips)
-  [01] SVB_BTS_InstagramMix_2026Apr28.L                    start=1:00:00:00    len=0:01:30:00    file=—  [172800000]
+  [01] SVB_BTS_InstagramMix_2026Apr28.L                    start=1:00:00:00    len=0:01:30:00    file=Printmaster-ProL2_01  [172800000]
 
 ── Printmaster [Stereo] ──────────────────────────────────── (1 clips)
-  [01] Printmaster_01.L                                    start=1:00:00:00    len=0:01:30:00    file=—  [172800000]
+  [01] Printmaster_01.L                                    start=1:00:00:00    len=0:01:30:00    file=Printmaster_01  [172800000]
 
 ── SVB_102_2.0 DIA_Final_01 [Stereo] ─────────────────────── (5 clips)
-  [01] SVB_102_2.0 DIA_Final_01-02.L                       start=0:12:29:07    len=0:04:59:17    file=—  [35966000]
-  [02] SVB_102_2.0 DIA_Final_01-04.L                       start=1:00:00:00    len=0:00:09:07    file=—  [172800000]
-  [03] SVB_102_2.0 DIA_Final_01-05.L                       start=1:00:09:07    len=0:01:12:22    file=—  [173246000]
-  [04] SVB_102_2.0 DIA_Final_01-08.L                       start=1:01:22:05    len=0:00:06:12    file=—  [176745216]
-  [05] SVB_102_2.0 DIA_Final_01-09.L                       start=1:01:28:16    len=0:00:01:08    file=—  [177056256]  Muted
+  [01] SVB_102_2.0 DIA_Final_01-02.L                       start=0:12:29:07    len=0:04:59:17    file=SVB_102_2.0 DIA_Final_01.L  [35966000]
+  [02] SVB_102_2.0 DIA_Final_01-04.L                       start=1:00:00:00    len=0:00:09:07    file=SVB_102_2.0 DIA_Final_01.L  [172800000]
+  [03] SVB_102_2.0 DIA_Final_01-05.L                       start=1:00:09:07    len=0:01:12:22    file=SVB_102_2.0 DIA_Final_01.L  [173246000]
+  [04] SVB_102_2.0 DIA_Final_01-08.L                       start=1:01:22:05    len=0:00:06:12    file=SVB_102_2.0 DIA_Final_01.L  [176745216]
+  [05] SVB_102_2.0 DIA_Final_01-09.L                       start=1:01:28:16    len=0:00:01:08    file=SVB_102_2.0 DIA_Final_01.L  [177056256]  Muted
 
 ── SVB_102_2.0 MUS_Final_01 [Stereo] ─────────────────────── (4 clips)
-  [01] SVB_102_2.0 MUS_Final_01-02.L                       start=0:12:29:07    len=0:04:59:17    file=—  [35966000]
-  [02] SVB_102_2.0 MUS_Final_01-04.L                       start=1:00:00:00    len=0:00:08:01    file=—  [172800000]
-  [03] SVB_102_2.0 MUS_Final_01-05.L                       start=1:00:08:01    len=0:01:15:03    file=—  [173186048]
-  [04] SVB_102_2.0 MUS_Final_01-07.L                       start=1:01:23:04    len=0:00:04:14    file=—  [176792000]
+  [01] SVB_102_2.0 MUS_Final_01-02.L                       start=0:12:29:07    len=0:04:59:17    file=SVB_102_2.0 MUS_Final_01.L  [35966000]
+  [02] SVB_102_2.0 MUS_Final_01-04.L                       start=1:00:00:00    len=0:00:08:01    file=SVB_102_2.0 MUS_Final_01.L  [172800000]
+  [03] SVB_102_2.0 MUS_Final_01-05.L                       start=1:00:08:01    len=0:01:15:03    file=SVB_102_2.0 MUS_Final_01.L  [173186048]
+  [04] SVB_102_2.0 MUS_Final_01-07.L                       start=1:01:23:04    len=0:00:04:14    file=SVB_102_2.0 MUS_Final_01.L  [176792000]
 
 ── SVB_102_2.0 SFX_Final_01 [Stereo] ─────────────────────── (5 clips)
-  [01] SVB_102_2.0 SFX_Final_01-02.L                       start=0:12:29:07    len=0:04:59:17    file=—  [35966000]
-  [02] SVB_102_2.0 SFX_Final_01-07.L                       start=1:00:00:00    len=0:00:00:22    file=—  [172800000]
-  [03] SVB_102_2.0 SFX_Final_01-08.L                       start=1:00:00:22    len=0:00:08:09    file=—  [172843392]
-  [04] SVB_102_2.0 SFX_Final_01-05.L                       start=1:00:09:07    len=0:01:13:21    file=—  [173246000]
-  [05] SVB_102_2.0 SFX_Final_01-06.L                       start=1:01:23:04    len=0:00:06:20    file=—  [176792000]
+  [01] SVB_102_2.0 SFX_Final_01-02.L                       start=0:12:29:07    len=0:04:59:17    file=SVB_102_2.0 SFX_Final_01.L  [35966000]
+  [02] SVB_102_2.0 SFX_Final_01-07.L                       start=1:00:00:00    len=0:00:00:22    file=SVB_102_2.0 SFX_Final_01.L  [172800000]
+  [03] SVB_102_2.0 SFX_Final_01-08.L                       start=1:00:00:22    len=0:00:08:09    file=SVB_102_2.0 SFX_Final_01.L  [172843392]
+  [04] SVB_102_2.0 SFX_Final_01-05.L                       start=1:00:09:07    len=0:01:13:21    file=SVB_102_2.0 SFX_Final_01.L  [173246000]
+  [05] SVB_102_2.0 SFX_Final_01-06.L                       start=1:01:23:04    len=0:00:06:20    file=SVB_102_2.0 SFX_Final_01.L  [176792000]
 
 ── Haley 1 [Mono] ────────────────────────────────────────── (11 clips)
-  [01] PART ONE-RX9Cnct_01-02                              start=1:00:09:23    len=0:00:19:18    file=—  [173278000]
-  [02] PART ONE-RX9Cnct_01-03                              start=1:00:29:17    len=0:00:00:01    file=—  [174226352]
-  [03] PART ONE-RX9Cnct_01-04                              start=1:00:29:18    len=0:00:02:00    file=—  [174228400]
-  [04] PART ONE-RX9Dcrk_04-01                              start=1:00:46:10    len=0:00:02:18    file=—  [175028104]
-  [05] PART TWO-RX9Dcrk_10-01                              start=1:00:49:08    len=0:00:02:02    file=—  [175167584]
-  [06] PART ONE-RX9Cnct_05-01                              start=1:01:01:00    len=0:00:02:07    file=—  [175727392]
-  [07] PART ONE-RX9Dcrk_05-03                              start=1:01:03:06    len=0:00:02:09    file=—  [175836448]
-  [08] PART ONE-RX9Dcrk_06-02                              start=1:01:05:15    len=0:00:01:16    file=—  [175950000]
-  [09] PART ONE-RX9Cnct_06-01                              start=1:01:07:07    len=0:00:06:02    file=—  [176029984]
-  [10] PART TWO-RX9Dcrk_07-01                              start=1:01:20:06    len=0:00:02:18    file=—  [176651392]
-  [11] PART TWO-RX9Dcrk_08-01                              start=1:01:23:15    len=0:00:01:08    file=—  [176814000]
+  [01] PART ONE-RX9Cnct_01-02                              start=1:00:09:23    len=0:00:19:18    file=PART ONE-RX9Cnct_01  [173278000]
+  [02] PART ONE-RX9Cnct_01-03                              start=1:00:29:17    len=0:00:00:01    file=PART ONE-RX9Cnct_01  [174226352]
+  [03] PART ONE-RX9Cnct_01-04                              start=1:00:29:18    len=0:00:02:00    file=PART ONE-RX9Cnct_01  [174228400]
+  [04] PART ONE-RX9Dcrk_04-01                              start=1:00:46:10    len=0:00:02:18    file=PART ONE-RX9Dcrk_04  [175028104]
+  [05] PART TWO-RX9Dcrk_10-01                              start=1:00:49:08    len=0:00:02:02    file=PART TWO-RX9Dcrk_10  [175167584]
+  [06] PART ONE-RX9Cnct_05-01                              start=1:01:01:00    len=0:00:02:07    file=PART ONE-RX9Cnct_05  [175727392]
+  [07] PART ONE-RX9Dcrk_05-03                              start=1:01:03:06    len=0:00:02:09    file=PART ONE-RX9Dcrk_05  [175836448]
+  [08] PART ONE-RX9Dcrk_06-02                              start=1:01:05:15    len=0:00:01:16    file=PART ONE-RX9Dcrk_06  [175950000]
+  [09] PART ONE-RX9Cnct_06-01                              start=1:01:07:07    len=0:00:06:02    file=PART ONE-RX9Cnct_06  [176029984]
+  [10] PART TWO-RX9Dcrk_07-01                              start=1:01:20:06    len=0:00:02:18    file=PART TWO-RX9Dcrk_07  [176651392]
+  [11] PART TWO-RX9Dcrk_08-01                              start=1:01:23:15    len=0:00:01:08    file=PART TWO-RX9Dcrk_08  [176814000]
 
 ── Haley 2 [Mono] ────────────────────────────────────────── (13 clips)
-  [01] PART TWO-07                                         start=0:14:39:16    len=0:00:00:19    file=—  [42224000]  Muted
-  [02] PART TWO-09                                         start=0:14:40:11    len=0:00:02:14    file=—  [42262000]  Muted
-  [03] PART TWO-10                                         start=0:14:43:01    len=0:00:02:17    file=—  [42386000]  Muted
-  [04] PART TWO-16                                         start=0:14:53:06    len=0:00:05:16    file=—  [42876000]  Muted
-  [05] PART TWO-17                                         start=0:14:58:22    len=0:00:02:02    file=—  [43148000]  Muted
-  [06] PART TWO-18                                         start=0:15:01:00    len=0:00:01:17    file=—  [43248000]  Muted
-  [07] PART TWO-21                                         start=0:15:02:17    len=0:00:03:18    file=—  [43330000]  Muted
-  [08] PART ONE-RX9Dcrk_07-01                              start=1:00:45:01    len=0:00:01:11    file=—  [174961584]
-  [09] PART ONE-RX9Dcrk_11-01                              start=1:00:51:08    len=0:00:02:05    file=—  [175263760]
-  [10] PART ONE-RX9Dcrk_12-02                              start=1:00:53:13    len=0:00:02:16    file=—  [175370640]
-  [11] PART ONE-RX9Cnct_12-01                              start=1:00:56:05    len=0:00:04:08    file=—  [175498432]
-  [12] PART ONE-RX9Dcrk_04-04                              start=1:01:19:19    len=0:00:00:12    file=—  [176629888]
-  [13] PART TWO-30                                         start=1:01:26:14    len=0:00:04:10    file=—  [176956000]  Muted
+  [01] PART TWO-07                                         start=0:14:39:16    len=0:00:00:19    file=PART TWO  [42224000]  Muted
+  [02] PART TWO-09                                         start=0:14:40:11    len=0:00:02:14    file=PART TWO  [42262000]  Muted
+  [03] PART TWO-10                                         start=0:14:43:01    len=0:00:02:17    file=PART TWO  [42386000]  Muted
+  [04] PART TWO-16                                         start=0:14:53:06    len=0:00:05:16    file=PART TWO  [42876000]  Muted
+  [05] PART TWO-17                                         start=0:14:58:22    len=0:00:02:02    file=PART TWO  [43148000]  Muted
+  [06] PART TWO-18                                         start=0:15:01:00    len=0:00:01:17    file=PART TWO  [43248000]  Muted
+  [07] PART TWO-21                                         start=0:15:02:17    len=0:00:03:18    file=PART TWO  [43330000]  Muted
+  [08] PART ONE-RX9Dcrk_07-01                              start=1:00:45:01    len=0:00:01:11    file=PART ONE-RX9Dcrk_07  [174961584]
+  [09] PART ONE-RX9Dcrk_11-01                              start=1:00:51:08    len=0:00:02:05    file=PART ONE-RX9Dcrk_11  [175263760]
+  [10] PART ONE-RX9Dcrk_12-02                              start=1:00:53:13    len=0:00:02:16    file=PART ONE-RX9Dcrk_12  [175370640]
+  [11] PART ONE-RX9Cnct_12-01                              start=1:00:56:05    len=0:00:04:08    file=PART ONE-RX9Cnct_12  [175498432]
+  [12] PART ONE-RX9Dcrk_04-04                              start=1:01:19:19    len=0:00:00:12    file=PART ONE-RX9Dcrk_04  [176629888]
+  [13] PART TWO-30                                         start=1:01:26:14    len=0:00:04:10    file=PART TWO  [176956000]  Muted
 
 ── Haley 1.dup1 [Mono] ───────────────────────────────────── (8 clips)
-  [01] PART ONE-HushMix_01-01                              start=1:00:10:08    len=0:00:05:23    file=—  [173296000]
-  [02] PART ONE-HushMix_02-01                              start=1:00:16:07    len=0:00:14:17    file=—  [173581952]
-  [03] PART ONE-HushMix_03-01                              start=1:00:30:23    len=0:00:01:04    file=—  [174286976]
-  [04] PART ONE-HushMix_04-01                              start=1:00:43:22    len=0:00:02:18    file=—  [174908104]
-  [05] PART ONE-HushMix_05-01                              start=1:01:01:06    len=0:00:04:15    file=—  [175739392]
-  [06] PART ONE-HushMix_06-01                              start=1:01:05:21    len=0:00:07:18    file=—  [175962000]
-  [07] PART TWO-HushMix_07-01                              start=1:01:19:22    len=0:00:03:01    file=—  [176636000]
-  [08] PART TWO-HushMix_08-01                              start=1:01:23:15    len=0:00:01:08    file=—  [176814000]
+  [01] PART ONE-HushMix_01-01                              start=1:00:10:08    len=0:00:05:23    file=PART ONE-HushMix_01  [173296000]
+  [02] PART ONE-HushMix_02-01                              start=1:00:16:07    len=0:00:14:17    file=PART ONE-HushMix_02  [173581952]
+  [03] PART ONE-HushMix_03-01                              start=1:00:30:23    len=0:00:01:04    file=PART ONE-HushMix_03  [174286976]
+  [04] PART ONE-HushMix_04-01                              start=1:00:43:22    len=0:00:02:18    file=PART ONE-HushMix_04  [174908104]
+  [05] PART ONE-HushMix_05-01                              start=1:01:01:06    len=0:00:04:15    file=PART ONE-HushMix_05  [175739392]
+  [06] PART ONE-HushMix_06-01                              start=1:01:05:21    len=0:00:07:18    file=PART ONE-HushMix_06  [175962000]
+  [07] PART TWO-HushMix_07-01                              start=1:01:19:22    len=0:00:03:01    file=PART TWO-HushMix_07  [176636000]
+  [08] PART TWO-HushMix_08-01                              start=1:01:23:15    len=0:00:01:08    file=PART TWO-HushMix_08  [176814000]
 
 ── Haley 2.dup1 [Mono] ───────────────────────────────────── (12 clips)
-  [01] PART TWO-07                                         start=0:14:39:16    len=0:00:00:19    file=—  [42224000]  Muted
-  [02] PART TWO-09                                         start=0:14:40:11    len=0:00:02:14    file=—  [42262000]  Muted
-  [03] PART TWO-10                                         start=0:14:43:01    len=0:00:02:17    file=—  [42386000]  Muted
-  [04] PART TWO-16                                         start=0:14:53:06    len=0:00:05:16    file=—  [42876000]  Muted
-  [05] PART TWO-17                                         start=0:14:58:22    len=0:00:02:02    file=—  [43148000]  Muted
-  [06] PART TWO-18                                         start=0:15:01:00    len=0:00:01:17    file=—  [43248000]  Muted
-  [07] PART TWO-21                                         start=0:15:02:17    len=0:00:03:18    file=—  [43330000]  Muted
-  [08] PART ONE-HushMix_07-01                              start=1:00:42:13    len=0:00:01:11    file=—  [174841584]
-  [09] PART TWO-HushMix_10-01                              start=1:00:46:20    len=0:00:02:02    file=—  [175047584]
-  [10] PART ONE-HushMix_10-01                              start=1:00:48:22    len=0:00:02:04    file=—  [175147584]
-  [11] PART ONE-HushMix_11-01                              start=1:00:51:01    len=0:00:07:00    file=—  [175250640]
-  [12] PART TWO-25                                         start=1:01:26:14    len=0:00:04:10    file=—  [176956000]  Muted
+  [01] PART TWO-07                                         start=0:14:39:16    len=0:00:00:19    file=PART TWO  [42224000]  Muted
+  [02] PART TWO-09                                         start=0:14:40:11    len=0:00:02:14    file=PART TWO  [42262000]  Muted
+  [03] PART TWO-10                                         start=0:14:43:01    len=0:00:02:17    file=PART TWO  [42386000]  Muted
+  [04] PART TWO-16                                         start=0:14:53:06    len=0:00:05:16    file=PART TWO  [42876000]  Muted
+  [05] PART TWO-17                                         start=0:14:58:22    len=0:00:02:02    file=PART TWO  [43148000]  Muted
+  [06] PART TWO-18                                         start=0:15:01:00    len=0:00:01:17    file=PART TWO  [43248000]  Muted
+  [07] PART TWO-21                                         start=0:15:02:17    len=0:00:03:18    file=PART TWO  [43330000]  Muted
+  [08] PART ONE-HushMix_07-01                              start=1:00:42:13    len=0:00:01:11    file=PART ONE-HushMix_07  [174841584]
+  [09] PART TWO-HushMix_10-01                              start=1:00:46:20    len=0:00:02:02    file=PART TWO-HushMix_10  [175047584]
+  [10] PART ONE-HushMix_10-01                              start=1:00:48:22    len=0:00:02:04    file=PART ONE-HushMix_10  [175147584]
+  [11] PART ONE-HushMix_11-01                              start=1:00:51:01    len=0:00:07:00    file=PART ONE-HushMix_11  [175250640]
+  [12] PART TWO-25                                         start=1:01:26:14    len=0:00:04:10    file=PART TWO  [176956000]  Muted
 
 ── PART ONE.dup1 [Mono] ──────────────────────────────────── (6 clips)
-  [01] PART ONE-33                                         start=1:00:03:14    len=0:00:02:18    file=—  [172972800]
-  [02] PART ONE-34                                         start=1:00:06:09    len=0:00:00:09    file=—  [173105664]
-  [03] PART ONE-38                                         start=1:00:06:18    len=0:00:39:12    file=—  [173123584]
-  [04] PART ONE-39                                         start=1:00:46:06    len=0:00:00:04    file=—  [175019136]
-  [05] PART ONE-40                                         start=1:00:46:10    len=0:01:46:05    file=—  [175027712]
-  [06] PART TWO                                            start=1:02:40:19    len=0:00:37:20    file=—  [180518338]
+  [01] PART ONE-33                                         start=1:00:03:14    len=0:00:02:18    file=PART ONE  [172972800]
+  [02] PART ONE-34                                         start=1:00:06:09    len=0:00:00:09    file=PART ONE  [173105664]
+  [03] PART ONE-38                                         start=1:00:06:18    len=0:00:39:12    file=PART ONE  [173123584]
+  [04] PART ONE-39                                         start=1:00:46:06    len=0:00:00:04    file=PART ONE  [175019136]
+  [05] PART ONE-40                                         start=1:00:46:10    len=0:01:46:05    file=PART ONE  [175027712]
+  [06] PART TWO                                            start=1:02:40:19    len=0:00:37:20    file=PART TWO  [180518338]
 
 ── Aux 1 [Mono] ──────────────────────────────────────────── (0 clips)
    (no clips)
