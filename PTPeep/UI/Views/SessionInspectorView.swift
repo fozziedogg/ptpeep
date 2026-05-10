@@ -1561,8 +1561,7 @@ private struct TimelineLaneCanvas: View, Equatable {
     let hideMuted:    Bool
     let verticalScale: CGFloat
 
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.tc === rhs.tc &&
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.tracks.count == rhs.tracks.count &&
         lhs.total == rhs.total &&
         lhs.hideMuted == rhs.hideMuted &&
