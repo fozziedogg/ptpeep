@@ -216,8 +216,12 @@ final class PTXParser {
         // buildTrackPlaylists returns tracks in playlist file order, which may differ
         // from the mixer strip order the user sees in Pro Tools.
         if !displayInfo.orderedNames.isEmpty {
-            let orderMap = Dictionary(uniqueKeysWithValues:
-                displayInfo.orderedNames.enumerated().map { ($1, $0) })
+            // Build order map keeping only the first occurrence of each name (duplicates can appear
+            // in large sessions; Dictionary(uniqueKeysWithValues:) would crash on them).
+            var orderMap = [String: Int]()
+            for (i, name) in displayInfo.orderedNames.enumerated() {
+                if orderMap[name] == nil { orderMap[name] = i }
+            }
             session.tracks.sort { orderMap[$0.name, default: Int.max] < orderMap[$1.name, default: Int.max] }
         }
         // Re-index after final order is established
