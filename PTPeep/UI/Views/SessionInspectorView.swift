@@ -1183,16 +1183,16 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 8)
             .frame(height: 24)
 
-            // ── Row 2: hover clip (ephemeral — follows cursor) ───────────────
+            // ── Row 2: selected clip (persistent — set by click) ─────────────
+            clipInfoRow(
+                clip: selectedClip, trackIdx: selectedClipTrackIdx,
+                label: "SELECT", sr: sr, isSelected: true
+            )
+
+            // ── Row 3: hover clip (ephemeral — follows cursor) ────────────────
             clipInfoRow(
                 clip: hoverClip, trackIdx: hoverClipTrackIdx,
                 label: "HOVER", sr: sr, isSelected: false
-            )
-
-            // ── Row 3: selected clip (persistent — set by click) ─────────────
-            clipInfoRow(
-                clip: selectedClip, trackIdx: selectedClipTrackIdx,
-                label: "SEL", sr: sr, isSelected: true
             )
 
             // ── Checkbox row ─────────────────────────────────────────────────
@@ -1537,7 +1537,7 @@ private struct SessionTimelineView: View {
                               ? color.opacity(0.18)
                               : Color(nsColor: .separatorColor).opacity(0.5))
                 )
-                .frame(width: 38, alignment: .leading)
+                .frame(width: 52, alignment: .leading)
 
             if let clip, let tIdx = trackIdx {
                 let inTC  = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
@@ -1807,50 +1807,41 @@ private struct TCEntryPopover: View {
 
 // MARK: - Pro Tools color palette
 //
-// Pro Tools organises track colors in a 56-entry palette (8 columns × 7 rows).
-// These are approximate hue-matched values derived from session hex dumps.
-// The key guarantee is consistency: same index → same color across all tracks.
-// Falls back to the 12-color cycling palette when colorIndex == -1.
+// 69 colors: 23 columns × 3 rows, sampled directly from the PT Color Palette window.
+// Row 0 (indices  0–22): vivid/bright
+// Row 1 (indices 23–45): medium/dark
+// Row 2 (indices 46–68): very dark
+// colorIndex == -1 → no custom color; fall back to cycling palette.
 
-private let ptPalette: [Color] = {
-    // 56 colors: 8 columns × 7 rows, approximately matching Pro Tools layout.
-    // Hue is swept across 360° in each row; rows vary in saturation/brightness.
-    // Row 0 (0–7):  vivid, full saturation
-    // Row 1 (8–15): vivid, shifted 45°
-    // Row 2 (16–23): vivid, another shift
-    // Row 3 (24–31): medium saturation, darker
-    // Row 4 (32–39): medium saturation, darker + more violet range
-    // Row 5 (40–47): lighter / desaturated
-    // Row 6 (48–55): neutral / grey tones
-    var c = [Color]()
-    // Rows 0–2: vivid (s=0.85, b=0.85), 8 hues per row, offset per row
-    let vivid: [(Double, Double)] = [(0.85, 0.85), (0.85, 0.80), (0.80, 0.80)]
-    for (row, (s, b)) in vivid.enumerated() {
-        for col in 0..<8 {
-            let hue = (Double(col) / 8.0 + Double(row) * (1.0/24.0)).truncatingRemainder(dividingBy: 1.0)
-            c.append(Color(hue: hue, saturation: s, brightness: b))
-        }
-    }
-    // Rows 3–4: medium (s=0.70, b=0.65), shifted
-    let medium: [(Double, Double)] = [(0.70, 0.65), (0.70, 0.60)]
-    for (row, (s, b)) in medium.enumerated() {
-        for col in 0..<8 {
-            let hue = (Double(col) / 8.0 + Double(row) * (1.0/16.0) + 0.05).truncatingRemainder(dividingBy: 1.0)
-            c.append(Color(hue: hue, saturation: s, brightness: b))
-        }
-    }
-    // Row 5: lighter (s=0.50, b=0.90)
-    for col in 0..<8 {
-        let hue = (Double(col) / 8.0).truncatingRemainder(dividingBy: 1.0)
-        c.append(Color(hue: hue, saturation: 0.50, brightness: 0.90))
-    }
-    // Row 6: grey tones
-    for col in 0..<8 {
-        let b = 0.30 + Double(col) * 0.09
-        c.append(Color(white: b))
-    }
-    return c
-}()
+private let ptPalette: [Color] = [
+    // Row 0 — vivid
+    Color(hex: 0x2d32f2), Color(hex: 0x5035f2), Color(hex: 0x7d3af2),
+    Color(hex: 0xb043f3), Color(hex: 0xae3aba), Color(hex: 0xad3485),
+    Color(hex: 0xad2f54), Color(hex: 0xac2d1e), Color(hex: 0xad301e),
+    Color(hex: 0xaf5825), Color(hex: 0xb58a32), Color(hex: 0xc0c442),
+    Color(hex: 0x96c23f), Color(hex: 0x75c33d), Color(hex: 0x62c23c),
+    Color(hex: 0x5dc23c), Color(hex: 0x5dc361), Color(hex: 0x5dc08c),
+    Color(hex: 0x5dbfbf), Color(hex: 0x5ebef7), Color(hex: 0x4182f3),
+    Color(hex: 0x2949f2), Color(hex: 0x1e31f2),
+    // Row 1 — medium/dark
+    Color(hex: 0x1e1d9c), Color(hex: 0x331e9c), Color(hex: 0x4e229c),
+    Color(hex: 0x6b279d), Color(hex: 0x722583), Color(hex: 0x702063),
+    Color(hex: 0x6f1c45), Color(hex: 0x6f1a13), Color(hex: 0x6f1d13),
+    Color(hex: 0x713518), Color(hex: 0x74531e), Color(hex: 0x87802b),
+    Color(hex: 0x6b7f28), Color(hex: 0x557e27), Color(hex: 0x457d26),
+    Color(hex: 0x3c7d26), Color(hex: 0x3b7d3c), Color(hex: 0x3b7d54),
+    Color(hex: 0x42897d), Color(hex: 0x448aa0), Color(hex: 0x33679f),
+    Color(hex: 0x23459d), Color(hex: 0x17229c),
+    // Row 2 — very dark
+    Color(hex: 0x130d5b), Color(hex: 0x1e0e5b), Color(hex: 0x2d105b),
+    Color(hex: 0x3b135b), Color(hex: 0x441354), Color(hex: 0x410f3f),
+    Color(hex: 0x400e30), Color(hex: 0x400b0e), Color(hex: 0x41110e),
+    Color(hex: 0x411f10), Color(hex: 0x432d13), Color(hex: 0x554d1b),
+    Color(hex: 0x434918), Color(hex: 0x374918), Color(hex: 0x2c4917),
+    Color(hex: 0x254a17), Color(hex: 0x224922), Color(hex: 0x22492f),
+    Color(hex: 0x2a584c), Color(hex: 0x2b575d), Color(hex: 0x23455c),
+    Color(hex: 0x1c335c), Color(hex: 0x15225b),
+]
 
 private func ptTrackColor(_ track: PTXTrack, index: Int) -> Color {
     if track.type == .video { return Color(white: 0.52) }
@@ -1859,6 +1850,15 @@ private func ptTrackColor(_ track: PTXTrack, index: Int) -> Color {
     // Fallback: cycle through a fixed palette by track index
     let fallback: [Color] = [.blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown]
     return fallback[index % fallback.count]
+}
+
+private extension Color {
+    init(hex: UInt32) {
+        let r = Double((hex >> 16) & 0xff) / 255
+        let g = Double((hex >>  8) & 0xff) / 255
+        let b = Double( hex        & 0xff) / 255
+        self.init(red: r, green: g, blue: b)
+    }
 }
 
 private extension Double {
