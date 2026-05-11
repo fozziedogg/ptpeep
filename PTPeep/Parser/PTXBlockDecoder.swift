@@ -847,15 +847,20 @@ final class PTXBlockDecoder {
 
     // MARK: Per-track Plugin Extraction
     //
-    // Each track has a 0x102d "mixer strip" block (keyed by track name) immediately followed
-    // by a 0x2627 block containing the full plugin preset state for every insert on that track.
+    // Each track has a 0x102d "mixer strip" block followed by a 0x2627 block holding all
+    // insert-slot state. The 0x2627 content starts with a 2-byte prefix then a sequence of
+    // per-slot records (up to 10, A–J):
     //
-    // The 0x2627 block embeds AAX OSType codes at the start of each plugin's state record.
-    // These codes are stored big-endian in 0x2627, and byte-reversed in the 0x1017 global
-    // registry. We build a map: (reversed ot0 + reversed ot1) → display name, then slide
-    // through each 0x2627 block matching any 8-byte window against the map.
+    //   Empty slot  → 0x2625 block, size=11
+    //   Occupied slot → 0x2616 block, size=varies
     //
-    // Returns: trackName → ordered list of plugin display names (insertion order, deduplicated)
+    // Consecutive slot records OVERLAP by 2 bytes: the last 2 bytes of each record's content
+    // are the first 2 bytes of the next record's block header. Advance = 9 + size - 2.
+    //
+    // The AAX OSType key (8 bytes, maps to plugin display name) sits at content+56 within
+    // every occupied (0x2616) slot.
+    //
+    // Returns: trackName → ordered list of plugin display names (slot order, skipping empties)
 
     static func extractTrackPlugins(blocks: [PTXBlock], data: Data) -> [String: [String]] {
         let sorted = blocks.sorted { $0.dataOffset < $1.dataOffset }
@@ -870,7 +875,6 @@ final class PTXBlockDecoder {
                   p + 5 + Int(nl) + 8 <= b.dataOffset + b.dataSize else { continue }
             guard let name = String(bytes: data[(p+5)..<(p+5+Int(nl))], encoding: .utf8),
                   !name.isEmpty else { continue }
-            // OSType bytes in 0x1017 are stored reversed; reverse them back to the canonical form
             let base = p + 5 + Int(nl)
             let ot0 = String(bytes: data[base..<base+4].reversed(), encoding: .utf8) ?? ""
             let ot1 = String(bytes: data[base+4..<base+8].reversed(), encoding: .utf8) ?? ""
@@ -893,41 +897,48 @@ final class PTXBlockDecoder {
 
         var result: [String: [String]] = [:]
         for (i, tb) in trackEnds.enumerated() {
-            // 0x2627 blocks that appear between this 0x102d end and the next one's start
             let ceiling = i + 1 < trackEnds.count ? trackEnds[i + 1].end - 300 : Int.max
             let stateBlocks = sorted.filter {
                 $0.contentType == 0x2627 &&
                 $0.dataOffset >= tb.end &&
                 $0.dataOffset < ceiling
             }
-            guard !stateBlocks.isEmpty else { continue }
+            guard let pb = stateBlocks.first else { continue }
 
+            // Sequential slot parse: 2-byte prefix, then up to 10 slot records.
+            // Advance = 9 + size - 2 (consecutive records overlap by 2 bytes).
+            let blockBase = pb.dataOffset
+            var pos = 2   // skip 2-byte prefix
             var plugins: [String] = []
-            var seenOffsets = Set<Int>()    // prevent double-counting overlapping 8-byte windows
-            var lastCountedAt: [String: Int] = [:]  // plugin → file offset where last counted
-            // Within one insert slot's state data the OSType key can appear more than once
-            // (header reference + embedded copy). A genuine second insert of the same plugin
-            // will be thousands of bytes away; false positives are within ~2 KB of the first hit.
-            let minSeparation = 5_000
-            for pb in stateBlocks {
-                guard pb.dataSize >= 8 else { continue }
-                for off in 0 ..< (pb.dataSize - 8) {
-                    // Fast check: all 8 bytes must be printable ASCII
-                    let base = pb.dataOffset + off
-                    guard data[base] >= 0x20, data[base+7] >= 0x20 else { continue }
-                    let window = data[base ..< base + 8]
-                    guard window.allSatisfy({ $0 >= 0x20 && $0 <= 0x7e }) else { continue }
-                    if let key = String(bytes: window, encoding: .utf8),
-                       let pluginName = keyToPlugin[key],
-                       seenOffsets.insert(base).inserted {
-                        let prev = lastCountedAt[pluginName]
-                        if prev == nil || (base - prev!) >= minSeparation {
+
+            for _ in 0 ..< 10 {
+                guard pos + 9 < pb.dataSize,
+                      data[blockBase + pos] == 0x5a,
+                      let sz = safeU32(data, at: blockBase + pos + 3, be: false),
+                      sz > 0, sz < 50_000_000,
+                      blockBase + pos + 9 + Int(sz) <= blockBase + pb.dataSize
+                else { break }
+
+                let ct = UInt16(data[blockBase + pos + 7]) | UInt16(data[blockBase + pos + 8]) << 8
+
+                if ct == 0x2616 {
+                    // Occupied slot: OSType key at content + 56
+                    let keyBase = blockBase + pos + 9 + 56
+                    if keyBase + 8 <= blockBase + pb.dataSize {
+                        let w = data[keyBase ..< keyBase + 8]
+                        if w.allSatisfy({ $0 >= 0x20 && $0 <= 0x7e }),
+                           let key = String(bytes: w, encoding: .utf8),
+                           let pluginName = keyToPlugin[key] {
                             plugins.append(pluginName)
-                            lastCountedAt[pluginName] = base
                         }
                     }
                 }
+                // 0x2625 = empty slot, skip silently.
+                // Unknown types: skip.
+
+                pos += 9 + Int(sz) - 2
             }
+
             if !plugins.isEmpty { result[tb.name] = plugins }
         }
         return result
