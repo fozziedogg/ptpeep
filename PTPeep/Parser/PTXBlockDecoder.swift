@@ -903,7 +903,12 @@ final class PTXBlockDecoder {
             guard !stateBlocks.isEmpty else { continue }
 
             var plugins: [String] = []
-            var seenOffsets = Set<Int>()   // deduplicate by offset — same 8-byte run appears at off AND off+1…off+7
+            var seenOffsets = Set<Int>()    // prevent double-counting overlapping 8-byte windows
+            var lastCountedAt: [String: Int] = [:]  // plugin → file offset where last counted
+            // Within one insert slot's state data the OSType key can appear more than once
+            // (header reference + embedded copy). A genuine second insert of the same plugin
+            // will be thousands of bytes away; false positives are within ~2 KB of the first hit.
+            let minSeparation = 5_000
             for pb in stateBlocks {
                 guard pb.dataSize >= 8 else { continue }
                 for off in 0 ..< (pb.dataSize - 8) {
@@ -915,7 +920,11 @@ final class PTXBlockDecoder {
                     if let key = String(bytes: window, encoding: .utf8),
                        let pluginName = keyToPlugin[key],
                        seenOffsets.insert(base).inserted {
-                        plugins.append(pluginName)
+                        let prev = lastCountedAt[pluginName]
+                        if prev == nil || (base - prev!) >= minSeparation {
+                            plugins.append(pluginName)
+                            lastCountedAt[pluginName] = base
+                        }
                     }
                 }
             }
