@@ -1183,16 +1183,16 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 8)
             .frame(height: 24)
 
-            // ── Row 2: selected clip (persistent — set by click) ─────────────
-            clipInfoRow(
-                clip: selectedClip, trackIdx: selectedClipTrackIdx,
-                label: "SELECT", sr: sr, isSelected: true
-            )
-
-            // ── Row 3: hover clip (ephemeral — follows cursor) ───────────────
+            // ── Row 2: hover clip (ephemeral — follows cursor) ───────────────
             clipInfoRow(
                 clip: hoverClip, trackIdx: hoverClipTrackIdx,
                 label: "HOVER", sr: sr, isSelected: false
+            )
+
+            // ── Row 3: selected clip (persistent — set by click) ─────────────
+            clipInfoRow(
+                clip: selectedClip, trackIdx: selectedClipTrackIdx,
+                label: "SEL", sr: sr, isSelected: true
             )
 
             // ── Checkbox row ─────────────────────────────────────────────────
@@ -1537,7 +1537,7 @@ private struct SessionTimelineView: View {
                               ? color.opacity(0.18)
                               : Color(nsColor: .separatorColor).opacity(0.5))
                 )
-                .frame(width: 50, alignment: .leading)
+                .frame(width: 38, alignment: .leading)
 
             if let clip, let tIdx = trackIdx {
                 let inTC  = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)

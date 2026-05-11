@@ -210,18 +210,9 @@ final class PTXParser {
         }
         if !extras.isEmpty {
             session.tracks.append(contentsOf: extras)
+            // Re-index
+            for i in session.tracks.indices { session.tracks[i].index = i }
         }
-
-        // Sort tracks to match PT mixer order from 0x251a (orderedNames).
-        // buildTrackPlaylists returns tracks in playlist file order, which may differ
-        // from the mixer strip order the user sees in Pro Tools.
-        if !displayInfo.orderedNames.isEmpty {
-            let orderMap = Dictionary(uniqueKeysWithValues:
-                displayInfo.orderedNames.enumerated().map { ($1, $0) })
-            session.tracks.sort { orderMap[$0.name, default: Int.max] < orderMap[$1.name, default: Int.max] }
-        }
-        // Re-index after final order is established
-        for i in session.tracks.indices { session.tracks[i].index = i }
 
         // Assign per-track plugins. 0x102d strips are keyed by the name the track had when
         // the session was last written — which may differ from the current track name if the
@@ -232,9 +223,8 @@ final class PTXParser {
         //   4. Number-anchored subsequence — handles abbreviated words ("1 ftz" ↔ "futz 1")
         for i in session.tracks.indices {
             let name = session.tracks[i].name
-            // 1. Exact (only accept if non-empty — an empty primary strip may have plugins
-            //    stored under an alternate-playlist strip name, handled by case 4 below)
-            if let plugins = trackPlugins[name], !plugins.isEmpty {
+            // 1. Exact
+            if let plugins = trackPlugins[name] {
                 session.tracks[i].plugins = plugins; continue
             }
             // 2. Exact + .dupN
