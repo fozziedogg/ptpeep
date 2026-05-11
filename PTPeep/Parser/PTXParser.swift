@@ -180,8 +180,8 @@ final class PTXParser {
         }
         print("[PTXParser] Track playlists: \(playlistSummary)")
 
-        // Build tracks from playlists (authoritative — includes channel count and clips)
-        // Fall back to 0x1014-derived track names if playlists are empty
+        // Build tracks from playlists (authoritative — includes channel count and clips).
+        // Fall back to 0x1014-derived track names if playlists are empty.
         var playlistNames = Set<String>()
         if !trackPlaylists.isEmpty {
             session.tracks = trackPlaylists.enumerated().map { i, tp in
@@ -198,16 +198,17 @@ final class PTXParser {
         }
 
         // Supplement with tracks that have no audio playlists (video, VCA, folder, aux).
-        // These are present in the 0x251a display blocks but have no 0x1052 playlist.
+        // Preserve PT mixer order from 0x251a (orderedNames) rather than sorting alphabetically.
         let nextIndex = session.tracks.count
-        let extras: [PTXTrack] = displayInfo.types.compactMap { name, typeCode -> PTXTrack? in
-            guard !playlistNames.contains(name) else { return nil }
+        let extras: [PTXTrack] = displayInfo.orderedNames.compactMap { name -> PTXTrack? in
+            guard !playlistNames.contains(name),
+                  let typeCode = displayInfo.types[name] else { return nil }
             return PTXTrack(index: nextIndex, name: name, type: trackType(from: typeCode),
                             isHidden: displayInfo.hidden.contains(name),
                             isInactive: displayInfo.inactive.contains(name))
         }
         if !extras.isEmpty {
-            session.tracks.append(contentsOf: extras.sorted { $0.name < $1.name })
+            session.tracks.append(contentsOf: extras)
             // Re-index
             for i in session.tracks.indices { session.tracks[i].index = i }
         }

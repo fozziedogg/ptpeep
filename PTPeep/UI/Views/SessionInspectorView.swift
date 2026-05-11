@@ -16,6 +16,7 @@ struct SessionInspectorView: View {
     @State private var hideMutedClips:     Bool    = false
     @State private var showMarkers:        Bool    = false
     @State private var markerSearch:       String  = ""
+    @State private var hiddenTrackTypes:   Set<PTXTrackType> = []
     @State private var overviewHeight:     CGFloat = 0     // 0 = auto-init on first render
     @State private var overviewDragStart:  CGFloat = 0
     @State private var selectedTrackNames: Set<String> = []
@@ -210,13 +211,73 @@ struct SessionInspectorView: View {
     // MARK: - Tracks
 
     private var tracksSection: some View {
-        let audioTracks = session.tracks.filter { $0.type == .audio }
-        let hasPlugins  = session.tracks.contains { !$0.plugins.isEmpty }
+        // Types present in the session (in a stable display order)
+        let typeOrder: [PTXTrackType] = [.audio, .instrument, .midi, .aux, .vca, .master, .folder, .video, .unknown]
+        let presentTypes = typeOrder.filter { t in session.tracks.contains { $0.type == t } }
+        let visibleTracks = session.tracks.filter { !hiddenTrackTypes.contains($0.type) }
+        let audioTracks   = visibleTracks.filter { $0.type == .audio }
+        let hasPlugins    = session.tracks.contains { !$0.plugins.isEmpty }
+        let totalCount    = session.tracks.count
+        let visibleCount  = visibleTracks.count
         return InspectorSection(title: "Tracks", systemImage: "slider.horizontal.3",
-                         count: session.tracks.count, initiallyExpanded: false) {
+                         count: totalCount, initiallyExpanded: false) {
             if session.tracks.isEmpty {
                 PlaceholderRow(text: "No tracks found")
             } else {
+                // ── Type filter badges ─────────────────────────────────────────
+                if presentTypes.count > 1 {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 4) {
+                            ForEach(presentTypes, id: \.self) { type in
+                                let hidden = hiddenTrackTypes.contains(type)
+                                Button {
+                                    if hidden { hiddenTrackTypes.remove(type) }
+                                    else      { hiddenTrackTypes.insert(type) }
+                                } label: {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: type.systemImage)
+                                            .font(.system(size: 8))
+                                        Text(type.filterLabel)
+                                            .font(.system(size: 10))
+                                    }
+                                    .foregroundStyle(hidden ? AnyShapeStyle(.tertiary) : type.tintColor)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(
+                                        Capsule()
+                                            .fill(hidden
+                                                  ? Color(nsColor: .separatorColor).opacity(0.3)
+                                                  : Color(nsColor: .separatorColor).opacity(0.55))
+                                    )
+                                    .overlay(
+                                        Capsule()
+                                            .strokeBorder(hidden ? Color.clear : Color(nsColor: .separatorColor).opacity(0.4),
+                                                          lineWidth: 0.5)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .animation(.easeInOut(duration: 0.1), value: hidden)
+                            }
+                            if !hiddenTrackTypes.isEmpty {
+                                Button("Show all") { hiddenTrackTypes.removeAll() }
+                                    .buttonStyle(.borderless)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 5)
+                    }
+
+                    if visibleCount < totalCount {
+                        Text("Showing \(visibleCount) of \(totalCount) tracks")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 2)
+                    }
+                }
+
                 // ── Toolbar ────────────────────────────────────────────────────
                 HStack(spacing: 8) {
                     // Plug-ins toggle — only shown when at least one track has plugins
@@ -286,7 +347,7 @@ struct SessionInspectorView: View {
                 .padding(.vertical, 5)
 
                 // ── Track rows ─────────────────────────────────────────────────
-                ForEach(session.tracks, id: \.index) { track in
+                ForEach(visibleTracks, id: \.index) { track in
                     SelectableTrackRow(
                         track: track,
                         isSelected: selectedTrackNames.contains(track.name),
@@ -1467,8 +1528,8 @@ private struct SessionTimelineView: View {
             t < tracks.count ? Self.trackColor(tracks[t], index: t) : Color.secondary
         } ?? Color.secondary
 
-        return HStack(spacing: 8) {
-            // Label badge
+        return HStack(spacing: 0) {
+            // Label badge — fixed width so HOVER/SEL columns line up
             Text(label)
                 .font(.system(size: 9).weight(.bold))
                 .foregroundStyle(isSelected ? color : Color.secondary)
@@ -1480,25 +1541,30 @@ private struct SessionTimelineView: View {
                               ? color.opacity(0.18)
                               : Color(nsColor: .separatorColor).opacity(0.5))
                 )
+                .frame(width: 38, alignment: .leading)
 
             if let clip, let tIdx = trackIdx {
-                let inTC      = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
-                let outTC     = Self.formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
-                let durTC     = Self.formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
+                let inTC  = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
+                let outTC = Self.formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
+                let durTC = Self.formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
                 let trackName = tIdx < tracks.count ? tracks[tIdx].name : ""
 
                 // Color swatch
                 RoundedRectangle(cornerRadius: 1.5)
                     .fill(isSelected ? color : color.opacity(0.5))
                     .frame(width: 3, height: 14)
+                    .padding(.trailing, 6)
 
+                // Track name
                 if !trackName.isEmpty {
                     Text(trackName)
                         .foregroundStyle(isSelected ? color.opacity(0.75) : Color.secondary)
                         .lineLimit(1)
-                        .frame(maxWidth: 110, alignment: .leading)
+                        .frame(width: 100, alignment: .leading)
+                        .padding(.trailing, 4)
                 }
 
+                // Clip name
                 Text(clip.name)
                     .foregroundStyle(isSelected ? color : Color(nsColor: .secondaryLabelColor))
                     .fontWeight(isSelected ? .semibold : .regular)
@@ -1511,23 +1577,36 @@ private struct SessionTimelineView: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
+                        .padding(.leading, 4)
                         .background(RoundedRectangle(cornerRadius: 3)
                             .fill(Color(nsColor: .separatorColor).opacity(0.6)))
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
 
-                HStack(spacing: 6) {
-                    Label(inTC, systemImage: "arrow.right.to.line")
-                        .foregroundStyle(isSelected ? .primary : .secondary)
-                    Text("→").foregroundStyle(.tertiary)
-                    Label(outTC, systemImage: "arrow.left.to.line")
-                        .foregroundStyle(isSelected ? .primary : .secondary)
-                    Text("· \(durTC)").foregroundStyle(.tertiary)
+                // In / Out / Length — plain text labels, fixed-width TC columns
+                HStack(spacing: 0) {
+                    Group {
+                        Text("in ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                        + Text(inTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
+                    }
+                    .frame(width: 106, alignment: .trailing)
+
+                    Group {
+                        Text("  out ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                        + Text(outTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
+                    }
+                    .frame(width: 118, alignment: .trailing)
+
+                    Group {
+                        Text("  len ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                        + Text(durTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
+                    }
+                    .frame(width: 106, alignment: .trailing)
                 }
-                .labelStyle(.titleAndIcon)
+
             } else {
-                Text("—").foregroundStyle(.tertiary)
+                Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
                 Spacer()
             }
         }
@@ -1763,6 +1842,20 @@ private extension PTXTrackType {
         case .vca:    return AnyShapeStyle(.orange)
         case .aux:    return AnyShapeStyle(.teal)
         default:      return AnyShapeStyle(.secondary)
+        }
+    }
+
+    var filterLabel: String {
+        switch self {
+        case .audio:      return "Audio"
+        case .midi:       return "MIDI"
+        case .aux:        return "Aux"
+        case .master:     return "Master"
+        case .vca:        return "VCA"
+        case .video:      return "Video"
+        case .folder:     return "Folder"
+        case .instrument: return "Inst"
+        case .unknown:    return "Other"
         }
     }
 }

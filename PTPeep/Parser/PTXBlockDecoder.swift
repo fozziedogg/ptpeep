@@ -477,10 +477,11 @@ final class PTXBlockDecoder {
     //   [6+nameLen+58]     b3: 0 = inactive, 1 = active
 
     struct TrackDisplayInfo {
-        var hidden:   Set<String>       = []
-        var inactive: Set<String>       = []
-        var types:    [String: UInt16]  = [:]   // track type code per name
-        var folderOf: [String: String]  = [:]   // reserved (not yet decoded)
+        var hidden:        Set<String>      = []
+        var inactive:      Set<String>      = []
+        var types:         [String: UInt16] = [:]   // track type code per name
+        var orderedNames:  [String]         = []    // all track names in PT mixer order
+        var folderOf:      [String: String] = [:]   // reserved (not yet decoded)
     }
 
     static func extractTrackDisplayInfo(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> TrackDisplayInfo {
@@ -511,6 +512,7 @@ final class PTXBlockDecoder {
                   let name = String(bytes: data[nameStart..<nameEndPos], encoding: .utf8) else { continue }
 
             info.types[name] = typeCode
+            info.orderedNames.append(name)
 
             // Flags at fixed offsets from block start
             let b2Offset = p + 63 + nameLen   // visible: 0 = hidden
@@ -651,6 +653,11 @@ final class PTXBlockDecoder {
             let nameSlice = data[section.dataOffset + 4 ..< section.dataOffset + 4 + Int(nameLen)]
             guard let name = String(bytes: nameSlice, encoding: .utf8) else { continue }
 
+            // If we have a display list, skip any 0x1052 section whose name is not in it.
+            // Those sections are alternate playlists (different clip sets on the same track),
+            // not separate tracks — they share the primary track's channel strip and plugins.
+            if !displayInfo.types.isEmpty, displayInfo.types[name] == nil { continue }
+
             // Collect placements from 0x104f blocks within this section using binary search
             let sStart = section.dataOffset
             let sEnd   = section.dataOffset + section.dataSize
@@ -689,13 +696,9 @@ final class PTXBlockDecoder {
                                      groupName: groupName, groupLength: groupLength)
             }
 
-            // Only the FIRST 0x1052 section for each track name is the active playlist.
-            // Subsequent sections are alternate playlists (created during loop recording /
-            // comping) — they share the same track name but contain different clip sets.
-            // Including their "novel" positions would produce ghost clips (positions that
-            // exist in alternates but not on the active timeline).
-            // For stereo tracks the R-channel section follows L and has the same positions,
-            // so skipping it is also correct (no information lost).
+            // Only the FIRST 0x1052 section for each track name is used for clip data.
+            // For stereo/surround tracks the additional channel sections share the same
+            // timeline positions as the first, so we simply count them and skip the content.
             if channelCounts[name] == nil {
                 nameOrder.append(name)
                 placementsByName[name] = placements
@@ -890,7 +893,7 @@ final class PTXBlockDecoder {
             guard !stateBlocks.isEmpty else { continue }
 
             var plugins: [String] = []
-            var seenKeys = Set<String>()
+            var seenOffsets = Set<Int>()   // deduplicate by offset — same 8-byte run appears at off AND off+1…off+7
             for pb in stateBlocks {
                 guard pb.dataSize >= 8 else { continue }
                 for off in 0 ..< (pb.dataSize - 8) {
@@ -901,7 +904,7 @@ final class PTXBlockDecoder {
                     guard window.allSatisfy({ $0 >= 0x20 && $0 <= 0x7e }) else { continue }
                     if let key = String(bytes: window, encoding: .utf8),
                        let pluginName = keyToPlugin[key],
-                       seenKeys.insert(key).inserted {
+                       seenOffsets.insert(base).inserted {
                         plugins.append(pluginName)
                     }
                 }
