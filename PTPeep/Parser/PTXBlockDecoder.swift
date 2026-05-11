@@ -452,6 +452,7 @@ final class PTXBlockDecoder {
         var isInactive:   Bool    = false
         var trackTypeCode: UInt16 = 0     // 0=audio, 2=aux, 8=video, 9=VCA, 11=folder
         var folderName:   String? = nil
+        var colorIndex:   Int     = -1    // PT color index 0–55; -1 = no custom color
     }
 
     // MARK: Track display info (type, hidden, inactive)
@@ -475,6 +476,7 @@ final class PTXBlockDecoder {
     //   [6+nameLen+56]     b1
     //   [6+nameLen+57]     b2: 0 = hidden, 1 = visible
     //   [6+nameLen+58]     b3: 0 = inactive, 1 = active
+    //   [6+nameLen+62..63] u16 LE color index (0xffff / 0xfffe = no custom color)
 
     struct TrackDisplayInfo {
         var hidden:        Set<String>      = []
@@ -482,6 +484,7 @@ final class PTXBlockDecoder {
         var types:         [String: UInt16] = [:]   // track type code per name
         var orderedNames:  [String]         = []    // all track names in PT mixer order
         var folderOf:      [String: String] = [:]   // reserved (not yet decoded)
+        var colors:        [String: Int]    = [:]   // PT color index per track name
     }
 
     static func extractTrackDisplayInfo(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> TrackDisplayInfo {
@@ -514,13 +517,19 @@ final class PTXBlockDecoder {
             info.types[name] = typeCode
             info.orderedNames.append(name)
 
-            // Flags at fixed offsets from block start
-            let b2Offset = p + 63 + nameLen   // visible: 0 = hidden
-            let b3Offset = p + 64 + nameLen   // active:  0 = inactive
+            // Flags and color at fixed offsets from block start (all relative to p)
+            let b2Offset    = p + 63 + nameLen   // visible: 0 = hidden
+            let b3Offset    = p + 64 + nameLen   // active:  0 = inactive
+            let colorOffset = p + 68 + nameLen   // u16 LE color index; ≥0x8000 = no custom color
             guard b3Offset < sub.dataOffset + sub.dataSize else { continue }
 
             if data[b2Offset] == 0 { info.hidden.insert(name) }
             if data[b3Offset] == 0 { info.inactive.insert(name) }
+
+            if colorOffset + 1 < sub.dataOffset + sub.dataSize {
+                let ci = Int(UInt16(data[colorOffset]) | UInt16(data[colorOffset + 1]) << 8)
+                if ci < 0x8000 { info.colors[name] = ci }
+            }
         }
 
         let nonAudioTypes = info.types.filter { $0.value != 0 }.map { "\($0.key)=\($0.value)" }.sorted()
@@ -717,7 +726,8 @@ final class PTXBlockDecoder {
                 isHidden: displayInfo.hidden.contains(name),
                 isInactive: displayInfo.inactive.contains(name),
                 trackTypeCode: displayInfo.types[name] ?? 0,
-                folderName: displayInfo.folderOf[name]
+                folderName: displayInfo.folderOf[name],
+                colorIndex: displayInfo.colors[name] ?? -1
             )
         }
     }

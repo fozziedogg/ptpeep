@@ -188,7 +188,8 @@ final class PTXParser {
                 playlistNames.insert(tp.name)
                 return PTXTrack(index: i, name: tp.name, type: trackType(from: tp.trackTypeCode),
                                 channelCount: tp.channelCount,
-                                isHidden: tp.isHidden, isInactive: tp.isInactive, folderName: tp.folderName)
+                                isHidden: tp.isHidden, isInactive: tp.isInactive,
+                                folderName: tp.folderName, colorIndex: tp.colorIndex)
             }
         } else {
             let trackEntries = PTXBlockDecoder.extractTracks(blocks: blocks, data: decoded, bigEndian: bigEndian)

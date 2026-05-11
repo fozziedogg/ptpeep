@@ -57,6 +57,7 @@ struct PTXTrack {
     var isHidden:     Bool    = false
     var isInactive:   Bool    = false
     var folderName:   String? = nil   // non-nil when this track lives inside a folder
+    var colorIndex:   Int     = -1    // Pro Tools color index 0–55; -1 = no custom color
     var plugins:      [String] = []
     var clips:        [PTXClip] = []
 

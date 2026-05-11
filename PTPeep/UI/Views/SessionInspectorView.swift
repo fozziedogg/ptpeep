@@ -1034,10 +1034,6 @@ private struct SessionTimelineView: View {
     @State private var showTCEntry:  Bool   = false
     @State private var tcEntryText:  String = ""
 
-    private static let palette:    [Color] = [
-        .blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown
-    ]
-    private static let videoColor: Color   = Color(white: 0.52)
     private static let audioLaneH: CGFloat = 8
     private static let videoLaneH: CGFloat = 16
     private static let laneGap:    CGFloat = 2
@@ -1051,7 +1047,7 @@ private struct SessionTimelineView: View {
         return tc.expandedTracks.contains(index) ? base * 4 : base
     }
     private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
-        track.type == .video ? videoColor : palette[index % palette.count]
+        ptTrackColor(track, index: index)
     }
 
     /// Total pixel height of all track lanes at current scale (no ruler).
@@ -1665,9 +1661,6 @@ private struct TimelineLaneCanvas: View, Equatable {
         lhs.verticalScale  == rhs.verticalScale
     }
 
-    private static let palette:    [Color] = [
-        .blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown
-    ]
     private static let audioLaneH: CGFloat = 8
     private static let videoLaneH: CGFloat = 16
     private static let laneGap:    CGFloat = 2
@@ -1678,7 +1671,7 @@ private struct TimelineLaneCanvas: View, Equatable {
     }
 
     private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
-        track.type == .video ? Color(white: 0.52) : palette[index % palette.count]
+        ptTrackColor(track, index: index)
     }
 
     var body: some View {
@@ -1810,6 +1803,62 @@ private struct TCEntryPopover: View {
         .padding(.vertical, 8)
         .onAppear { focused = true }
     }
+}
+
+// MARK: - Pro Tools color palette
+//
+// Pro Tools organises track colors in a 56-entry palette (8 columns × 7 rows).
+// These are approximate hue-matched values derived from session hex dumps.
+// The key guarantee is consistency: same index → same color across all tracks.
+// Falls back to the 12-color cycling palette when colorIndex == -1.
+
+private let ptPalette: [Color] = {
+    // 56 colors: 8 columns × 7 rows, approximately matching Pro Tools layout.
+    // Hue is swept across 360° in each row; rows vary in saturation/brightness.
+    // Row 0 (0–7):  vivid, full saturation
+    // Row 1 (8–15): vivid, shifted 45°
+    // Row 2 (16–23): vivid, another shift
+    // Row 3 (24–31): medium saturation, darker
+    // Row 4 (32–39): medium saturation, darker + more violet range
+    // Row 5 (40–47): lighter / desaturated
+    // Row 6 (48–55): neutral / grey tones
+    var c = [Color]()
+    // Rows 0–2: vivid (s=0.85, b=0.85), 8 hues per row, offset per row
+    let vivid: [(Double, Double)] = [(0.85, 0.85), (0.85, 0.80), (0.80, 0.80)]
+    for (row, (s, b)) in vivid.enumerated() {
+        for col in 0..<8 {
+            let hue = (Double(col) / 8.0 + Double(row) * (1.0/24.0)).truncatingRemainder(dividingBy: 1.0)
+            c.append(Color(hue: hue, saturation: s, brightness: b))
+        }
+    }
+    // Rows 3–4: medium (s=0.70, b=0.65), shifted
+    let medium: [(Double, Double)] = [(0.70, 0.65), (0.70, 0.60)]
+    for (row, (s, b)) in medium.enumerated() {
+        for col in 0..<8 {
+            let hue = (Double(col) / 8.0 + Double(row) * (1.0/16.0) + 0.05).truncatingRemainder(dividingBy: 1.0)
+            c.append(Color(hue: hue, saturation: s, brightness: b))
+        }
+    }
+    // Row 5: lighter (s=0.50, b=0.90)
+    for col in 0..<8 {
+        let hue = (Double(col) / 8.0).truncatingRemainder(dividingBy: 1.0)
+        c.append(Color(hue: hue, saturation: 0.50, brightness: 0.90))
+    }
+    // Row 6: grey tones
+    for col in 0..<8 {
+        let b = 0.30 + Double(col) * 0.09
+        c.append(Color(white: b))
+    }
+    return c
+}()
+
+private func ptTrackColor(_ track: PTXTrack, index: Int) -> Color {
+    if track.type == .video { return Color(white: 0.52) }
+    let idx = track.colorIndex
+    if idx >= 0, idx < ptPalette.count { return ptPalette[idx] }
+    // Fallback: cycle through a fixed palette by track index
+    let fallback: [Color] = [.blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown]
+    return fallback[index % fallback.count]
 }
 
 private extension Double {
