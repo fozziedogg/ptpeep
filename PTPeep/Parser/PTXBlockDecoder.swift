@@ -903,7 +903,8 @@ final class PTXBlockDecoder {
             guard !stateBlocks.isEmpty else { continue }
 
             var plugins: [String] = []
-            var seenOffsets = Set<Int>()   // deduplicate by offset — same 8-byte run appears at off AND off+1…off+7
+            var seenOffsets = Set<Int>()      // prevent same byte-position matching twice
+            var seenNames   = Set<String>()   // prevent same plugin appearing twice (OSType may repeat in preset data)
             for pb in stateBlocks {
                 guard pb.dataSize >= 8 else { continue }
                 for off in 0 ..< (pb.dataSize - 8) {
@@ -914,7 +915,8 @@ final class PTXBlockDecoder {
                     guard window.allSatisfy({ $0 >= 0x20 && $0 <= 0x7e }) else { continue }
                     if let key = String(bytes: window, encoding: .utf8),
                        let pluginName = keyToPlugin[key],
-                       seenOffsets.insert(base).inserted {
+                       seenOffsets.insert(base).inserted,
+                       seenNames.insert(pluginName).inserted {
                         plugins.append(pluginName)
                     }
                 }
