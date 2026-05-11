@@ -1846,7 +1846,9 @@ private let ptPalette: [Color] = [
 private func ptTrackColor(_ track: PTXTrack, index: Int) -> Color {
     if track.type == .video { return Color(white: 0.52) }
     let idx = track.colorIndex
-    if idx >= 0, idx < ptPalette.count { return ptPalette[idx] }
+    // Binary color indices start at 25 (0x19) — palette slot 0 is index 25.
+    let slot = idx - 25
+    if slot >= 0, slot < ptPalette.count { return ptPalette[slot] }
     // Fallback: cycle through a fixed palette by track index
     let fallback: [Color] = [.blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown]
     return fallback[index % fallback.count]
