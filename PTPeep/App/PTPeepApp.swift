@@ -14,9 +14,6 @@ struct PTPeepApp: App {
                 .frame(minWidth: 640, idealWidth: 720,
                        minHeight: 480, idealHeight: 600)
                 .onAppear { appDelegate.appState = appState }
-                // onDisappear fires when the window is hidden (Cmd+W → orderOut) or closed.
-                // willCloseNotification does NOT fire for orderOut, making this the reliable hook.
-                .onDisappear { appState.close() }
                 .onOpenURL { url in
                     guard url.pathExtension.lowercased() == "ptx" else { return }
                     appState.open(url: url)
@@ -50,6 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if hasVisibleWindows { return true }
         if app.windows.isEmpty { return false }  // let SwiftUI create a new window
+        // Window exists but was hidden (Cmd+W) — reset session state before showing drop zone.
+        appState?.close()
         bringWindowForward(app)
         return true
     }
