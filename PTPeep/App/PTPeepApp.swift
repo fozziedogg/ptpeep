@@ -115,15 +115,22 @@ final class AppState: ObservableObject {
                 return
             }
             print("[AppState] panel selected: \(url.lastPathComponent)")
+            let winsAtCompletion = NSApp.windows.map { "\(type(of: $0)) v=\($0.isVisible)" }
+            print("[AppState] panel completion windows: \(winsAtCompletion), mainWindow=\(self?.mainWindow.map{String(describing:type(of:$0))} ?? "nil")")
             self?.open(url: url)
         }
         print("[AppState] panel.begin() returned (panel now showing)")
     }
 
     func open(url: URL) {
-        print("[AppState] open() called: \(url.lastPathComponent), cancelling existing task=\(openTask != nil)")
+        let winsBeforeCancel = NSApp.windows.map { "\(type(of: $0)) v=\($0.isVisible)" }
+        print("[AppState] open() start: \(url.lastPathComponent), mainWindow=\(mainWindow.map{String(describing:type(of:$0))} ?? "nil"), windows=\(winsBeforeCancel)")
         openTask?.cancel()
+        let winsAfterCancel = NSApp.windows.map { "\(type(of: $0)) v=\($0.isVisible)" }
+        print("[AppState] open() after cancel: mainWindow=\(mainWindow.map{String(describing:type(of:$0))} ?? "nil"), windows=\(winsAfterCancel)")
         openTask = Task { await _open(url: url) }
+        let winsAfterTask = NSApp.windows.map { "\(type(of: $0)) v=\($0.isVisible)" }
+        print("[AppState] open() after Task{}: mainWindow=\(mainWindow.map{String(describing:type(of:$0))} ?? "nil"), windows=\(winsAfterTask)")
     }
 
     private func _open(url: URL) async {
