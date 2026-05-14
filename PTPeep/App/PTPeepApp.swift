@@ -14,6 +14,9 @@ struct PTPeepApp: App {
                 .frame(minWidth: 640, idealWidth: 720,
                        minHeight: 480, idealHeight: 600)
                 .onAppear { appDelegate.appState = appState }
+                // onDisappear fires when the window is hidden (Cmd+W → orderOut) or closed.
+                // willCloseNotification does NOT fire for orderOut, making this the reliable hook.
+                .onDisappear { appState.close() }
                 .onOpenURL { url in
                     guard url.pathExtension.lowercased() == "ptx" else { return }
                     appState.open(url: url)
@@ -179,12 +182,6 @@ struct AppContentView: View {
             } else {
                 dropZone
             }
-        }
-        // When the user presses Cmd+W (or any other window close), clear the session
-        // so that reopening the window (dock click, Finder open) shows the drop zone.
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notif in
-            guard !(notif.object is NSPanel) else { return }  // ignore NSOpenPanel etc.
-            appState.close()
         }
     }
 
