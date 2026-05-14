@@ -171,6 +171,7 @@ struct AppContentView: View {
                 onOpenInProTools: { appState.openInProTools() },
                 onClose: { appState.close() }
             )
+            .id(url)   // force full view recreation (fresh @StateObject/@State) on every new session
         } else if appState.isLoading {
             ProgressView("Parsing session…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

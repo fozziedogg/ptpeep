@@ -853,6 +853,8 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         keyMonitor = nil; scrollMonitor = nil; magnifyMonitor = nil
     }
 
+    deinit { stopMonitoring() }
+
     // MARK: Zoom
 
     func zoomIn(anchor: Double? = nil) {
