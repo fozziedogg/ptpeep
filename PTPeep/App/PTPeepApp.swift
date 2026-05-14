@@ -86,6 +86,17 @@ final class AppState: ObservableObject {
             print("[AppState] mainWindow updated: \(type(of: win))")
             self?.mainWindow = win
         }
+        // Catch any window close to identify what's closing the AppKitWindow.
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: nil,
+            queue: .main
+        ) { notification in
+            guard let win = notification.object as? NSWindow,
+                  !(win is NSSavePanel) else { return }
+            print("[AppState] ⚠️ \(type(of: win)) willClose — stack:")
+            Thread.callStackSymbols.prefix(20).forEach { print("  \($0)") }
+        }
     }
 
     private var openTask: Task<Void, Never>?
