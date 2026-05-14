@@ -128,10 +128,13 @@ final class AppState: ObservableObject {
         session   = parsed
         isLoading = false
 
-        // Ensure the window is visible — handles the case where the user closed
+        // Ensure the main window is visible — handles the case where the user closed
         // the macOS window then opened a new session via menu or Finder.
-        (NSApp.windows.first(where: { $0.isVisible }) ?? NSApp.windows.first)?
-            .makeKeyAndOrderFront(nil)
+        // Exclude NSSavePanel/NSOpenPanel: they linger in NSApp.windows after dismissal
+        // and makeKeyAndOrderFront would re-raise the open panel instead of the app window.
+        let appWin = NSApp.windows.first(where: { $0.isVisible && !($0 is NSSavePanel) })
+                  ?? NSApp.windows.first(where: { !($0 is NSSavePanel) })
+        appWin?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
         // Augment with PTSL in background (no-op if PT not connected)
