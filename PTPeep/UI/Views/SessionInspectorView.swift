@@ -17,8 +17,8 @@ struct SessionInspectorView: View {
     @AppStorage("ov.showMarkers")        private var showMarkers:         Bool = false
     @State private var markerSearch:       String  = ""
     @State private var hiddenTrackTypes:   Set<PTXTrackType> = []
-    @State private var overviewHeight:     CGFloat = 0     // 0 = auto-init on first render
-    @State private var overviewDragStart:  CGFloat = 0
+    @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
+    @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
     @State private var selectedTrackNames: Set<String> = []
     @State private var trackSelectionMode: Bool   = false
     @State private var showTrackPlugins:   Bool   = true
@@ -48,6 +48,13 @@ struct SessionInspectorView: View {
                 .padding(.vertical, 8)
             }
         }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { availableHeight = geo.size.height }
+                    .onChange(of: geo.size.height) { availableHeight = $0 }
+            }
+        )
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
@@ -154,56 +161,62 @@ struct SessionInspectorView: View {
                 return rank(a) < rank(b)
             }
         let sr = Double(session.sampleRate) ?? 48000.0
-        return InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
-            if clippedTracks.isEmpty {
-                PlaceholderRow(text: "No clip position data — binary block decoder pending")
-            } else {
-                let videoCount  = clippedTracks.filter { $0.type == .video }.count
-                let otherCount  = clippedTracks.count - videoCount
-                // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
-                let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
-                               + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                // overhead = row1(24) + hover row(24) + sel row(24) + checkbox row(28, if shown) + ruler(30) + padding(8)
-                let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 138 : 110
-                // Auto-init height on first render: fit all tracks at scale 1, capped at 300
-                let effectiveH: CGFloat = {
-                    if overviewHeight == 0 {
-                        let h = min(baseLanesH + overhead, 300)
-                        DispatchQueue.main.async { overviewHeight = h }
-                        return h
-                    }
-                    return overviewHeight
-                }()
-                // vScale: stretch to fill when few tracks; never compress (scroll handles overflow)
-                let scrollableH = effectiveH - overhead
-                let vScale = baseLanesH > 0 ? max(1.0, scrollableH / baseLanesH) : 1.0
+        // Leave at least 200 px for the collapsible sections below the overview.
+        let maxH = max(100, availableHeight - 280)
+        return VStack(spacing: 0) {
+            InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
+                if clippedTracks.isEmpty {
+                    PlaceholderRow(text: "No clip position data — binary block decoder pending")
+                } else {
+                    let videoCount  = clippedTracks.filter { $0.type == .video }.count
+                    let otherCount  = clippedTracks.count - videoCount
+                    // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
+                    let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
+                                   + CGFloat(max(0, videoCount + otherCount - 1)) * 2
+                    // overhead = row1(24) + hover row(24) + sel row(24) + checkbox row(28, if shown) + ruler(30) + padding(8)
+                    let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 138 : 110
+                    // Auto-init height on first render: fit all tracks at scale 1, capped at 300
+                    let effectiveH: CGFloat = {
+                        if overviewHeight == 0 {
+                            let h = min(baseLanesH + overhead, 300)
+                            DispatchQueue.main.async { overviewHeight = h }
+                            return h
+                        }
+                        return overviewHeight
+                    }()
+                    // vScale: stretch to fill when few tracks; never compress (scroll handles overflow)
+                    let scrollableH = effectiveH - overhead
+                    let vScale = baseLanesH > 0 ? max(1.0, scrollableH / baseLanesH) : 1.0
 
-                SessionTimelineView(tc: tc,
-                                    tracks: clippedTracks,
-                                    allTracksSamples: totalSamples,
-                                    sampleRate: sr,
-                                    frameRate: session.frameRate,
-                                    tcFormat:  session.tcFormat,
-                                    verticalScale: vScale,
-                                    resolvedFiles: session.resolvedAudioFiles,
-                                    memoryLocations: session.memoryLocations,
-                                    hasHidden:   hasHidden,
-                                    hasInactive: hasInactive,
-                                    hasVideo:    hasVideo,
-                                    hasMuted:    hasMuted,
-                                    hasMarkers:  hasMarkers,
-                                    showHidden:    $showHiddenTracks,
-                                    showInactive:  $showInactiveTracks,
-                                    showVideo:     $showVideoTrack,
-                                    hideMuted:     $hideMutedClips,
-                                    showMarkers:   $showMarkers,
-                                    overviewHeight: $overviewHeight)
-                    .frame(height: effectiveH)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-
-                // Drag handle — pull to resize
-                OverviewResizeHandle(height: $overviewHeight, dragStart: $overviewDragStart)
+                    SessionTimelineView(tc: tc,
+                                        tracks: clippedTracks,
+                                        allTracksSamples: totalSamples,
+                                        sampleRate: sr,
+                                        frameRate: session.frameRate,
+                                        tcFormat:  session.tcFormat,
+                                        verticalScale: vScale,
+                                        resolvedFiles: session.resolvedAudioFiles,
+                                        memoryLocations: session.memoryLocations,
+                                        hasHidden:   hasHidden,
+                                        hasInactive: hasInactive,
+                                        hasVideo:    hasVideo,
+                                        hasMuted:    hasMuted,
+                                        hasMarkers:  hasMarkers,
+                                        showHidden:    $showHiddenTracks,
+                                        showInactive:  $showInactiveTracks,
+                                        showVideo:     $showVideoTrack,
+                                        hideMuted:     $hideMutedClips,
+                                        showMarkers:   $showMarkers,
+                                        overviewHeight: $overviewHeight)
+                        .frame(height: effectiveH)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 4)
+                }
+            }
+            // Drag handle lives OUTSIDE InspectorSection so it's in a stable
+            // container that doesn't resize during the drag gesture.
+            if !clippedTracks.isEmpty {
+                OverviewResizeHandle(height: $overviewHeight, maxHeight: maxH)
                     .padding(.horizontal, 16)
             }
         }
@@ -692,8 +705,13 @@ private struct ListRow: View {
 // MARK: - Overview resize handle
 
 private struct OverviewResizeHandle: View {
-    @Binding var height:     CGFloat
-    @Binding var dragStart:  CGFloat
+    @Binding var height: CGFloat
+    var maxHeight: CGFloat
+
+    // Captures height at gesture start; auto-resets to nil when gesture ends.
+    // Using @GestureState instead of a manual sentinel avoids coordinate-space
+    // jitter that occurred when the handle's parent resized during the drag.
+    @GestureState private var initialHeight: CGFloat? = nil
 
     var body: some View {
         ZStack {
@@ -709,11 +727,13 @@ private struct OverviewResizeHandle: View {
         }
         .gesture(
             DragGesture(minimumDistance: 1)
-                .onChanged { val in
-                    if dragStart == 0 { dragStart = height }
-                    height = max(50, min(600, dragStart + val.translation.height))
+                .updating($initialHeight) { _, state, _ in
+                    if state == nil { state = height }
                 }
-                .onEnded { _ in dragStart = 0 }
+                .onChanged { val in
+                    let base = initialHeight ?? height
+                    height = max(50, min(maxHeight, base + val.translation.height))
+                }
         )
         .padding(.bottom, 4)
     }
