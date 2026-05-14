@@ -331,7 +331,8 @@ struct SessionInspectorView: View {
 
                 // ── Track rows ─────────────────────────────────────────────────
                 ForEach(visibleTracks, id: \.index) { track in
-                    TrackRow(track: track, showPlugins: showTrackPlugins)
+                    TrackRow(track: track, showPlugins: showTrackPlugins,
+                             indented: track.folderName != nil)
                 }
             }
         }
@@ -537,9 +538,11 @@ private struct MetadataRow: View {
 private struct TrackRow: View {
     let track: PTXTrack
     let showPlugins: Bool
+    var indented: Bool = false
 
     var body: some View {
         let dimmed = track.isHidden || track.isInactive
+        let leadingPad: CGFloat = indented ? 28 : 16
 
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 8) {
@@ -585,10 +588,11 @@ private struct TrackRow: View {
                         }
                     }
                 }
-                .padding(.leading, 22)
+                .padding(.leading, indented ? 34 : 22)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.leading, leadingPad)
+        .padding(.trailing, 16)
         .padding(.vertical, 3)
     }
 }

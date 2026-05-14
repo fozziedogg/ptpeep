@@ -570,6 +570,22 @@ final class PTXBlockDecoder {
             }
         }
 
+        // Infer folder membership from track ordering.
+        // A Folder track (typeCode 11) or an Aux/VCA track whose name starts with the
+        // ƒ character (U+0192, Pro Tools' folder-master convention) marks the start of a
+        // folder group. Every non-folder track that follows belongs to that folder until
+        // the next folder marker appears.
+        var currentFolder: String? = nil
+        for name in info.orderedNames {
+            let tc = info.types[name] ?? 0
+            let isFolderMarker = tc == 11
+            if isFolderMarker {
+                currentFolder = name
+            } else if let folder = currentFolder {
+                info.folderOf[name] = folder
+            }
+        }
+
         let nonAudioTypes = info.types.filter { $0.value != 0 }.map { "\($0.key)=\($0.value)" }.sorted()
         print("[PTXBlockDecoder] Non-audio types: \(nonAudioTypes)")
         print("[PTXBlockDecoder] Hidden:   \(info.hidden.sorted())")

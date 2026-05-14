@@ -209,7 +209,8 @@ final class PTXParser {
                             channelCount: displayInfo.channelCounts[name] ?? 1,
                             channelLabel: displayInfo.channelLabels[name],
                             isHidden: displayInfo.hidden.contains(name),
-                            isInactive: displayInfo.inactive.contains(name))
+                            isInactive: displayInfo.inactive.contains(name),
+                            folderName: displayInfo.folderOf[name])
         }
         if !extras.isEmpty {
             session.tracks.append(contentsOf: extras)
