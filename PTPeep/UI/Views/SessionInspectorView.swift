@@ -34,11 +34,12 @@ struct SessionInspectorView: View {
         VStack(spacing: 0) {
             header
             Divider()
+            sessionSetupSection
+            Divider()
             overviewSection
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    sessionSetupSection
                     tracksSection
                     audioFilesSection
                     pluginsSection
@@ -96,12 +97,12 @@ struct SessionInspectorView: View {
     // MARK: - Session Setup
 
     private var sessionSetupSection: some View {
-        InspectorSection(title: "Session Setup", systemImage: "info.circle", initiallyExpanded: false) {
+        InspectorSection(title: "Session Setup", systemImage: "info.circle", initiallyExpanded: true) {
             let rows: [(String, String)] = [
                 ("Sample Rate",   session.sampleRate.isEmpty    ? "—" : "\(session.sampleRate) Hz"),
                 ("Bit Depth",     session.bitDepth.isEmpty      ? "—" : "\(session.bitDepth)-bit"),
                 ("Timecode",      session.tcFormat.isEmpty      ? "—" : session.tcFormat),
-                ("Start",         session.sessionStart.isEmpty  ? "—" : session.sessionStart),
+                ("TC Start",      session.sessionStart.isEmpty  ? "—" : session.sessionStart),
                 ("Duration",      session.sessionLength.isEmpty ? "—" : session.sessionLength),
                 ("Tracks",        "\(session.tracks.filter { $0.type == .audio }.count)"),
                 ("Audio Files",   "\(session.audioFileNames.count)"),
