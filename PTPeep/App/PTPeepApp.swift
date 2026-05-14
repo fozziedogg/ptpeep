@@ -71,7 +71,6 @@ final class AppState: ObservableObject {
     private var openTask: Task<Void, Never>?
 
     func close() {
-        print("[PTpeep] close() called")
         openTask?.cancel()
         openTask    = nil
         session     = nil
@@ -80,7 +79,6 @@ final class AppState: ObservableObject {
     }
 
     func showOpenPanel() {
-        print("[PTpeep] showOpenPanel called, session=\(session != nil), isLoading=\(isLoading)")
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [UTType(filenameExtension: "ptx") ?? .data]
         panel.allowsMultipleSelection = false
@@ -91,21 +89,17 @@ final class AppState: ObservableObject {
         // Use non-blocking begin() — runModal() blocks the main thread and
         // causes the panel to become unresponsive when called from SwiftUI.
         panel.begin { [weak self] response in
-            print("[PTpeep] panel.begin callback: response=\(response.rawValue), self=\(self != nil ? "alive" : "nil")")
             guard response == .OK, let url = panel.url else { return }
-            print("[PTpeep] panel selected: \(url.lastPathComponent)")
             self?.open(url: url)
         }
     }
 
     func open(url: URL) {
-        print("[PTpeep] open(url:) called: \(url.lastPathComponent), openTask=\(openTask != nil)")
         openTask?.cancel()
         openTask = Task { await _open(url: url) }
     }
 
     private func _open(url: URL) async {
-        print("[PTpeep] _open started: \(url.lastPathComponent)")
         isLoading  = true
         errorText  = nil
         sessionURL = url
@@ -115,12 +109,10 @@ final class AppState: ObservableObject {
         do {
             parsed = try PTXParser.parse(url: url)
         } catch {
-            print("[PTpeep] parse error: \(error)")
             errorText = error.localizedDescription
             isLoading = false
             return
         }
-        print("[PTpeep] parse succeeded: \(parsed.tracks.count) tracks")
 
         guard !Task.isCancelled else { isLoading = false; return }
 
@@ -172,19 +164,27 @@ struct AppContentView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        if let session = appState.session, let url = appState.sessionURL {
-            SessionInspectorView(
-                session:          session,
-                sessionURL:       url,
-                onOpenInProTools: { appState.openInProTools() },
-                onClose: { appState.close() }
-            )
-            .id(url)   // force full view recreation (fresh @StateObject/@State) on every new session
-        } else if appState.isLoading {
-            ProgressView("Parsing session…")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            dropZone
+        Group {
+            if let session = appState.session, let url = appState.sessionURL {
+                SessionInspectorView(
+                    session:          session,
+                    sessionURL:       url,
+                    onOpenInProTools: { appState.openInProTools() },
+                    onClose:          { appState.close() }
+                )
+                .id(url)   // force full view recreation (fresh @StateObject/@State) on every new session
+            } else if appState.isLoading {
+                ProgressView("Parsing session…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                dropZone
+            }
+        }
+        // When the user presses Cmd+W (or any other window close), clear the session
+        // so that reopening the window (dock click, Finder open) shows the drop zone.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notif in
+            guard !(notif.object is NSPanel) else { return }  // ignore NSOpenPanel etc.
+            appState.close()
         }
     }
 
