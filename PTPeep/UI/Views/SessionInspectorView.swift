@@ -700,8 +700,8 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     @Published var selTrack:    Int?    = nil   // selected track (start of range)
     @Published var selTrackEnd: Int?    = nil   // non-nil when drag spans multiple tracks
 
-    // Track expansion (E key toggles)
-    @Published var expandedTracks: Set<Int> = []
+    // Per-track vertical zoom level (0 = base, each step doubles height, max 4)
+    @Published var trackHeightLevels: [Int: Int] = [:]
 
     // Interaction context (not published — used by key handler only)
     var isHovering:   Bool    = false
@@ -795,6 +795,12 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
                 else if mods.contains(.shift) { self.prevBoundary() }
                 else                          { self.nextBoundary() }
                 return nil
+            case "\u{f700}":   // Up arrow
+                if mods.contains(.control) { self.adjustTrackHeight(by: +1); return nil }
+                return event
+            case "\u{f701}":   // Down arrow
+                if mods.contains(.control) { self.adjustTrackHeight(by: -1); return nil }
+                return event
             default: return event
             }
         }
@@ -934,6 +940,14 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         centerOn(prev)
     }
 
+    // MARK: Per-track vertical zoom (Ctrl+Up / Ctrl+Down)
+
+    func adjustTrackHeight(by delta: Int) {
+        guard let idx = selTrack else { return }
+        let current = trackHeightLevels[idx, default: 0]
+        trackHeightLevels[idx] = (current + delta).clamped(to: 0...4)
+    }
+
     func jumpTo(_ frac: Double) {
         selStart = frac; selEnd = nil
         ensureVisible(frac)
@@ -1026,8 +1040,9 @@ private struct SessionTimelineView: View {
         track.type == .video ? videoLaneH : audioLaneH
     }
     private func scaledLaneH(_ track: PTXTrack, index: Int) -> CGFloat {
-        let base = Self.trackLaneH(track) * verticalScale
-        return tc.expandedTracks.contains(index) ? base * 4 : base
+        let base   = Self.trackLaneH(track) * verticalScale
+        let level  = tc.trackHeightLevels[index, default: 0]
+        return base * CGFloat(1 << level)
     }
     private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
         ptTrackColor(track, index: index)
@@ -1320,9 +1335,9 @@ private struct SessionTimelineView: View {
                     selStart:       tc.selStart,
                     selEnd:         tc.selEnd,
                     selTrack:       tc.selTrack,
-                    selTrackEnd:    tc.selTrackEnd,
-                    expandedTracks: tc.expandedTracks,
-                    tracks:         tracks,
+                    selTrackEnd:       tc.selTrackEnd,
+                    trackHeightLevels: tc.trackHeightLevels,
+                    tracks:            tracks,
                     total:          total,
                     hideMuted:      hideMuted,
                     verticalScale:  verticalScale
@@ -1622,8 +1637,8 @@ private struct TimelineLaneCanvas: View, Equatable {
     let selStart:       Double?
     let selEnd:         Double?
     let selTrack:       Int?
-    let selTrackEnd:    Int?
-    let expandedTracks: Set<Int>
+    let selTrackEnd:       Int?
+    let trackHeightLevels: [Int: Int]
 
     let tracks:         [PTXTrack]
     let total:          Double
@@ -1631,17 +1646,17 @@ private struct TimelineLaneCanvas: View, Equatable {
     let verticalScale:  CGFloat
 
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.viewStart      == rhs.viewStart      &&
-        lhs.window         == rhs.window         &&
-        lhs.selStart       == rhs.selStart       &&
-        lhs.selEnd         == rhs.selEnd         &&
-        lhs.selTrack       == rhs.selTrack       &&
-        lhs.selTrackEnd    == rhs.selTrackEnd    &&
-        lhs.expandedTracks == rhs.expandedTracks &&
-        lhs.tracks.count   == rhs.tracks.count   &&
-        lhs.total          == rhs.total          &&
-        lhs.hideMuted      == rhs.hideMuted      &&
-        lhs.verticalScale  == rhs.verticalScale
+        lhs.viewStart          == rhs.viewStart          &&
+        lhs.window             == rhs.window             &&
+        lhs.selStart           == rhs.selStart           &&
+        lhs.selEnd             == rhs.selEnd             &&
+        lhs.selTrack           == rhs.selTrack           &&
+        lhs.selTrackEnd        == rhs.selTrackEnd        &&
+        lhs.trackHeightLevels  == rhs.trackHeightLevels  &&
+        lhs.tracks.count       == rhs.tracks.count       &&
+        lhs.total              == rhs.total              &&
+        lhs.hideMuted          == rhs.hideMuted          &&
+        lhs.verticalScale      == rhs.verticalScale
     }
 
     private static let audioLaneH: CGFloat = 8
@@ -1649,8 +1664,9 @@ private struct TimelineLaneCanvas: View, Equatable {
     private static let laneGap:    CGFloat = 2
 
     private func scaledLaneH(_ track: PTXTrack, index: Int) -> CGFloat {
-        let base: CGFloat = track.type == .video ? Self.videoLaneH : Self.audioLaneH
-        return (expandedTracks.contains(index) ? base * 4 : base) * verticalScale
+        let base  = (track.type == .video ? Self.videoLaneH : Self.audioLaneH) * verticalScale
+        let level = trackHeightLevels[index, default: 0]
+        return base * CGFloat(1 << level)
     }
 
     private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
@@ -1699,8 +1715,8 @@ private struct TimelineLaneCanvas: View, Equatable {
                         let edgeAlpha: Double = clip.isMuted ? 0.45 : 1.0
                         ctx.stroke(Path(clipRect), with: .color(color.opacity(edgeAlpha)),
                                    style: StrokeStyle(lineWidth: 1))
-                        if w > 32 && thisLaneH >= 14 {
-                            let fontSize: CGFloat = min(thisLaneH - 4, 10)
+                        if w > 32 {
+                            let fontSize: CGFloat = max(min(thisLaneH - 2, 10), 7)
                             let labelAlpha: Double = clip.isMuted ? 0.5 : 1.0
                             ctx.draw(
                                 Text(clip.name)
