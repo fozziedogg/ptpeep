@@ -8,7 +8,7 @@ struct PTPeepApp: App {
     @StateObject private var appState = AppState()
 
     var body: some Scene {
-        WindowGroup("PTPeep") {
+        WindowGroup("PTpeep") {
             AppContentView()
                 .environmentObject(appState)
                 .frame(minWidth: 640, idealWidth: 720,

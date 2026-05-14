@@ -22,6 +22,7 @@
 		C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */; };
 		B02452675BFE6D1BA8A2228C /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
 		F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */; };
+		AA01BB11CC22DD33EE44FF56 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA01BB11CC22DD33EE44FF55 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 		B5C2EE3C4A771CD8663C679D /* PTPeep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PTPeep.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BEC0768540CA11F5F2EA46DF /* PTPeep.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PTPeep.entitlements; sourceTree = "<group>"; };
 		F0D7312DDA765BE13DD13FA1 /* PTPeepApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeepApp.swift; sourceTree = "<group>"; };
+		AA01BB11CC22DD33EE44FF55 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = PTPeep/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -134,6 +136,7 @@
 				46BF2988BB03A6D06142C1AA /* Info.plist */,
 				BEC0768540CA11F5F2EA46DF /* PTPeep.entitlements */,
 				F0D7312DDA765BE13DD13FA1 /* PTPeepApp.swift */,
+				AA01BB11CC22DD33EE44FF55 /* Assets.xcassets */,
 			);
 			name = App;
 			path = PTPeep/App;
@@ -146,6 +149,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5BC1DCFB428429674A7BB318 /* Build configuration list for PBXNativeTarget "PTPeep" */;
 			buildPhases = (
+				AA01BB11CC22DD33EE44FF57 /* Resources */,
 				8C67127B5C772605C570F0E8 /* Sources */,
 			);
 			buildRules = (
@@ -213,6 +217,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA01BB11CC22DD33EE44FF57 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA01BB11CC22DD33EE44FF56 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		8C67127B5C772605C570F0E8 /* Sources */ = {

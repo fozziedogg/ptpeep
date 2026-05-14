@@ -772,6 +772,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         // Scroll wheel: horizontal = pan, Cmd+vertical = zoom
         scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
             guard let self, self.isHovering || self.isFocused else { return event }
+            guard !(event.window is NSPanel) else { return event }  // never consume panel/open-dialog events
             let mods = event.modifierFlags
             if mods.contains(.command) {
                 // Cmd+scroll → zoom (vertical delta drives scale)
@@ -797,6 +798,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         // Trackpad pinch → horizontal zoom centred on cursor
         magnifyMonitor = NSEvent.addLocalMonitorForEvents(matching: .magnify) { [weak self] event in
             guard let self, self.isHovering || self.isFocused else { return event }
+            guard !(event.window is NSPanel) else { return event }
             let factor = 1.0 + Double(event.magnification)
             let anchor = self.hoverAbsFrac ?? (self.viewStart + self.window / 2)
             let newSc  = (self.scale * factor).clamped(to: 1...4096)
@@ -808,6 +810,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, self.isHovering || self.isFocused else { return event }
+            guard !(event.window is NSPanel) else { return event }
             // Numpad * (keyCode 67) → open TC entry popover (mirrors Pro Tools behaviour)
             if event.keyCode == 67 {
                 self.openTCEntry = true
