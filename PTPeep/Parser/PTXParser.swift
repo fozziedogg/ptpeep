@@ -309,8 +309,15 @@ final class PTXParser {
         // the underlying locked-picture refs that PT keeps but never shows on the timeline.
         // Only byte[35]==0x00 placements are actual timeline clips (music, group, or SFX).
         // Last entry per timeline position wins (handles comp-recorded alternate takes).
-        for (i, tp) in trackPlaylists.enumerated() {
-            guard i < session.tracks.count else { continue }
+        // Build a name→index map for fast lookup.
+        var trackIndexByName: [String: Int] = [:]
+        for (i, t) in session.tracks.enumerated() where trackIndexByName[t.name] == nil {
+            trackIndexByName[t.name] = i
+        }
+
+        for tp in trackPlaylists {
+            // Match playlist to track by name; fall back to position if no name match exists.
+            guard let i = trackIndexByName[tp.name] else { continue }
 
             var byPos: [Int64: PTXClip] = [:]
 
@@ -318,7 +325,7 @@ final class PTXParser {
                 let clipEntry = !p.isGroup && p.clipIdx < clips.count ? clips[p.clipIdx] : nil
                 let len = p.groupLength ?? clipEntry?.lengthSamples ?? 0
                 guard len > 0 else { continue }
-                let name = p.groupName ?? clipEntry?.name ?? "Clip \(p.clipIdx)"
+                let name = stripChannelSuffix(p.groupName ?? clipEntry?.name ?? "Clip \(p.clipIdx)")
                 byPos[p.timelineSample] = PTXClip(
                     name: name, startSample: p.timelineSample, lengthSamples: len,
                     sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? "",
@@ -667,6 +674,26 @@ final class PTXParser {
     // Locate actual WAV/AIFF files in the session's "Audio Files" folder.
 
     // MARK: - Plugin matching helpers
+
+    /// Strips a trailing Pro Tools multi-mono channel suffix from a clip name.
+    /// e.g. "01 HB 1m07 Stem A-01.L" → "01 HB 1m07 Stem A-01"
+    ///      "01 HB 1m03 Stem A Mix 04.LFE" → "01 HB 1m03 Stem A Mix 04"
+    /// Suffixes are checked longest-first to avoid ".L" stealing from ".LFE" or ".Ls".
+    private static let multiMonoSuffixes: [String] = [
+        ".LFE",
+        ".Lss", ".Rss", ".Lts", ".Rts",
+        ".Ltf", ".Rtf", ".Ltm", ".Rtm", ".Ltb", ".Rtb", ".Lsb", ".Rsb",
+        ".Bfl", ".Bfr", ".Bsl", ".Bsr",
+        ".Ls", ".Rs", ".Cs", ".Ts",
+        ".L", ".R", ".C", ".S", ".M",
+    ]
+
+    private static func stripChannelSuffix(_ name: String) -> String {
+        for suffix in multiMonoSuffixes where name.hasSuffix(suffix) {
+            return String(name.dropLast(suffix.count))
+        }
+        return name
+    }
 
     /// Strips a trailing `.dupN` suffix from a strip name (e.g. "adr 1.dup2" → "adr 1").
     private static func stripDupSuffix(_ s: String) -> String {
