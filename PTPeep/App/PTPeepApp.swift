@@ -74,6 +74,7 @@ final class AppState: ObservableObject {
     /// More reliable than searching NSApp.windows, which can miss the window mid-transition.
     weak var mainWindow: NSWindow?
     private var windowObserver: Any?
+    private var closeInterceptor: CloseInterceptorDelegate?
 
     init() {
         windowObserver = NotificationCenter.default.addObserver(
@@ -81,21 +82,19 @@ final class AppState: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let win = notification.object as? NSWindow,
+            guard let self,
+                  let win = notification.object as? NSWindow,
                   !(win is NSSavePanel) else { return }
-            print("[AppState] mainWindow updated: \(type(of: win))")
-            self?.mainWindow = win
-        }
-        // Catch any window close to identify what's closing the AppKitWindow.
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: nil,
-            queue: .main
-        ) { notification in
-            guard let win = notification.object as? NSWindow,
-                  !(win is NSSavePanel) else { return }
-            print("[AppState] ⚠️ \(type(of: win)) willClose — stack:")
-            Thread.callStackSymbols.prefix(20).forEach { print("  \($0)") }
+            self.mainWindow = win
+            // Install close interceptor once per window instance so Cmd+W hides
+            // rather than destroys the window (AppKit default is true close).
+            if !(win.delegate is CloseInterceptorDelegate) {
+                let interceptor = CloseInterceptorDelegate(
+                    originalDelegate: win.delegate
+                ) { [weak self] in self?.close() }
+                win.delegate = interceptor
+                self.closeInterceptor = interceptor
+            }
         }
     }
 
@@ -110,7 +109,6 @@ final class AppState: ObservableObject {
     }
 
     func showOpenPanel() {
-        print("[AppState] showOpenPanel() called — current session: \(sessionURL?.lastPathComponent ?? "none")")
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [UTType(filenameExtension: "ptx") ?? .data]
         panel.allowsMultipleSelection = false
@@ -118,35 +116,20 @@ final class AppState: ObservableObject {
         panel.canChooseDirectories = false
         panel.prompt               = "Open"
         panel.message              = "Select a Pro Tools session file"
-        print("[AppState] panel.begin() called")
         panel.begin { [weak self] response in
-            print("[AppState] panel completion: response=\(response.rawValue), self=\(self == nil ? "nil" : "alive")")
-            guard response == .OK, let url = panel.url else {
-                print("[AppState] panel cancelled or no URL")
-                return
-            }
-            print("[AppState] panel selected: \(url.lastPathComponent)")
-            let winsAtCompletion = NSApp.windows.map { "\(type(of: $0)) v=\($0.isVisible)" }
-            print("[AppState] panel completion windows: \(winsAtCompletion), mainWindow=\(self?.mainWindow.map{String(describing:type(of:$0))} ?? "nil")")
+            guard response == .OK, let url = panel.url else { return }
             self?.open(url: url)
         }
-        print("[AppState] panel.begin() returned (panel now showing)")
     }
 
     func open(url: URL) {
-        let winsBeforeCancel = NSApp.windows.map { "\(type(of: $0)) v=\($0.isVisible)" }
-        print("[AppState] open() start: \(url.lastPathComponent), mainWindow=\(mainWindow.map{String(describing:type(of:$0))} ?? "nil"), windows=\(winsBeforeCancel)")
+        print("[AppState] open() \(url.lastPathComponent)")
         openTask?.cancel()
-        let winsAfterCancel = NSApp.windows.map { "\(type(of: $0)) v=\($0.isVisible)" }
-        print("[AppState] open() after cancel: mainWindow=\(mainWindow.map{String(describing:type(of:$0))} ?? "nil"), windows=\(winsAfterCancel)")
         openTask = Task { await _open(url: url) }
-        let winsAfterTask = NSApp.windows.map { "\(type(of: $0)) v=\($0.isVisible)" }
-        print("[AppState] open() after Task{}: mainWindow=\(mainWindow.map{String(describing:type(of:$0))} ?? "nil"), windows=\(winsAfterTask)")
     }
 
     private func _open(url: URL) async {
-        let winsAtStart = NSApp.windows.map { "\(type(of: $0)) v=\($0.isVisible)" }
-        print("[AppState] _open() start: \(url.lastPathComponent), cancelled=\(Task.isCancelled), mainWindow=\(mainWindow.map{String(describing:type(of:$0))} ?? "nil"), allWindows=\(winsAtStart)")
+        print("[AppState] _open() start: \(url.lastPathComponent)")
         isLoading  = true
         errorText  = nil
         sessionURL = url
@@ -154,7 +137,6 @@ final class AppState: ObservableObject {
         // Parse binary
         var parsed: PTXSession
         do {
-            print("[AppState] _open() parsing…")
             parsed = try PTXParser.parse(url: url)
             print("[AppState] _open() parse done: \(parsed.tracks.count) tracks")
         } catch {
@@ -164,33 +146,22 @@ final class AppState: ObservableObject {
             return
         }
 
-        guard !Task.isCancelled else { print("[AppState] _open() cancelled after parse"); isLoading = false; return }
+        guard !Task.isCancelled else { isLoading = false; return }
 
         // Resolve audio files
-        print("[AppState] _open() resolving audio files…")
         PTXParser.resolveAudioFiles(session: &parsed, sessionURL: url)
-        print("[AppState] _open() resolved \(parsed.resolvedAudioFiles.count) audio files")
 
         // Publish initial result so UI appears immediately
-        print("[AppState] _open() publishing session to UI")
         session   = parsed
         isLoading = false
 
-        // Ensure the main window is visible. Prefer the stored mainWindow reference
-        // (set when the window last became key) over NSApp.windows, which can miss
-        // the window during SwiftUI transitions.
-        let wins = NSApp.windows.map { "\(type(of: $0)) visible=\($0.isVisible)" }
-        let targetWin = mainWindow
-                     ?? NSApp.windows.first(where: { $0.isVisible && !($0 is NSSavePanel) })
-                     ?? NSApp.windows.first(where: { !($0 is NSSavePanel) })
-        print("[AppState] _open() bring forward: \(targetWin.map{String(describing:type(of:$0))} ?? "nil"), allWindows=\(wins)")
-        targetWin?.makeKeyAndOrderFront(nil)
+        // Bring the window forward (it may have been hidden via Cmd+W / orderOut).
+        mainWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
         // Augment with PTSL in background (no-op if PT not connected)
-        print("[AppState] _open() awaiting PTSL…")
         await PTSLSessionInfo.shared.augment(session: &parsed)
-        print("[AppState] _open() PTSL done, cancelled=\(Task.isCancelled), sessionURL=\(sessionURL?.lastPathComponent ?? "nil")")
+        print("[AppState] _open() PTSL done, sessionURL=\(sessionURL?.lastPathComponent ?? "nil")")
 
         // Discard PTSL result if this open was superseded by close or a newer open
         guard !Task.isCancelled, sessionURL == url else {
@@ -271,5 +242,35 @@ struct AppContentView: View {
             }
             return true
         }
+    }
+}
+
+// MARK: - Close interceptor
+
+/// Converts Cmd+W / close-button clicks from a true NSWindow close into orderOut
+/// (hide), so the window can be brought back when the next session is opened.
+/// All other delegate messages are forwarded to SwiftUI's original delegate.
+private final class CloseInterceptorDelegate: NSObject, NSWindowDelegate {
+    private weak var originalDelegate: NSWindowDelegate?
+    private let onClose: () -> Void
+
+    init(originalDelegate: NSWindowDelegate?, onClose: @escaping () -> Void) {
+        self.originalDelegate = originalDelegate
+        self.onClose = onClose
+    }
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        onClose()            // clear session / loading state
+        sender.orderOut(nil) // hide window rather than destroy it
+        return false         // tell AppKit not to close
+    }
+
+    // Forward all other NSWindowDelegate messages to SwiftUI's original delegate.
+    override func responds(to aSelector: Selector!) -> Bool {
+        super.responds(to: aSelector) || (originalDelegate?.responds(to: aSelector) ?? false)
+    }
+
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        originalDelegate?.responds(to: aSelector) == true ? originalDelegate : nil
     }
 }
