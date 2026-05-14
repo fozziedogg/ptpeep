@@ -14,9 +14,6 @@ struct PTPeepApp: App {
                 .frame(minWidth: 640, idealWidth: 720,
                        minHeight: 480, idealHeight: 600)
                 .onAppear { appDelegate.appState = appState }
-                // Fires when the window is hidden (Cmd+W / X button → orderOut).
-                // willCloseNotification does NOT fire for orderOut; this is the reliable hook.
-                .onDisappear { appState.close() }
                 .onOpenURL { url in
                     guard url.pathExtension.lowercased() == "ptx" else { return }
                     appState.open(url: url)
