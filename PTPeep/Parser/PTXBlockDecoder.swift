@@ -883,21 +883,36 @@ final class PTXBlockDecoder {
         }
         guard !keyToPlugin.isEmpty else { return [:] }
 
-        // Collect 0x102d track-ID blocks in file order
-        var trackEnds: [(name: String, end: Int)] = []
+        // Collect 0x102d mixer-strip blocks in file order.
+        // Each 0x102d wraps a 0x2619 sub-block whose layout (relative to dataOffset+9) is:
+        //   [0-3]  u32 LE nameLen
+        //   [4..4+nameLen-1]  strip display name (may be old/renamed, e.g. "Audio 1")
+        //   [4+nameLen .. 4+nameLen+10]  11-byte suffix: 01 00 | 01 00 00 00 | 00 | 2a 00 00 00
+        //   [4+nameLen+11 .. 4+nameLen+18]  8-byte strip UID
+        struct StripInfo { var name: String; var uid: String; var end: Int }
+        var strips: [StripInfo] = []
         for b in sorted where b.contentType == 0x102d {
-            let p = b.dataOffset + 9   // past nested 0x2619 block header
+            let p = b.dataOffset + 9   // past 0x2619 block header
             guard let nl = safeU32(data, at: p, be: false),
                   nl >= 1, nl <= 64,
                   p + 4 + Int(nl) <= data.count,
                   let name = String(bytes: data[(p+4)..<(p+4+Int(nl))], encoding: .utf8),
                   !name.isEmpty else { continue }
-            trackEnds.append((name: name, end: b.dataOffset + b.dataSize))
+            let uidStart = p + 4 + Int(nl) + 11
+            let uid: String
+            if uidStart + 8 <= data.count {
+                uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
+            } else {
+                uid = ""
+            }
+            strips.append(StripInfo(name: name, uid: uid, end: b.dataOffset + b.dataSize))
         }
 
-        var result: [String: [String]] = [:]
-        for (i, tb) in trackEnds.enumerated() {
-            let ceiling = i + 1 < trackEnds.count ? trackEnds[i + 1].end - 300 : Int.max
+        // For each strip, find its following 0x2627 plugin-state block and parse occupied slots.
+        var uidToPlugins:  [String: [String]] = [:]   // strip UID  → plugins
+        var nameToPlugins: [String: [String]] = [:]   // strip name → plugins (fallback)
+        for (i, tb) in strips.enumerated() {
+            let ceiling = i + 1 < strips.count ? strips[i + 1].end - 300 : Int.max
             let stateBlocks = sorted.filter {
                 $0.contentType == 0x2627 &&
                 $0.dataOffset >= tb.end &&
@@ -934,13 +949,58 @@ final class PTXBlockDecoder {
                     }
                 }
                 // 0x2625 = empty slot, skip silently.
-                // Unknown types: skip.
 
                 pos += 9 + Int(sz) - 2
             }
 
-            if !plugins.isEmpty { result[tb.name] = plugins }
+            if !plugins.isEmpty {
+                if !tb.uid.isEmpty { uidToPlugins[tb.uid] = plugins }
+                nameToPlugins[tb.name] = plugins
+            }
         }
+
+        // Parse 0x210b blocks: track display name → 8-byte UID.
+        // These blocks are emitted as top-level entries in the decoded block list (130 in a
+        // typical session). Data layout at b.dataOffset:
+        //   [0-3]  00 00 00 00
+        //   [4-7]  u32 LE nameLen
+        //   [8..8+nameLen-1]  track display name
+        //   [8+nameLen..8+nameLen+7]  00 00 00 00 | 2a 00 00 00
+        //   [8+nameLen+8..8+nameLen+15]  8-byte track UID
+        var trackToUID: [(trackName: String, uid: String)] = []
+        for b in sorted where b.contentType == 0x210b {
+            let doff = b.dataOffset
+            guard b.dataSize >= 24,
+                  let nl = safeU32(data, at: doff + 4, be: false),
+                  nl >= 1, nl <= 256,
+                  doff + 8 + Int(nl) + 8 + 8 <= data.count,
+                  let tname = String(bytes: data[(doff+8)..<(doff+8+Int(nl))], encoding: .utf8),
+                  !tname.isEmpty else { continue }
+            let uidStart = doff + 8 + Int(nl) + 8
+            let uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
+            trackToUID.append((trackName: tname, uid: uid))
+        }
+
+        var result: [String: [String]] = [:]
+
+        // Pass 1: UID-based match (handles renamed tracks — "1 dx" finds "Audio 1" strip via UID)
+        var resolvedUIDs = Set<String>()
+        for (trackName, uid) in trackToUID {
+            if let plugins = uidToPlugins[uid] {
+                result[trackName] = plugins
+                resolvedUIDs.insert(uid)
+            }
+        }
+
+        // Pass 2: strip-name fallback for any strip not already resolved via UID
+        // (covers sessions without 0x2107, or extra strips absent from the map)
+        for tb in strips {
+            guard !tb.uid.isEmpty ? !resolvedUIDs.contains(tb.uid) : result[tb.name] == nil else { continue }
+            if let plugins = nameToPlugins[tb.name] {
+                result[tb.name] = plugins
+            }
+        }
+
         return result
     }
 
