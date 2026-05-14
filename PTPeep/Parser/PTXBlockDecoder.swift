@@ -518,6 +518,7 @@ final class PTXBlockDecoder {
     static func extractTrackDisplayInfo(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> TrackDisplayInfo {
         guard let b2519 = blocks.first(where: { $0.contentType == 0x2519 }) else { return TrackDisplayInfo() }
         var info = TrackDisplayInfo()
+        var seenNames = Set<String>()
 
         // Process only 0x251a sub-blocks that live inside 0x2519
         let parentStart = b2519.dataOffset
@@ -543,7 +544,9 @@ final class PTXBlockDecoder {
                   let name = String(bytes: data[nameStart..<nameEndPos], encoding: .utf8) else { continue }
 
             info.types[name] = typeCode
-            info.orderedNames.append(name)
+            if seenNames.insert(name).inserted {
+                info.orderedNames.append(name)
+            }
 
             // Channel format byte immediately follows the name (0=mono, 1=stereo, etc.)
             if nameEndPos < sub.dataOffset + sub.dataSize {

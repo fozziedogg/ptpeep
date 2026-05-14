@@ -25,6 +25,19 @@ struct PTPeepApp: App {
                     appState.showOpenPanel()
                 }
                 .keyboardShortcut("o")
+
+                Menu("Open Recent") {
+                    ForEach(appState.recentURLs, id: \.self) { url in
+                        Button(url.deletingPathExtension().lastPathComponent) {
+                            appState.open(url: url)
+                        }
+                    }
+                    if !appState.recentURLs.isEmpty {
+                        Divider()
+                        Button("Clear Menu") { appState.clearRecents() }
+                    }
+                }
+                .disabled(appState.recentURLs.isEmpty)
             }
         }
     }
@@ -76,7 +89,29 @@ final class AppState: ObservableObject {
     private var windowObserver: Any?
     private var closeInterceptor: CloseInterceptorDelegate?
 
+    @Published var recentURLs: [URL] = []
+    private static let recentsKey = "recentSessionURLs"
+    private static let maxRecents = 10
+
+    func addRecent(_ url: URL) {
+        recentURLs.removeAll { $0 == url }
+        recentURLs.insert(url, at: 0)
+        if recentURLs.count > Self.maxRecents { recentURLs = Array(recentURLs.prefix(Self.maxRecents)) }
+        UserDefaults.standard.set(recentURLs.map(\.absoluteString), forKey: Self.recentsKey)
+    }
+
+    func clearRecents() {
+        recentURLs.removeAll()
+        UserDefaults.standard.removeObject(forKey: Self.recentsKey)
+    }
+
     init() {
+        // Load recent files, filtering out any that no longer exist on disk.
+        let fm = FileManager.default
+        recentURLs = (UserDefaults.standard.stringArray(forKey: Self.recentsKey) ?? [])
+            .compactMap { URL(string: $0) }
+            .filter { fm.fileExists(atPath: $0.path) }
+
         windowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didBecomeKeyNotification,
             object: nil,
@@ -154,6 +189,7 @@ final class AppState: ObservableObject {
         // Publish initial result so UI appears immediately
         session   = parsed
         isLoading = false
+        addRecent(url)
 
         // Bring the window forward (it may have been hidden via Cmd+W / orderOut).
         mainWindow?.makeKeyAndOrderFront(nil)

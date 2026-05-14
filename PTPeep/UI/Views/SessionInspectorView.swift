@@ -23,8 +23,6 @@ struct SessionInspectorView: View {
     @State private var hiddenTrackTypes:   Set<PTXTrackType> = []
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
-    @State private var selectedTrackNames: Set<String> = []
-    @State private var trackSelectionMode: Bool   = false
     @State private var showTrackPlugins:   Bool   = true
     @StateObject private var tc = TimelineController()
 
@@ -239,7 +237,6 @@ struct SessionInspectorView: View {
             && (tlShowHiddenTracks   || !$0.isHidden)
             && (tlShowInactiveTracks || !$0.isInactive)
         }
-        let audioTracks   = visibleTracks.filter { $0.type == .audio }
         let hasPlugins    = session.tracks.contains { !$0.plugins.isEmpty }
         let totalCount    = session.tracks.count
         let visibleCount  = visibleTracks.count
@@ -293,13 +290,6 @@ struct SessionInspectorView: View {
                         .padding(.vertical, 5)
                     }
 
-                    if visibleCount < totalCount {
-                        Text("Showing \(visibleCount) of \(totalCount) tracks")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 2)
-                    }
                 }
 
                 // ── Toolbar ────────────────────────────────────────────────────
@@ -307,7 +297,7 @@ struct SessionInspectorView: View {
                     // Plug-ins toggle — only shown when at least one track has plugins
                     if hasPlugins {
                         Toggle(isOn: $showTrackPlugins) {
-                            Text("Plug-ins").font(.caption).foregroundStyle(.secondary)
+                            Text("Show Plug-ins").font(.caption).foregroundStyle(.secondary)
                         }
                         .toggleStyle(.checkbox)
                     }
@@ -327,78 +317,21 @@ struct SessionInspectorView: View {
                     }
 
                     Spacer()
-
-                    if trackSelectionMode {
-                        // Select All / None
-                        Button(selectedTrackNames.count == audioTracks.count ? "None" : "All") {
-                            if selectedTrackNames.count == audioTracks.count {
-                                selectedTrackNames.removeAll()
-                            } else {
-                                selectedTrackNames = Set(audioTracks.map(\.name))
-                            }
-                        }
-                        .buttonStyle(.borderless)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                        // Export button — only active when tracks are selected
-                        Button {
-                            let names = session.tracks
-                                .filter { selectedTrackNames.contains($0.name) }
-                                .map(\.name)
-                            if let url = PTXParser.writeEDL(session: session,
-                                                            sessionURL: sessionURL,
-                                                            trackNames: names) {
-                                NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                            }
-                        } label: {
-                            Label("Export EDL\(selectedTrackNames.isEmpty ? "" : " (\(selectedTrackNames.count))")",
-                                  systemImage: "square.and.arrow.up")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.mini)
-                        .disabled(selectedTrackNames.isEmpty)
-
-                        // Done
-                        Button("Done") {
-                            trackSelectionMode = false
-                            selectedTrackNames.removeAll()
-                        }
-                        .buttonStyle(.borderless)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    } else {
-                        if !audioTracks.isEmpty {
-                            Button {
-                                trackSelectionMode = true
-                            } label: {
-                                Label("EDL Export…", systemImage: "film.stack")
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.borderless)
-                            .foregroundStyle(.secondary)
-                        }
-                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 5)
 
+                if visibleCount < totalCount {
+                    Text("Showing \(visibleCount) of \(totalCount) tracks")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 2)
+                }
+
                 // ── Track rows ─────────────────────────────────────────────────
                 ForEach(visibleTracks, id: \.index) { track in
-                    SelectableTrackRow(
-                        track: track,
-                        isSelected: selectedTrackNames.contains(track.name),
-                        selectionMode: trackSelectionMode,
-                        showPlugins: showTrackPlugins,
-                        onToggle: {
-                            if selectedTrackNames.contains(track.name) {
-                                selectedTrackNames.remove(track.name)
-                            } else {
-                                selectedTrackNames.insert(track.name)
-                            }
-                        }
-                    )
+                    TrackRow(track: track, showPlugins: showTrackPlugins)
                 }
             }
         }
@@ -601,87 +534,62 @@ private struct MetadataRow: View {
     }
 }
 
-private struct SelectableTrackRow: View {
+private struct TrackRow: View {
     let track: PTXTrack
-    let isSelected: Bool
-    let selectionMode: Bool
     let showPlugins: Bool
-    let onToggle: () -> Void
 
     var body: some View {
-        let dimmed     = track.isHidden || track.isInactive
-        let canSelect  = track.type == .audio && selectionMode
-        let leadingPad = selectionMode ? 38.0 : 22.0   // extra space for checkbox when in mode
+        let dimmed = track.isHidden || track.isInactive
 
-        Button(action: { if canSelect { onToggle() } }) {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 8) {
-                    // Leading icon: checkbox (selection mode, audio) or track-type icon
-                    if selectionMode && track.type == .audio {
-                        Image(systemName: isSelected ? "checkmark.square.fill" : "square")
-                            .foregroundStyle(isSelected ? Color.accentColor : Color(nsColor: .tertiaryLabelColor))
-                            .frame(width: 16)
-                    } else {
-                        Image(systemName: track.type.systemImage)
-                            .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : track.type.tintColor)
-                            .frame(width: 16)
-                    }
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 8) {
+                Image(systemName: track.type.systemImage)
+                    .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : track.type.tintColor)
+                    .frame(width: 16)
 
-                    // In selection mode, show type icon after the checkbox
-                    if selectionMode && track.type == .audio {
-                        Image(systemName: track.type.systemImage)
-                            .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary))
-                            .frame(width: 14)
-                    }
+                Text(track.name)
+                    .font(.subheadline)
+                    .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+                    .italic(track.isInactive)
 
-                    Text(track.name)
-                        .font(.subheadline)
-                        .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
-                        .italic(track.isInactive)
-
-                    if track.isHidden {
-                        Image(systemName: "eye.slash")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    if track.isInactive {
-                        Text("inactive")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-
-                    Spacer()
-
-                    Text(track.channelFormat)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                if track.isHidden {
+                    Image(systemName: "eye.slash")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                if track.isInactive {
+                    Text("inactive")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
 
-                // Plugin pills
-                if showPlugins && !track.plugins.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 4) {
-                            ForEach(track.plugins, id: \.self) { plugin in
-                                Text(plugin)
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 2)
-                                    .background(Color(nsColor: .separatorColor).opacity(0.5))
-                                    .clipShape(Capsule())
-                            }
+                Spacer()
+
+                Text(track.channelFormat)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Plugin pills
+            if showPlugins && !track.plugins.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(track.plugins, id: \.self) { plugin in
+                            Text(plugin)
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color(nsColor: .separatorColor).opacity(0.5))
+                                .clipShape(Capsule())
                         }
                     }
-                    .padding(.leading, leadingPad)
                 }
+                .padding(.leading, 22)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, canSelect ? 4 : 3)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .background(isSelected && selectionMode ? Color.accentColor.opacity(0.07) : Color.clear)
-        .animation(.easeInOut(duration: 0.12), value: selectionMode)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 3)
     }
 }
 
@@ -1329,9 +1237,9 @@ private struct SessionTimelineView: View {
                         let frac = Double(loc.samplePosition) / total
                         let x    = CGFloat((frac - vStart) / vWindow) * size.width
                         guard x >= -1, x <= size.width + 1 else { continue }
-                        // Full-height orange line (hairline, behind tick labels)
-                        ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: size.height)),
-                                 with: .color(.orange.opacity(0.55)))
+                        // Short tick in the bottom strip only — keeps TC labels clean.
+                        ctx.fill(Path(CGRect(x: x - 0.5, y: 18, width: 1, height: size.height - 18)),
+                                 with: .color(.orange.opacity(0.7)))
                         // Marker name in the bottom strip — skip if too close to previous
                         if x - prevLabelX > 34 {
                             let anchor: UnitPoint = x < 20 ? .bottomLeading
