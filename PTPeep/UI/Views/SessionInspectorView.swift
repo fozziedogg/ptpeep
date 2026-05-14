@@ -945,7 +945,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     func adjustTrackHeight(by delta: Int) {
         guard let idx = selTrack else { return }
         let current = trackHeightLevels[idx, default: 0]
-        trackHeightLevels[idx] = (current + delta).clamped(to: 0...4)
+        trackHeightLevels[idx] = min(max(current + delta, 0), 4)
     }
 
     func jumpTo(_ frac: Double) {
