@@ -777,12 +777,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
             switch ch {
             case "t":      self.zoomIn();  return nil
             case "r":      self.zoomOut(); return nil
-            case "e", "E":
-                if let idx = self.selTrack {
-                    if self.expandedTracks.contains(idx) { self.expandedTracks.remove(idx) }
-                    else { self.expandedTracks.insert(idx) }
-                }
-                return nil
+            case "e", "E": self.zoomToFitCursor(); return nil
             case "\u{1b}": self.clearSelection();        return nil  // Escape
             case "\u{f729}":                                        // Home → go to start
                 self.selStart = 0.0; self.selEnd = nil; self.viewStart = 0.0
@@ -878,7 +873,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
                                                     trackIdx: idx, cursor: cursor,
                                                     hideMuted: hideMuted) else { return }
         selTrack = idx; selStart = next; selEnd = nil
-        ensureVisible(next)
+        centerOn(next)
     }
 
     func prevClipStart() {
@@ -889,7 +884,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
                                                     trackIdx: idx, cursor: cursor,
                                                     hideMuted: hideMuted) else { return }
         selTrack = idx; selStart = prev; selEnd = nil
-        ensureVisible(prev)
+        centerOn(prev)
     }
 
     func nextClipEnd() {
@@ -900,7 +895,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
                                                   trackIdx: idx, cursor: cursor,
                                                   hideMuted: hideMuted) else { return }
         selTrack = idx; selStart = next; selEnd = nil
-        ensureVisible(next)
+        centerOn(next)
     }
 
     func nextBoundary() {
@@ -918,7 +913,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         }
         guard let next = best else { return }
         selStart = next; selEnd = nil
-        ensureVisible(next)
+        centerOn(next)
     }
 
     func prevBoundary() {
@@ -936,12 +931,16 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         }
         guard let prev = best else { return }
         selStart = prev; selEnd = nil
-        ensureVisible(prev)
+        centerOn(prev)
     }
 
     func jumpTo(_ frac: Double) {
         selStart = frac; selEnd = nil
         ensureVisible(frac)
+    }
+
+    func centerOn(_ frac: Double) {
+        viewStart = (frac - window / 2).clamped(to: 0...(1 - window))
     }
 
     func ensureVisible(_ frac: Double) {
@@ -951,6 +950,28 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         } else if frac > viewStart + window - margin {
             viewStart = min(1 - window, frac - window + margin)
         }
+    }
+
+    /// E key: zoom to show the selected clip, or the current range selection.
+    func zoomToFitCursor() {
+        guard let s = selStart else { return }
+        if let e = selEnd, e != s {
+            zoomToSelection()
+            return
+        }
+        // Single cursor — find the clip whose in-point matches
+        guard let idx = selTrack, idx < tracks.count else { return }
+        let samp = Int64((s * totalSamples).rounded())
+        guard let clip = tracks[idx].clips.first(where: { $0.startSample == samp }) else { return }
+        let clipStart = Double(clip.startSample) / totalSamples
+        let clipEnd   = Double(clip.startSample + clip.lengthSamples) / totalSamples
+        let span      = clipEnd - clipStart
+        let margin    = max(span * 0.15, window * 0.05)
+        let start     = max(0.0, clipStart - margin)
+        let end       = min(1.0, clipEnd + margin)
+        let newWin    = end - start
+        scale         = max(1.0, 1.0 / newWin)
+        viewStart     = start.clamped(to: 0...(1 - window))
     }
 }
 
@@ -1678,8 +1699,8 @@ private struct TimelineLaneCanvas: View, Equatable {
                         let edgeAlpha: Double = clip.isMuted ? 0.45 : 1.0
                         ctx.stroke(Path(clipRect), with: .color(color.opacity(edgeAlpha)),
                                    style: StrokeStyle(lineWidth: 1))
-                        if w > 32 {
-                            let fontSize: CGFloat = track.type == .video ? 8 : 6
+                        if w > 32 && thisLaneH >= 14 {
+                            let fontSize: CGFloat = min(thisLaneH - 4, 10)
                             let labelAlpha: Double = clip.isMuted ? 0.5 : 1.0
                             ctx.draw(
                                 Text(clip.name)
