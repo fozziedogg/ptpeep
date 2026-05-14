@@ -692,13 +692,22 @@ final class PTXBlockDecoder {
             .filter { $0.contentType == 0x104f && $0.dataSize >= 11 }
             .sorted { $0.dataOffset < $1.dataOffset }
 
-        for section in trackSections {
-            // Read track name: [u32 nameLen][nameBytes]
-            guard let nameLen = safeU32(data, at: section.dataOffset, be: false),
-                  nameLen >= 1, nameLen <= 256,
-                  section.dataOffset + 4 + Int(nameLen) <= data.count else { continue }
-            let nameSlice = data[section.dataOffset + 4 ..< section.dataOffset + 4 + Int(nameLen)]
-            guard let name = String(bytes: nameSlice, encoding: .utf8) else { continue }
+        for (sectionIdx, section) in trackSections.enumerated() {
+            // Read track name: [u32 nameLen][nameBytes].
+            // Some sessions store nameLen=0 and rely on display-list order instead.
+            let name: String
+            if let nameLen = safeU32(data, at: section.dataOffset, be: false),
+               nameLen >= 1, nameLen <= 256,
+               section.dataOffset + 4 + Int(nameLen) <= data.count,
+               let n = String(bytes: data[section.dataOffset + 4 ..< section.dataOffset + 4 + Int(nameLen)],
+                              encoding: .utf8) {
+                name = n
+            } else if !displayInfo.orderedNames.isEmpty, sectionIdx < displayInfo.orderedNames.count {
+                // No inline name — match by position to the display-info order.
+                name = displayInfo.orderedNames[sectionIdx]
+            } else {
+                continue
+            }
 
             // If we have a display list, skip any 0x1052 section whose name is not in it.
             // Those sections are alternate playlists (different clip sets on the same track),
@@ -734,7 +743,7 @@ final class PTXBlockDecoder {
                 let isHidden = ref.dataSize >= 36 && data[ref.dataOffset + 35] == 0x01
                 let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
                 let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
-                guard timeline > 0 else { return nil }
+                guard timeline >= 0 else { return nil }
                 let compoundEntry = isGroup && clipIdx < compoundPool.count ? compoundPool[clipIdx] : nil
                 let groupName   = compoundEntry?.name
                 let groupLength = compoundEntry?.lengthSamples
