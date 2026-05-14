@@ -70,6 +70,24 @@ final class AppState: ObservableObject {
     @Published var isLoading   = false
     @Published var errorText:  String?
 
+    /// Direct weak reference to the main app window, updated whenever it becomes key.
+    /// More reliable than searching NSApp.windows, which can miss the window mid-transition.
+    weak var mainWindow: NSWindow?
+    private var windowObserver: Any?
+
+    init() {
+        windowObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let win = notification.object as? NSWindow,
+                  !(win is NSSavePanel) else { return }
+            print("[AppState] mainWindow updated: \(type(of: win))")
+            self?.mainWindow = win
+        }
+    }
+
     private var openTask: Task<Void, Never>?
 
     func close() {
@@ -109,7 +127,8 @@ final class AppState: ObservableObject {
     }
 
     private func _open(url: URL) async {
-        print("[AppState] _open() start: \(url.lastPathComponent), cancelled=\(Task.isCancelled)")
+        let winsAtStart = NSApp.windows.map { "\(type(of: $0)) v=\($0.isVisible)" }
+        print("[AppState] _open() start: \(url.lastPathComponent), cancelled=\(Task.isCancelled), mainWindow=\(mainWindow.map{String(describing:type(of:$0))} ?? "nil"), allWindows=\(winsAtStart)")
         isLoading  = true
         errorText  = nil
         sessionURL = url
@@ -139,16 +158,15 @@ final class AppState: ObservableObject {
         session   = parsed
         isLoading = false
 
-        // Ensure the main window is visible — handles the case where the user closed
-        // the macOS window then opened a new session via menu or Finder.
-        // Exclude NSSavePanel/NSOpenPanel: they linger in NSApp.windows after dismissal
-        // and makeKeyAndOrderFront would re-raise the open panel instead of the app window.
+        // Ensure the main window is visible. Prefer the stored mainWindow reference
+        // (set when the window last became key) over NSApp.windows, which can miss
+        // the window during SwiftUI transitions.
         let wins = NSApp.windows.map { "\(type(of: $0)) visible=\($0.isVisible)" }
-        print("[AppState] _open() NSApp.windows: \(wins)")
-        let appWin = NSApp.windows.first(where: { $0.isVisible && !($0 is NSSavePanel) })
-                  ?? NSApp.windows.first(where: { !($0 is NSSavePanel) })
-        print("[AppState] _open() makeKeyAndOrderFront on: \(appWin.map { String(describing: type(of: $0)) } ?? "nil")")
-        appWin?.makeKeyAndOrderFront(nil)
+        let targetWin = mainWindow
+                     ?? NSApp.windows.first(where: { $0.isVisible && !($0 is NSSavePanel) })
+                     ?? NSApp.windows.first(where: { !($0 is NSSavePanel) })
+        print("[AppState] _open() bring forward: \(targetWin.map{String(describing:type(of:$0))} ?? "nil"), allWindows=\(wins)")
+        targetWin?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
         // Augment with PTSL in background (no-op if PT not connected)
