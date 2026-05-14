@@ -21,10 +21,8 @@ struct PTPeepApp: App {
         }
         .commands {
             CommandGroup(after: .newItem) {
-                Button("Open Session…") {
-                    appState.showOpenPanel()
-                }
-                .keyboardShortcut("o")
+                Button("Open Session…") { appState.showOpenPanel() }
+                    .keyboardShortcut("o")
 
                 Menu("Open Recent") {
                     ForEach(appState.recentURLs, id: \.self) { url in
@@ -38,8 +36,50 @@ struct PTPeepApp: App {
                     }
                 }
                 .disabled(appState.recentURLs.isEmpty)
+
+                Divider()
+
+                Button("Close Tab") {
+                    if let id = appState.selectedTabID { appState.closeTab(id: id) }
+                }
+                .keyboardShortcut("w")
+                .disabled(appState.tabs.isEmpty)
+
+                Button("Close All Tabs") { appState.closeAllTabs() }
+                    .keyboardShortcut("w", modifiers: [.command, .shift])
+                    .disabled(appState.tabs.isEmpty)
+
+                Divider()
+
+                Button("Select Previous Tab") { appState.selectPreviousTab() }
+                    .keyboardShortcut("[")
+                    .disabled(appState.tabs.count < 2)
+
+                Button("Select Next Tab") { appState.selectNextTab() }
+                    .keyboardShortcut("]")
+                    .disabled(appState.tabs.count < 2)
             }
         }
+    }
+}
+
+// MARK: - Tab state
+
+struct TabState: Identifiable {
+    let id: UUID
+    var sessionURL: URL?
+    var session:    PTXSession?
+    var isLoading:  Bool
+    var errorText:  String?
+
+    var displayName: String {
+        sessionURL?.deletingPathExtension().lastPathComponent ?? "New Session"
+    }
+
+    init(sessionURL: URL? = nil, isLoading: Bool = false) {
+        self.id         = UUID()
+        self.sessionURL = sessionURL
+        self.isLoading  = isLoading
     }
 }
 
@@ -54,14 +94,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appState?.open(url: url)
     }
 
-    // Clicking the Dock icon when all windows are closed reopens the main window.
-    // Return false when no windows exist so SwiftUI creates a new one automatically;
-    // return true (and handle manually) only when windows already exist.
+    // Clicking the Dock icon brings the window back with all tabs intact.
     func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if hasVisibleWindows { return true }
-        if app.windows.isEmpty { return false }  // let SwiftUI create a new window
-        // Window exists but was hidden (Cmd+W) — reset session state before showing drop zone.
-        appState?.close()
+        if app.windows.isEmpty { return false }
         bringWindowForward(app)
         return true
     }
@@ -78,20 +114,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 @MainActor
 final class AppState: ObservableObject {
-    @Published var session:    PTXSession?
-    @Published var sessionURL: URL?
-    @Published var isLoading   = false
-    @Published var errorText:  String?
+    @Published var tabs:          [TabState] = []
+    @Published var selectedTabID: UUID?
 
     /// Direct weak reference to the main app window, updated whenever it becomes key.
-    /// More reliable than searching NSApp.windows, which can miss the window mid-transition.
     weak var mainWindow: NSWindow?
-    private var windowObserver: Any?
+    private var windowObserver:  Any?
     private var closeInterceptor: CloseInterceptorDelegate?
+    private var openTasks:        [UUID: Task<Void, Never>] = [:]
 
     @Published var recentURLs: [URL] = []
     private static let recentsKey = "recentSessionURLs"
     private static let maxRecents = 10
+
+    var selectedTab: TabState? {
+        guard let id = selectedTabID else { return nil }
+        return tabs.first { $0.id == id }
+    }
+
+    // MARK: Recents
 
     func addRecent(_ url: URL) {
         recentURLs.removeAll { $0 == url }
@@ -105,8 +146,9 @@ final class AppState: ObservableObject {
         UserDefaults.standard.removeObject(forKey: Self.recentsKey)
     }
 
+    // MARK: Init
+
     init() {
-        // Load recent files, filtering out any that no longer exist on disk.
         let fm = FileManager.default
         recentURLs = (UserDefaults.standard.stringArray(forKey: Self.recentsKey) ?? [])
             .compactMap { URL(string: $0) }
@@ -121,27 +163,67 @@ final class AppState: ObservableObject {
                   let win = notification.object as? NSWindow,
                   !(win is NSSavePanel) else { return }
             self.mainWindow = win
-            // Install close interceptor once per window instance so Cmd+W hides
-            // rather than destroys the window (AppKit default is true close).
             if !(win.delegate is CloseInterceptorDelegate) {
-                let interceptor = CloseInterceptorDelegate(
-                    originalDelegate: win.delegate
-                ) { [weak self] in self?.close() }
+                let interceptor = CloseInterceptorDelegate(originalDelegate: win.delegate)
                 win.delegate = interceptor
                 self.closeInterceptor = interceptor
             }
         }
     }
 
-    private var openTask: Task<Void, Never>?
+    // MARK: Tab management
 
-    func close() {
-        openTask?.cancel()
-        openTask    = nil
-        session     = nil
-        sessionURL  = nil
-        isLoading   = false
+    private func updateTab(id: UUID, _ update: (inout TabState) -> Void) {
+        guard let idx = tabs.firstIndex(where: { $0.id == id }) else { return }
+        update(&tabs[idx])
     }
+
+    func updateWindowTitle() {
+        if let tab = selectedTab {
+            mainWindow?.title = "PTpeep — \(tab.displayName)"
+        } else {
+            mainWindow?.title = "PTpeep"
+        }
+    }
+
+    func closeTab(id: UUID) {
+        guard let idx = tabs.firstIndex(where: { $0.id == id }) else { return }
+        openTasks[id]?.cancel()
+        openTasks[id] = nil
+        tabs.remove(at: idx)
+        if tabs.isEmpty {
+            selectedTabID = nil
+        } else {
+            selectedTabID = tabs[min(idx, tabs.count - 1)].id
+        }
+        updateWindowTitle()
+    }
+
+    func closeAllTabs() {
+        for id in tabs.map(\.id) { openTasks[id]?.cancel() }
+        openTasks.removeAll()
+        tabs.removeAll()
+        selectedTabID = nil
+        updateWindowTitle()
+    }
+
+    func selectNextTab() {
+        guard tabs.count > 1,
+              let id = selectedTabID,
+              let idx = tabs.firstIndex(where: { $0.id == id }) else { return }
+        selectedTabID = tabs[(idx + 1) % tabs.count].id
+        updateWindowTitle()
+    }
+
+    func selectPreviousTab() {
+        guard tabs.count > 1,
+              let id = selectedTabID,
+              let idx = tabs.firstIndex(where: { $0.id == id }) else { return }
+        selectedTabID = tabs[(idx - 1 + tabs.count) % tabs.count].id
+        updateWindowTitle()
+    }
+
+    // MARK: Open
 
     func showOpenPanel() {
         let panel = NSOpenPanel()
@@ -159,15 +241,15 @@ final class AppState: ObservableObject {
 
     func open(url: URL) {
         print("[AppState] open() \(url.lastPathComponent)")
-        openTask?.cancel()
-        openTask = Task { await _open(url: url) }
+        let tab = TabState(sessionURL: url, isLoading: true)
+        tabs.append(tab)
+        selectedTabID = tab.id
+        updateWindowTitle()
+        openTasks[tab.id] = Task { await _open(tabID: tab.id, url: url) }
     }
 
-    private func _open(url: URL) async {
+    private func _open(tabID: UUID, url: URL) async {
         print("[AppState] _open() start: \(url.lastPathComponent)")
-        isLoading  = true
-        errorText  = nil
-        sessionURL = url
 
         // Parse binary
         var parsed: PTXSession
@@ -176,43 +258,42 @@ final class AppState: ObservableObject {
             print("[AppState] _open() parse done: \(parsed.tracks.count) tracks")
         } catch {
             print("[AppState] _open() parse error: \(error)")
-            errorText = error.localizedDescription
-            isLoading = false
+            updateTab(id: tabID) { $0.isLoading = false; $0.errorText = error.localizedDescription }
             return
         }
 
-        guard !Task.isCancelled else { isLoading = false; return }
+        guard !Task.isCancelled else {
+            updateTab(id: tabID) { $0.isLoading = false }
+            return
+        }
 
-        // Resolve audio files
         PTXParser.resolveAudioFiles(session: &parsed, sessionURL: url)
 
         // Publish initial result so UI appears immediately
-        session   = parsed
-        isLoading = false
+        updateTab(id: tabID) { $0.session = parsed; $0.isLoading = false }
         addRecent(url)
+        updateWindowTitle()
 
-        // Bring the window forward (it may have been hidden via Cmd+W / orderOut).
         mainWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
         // Augment with PTSL in background (no-op if PT not connected)
         await PTSLSessionInfo.shared.augment(session: &parsed)
-        print("[AppState] _open() PTSL done, sessionURL=\(sessionURL?.lastPathComponent ?? "nil")")
+        print("[AppState] _open() PTSL done")
 
-        // Discard PTSL result if this open was superseded by close or a newer open
-        guard !Task.isCancelled, sessionURL == url else {
-            print("[AppState] _open() discarding PTSL result (superseded or cancelled)")
+        guard !Task.isCancelled,
+              tabs.contains(where: { $0.id == tabID }) else {
+            print("[AppState] _open() discarding PTSL result (tab closed or superseded)")
             return
         }
-        session = parsed
+
+        updateTab(id: tabID) { $0.session = parsed }
         print("[AppState] _open() complete ✓")
 
-        // Write clip log for diagnostics
         PTXParser.writeClipLog(session: parsed, sessionURL: url)
     }
 
-    func openInProTools() {
-        guard let url = sessionURL else { return }
+    func openInProTools(url: URL) {
         let fm = FileManager.default
         let candidates = [
             "/Applications/Pro Tools.app",
@@ -235,21 +316,57 @@ struct AppContentView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        Group {
-            if let session = appState.session, let url = appState.sessionURL {
-                SessionInspectorView(
-                    session:          session,
-                    sessionURL:       url,
-                    onOpenInProTools: { appState.openInProTools() },
-                    onClose:          { appState.close() }
-                )
-                .id(url)   // force full view recreation (fresh @StateObject/@State) on every new session
-            } else if appState.isLoading {
-                ProgressView("Parsing session…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                dropZone
+        VStack(spacing: 0) {
+            if !appState.tabs.isEmpty {
+                TabBarView()
+                Divider()
             }
+            ZStack {
+                if appState.tabs.isEmpty {
+                    dropZone
+                } else if let tab = appState.selectedTab {
+                    tabContent(tab)
+                        .id(tab.id)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .onChange(of: appState.selectedTabID) { _ in appState.updateWindowTitle() }
+        // Accept drops anywhere in the window to open a new tab.
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            _ = providers.first?.loadObject(ofClass: URL.self) { url, _ in
+                guard let url, url.pathExtension.lowercased() == "ptx" else { return }
+                Task { @MainActor in appState.open(url: url) }
+            }
+            return true
+        }
+    }
+
+    @ViewBuilder
+    private func tabContent(_ tab: TabState) -> some View {
+        if let session = tab.session, let url = tab.sessionURL {
+            SessionInspectorView(
+                session:          session,
+                sessionURL:       url,
+                onOpenInProTools: { appState.openInProTools(url: url) },
+                onClose:          { appState.closeTab(id: tab.id) }
+            )
+        } else if tab.isLoading {
+            ProgressView("Parsing session…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let err = tab.errorText {
+            VStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.secondary)
+                Text(err)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                Button("Close Tab") { appState.closeTab(id: tab.id) }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -261,47 +378,130 @@ struct AppContentView: View {
             Text("Open a Pro Tools session")
                 .font(.title3)
                 .foregroundStyle(.secondary)
-            if let err = appState.errorText {
-                Text(err)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
             Button("Choose Session…") { appState.showOpenPanel() }
                 .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            _ = providers.first?.loadObject(ofClass: URL.self) { url, _ in
-                guard let url, url.pathExtension.lowercased() == "ptx" else { return }
-                Task { @MainActor in appState.open(url: url) }
+    }
+}
+
+// MARK: - Tab bar
+
+struct TabBarView: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 1) {
+                    ForEach(appState.tabs) { tab in
+                        TabItemView(tab: tab)
+                    }
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
             }
-            return true
+
+            Divider()
+                .frame(height: 18)
+                .padding(.horizontal, 4)
+
+            Button {
+                appState.showOpenPanel()
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .medium))
+                    .frame(width: 26, height: 26)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Open Session…")
+            .padding(.trailing, 8)
         }
+        .frame(height: 32)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
+
+struct TabItemView: View {
+    @EnvironmentObject var appState: AppState
+    let tab: TabState
+    @State private var isHovered = false
+
+    private var isSelected: Bool { appState.selectedTabID == tab.id }
+
+    var body: some View {
+        HStack(spacing: 3) {
+            if tab.isLoading {
+                ProgressView()
+                    .scaleEffect(0.45)
+                    .frame(width: 10, height: 10)
+            }
+
+            Text(tab.displayName)
+                .font(.system(size: 11))
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: 160, alignment: .leading)
+
+            Button {
+                appState.closeTab(id: tab.id)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .semibold))
+                    .frame(width: 13, height: 13)
+                    .background(
+                        Circle()
+                            .fill(Color(nsColor: .labelColor).opacity(isHovered ? 0.1 : 0))
+                    )
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .opacity(isSelected || isHovered ? 1 : 0)
+        }
+        .padding(.leading, 8)
+        .padding(.trailing, 5)
+        .frame(height: 26)
+        .background(
+            RoundedRectangle(cornerRadius: 5)
+                .fill(isSelected
+                    ? Color(nsColor: .labelColor).opacity(0.1)
+                    : Color(nsColor: .labelColor).opacity(isHovered ? 0.05 : 0))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 5)
+                .strokeBorder(isSelected
+                    ? Color(nsColor: .separatorColor).opacity(0.6)
+                    : Color.clear,
+                    lineWidth: 0.5)
+        )
+        .onTapGesture { appState.selectedTabID = tab.id; appState.updateWindowTitle() }
+        .onHover { isHovered = $0 }
+        .animation(.easeInOut(duration: 0.1), value: isHovered)
+        .animation(.easeInOut(duration: 0.1), value: isSelected)
     }
 }
 
 // MARK: - Close interceptor
 
-/// Converts Cmd+W / close-button clicks from a true NSWindow close into orderOut
-/// (hide), so the window can be brought back when the next session is opened.
+/// Intercepts the window red-button / Window > Close, hiding the window
+/// rather than destroying it. Cmd+W is handled by SwiftUI commands (close tab).
 /// All other delegate messages are forwarded to SwiftUI's original delegate.
 private final class CloseInterceptorDelegate: NSObject, NSWindowDelegate {
     private weak var originalDelegate: NSWindowDelegate?
-    private let onClose: () -> Void
 
-    init(originalDelegate: NSWindowDelegate?, onClose: @escaping () -> Void) {
+    init(originalDelegate: NSWindowDelegate?) {
         self.originalDelegate = originalDelegate
-        self.onClose = onClose
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        onClose()            // clear session / loading state
-        sender.orderOut(nil) // hide window rather than destroy it
-        return false         // tell AppKit not to close
+        sender.orderOut(nil)
+        return false
     }
 
-    // Forward all other NSWindowDelegate messages to SwiftUI's original delegate.
     override func responds(to aSelector: Selector!) -> Bool {
         super.responds(to: aSelector) || (originalDelegate?.responds(to: aSelector) ?? false)
     }
