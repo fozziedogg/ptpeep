@@ -81,6 +81,7 @@ final class AppState: ObservableObject {
     }
 
     func showOpenPanel() {
+        print("[AppState] showOpenPanel() called — current session: \(sessionURL?.lastPathComponent ?? "none")")
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [UTType(filenameExtension: "ptx") ?? .data]
         panel.allowsMultipleSelection = false
@@ -88,20 +89,27 @@ final class AppState: ObservableObject {
         panel.canChooseDirectories = false
         panel.prompt               = "Open"
         panel.message              = "Select a Pro Tools session file"
-        // Use non-blocking begin() — runModal() blocks the main thread and
-        // causes the panel to become unresponsive when called from SwiftUI.
+        print("[AppState] panel.begin() called")
         panel.begin { [weak self] response in
-            guard response == .OK, let url = panel.url else { return }
+            print("[AppState] panel completion: response=\(response.rawValue), self=\(self == nil ? "nil" : "alive")")
+            guard response == .OK, let url = panel.url else {
+                print("[AppState] panel cancelled or no URL")
+                return
+            }
+            print("[AppState] panel selected: \(url.lastPathComponent)")
             self?.open(url: url)
         }
+        print("[AppState] panel.begin() returned (panel now showing)")
     }
 
     func open(url: URL) {
+        print("[AppState] open() called: \(url.lastPathComponent), cancelling existing task=\(openTask != nil)")
         openTask?.cancel()
         openTask = Task { await _open(url: url) }
     }
 
     private func _open(url: URL) async {
+        print("[AppState] _open() start: \(url.lastPathComponent), cancelled=\(Task.isCancelled)")
         isLoading  = true
         errorText  = nil
         sessionURL = url
@@ -109,19 +117,25 @@ final class AppState: ObservableObject {
         // Parse binary
         var parsed: PTXSession
         do {
+            print("[AppState] _open() parsing…")
             parsed = try PTXParser.parse(url: url)
+            print("[AppState] _open() parse done: \(parsed.tracks.count) tracks")
         } catch {
+            print("[AppState] _open() parse error: \(error)")
             errorText = error.localizedDescription
             isLoading = false
             return
         }
 
-        guard !Task.isCancelled else { isLoading = false; return }
+        guard !Task.isCancelled else { print("[AppState] _open() cancelled after parse"); isLoading = false; return }
 
         // Resolve audio files
+        print("[AppState] _open() resolving audio files…")
         PTXParser.resolveAudioFiles(session: &parsed, sessionURL: url)
+        print("[AppState] _open() resolved \(parsed.resolvedAudioFiles.count) audio files")
 
         // Publish initial result so UI appears immediately
+        print("[AppState] _open() publishing session to UI")
         session   = parsed
         isLoading = false
 
@@ -129,17 +143,26 @@ final class AppState: ObservableObject {
         // the macOS window then opened a new session via menu or Finder.
         // Exclude NSSavePanel/NSOpenPanel: they linger in NSApp.windows after dismissal
         // and makeKeyAndOrderFront would re-raise the open panel instead of the app window.
+        let wins = NSApp.windows.map { "\(type(of: $0)) visible=\($0.isVisible)" }
+        print("[AppState] _open() NSApp.windows: \(wins)")
         let appWin = NSApp.windows.first(where: { $0.isVisible && !($0 is NSSavePanel) })
                   ?? NSApp.windows.first(where: { !($0 is NSSavePanel) })
+        print("[AppState] _open() makeKeyAndOrderFront on: \(appWin.map { String(describing: type(of: $0)) } ?? "nil")")
         appWin?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
         // Augment with PTSL in background (no-op if PT not connected)
+        print("[AppState] _open() awaiting PTSL…")
         await PTSLSessionInfo.shared.augment(session: &parsed)
+        print("[AppState] _open() PTSL done, cancelled=\(Task.isCancelled), sessionURL=\(sessionURL?.lastPathComponent ?? "nil")")
 
         // Discard PTSL result if this open was superseded by close or a newer open
-        guard !Task.isCancelled, sessionURL == url else { return }
+        guard !Task.isCancelled, sessionURL == url else {
+            print("[AppState] _open() discarding PTSL result (superseded or cancelled)")
+            return
+        }
         session = parsed
+        print("[AppState] _open() complete ✓")
 
         // Write clip log for diagnostics
         PTXParser.writeClipLog(session: parsed, sessionURL: url)
