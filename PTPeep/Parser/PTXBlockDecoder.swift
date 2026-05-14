@@ -483,7 +483,8 @@ final class PTXBlockDecoder {
         var inactive:        Set<String>      = []
         var types:           [String: UInt16] = [:]   // track type code per name
         var orderedNames:    [String]         = []    // all track names in PT mixer order
-        var folderOf:        [String: String] = [:]   // reserved (not yet decoded)
+        var folderMarkers:   Set<String>      = []    // tracks that are folder containers (basic or routing)
+        var folderOf:        [String: String] = [:]   // child track → parent folder name
         var colors:          [String: Int]    = [:]   // PT color index per track name
         var channelCounts:   [String: Int]    = [:]   // channel count from 0x251a format byte
         var channelLabels:   [String: String] = [:]   // human-readable label, e.g. "7.1"
@@ -548,6 +549,13 @@ final class PTXBlockDecoder {
                 info.orderedNames.append(name)
             }
 
+            // Byte at nameEnd+53 (= p+59+nameLen) is 0x01 for both basic (tc=11) and
+            // routing (tc=2) folder tracks, 0x00 for plain Aux/Audio/VCA tracks.
+            let folderFlagOffset = nameEndPos + 53
+            if folderFlagOffset < sub.dataOffset + sub.dataSize, data[folderFlagOffset] != 0 {
+                info.folderMarkers.insert(name)
+            }
+
             // Channel format byte immediately follows the name (0=mono, 1=stereo, etc.)
             if nameEndPos < sub.dataOffset + sub.dataSize {
                 let (count, label) = channelInfo(forFormatByte: data[nameEndPos])
@@ -571,14 +579,13 @@ final class PTXBlockDecoder {
         }
 
         // Infer folder membership from track ordering.
-        // A Folder track (typeCode 11) or an Aux/VCA track whose name starts with the
-        // ƒ character (U+0192, Pro Tools' folder-master convention) marks the start of a
-        // folder group. Every non-folder track that follows belongs to that folder until
-        // the next folder marker appears.
+        // folderMarkers contains both basic (tc=11) and routing (tc=2) folder tracks,
+        // detected via the binary flag at nameEnd+53 in each 0x251a block.
+        // Every non-folder track that follows a folder marker belongs to that folder
+        // until the next folder marker appears.
         var currentFolder: String? = nil
         for name in info.orderedNames {
-            let tc = info.types[name] ?? 0
-            let isFolderMarker = tc == 11
+            let isFolderMarker = info.folderMarkers.contains(name)
             if isFolderMarker {
                 currentFolder = name
             } else if let folder = currentFolder {
