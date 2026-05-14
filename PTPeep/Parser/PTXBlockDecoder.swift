@@ -479,12 +479,40 @@ final class PTXBlockDecoder {
     //   [6+nameLen+62..63] u16 LE color index (0xffff / 0xfffe = no custom color)
 
     struct TrackDisplayInfo {
-        var hidden:        Set<String>      = []
-        var inactive:      Set<String>      = []
-        var types:         [String: UInt16] = [:]   // track type code per name
-        var orderedNames:  [String]         = []    // all track names in PT mixer order
-        var folderOf:      [String: String] = [:]   // reserved (not yet decoded)
-        var colors:        [String: Int]    = [:]   // PT color index per track name
+        var hidden:          Set<String>      = []
+        var inactive:        Set<String>      = []
+        var types:           [String: UInt16] = [:]   // track type code per name
+        var orderedNames:    [String]         = []    // all track names in PT mixer order
+        var folderOf:        [String: String] = [:]   // reserved (not yet decoded)
+        var colors:          [String: Int]    = [:]   // PT color index per track name
+        var channelCounts:   [String: Int]    = [:]   // channel count from 0x251a format byte
+        var channelLabels:   [String: String] = [:]   // human-readable label, e.g. "7.1"
+    }
+
+    /// Maps the PT channel-format byte (stored at 0x251a[6+nameLen]) to a
+    /// channel count and human-readable label string.
+    /// Values 0x00–0x10 correspond to PT's internal AudioChannelFormat enum.
+    private static func channelInfo(forFormatByte byte: UInt8) -> (count: Int, label: String) {
+        switch byte {
+        case 0x00: return (1,  "Mono")
+        case 0x01: return (2,  "Stereo")
+        case 0x02: return (3,  "LCR")
+        case 0x03: return (4,  "LCRS")
+        case 0x04: return (4,  "Quad")
+        case 0x05: return (5,  "5.0")
+        case 0x06: return (6,  "5.1")
+        case 0x07: return (6,  "6.0")
+        case 0x08: return (7,  "6.1")
+        case 0x09: return (7,  "7.0")
+        case 0x0A: return (8,  "7.1")
+        case 0x0B: return (9,  "7.0.2")
+        case 0x0C: return (10, "7.1.2")
+        case 0x0D: return (11, "7.0.4")
+        case 0x0E: return (12, "7.1.4")
+        case 0x0F: return (13, "9.0.4")
+        case 0x10: return (14, "9.1.4")
+        default:   return (1,  "Mono")
+        }
     }
 
     static func extractTrackDisplayInfo(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> TrackDisplayInfo {
@@ -516,6 +544,13 @@ final class PTXBlockDecoder {
 
             info.types[name] = typeCode
             info.orderedNames.append(name)
+
+            // Channel format byte immediately follows the name (0=mono, 1=stereo, etc.)
+            if nameEndPos < sub.dataOffset + sub.dataSize {
+                let (count, label) = channelInfo(forFormatByte: data[nameEndPos])
+                info.channelCounts[name] = count
+                info.channelLabels[name] = label
+            }
 
             // Flags and color at fixed offsets from block start (all relative to p)
             let b2Offset    = p + 63 + nameLen   // visible: 0 = hidden
@@ -719,9 +754,13 @@ final class PTXBlockDecoder {
         }
 
         return nameOrder.map { name in
-            TrackPlaylist(
+            // Prefer the explicit format byte from 0x251a — it is authoritative for all
+            // track types including Aux and Master.  Fall back to 0x1052 section counting
+            // (which works for audio playlist tracks but gives 1 for non-playlist tracks).
+            let count = displayInfo.channelCounts[name] ?? channelCounts[name] ?? 1
+            return TrackPlaylist(
                 name: name,
-                channelCount: channelCounts[name] ?? 1,
+                channelCount: count,
                 placements: placementsByName[name] ?? [],
                 isHidden: displayInfo.hidden.contains(name),
                 isInactive: displayInfo.inactive.contains(name),

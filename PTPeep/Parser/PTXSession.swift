@@ -54,6 +54,7 @@ struct PTXTrack {
     var name:         String
     var type:         PTXTrackType = .audio
     var channelCount: Int = 1       // 1=mono, 2=stereo, 6=5.1, etc.
+    var channelLabel: String? = nil // exact PT format label ("7.1", "5.1", etc.) when known
     var isHidden:     Bool    = false
     var isInactive:   Bool    = false
     var folderName:   String? = nil   // non-nil when this track lives inside a folder
@@ -63,6 +64,8 @@ struct PTXTrack {
 
     var channelFormat: String {
         if type == .video { return "Video" }
+        // Prefer the exact label decoded from the PT format byte; fall back to count.
+        if let label = channelLabel { return label }
         switch channelCount {
         case 1:  return "Mono"
         case 2:  return "Stereo"

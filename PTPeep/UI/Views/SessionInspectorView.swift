@@ -10,11 +10,15 @@ struct SessionInspectorView: View {
     var onOpenInProTools: (() -> Void)? = nil
     var onClose:         (() -> Void)? = nil
 
+    // Overview toggles
     @AppStorage("ov.showHiddenTracks")   private var showHiddenTracks:   Bool = false
     @AppStorage("ov.showInactiveTracks") private var showInactiveTracks: Bool = false
     @AppStorage("ov.showVideoTrack")     private var showVideoTrack:     Bool = true
     @AppStorage("ov.hideMutedClips")     private var hideMutedClips:     Bool = false
     @AppStorage("ov.showMarkers")        private var showMarkers:         Bool = false
+    // Track list toggles (separate from overview)
+    @AppStorage("tl.showHiddenTracks")   private var tlShowHiddenTracks:   Bool = false
+    @AppStorage("tl.showInactiveTracks") private var tlShowInactiveTracks: Bool = true
     @State private var markerSearch:       String  = ""
     @State private var hiddenTrackTypes:   Set<PTXTrackType> = []
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
@@ -228,7 +232,13 @@ struct SessionInspectorView: View {
         // Types present in the session (in a stable display order)
         let typeOrder: [PTXTrackType] = [.audio, .instrument, .midi, .aux, .vca, .master, .folder, .video, .unknown]
         let presentTypes = typeOrder.filter { t in session.tracks.contains { $0.type == t } }
-        let visibleTracks = session.tracks.filter { !hiddenTrackTypes.contains($0.type) }
+        let hasHiddenTracks   = session.tracks.contains { $0.isHidden }
+        let hasInactiveTracks = session.tracks.contains { $0.isInactive }
+        let visibleTracks = session.tracks.filter {
+            !hiddenTrackTypes.contains($0.type)
+            && (tlShowHiddenTracks   || !$0.isHidden)
+            && (tlShowInactiveTracks || !$0.isInactive)
+        }
         let audioTracks   = visibleTracks.filter { $0.type == .audio }
         let hasPlugins    = session.tracks.contains { !$0.plugins.isEmpty }
         let totalCount    = session.tracks.count
@@ -298,6 +308,20 @@ struct SessionInspectorView: View {
                     if hasPlugins {
                         Toggle(isOn: $showTrackPlugins) {
                             Text("Plug-ins").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+
+                    if hasHiddenTracks {
+                        Toggle(isOn: $tlShowHiddenTracks) {
+                            Text("Show Hidden").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+
+                    if hasInactiveTracks {
+                        Toggle(isOn: $tlShowInactiveTracks) {
+                            Text("Show Inactive").font(.caption).foregroundStyle(.secondary)
                         }
                         .toggleStyle(.checkbox)
                     }

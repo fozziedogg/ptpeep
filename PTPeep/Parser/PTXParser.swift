@@ -188,6 +188,7 @@ final class PTXParser {
                 playlistNames.insert(tp.name)
                 return PTXTrack(index: i, name: tp.name, type: trackType(from: tp.trackTypeCode),
                                 channelCount: tp.channelCount,
+                                channelLabel: displayInfo.channelLabels[tp.name],
                                 isHidden: tp.isHidden, isInactive: tp.isInactive,
                                 folderName: tp.folderName, colorIndex: tp.colorIndex)
             }
@@ -205,14 +206,31 @@ final class PTXParser {
             guard !playlistNames.contains(name),
                   let typeCode = displayInfo.types[name] else { return nil }
             return PTXTrack(index: nextIndex, name: name, type: trackType(from: typeCode),
+                            channelCount: displayInfo.channelCounts[name] ?? 1,
+                            channelLabel: displayInfo.channelLabels[name],
                             isHidden: displayInfo.hidden.contains(name),
                             isInactive: displayInfo.inactive.contains(name))
         }
         if !extras.isEmpty {
             session.tracks.append(contentsOf: extras)
-            // Re-index
-            for i in session.tracks.indices { session.tracks[i].index = i }
         }
+
+        // Reorder session.tracks to match PT mixer order (orderedNames from 0x251a).
+        // This interleaves audio, video, aux, master, VCA, etc. in the order they appear
+        // in the session rather than grouping playlist tracks before non-playlist tracks.
+        if !displayInfo.orderedNames.isEmpty {
+            let nameToTrack = Dictionary(
+                displayInfo.orderedNames.compactMap { n in
+                    session.tracks.first { $0.name == n }.map { (n, $0) }
+                }, uniquingKeysWith: { first, _ in first }
+            )
+            let orderedSet  = Set(displayInfo.orderedNames)
+            let ordered     = displayInfo.orderedNames.compactMap { nameToTrack[$0] }
+            let unmatched   = session.tracks.filter { !orderedSet.contains($0.name) }
+            session.tracks  = ordered + unmatched
+        }
+        // Re-index after any reordering
+        for i in session.tracks.indices { session.tracks[i].index = i }
 
         // Assign per-track plugins. 0x102d strips are keyed by the name the track had when
         // the session was last written — which may differ from the current track name if the
