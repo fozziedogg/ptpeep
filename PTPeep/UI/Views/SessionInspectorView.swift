@@ -10,11 +10,11 @@ struct SessionInspectorView: View {
     var onOpenInProTools: (() -> Void)? = nil
     var onClose:         (() -> Void)? = nil
 
-    @State private var showHiddenTracks:   Bool    = false
-    @State private var showInactiveTracks: Bool    = false
-    @State private var showVideoTrack:     Bool    = true
-    @State private var hideMutedClips:     Bool    = false
-    @State private var showMarkers:        Bool    = false
+    @AppStorage("ov.showHiddenTracks")   private var showHiddenTracks:   Bool = false
+    @AppStorage("ov.showInactiveTracks") private var showInactiveTracks: Bool = false
+    @AppStorage("ov.showVideoTrack")     private var showVideoTrack:     Bool = true
+    @AppStorage("ov.hideMutedClips")     private var hideMutedClips:     Bool = false
+    @AppStorage("ov.showMarkers")        private var showMarkers:         Bool = false
     @State private var markerSearch:       String  = ""
     @State private var hiddenTrackTypes:   Set<PTXTrackType> = []
     @State private var overviewHeight:     CGFloat = 0     // 0 = auto-init on first render
@@ -1201,31 +1201,31 @@ private struct SessionTimelineView: View {
                 HStack(spacing: 12) {
                     if hasHidden {
                         Toggle(isOn: $showHidden) {
-                            Text("Show hidden").font(.caption).foregroundStyle(.secondary)
+                            Text("Show Hidden Tracks").font(.caption).foregroundStyle(.secondary)
                         }
                         .toggleStyle(.checkbox)
                     }
                     if hasInactive {
                         Toggle(isOn: $showInactive) {
-                            Text("Show inactive").font(.caption).foregroundStyle(.secondary)
+                            Text("Show Inactive Tracks").font(.caption).foregroundStyle(.secondary)
                         }
                         .toggleStyle(.checkbox)
                     }
                     if hasVideo {
                         Toggle(isOn: $showVideo) {
-                            Text("Show video").font(.caption).foregroundStyle(.secondary)
+                            Text("Show Video Track").font(.caption).foregroundStyle(.secondary)
                         }
                         .toggleStyle(.checkbox)
                     }
                     if hasMuted {
-                        Toggle(isOn: $hideMuted) {
-                            Text("Hide muted").font(.caption).foregroundStyle(.secondary)
+                        Toggle(isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 })) {
+                            Text("Show Muted Clips").font(.caption).foregroundStyle(.secondary)
                         }
                         .toggleStyle(.checkbox)
                     }
                     if hasMarkers {
                         Toggle(isOn: $showMarkers) {
-                            Text("Show markers").font(.caption).foregroundStyle(.secondary)
+                            Text("Show Markers").font(.caption).foregroundStyle(.secondary)
                         }
                         .toggleStyle(.checkbox)
                     }
