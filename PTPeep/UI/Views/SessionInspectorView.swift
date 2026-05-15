@@ -1,6 +1,18 @@
 import AppKit
 import SwiftUI
 
+// MARK: - Color mode (shared between main app and QL extension)
+
+enum ColorMode: String {
+    case light, dark, grm
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .light: return .light
+        case .dark, .grm: return .dark
+        }
+    }
+}
+
 // MARK: - Root inspector view
 // Displayed both in the Quick Look extension and the standalone app window.
 
@@ -999,6 +1011,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
 private struct SessionTimelineView: View {
     @ObservedObject var tc: TimelineController
+    @AppStorage("colorMode") private var colorMode: ColorMode = .dark
 
     let tracks: [PTXTrack]
     var allTracksSamples: Double = 0   // max end-sample across ALL tracks (incl. hidden/inactive)
@@ -1050,8 +1063,8 @@ private struct SessionTimelineView: View {
         let level  = tc.trackHeightLevels[index, default: 0]
         return base * CGFloat(1 << level)
     }
-    private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
-        ptTrackColor(track, index: index)
+    private func trackColor(_ track: PTXTrack, index: Int) -> Color {
+        ptTrackColor(track, index: index, grm: colorMode == .grm)
     }
 
     /// Total pixel height of all track lanes at current scale (no ruler).
@@ -1142,7 +1155,7 @@ private struct SessionTimelineView: View {
                 let displayIdx = hoverLane ?? tc.selTrack
                 if let idx = displayIdx, idx < tracks.count {
                     let track = tracks[idx]
-                    let color = Self.trackColor(track, index: idx)
+                    let color = trackColor(track, index: idx)
                     let fmtLabel: String = {
                         guard track.type == .video else { return track.channelFormat }
                         return tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)"
@@ -1354,7 +1367,8 @@ private struct SessionTimelineView: View {
                     tracks:            tracks,
                     total:          total,
                     hideMuted:      hideMuted,
-                    verticalScale:  verticalScale
+                    verticalScale:  verticalScale,
+                    grmMode:        colorMode == .grm
                 )
                 .equatable()
 
@@ -1533,7 +1547,7 @@ private struct SessionTimelineView: View {
                              label: String, sr: Double, isSelected: Bool) -> some View {
         // Row always occupies 24px — no layout shift or flicker when clip changes.
         let color = trackIdx.map { t in
-            t < tracks.count ? Self.trackColor(tracks[t], index: t) : Color.secondary
+            t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
         } ?? Color.secondary
 
         return HStack(spacing: 0) {
@@ -1658,6 +1672,7 @@ private struct TimelineLaneCanvas: View, Equatable {
     let total:          Double
     let hideMuted:      Bool
     let verticalScale:  CGFloat
+    let grmMode:        Bool
 
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.viewStart          == rhs.viewStart          &&
@@ -1670,7 +1685,8 @@ private struct TimelineLaneCanvas: View, Equatable {
         lhs.tracks.count       == rhs.tracks.count       &&
         lhs.total              == rhs.total              &&
         lhs.hideMuted          == rhs.hideMuted          &&
-        lhs.verticalScale      == rhs.verticalScale
+        lhs.verticalScale      == rhs.verticalScale      &&
+        lhs.grmMode            == rhs.grmMode
     }
 
     private static let audioLaneH: CGFloat = 8
@@ -1683,8 +1699,8 @@ private struct TimelineLaneCanvas: View, Equatable {
         return base * CGFloat(1 << level)
     }
 
-    private static func trackColor(_ track: PTXTrack, index: Int) -> Color {
-        ptTrackColor(track, index: index)
+    private func trackColor(_ track: PTXTrack, index: Int) -> Color {
+        ptTrackColor(track, index: index, grm: grmMode)
     }
 
     var body: some View {
@@ -1702,7 +1718,7 @@ private struct TimelineLaneCanvas: View, Equatable {
             var laneY: CGFloat = 0
             for (i, track) in tracks.enumerated() {
                 let thisLaneH  = scaledLaneH(track, index: i)
-                let color      = Self.trackColor(track, index: i)
+                let color      = trackColor(track, index: i)
                 let isSelected = selLo >= 0 && i >= selLo && i <= selHi
                 let bgAlpha: Double = isSelected ? 0.18 : 0.03
 
@@ -1856,8 +1872,20 @@ private let ptPalette: [Color] = [
     Color(hex: 0x1c335c), Color(hex: 0x15225b),
 ]
 
-private func ptTrackColor(_ track: PTXTrack, index: Int) -> Color {
+// Okabe-Ito colorblind-safe palette (used in GRM mode)
+private let grmPalette: [Color] = [
+    Color(hex: 0x0072B2),  // blue
+    Color(hex: 0xE69F00),  // orange
+    Color(hex: 0x009E73),  // bluish green
+    Color(hex: 0xCC79A7),  // reddish purple
+    Color(hex: 0x56B4E9),  // sky blue
+    Color(hex: 0xD55E00),  // vermilion
+    Color(hex: 0xF0E442),  // yellow
+]
+
+private func ptTrackColor(_ track: PTXTrack, index: Int, grm: Bool = false) -> Color {
     if track.type == .video { return Color(white: 0.52) }
+    if grm { return grmPalette[index % grmPalette.count] }
     let idx = track.colorIndex
     // Binary color indices start at 25 (0x19) — palette slot 0 is index 25.
     let slot = idx - 25

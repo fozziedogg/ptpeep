@@ -317,6 +317,7 @@ final class AppState: ObservableObject {
 
 struct AppContentView: View {
     @EnvironmentObject var appState: AppState
+    @AppStorage("colorMode") private var colorMode: ColorMode = .dark
 
     var body: some View {
         VStack(spacing: 0) {
@@ -334,6 +335,7 @@ struct AppContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .preferredColorScheme(colorMode.colorScheme)
         .onChange(of: appState.selectedTabID) { _ in appState.updateWindowTitle() }
         // Accept drops anywhere in the window to open a new tab.
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
@@ -393,6 +395,7 @@ struct AppContentView: View {
 
 struct TabBarView: View {
     @EnvironmentObject var appState: AppState
+    @AppStorage("colorMode") private var colorMode: ColorMode = .dark
 
     var body: some View {
         HStack(spacing: 0) {
@@ -405,6 +408,19 @@ struct TabBarView: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
             }
+
+            Divider()
+                .frame(height: 18)
+                .padding(.horizontal, 4)
+
+            Picker("Appearance", selection: $colorMode) {
+                Text("L").tag(ColorMode.light)
+                Text("D").tag(ColorMode.dark)
+                Text("GRM").tag(ColorMode.grm)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 88)
+            .help("Appearance: Light / Dark / GRM (color blind)")
 
             Divider()
                 .frame(height: 18)
