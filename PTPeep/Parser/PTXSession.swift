@@ -78,7 +78,7 @@ struct PTXMemoryLocation {
     var samplePosition: Int64 = 0
 }
 
-struct PTXTrack {
+struct PTXTrack: Equatable {
     var index:        Int
     var name:         String
     var type:         PTXTrackType = .audio
@@ -120,7 +120,7 @@ enum PTXTrackType: String {
     case unknown    = "Unknown"
 }
 
-struct PTXClip {
+struct PTXClip: Equatable {
     var name:        String
     var startSample: Int64  = 0
     var lengthSamples: Int64 = 0

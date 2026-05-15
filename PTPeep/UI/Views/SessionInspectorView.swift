@@ -1587,7 +1587,9 @@ private struct SessionTimelineView: View {
             tc.startMonitoring()
         }
         .onDisappear { tc.stopMonitoring() }
-        .onChange(of: hideMuted) { tc.hideMuted = $0 }
+        .onChange(of: tracks)           { tc.tracks       = $0 }
+        .onChange(of: allTracksSamples) { tc.totalSamples = $0 }
+        .onChange(of: hideMuted)        { tc.hideMuted    = $0 }
         .onChange(of: tc.openTCEntry) { wants in
             guard wants else { return }
             tc.openTCEntry = false
