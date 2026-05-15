@@ -784,17 +784,19 @@ private struct PluginRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "puzzlepiece")
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
-            Text(plugin)
-                .font(.subheadline)
-            Spacer()
             if let ok = installed {
                 Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(ok ? .green : .red)
                     .font(.system(size: 12))
+                    .frame(width: 16)
+            } else {
+                Image(systemName: "puzzlepiece")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16)
             }
+            Text(plugin)
+                .font(.subheadline)
+            Spacer()
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 3)
