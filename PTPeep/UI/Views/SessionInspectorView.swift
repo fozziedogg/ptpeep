@@ -731,11 +731,11 @@ private struct ListRow: View {
 
 // MARK: - Installed plugin index
 
-/// Indexes installed .aaxplugin bundles by bundle ID and CFBundleName for reliable matching.
-/// Matching strategy (in order):
-///   1. PTX second string vs CFBundleIdentifier (reverse-DNS, exact lowercased)
-///   2. PTX second string (format suffix stripped) vs CFBundleName (lowercased)
-///   3. PTX display name (format suffix stripped) vs CFBundleName (lowercased)
+/// Indexes installed .aaxplugin bundles for matching against PTX plugin entries.
+/// Match order: (1) PTX second string vs reverse-DNS IDs extracted from the bundle binary
+/// (most reliable — covers legacy Digidesign IDs and modern Avid IDs alike),
+/// (2) PTX second string variant name stripped vs CFBundleName (iZotope-style plugins
+/// embed "RX 9 Monitor Mono" rather than a bundle ID), (3) PTX display name vs CFBundleName.
 private struct InstalledPluginIndex {
     private var bundleIds:    Set<String> = []   // lowercased CFBundleIdentifiers
     private var bundleNames:  Set<String> = []   // lowercased CFBundleNames
@@ -762,8 +762,6 @@ private struct InstalledPluginIndex {
             extractReverseDNSStrings(from: data)
         }
 
-        // Folder name as last-resort fallback
-        bundleNames.insert(bundleURL.deletingPathExtension().lastPathComponent.lowercased())
     }
 
     private mutating func extractReverseDNSStrings(from data: Data) {
