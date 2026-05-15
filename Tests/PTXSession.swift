@@ -47,6 +47,7 @@ struct PTXMemoryLocation {
     var number:         Int
     var name:           String
     var samplePosition: Int64 = 0
+    var colorIndex:     Int   = -1
 }
 
 struct PTXTrack: Equatable {

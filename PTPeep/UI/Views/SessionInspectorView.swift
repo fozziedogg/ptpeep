@@ -443,6 +443,9 @@ struct SessionInspectorView: View {
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(.secondary)
                                     .frame(width: 24, alignment: .trailing)
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(ptMarkerColor(loc.colorIndex))
+                                    .frame(width: 8, height: 8)
                                 Text(loc.name)
                                     .font(.subheadline)
                                     .foregroundStyle(.primary)
@@ -1374,9 +1377,10 @@ private struct SessionTimelineView: View {
                         let frac = Double(loc.samplePosition) / total
                         let x    = CGFloat((frac - vStart) / vWindow) * size.width
                         guard x >= -1, x <= size.width + 1 else { continue }
+                        let mColor = ptMarkerColor(loc.colorIndex)
                         // Short tick in the bottom strip only — keeps TC labels clean.
                         ctx.fill(Path(CGRect(x: x - 0.5, y: 18, width: 1, height: size.height - 18)),
-                                 with: .color(.orange.opacity(0.7)))
+                                 with: .color(mColor.opacity(0.7)))
                         // Marker name in the bottom strip — skip if too close to previous
                         if x - prevLabelX > 34 {
                             let anchor: UnitPoint = x < 20 ? .bottomLeading
@@ -1384,7 +1388,7 @@ private struct SessionTimelineView: View {
                             ctx.draw(
                                 Text(loc.name)
                                     .font(.system(size: 8).weight(.medium))
-                                    .foregroundColor(.orange),
+                                    .foregroundColor(mColor),
                                 at: CGPoint(x: x + 3, y: size.height - 1),
                                 anchor: anchor
                             )
@@ -1950,6 +1954,31 @@ private func ptTrackColor(_ track: PTXTrack, index: Int, grm: Bool = false) -> C
     // Fallback: cycle through a fixed palette by track index
     let fallback: [Color] = [.blue, .green, .orange, .purple, .pink, .cyan, .mint, .indigo, .yellow, .red, .teal, .brown]
     return fallback[index % fallback.count]
+}
+
+// 16-color marker palette (matches PT Memory Locations color picker, left → right).
+private let ptMarkerPalette: [Color] = [
+    Color(hex: 0x6B4FE8), // 0  violet
+    Color(hex: 0x9B3FE8), // 1  purple
+    Color(hex: 0xD03090), // 2  hot pink
+    Color(hex: 0xD02060), // 3  crimson-pink
+    Color(hex: 0xC42020), // 4  red
+    Color(hex: 0xD04018), // 5  red-orange
+    Color(hex: 0xD06818), // 6  orange
+    Color(hex: 0xC89020), // 7  amber
+    Color(hex: 0x90B020), // 8  yellow-green
+    Color(hex: 0x28A040), // 9  green
+    Color(hex: 0x28C060), // 10 bright green
+    Color(hex: 0x28A898), // 11 teal
+    Color(hex: 0x4090D0), // 12 sky blue
+    Color(hex: 0x2050D8), // 13 blue
+    Color(hex: 0xD8D8D8), // 14 white
+    Color(hex: 0x909090), // 15 gray
+]
+
+private func ptMarkerColor(_ colorIndex: Int) -> Color {
+    guard colorIndex >= 0, colorIndex < ptMarkerPalette.count else { return .orange }
+    return ptMarkerPalette[colorIndex]
 }
 
 private extension Color {

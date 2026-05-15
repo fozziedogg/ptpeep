@@ -76,6 +76,7 @@ struct PTXMemoryLocation {
     var number:         Int
     var name:           String
     var samplePosition: Int64 = 0
+    var colorIndex:     Int   = -1  // marker palette index 0–15; -1 = no custom color
 }
 
 struct PTXTrack: Equatable {
