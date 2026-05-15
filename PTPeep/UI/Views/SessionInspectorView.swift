@@ -419,19 +419,27 @@ struct SessionInspectorView: View {
             ]
             var index = InstalledPluginIndex()
             let fm = FileManager.default
+            var bundleCount = 0
             for dir in dirs {
+                print("[PluginScan] Scanning \(dir.path)")
                 guard let enumerator = fm.enumerator(
                     at: dir,
                     includingPropertiesForKeys: [.isDirectoryKey],
                     options: [.skipsHiddenFiles]
-                ) else { continue }
+                ) else { print("[PluginScan] Could not enumerate \(dir.path)"); continue }
                 while let url = enumerator.nextObject() as? URL {
                     if url.pathExtension.lowercased() == "aaxplugin" {
+                        bundleCount += 1
+                        print("[PluginScan] [\(bundleCount)] \(url.lastPathComponent)")
+                        let t = Date()
                         index.add(bundleURL: url)
-                        enumerator.skipDescendants()   // don't recurse inside the bundle
+                        let ms = Int(Date().timeIntervalSince(t) * 1000)
+                        if ms > 50 { print("[PluginScan]   → \(ms)ms") }
+                        enumerator.skipDescendants()
                     }
                 }
             }
+            print("[PluginScan] Done. \(bundleCount) bundles scanned.")
             await MainActor.run {
                 installedPlugins = index
                 pluginScanRunning = false
@@ -758,7 +766,11 @@ private struct InstalledPluginIndex {
         if let exes = try? FileManager.default.contentsOfDirectory(at: macosDir,
                                                                     includingPropertiesForKeys: nil),
            let exe = exes.first,
-           let data = try? Data(contentsOf: exe) {
+           let fh = try? FileHandle(forReadingFrom: exe) {
+            // Read only first 4 MB — AAX registration strings are in early sections.
+            // Full binaries can be 100 MB+ (iZotope etc.) and scanning all would hang.
+            let data = fh.readData(ofLength: 4 * 1024 * 1024)
+            try? fh.close()
             extractReverseDNSStrings(from: data)
         }
 
