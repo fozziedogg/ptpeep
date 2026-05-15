@@ -502,7 +502,7 @@ struct SessionInspectorView: View {
 
 // MARK: - Timecode formatting
 
-private func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
+func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
     guard sr > 0, fps > 0, samples >= 0 else { return "—" }
     let totalFrames = Int64((Double(samples) / sr * fps).rounded())
     let fr  = Int64(fps.rounded())
@@ -513,7 +513,7 @@ private func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
     return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
 }
 
-private func formatTC(_ seconds: Double, fps: Double) -> String {
+func formatTC(_ seconds: Double, fps: Double) -> String {
     guard seconds.isFinite, seconds >= 0, fps > 0 else { return "0:00:00:00" }
     let totalFrames = Int((seconds * fps).rounded())
     let fr  = Int(fps.rounded())
@@ -1957,7 +1957,7 @@ private struct TCEntryPopover: View {
 // Row 2 (indices 46–68): very dark
 // colorIndex == -1 → no custom color; fall back to cycling palette.
 
-private let ptPalette: [Color] = [
+let ptPalette: [Color] = [
     // Row 0 — vivid
     Color(hex: 0x2d32f2), Color(hex: 0x5035f2), Color(hex: 0x7d3af2),
     Color(hex: 0xb043f3), Color(hex: 0xae3aba), Color(hex: 0xad3485),
@@ -1988,7 +1988,7 @@ private let ptPalette: [Color] = [
 ]
 
 // Okabe-Ito colorblind-safe palette (used in GRM mode)
-private let grmPalette: [Color] = [
+let grmPalette: [Color] = [
     Color(hex: 0x0072B2),  // blue
     Color(hex: 0xE69F00),  // orange
     Color(hex: 0x009E73),  // bluish green
@@ -1998,7 +1998,7 @@ private let grmPalette: [Color] = [
     Color(hex: 0xF0E442),  // yellow
 ]
 
-private func ptTrackColor(_ track: PTXTrack, index: Int, grm: Bool = false) -> Color {
+func ptTrackColor(_ track: PTXTrack, index: Int, grm: Bool = false) -> Color {
     if track.type == .video { return Color(white: 0.52) }
     if grm { return grmPalette[index % grmPalette.count] }
     let idx = track.colorIndex
@@ -2010,7 +2010,7 @@ private func ptTrackColor(_ track: PTXTrack, index: Int, grm: Bool = false) -> C
     return fallback[index % fallback.count]
 }
 
-private extension Color {
+extension Color {
     init(hex: UInt32) {
         let r = Double((hex >> 16) & 0xff) / 255
         let g = Double((hex >>  8) & 0xff) / 255

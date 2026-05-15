@@ -28,22 +28,16 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             session.sessionName = url.deletingPathExtension().lastPathComponent
         }
 
-        // Resolve audio files against the session's Audio Files/ folder
-        PTXParser.resolveAudioFiles(session: &session, sessionURL: url)
-
-        // Try to augment via PTSL in the background (fails silently if PT not open)
+        // Augment via PTSL if Pro Tools is running with this session open
         await PTSLSessionInfo.shared.augment(session: &session)
+
+        // Load plugin index from cache (fast synchronous read — no binary scan)
+        let pluginResult = PluginScanner.qlLoadIndex()
 
         // Render on main thread
         await MainActor.run {
-            let inspectorView = SessionInspectorView(
-                session: session,
-                sessionURL: url,
-                onOpenInProTools: { [weak self] in
-                    self?.openInProTools(url: url)
-                }
-            )
-            let hosting = NSHostingView(rootView: AnyView(inspectorView))
+            let qlView = QuickLookPreviewView(session: session, pluginResult: pluginResult)
+            let hosting = NSHostingView(rootView: AnyView(qlView))
             hosting.frame = view.bounds
             hosting.autoresizingMask = [.width, .height]
             view.addSubview(hosting)
