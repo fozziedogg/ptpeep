@@ -213,7 +213,7 @@ struct SessionInspectorView: View {
                     let clipMax = clippedTracks.flatMap(\.clips)
                         .map { $0.startSample + $0.lengthSamples }.max() ?? 0
                     let sessionMax = session.sessionLengthSamples.map { Int64($0) } ?? 0
-                    let visibleMax = Double(max(max(clipMax, sessionMax), 1))
+                    let visibleMax = Double(max(max(clipMax, sessionMax), 1)) + sr * 3600
                     SessionTimelineView(tc: tc,
                                         tracks: clippedTracks,
                                         allTracksSamples: visibleMax,
@@ -448,7 +448,7 @@ struct SessionInspectorView: View {
                                     .foregroundStyle(.primary)
                                 Spacer()
                                 if hasFrac {
-                                    Text(Self.formatTC(samples: loc.samplePosition, sr: sr, fps: fps))
+                                    Text(formatTC(samples: loc.samplePosition, sr: sr, fps: fps))
                                         .font(.caption.monospacedDigit())
                                         .foregroundStyle(.secondary)
                                     Image(systemName: "arrow.up.left")
@@ -468,16 +468,30 @@ struct SessionInspectorView: View {
         }
     }
 
-    private static func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
-        guard sr > 0, fps > 0, samples >= 0 else { return "—" }
-        let totalFrames = Int64((Double(samples) / sr * fps).rounded())
-        let fr  = Int64(fps.rounded())
-        let f   = totalFrames % fr
-        let sec = (totalFrames / fr) % 60
-        let min = (totalFrames / fr / 60) % 60
-        let hr  = totalFrames / fr / 3600
-        return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
-    }
+}
+
+// MARK: - Timecode formatting
+
+private func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
+    guard sr > 0, fps > 0, samples >= 0 else { return "—" }
+    let totalFrames = Int64((Double(samples) / sr * fps).rounded())
+    let fr  = Int64(fps.rounded())
+    let f   = totalFrames % fr
+    let sec = (totalFrames / fr) % 60
+    let min = (totalFrames / fr / 60) % 60
+    let hr  = totalFrames / fr / 3600
+    return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
+}
+
+private func formatTC(_ seconds: Double, fps: Double) -> String {
+    guard seconds.isFinite, seconds >= 0, fps > 0 else { return "0:00:00:00" }
+    let totalFrames = Int((seconds * fps).rounded())
+    let fr  = Int(fps.rounded())
+    let f   = totalFrames % fr
+    let sec = (totalFrames / fr) % 60
+    let min = (totalFrames / fr / 60) % 60
+    let hr  = totalFrames / fr / 3600
+    return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
 }
 
 // MARK: - Section container
@@ -1114,6 +1128,15 @@ private struct SessionTimelineView: View {
         ptTrackColor(track, index: index, grm: colorMode == .grm)
     }
 
+    private func clipAt(trackIdx: Int?, sample: Int64, respectHideMuted: Bool = false) -> PTXClip? {
+        guard let idx = trackIdx, idx < tracks.count else { return nil }
+        return tracks[idx].clips.first {
+            (!respectHideMuted || !$0.isMuted) &&
+            sample >= $0.startSample &&
+            sample < $0.startSample + $0.lengthSamples
+        }
+    }
+
     /// Total pixel height of all track lanes at current scale (no ruler).
     private var totalLaneHeight: CGFloat {
         var h: CGFloat = 0
@@ -1159,22 +1182,22 @@ private struct SessionTimelineView: View {
             HStack(spacing: 8) {
                 // TC position / entry button — hover takes priority over cursor
                 Button {
-                    tcEntryText = tc.selStart.map { Self.formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
                     showTCEntry = true
                 } label: {
                     Group {
                         if let absFrac = hoverAbsFrac {
-                            Text(Self.formatTC(absFrac * total / sr, fps: frameRate))
+                            Text(formatTC(absFrac * total / sr, fps: frameRate))
                                 .foregroundStyle(.secondary)
                         } else if let s = tc.selStart {
                             if let e = tc.selEnd {
                                 let lo  = min(s, e)
                                 let dur = abs(e - s) * total / sr
-                                Text("\(Self.formatTC(lo * total / sr, fps: frameRate))  +\(Self.formatTC(dur, fps: frameRate))")
+                                Text("\(formatTC(lo * total / sr, fps: frameRate))  +\(formatTC(dur, fps: frameRate))")
                                     .foregroundStyle(.primary)
                             } else {
                                 let samp = Int64((s * total).rounded())
-                                Text("\(Self.formatTC(s * total / sr, fps: frameRate))  (\(samp))")
+                                Text("\(formatTC(s * total / sr, fps: frameRate))  (\(samp))")
                                     .foregroundStyle(.primary)
                             }
                         } else {
@@ -1336,7 +1359,7 @@ private struct SessionTimelineView: View {
                              with: .color(.secondary.opacity(0.5)))
                     let anchor: UnitPoint = x < 20 ? .topLeading : (x > size.width - 20 ? .topTrailing : .top)
                     ctx.draw(
-                        Text(Self.formatTC(tickSec, fps: fps))
+                        Text(formatTC(tickSec, fps: fps))
                             .font(.system(size: 9).monospacedDigit()),
                         at: CGPoint(x: x, y: 6),
                         anchor: anchor
@@ -1435,15 +1458,10 @@ private struct SessionTimelineView: View {
                     Color.clear
                         .contentShape(Rectangle())
                         .contextMenu {
-                            // Find the clip under the last known hover position
                             if let laneIdx = hoverLane,
-                               let absFrac = hoverAbsFrac,
-                               laneIdx < tracks.count {
+                               let absFrac = hoverAbsFrac {
                                 let hovSample = Int64(absFrac * total)
-                                if let clip = tracks[laneIdx].clips.first(where: {
-                                    hovSample >= $0.startSample
-                                        && hovSample < $0.startSample + $0.lengthSamples
-                                }) {
+                                if let clip = clipAt(trackIdx: laneIdx, sample: hovSample) {
                                     let resolved = resolvedFiles.first { $0.name == clip.sourceFile }
                                     if let url = resolved?.url {
                                         Button("Reveal \"\(clip.sourceFile)\" in Finder") {
@@ -1468,14 +1486,8 @@ private struct SessionTimelineView: View {
                                 tc.hoverAbsFrac = absFrac
                                 let lane        = laneIndex(at: loc.y, availH: geo.size.height)
                                 hoverLane       = lane
-                                // Find clip under cursor
-                                if let idx = lane, idx < tracks.count {
-                                    let samp = Int64(absFrac * total)
-                                    let clip = tracks[idx].clips.first(where: {
-                                        (!hideMuted || !$0.isMuted) &&
-                                        samp >= $0.startSample &&
-                                        samp < $0.startSample + $0.lengthSamples
-                                    })
+                                if let idx = lane {
+                                    let clip = clipAt(trackIdx: idx, sample: Int64(absFrac * total), respectHideMuted: hideMuted)
                                     hoverClip         = clip
                                     hoverClipTrackIdx = clip != nil ? idx : nil
                                 } else {
@@ -1540,16 +1552,9 @@ private struct SessionTimelineView: View {
                                         tc.isFocused   = true
                                         tc.selTrack    = clickLane
 
-                                        // Find clip under click
-                                        let clickedClip: PTXClip? = {
-                                            guard let idx = clickLane, idx < tracks.count else { return nil }
-                                            let samp = Int64(frac * total)
-                                            return tracks[idx].clips.first(where: {
-                                                (!hideMuted || !$0.isMuted) &&
-                                                samp >= $0.startSample &&
-                                                samp < $0.startSample + $0.lengthSamples
-                                            })
-                                        }()
+                                        let clickedClip = clipAt(trackIdx: clickLane,
+                                                                     sample: Int64(frac * total),
+                                                                     respectHideMuted: hideMuted)
 
                                         if let clip = clickedClip {
                                             // Place cursor at clip in-point; SEL row derives from this
@@ -1586,7 +1591,7 @@ private struct SessionTimelineView: View {
         .onChange(of: tc.openTCEntry) { wants in
             guard wants else { return }
             tc.openTCEntry = false
-            tcEntryText = tc.selStart.map { Self.formatTC($0 * total / sr, fps: frameRate) } ?? ""
+            tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
             showTCEntry = true
         }
     }
@@ -1614,9 +1619,9 @@ private struct SessionTimelineView: View {
                 .frame(width: 52, alignment: .leading)
 
             if let clip, let tIdx = trackIdx {
-                let inTC  = Self.formatTC(Double(clip.startSample) / sr, fps: frameRate)
-                let outTC = Self.formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
-                let durTC = Self.formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
+                let inTC  = formatTC(Double(clip.startSample) / sr, fps: frameRate)
+                let outTC = formatTC(Double(clip.startSample + clip.lengthSamples) / sr, fps: frameRate)
+                let durTC = formatTC(Double(clip.lengthSamples) / sr, fps: frameRate)
                 let trackName = tIdx < tracks.count ? tracks[tIdx].name : ""
 
                 // Color swatch
@@ -1688,16 +1693,6 @@ private struct SessionTimelineView: View {
             : Color(nsColor: .separatorColor).opacity(0.05))
     }
 
-    private static func formatTC(_ seconds: Double, fps: Double) -> String {
-        guard seconds.isFinite, seconds >= 0, fps > 0 else { return "0:00:00:00" }
-        let totalFrames = Int((seconds * fps).rounded())
-        let fr  = Int(fps.rounded())
-        let f   = totalFrames % fr
-        let sec = (totalFrames / fr) % 60
-        let min = (totalFrames / fr / 60) % 60
-        let hr  = totalFrames / fr / 3600
-        return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
-    }
 
 }
 
