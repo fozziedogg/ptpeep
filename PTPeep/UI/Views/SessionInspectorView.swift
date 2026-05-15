@@ -74,6 +74,7 @@ struct SessionInspectorView: View {
             }
         )
         .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear { pluginScanner.startupCheck() }
     }
 
     // MARK: - Header
@@ -389,18 +390,24 @@ struct SessionInspectorView: View {
             if session.plugins.isEmpty {
                 PlaceholderRow(text: "No plug-ins found")
             } else {
+                if !pluginScanner.statusMessage.isEmpty {
+                    HStack(spacing: 6) {
+                        ProgressView().scaleEffect(0.6).frame(width: 14)
+                        Text(pluginScanner.statusMessage)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 4)
+                }
                 HStack(spacing: 8) {
                     Spacer()
-                    if !pluginScanner.scanCompleted {
-                        Button(pluginScanner.isScanning ? "Scanning…" : "Scan Plug-In Folder") {
-                            pluginScanner.scan()
-                        }
-                        .disabled(pluginScanner.isScanning)
-                        if !pluginScanner.isScanning {
-                            Text("(takes a moment)")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.tertiary)
-                        }
+                    if !pluginScanner.scanCompleted && !pluginScanner.isScanning {
+                        Button("Scan Plug-In Folder") { pluginScanner.scan() }
+                        Text("(takes a moment)")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.tertiary)
                     }
                     Button("Check Availability") { didCheckPlugins = true }
                         .disabled(!pluginScanner.scanCompleted || didCheckPlugins)
@@ -707,156 +714,6 @@ private struct ListRow: View {
     }
 }
 
-// MARK: - Plugin scanner (app-lifetime singleton)
-
-@MainActor
-private final class PluginScanner: ObservableObject {
-    static let shared = PluginScanner()
-    private init() {}
-
-    @Published private(set) var isScanning = false
-    @Published private(set) var scanCompleted = false
-    fileprivate(set) var index: InstalledPluginIndex? = nil
-
-    func scan() {
-        guard !isScanning, !scanCompleted else { return }
-        isScanning = true
-        Task.detached(priority: .userInitiated) {
-            let dirs: [URL] = [
-                URL(fileURLWithPath: "/Library/Application Support/Avid/Audio/Plug-Ins"),
-                FileManager.default.homeDirectoryForCurrentUser
-                    .appendingPathComponent("Library/Application Support/Avid/Audio/Plug-Ins")
-            ]
-            var idx = InstalledPluginIndex()
-            let fm = FileManager.default
-            var bundleCount = 0
-            for dir in dirs {
-                print("[PluginScan] Scanning \(dir.path)")
-                guard let enumerator = fm.enumerator(
-                    at: dir,
-                    includingPropertiesForKeys: [.isDirectoryKey],
-                    options: [.skipsHiddenFiles]
-                ) else { print("[PluginScan] Could not enumerate \(dir.path)"); continue }
-                while let url = enumerator.nextObject() as? URL {
-                    if url.pathExtension.lowercased() == "aaxplugin" {
-                        bundleCount += 1
-                        print("[PluginScan] [\(bundleCount)] \(url.lastPathComponent)")
-                        let t = Date()
-                        idx.add(bundleURL: url)
-                        let ms = Int(Date().timeIntervalSince(t) * 1000)
-                        if ms > 50 { print("[PluginScan]   → \(ms)ms") }
-                        enumerator.skipDescendants()
-                    }
-                }
-            }
-            print("[PluginScan] Done. \(bundleCount) bundles scanned.")
-            await MainActor.run {
-                self.index = idx
-                self.isScanning = false
-                self.scanCompleted = true
-            }
-        }
-    }
-}
-
-// MARK: - Installed plugin index
-
-/// Indexes installed .aaxplugin bundles for matching against PTX plugin entries.
-/// Match order: (1) PTX second string vs reverse-DNS IDs extracted from the bundle binary
-/// (most reliable — covers legacy Digidesign IDs and modern Avid IDs alike),
-/// (2) PTX second string variant name stripped vs CFBundleName (iZotope-style plugins
-/// embed "RX 9 Monitor Mono" rather than a bundle ID), (3) PTX display name vs CFBundleName.
-private struct InstalledPluginIndex {
-    private var bundleIds:    Set<String> = []   // lowercased CFBundleIdentifiers
-    private var bundleNames:  Set<String> = []   // lowercased CFBundleNames
-
-    mutating func add(bundleURL: URL) {
-        let contents = bundleURL.appendingPathComponent("Contents")
-
-        // Plist: CFBundleIdentifier + CFBundleName
-        if let dict = NSDictionary(contentsOf: contents.appendingPathComponent("Info.plist")) {
-            if let bid = dict["CFBundleIdentifier"] as? String { bundleIds.insert(bid.lowercased()) }
-            if let bn  = dict["CFBundleName"]       as? String { bundleNames.insert(bn.lowercased()) }
-        }
-
-        // Binary scan: extract all reverse-DNS strings (com./net./org. prefixes) from the
-        // MacOS executable. These are the AAX registration IDs embedded at compile time —
-        // they match the PTX second string exactly, even when the plist uses a different/newer ID
-        // (e.g. EQIII has CFBundleIdentifier "com.AVID.plugin.EQIII" but its binary contains
-        // "com.digidesign.aax.eq3.7band" which is what Pro Tools stores in the session).
-        let macosDir = contents.appendingPathComponent("MacOS")
-        if let exes = try? FileManager.default.contentsOfDirectory(at: macosDir,
-                                                                    includingPropertiesForKeys: nil),
-           let exe = exes.first,
-           let fh = try? FileHandle(forReadingFrom: exe) {
-            // Read only first 4 MB — AAX registration strings are in early sections.
-            // Full binaries can be 100 MB+ (iZotope etc.) and scanning all would hang.
-            let data = fh.readData(ofLength: 4 * 1024 * 1024)
-            try? fh.close()
-            extractReverseDNSStrings(from: data)
-        }
-
-    }
-
-    private mutating func extractReverseDNSStrings(from data: Data) {
-        // Scan for null-terminated or whitespace-terminated ASCII strings starting with
-        // "com.", "net.", or "org." — minimum 10, maximum 128 chars.
-        let prefixes: [UInt8] = [UInt8(ascii: "c"), UInt8(ascii: "n"), UInt8(ascii: "o")]
-        let dot = UInt8(ascii: ".")
-        var i = 0
-        while i < data.count - 10 {
-            let b = data[i]
-            guard prefixes.contains(b) else { i += 1; continue }
-            // Quick check: must look like "com.", "net.", "org."
-            let isMatch = (b == UInt8(ascii: "c") && i+3 < data.count &&
-                           data[i+1] == UInt8(ascii: "o") && data[i+2] == UInt8(ascii: "m") && data[i+3] == dot) ||
-                          (b == UInt8(ascii: "n") && i+3 < data.count &&
-                           data[i+1] == UInt8(ascii: "e") && data[i+2] == UInt8(ascii: "t") && data[i+3] == dot) ||
-                          (b == UInt8(ascii: "o") && i+3 < data.count &&
-                           data[i+1] == UInt8(ascii: "r") && data[i+2] == UInt8(ascii: "g") && data[i+3] == dot)
-            guard isMatch else { i += 1; continue }
-            // Collect printable ASCII up to 128 chars
-            var end = i + 4
-            while end < data.count && end - i < 128 {
-                let c = data[end]
-                if c == 0 || c == 10 || c == 13 || c == 32 { break }
-                if c < 32 || c > 126 { break }
-                end += 1
-            }
-            let len = end - i
-            if len >= 10 {
-                let slice = data[i..<end]
-                if let s = String(bytes: slice, encoding: .utf8) {
-                    bundleIds.insert(s.lowercased())
-                }
-            }
-            i = end + 1
-        }
-    }
-
-    func contains(_ displayName: String, secondString: String?) -> Bool {
-        let stripped = stripFormatSuffix(displayName).lowercased()
-        // 1. Second string as bundle ID
-        if let s = secondString, s.contains("."), bundleIds.contains(s.lowercased()) { return true }
-        // 2. Second string variant name stripped
-        if let s = secondString, bundleNames.contains(stripFormatSuffix(s).lowercased()) { return true }
-        // 3. Display name vs bundle name
-        return bundleNames.contains(stripped)
-    }
-
-    private func stripFormatSuffix(_ s: String) -> String {
-        var result = s
-        if let paren = result.lastIndex(of: "("), result.last == ")" {
-            let before = result[result.startIndex ..< paren]
-            if before.last == " " { result = String(before.dropLast()) }
-        }
-        // Also strip trailing " Mono", " Stereo", " 5.1", " 7.1" etc.
-        for suffix in [" Mono", " Stereo", " 5.1", " 7.1", " LCR", " Quad"] {
-            if result.hasSuffix(suffix) { result = String(result.dropLast(suffix.count)); break }
-        }
-        return result
-    }
-}
 
 // MARK: - Plugin row (with optional availability badge)
 

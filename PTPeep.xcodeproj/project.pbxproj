@@ -11,6 +11,10 @@
 		39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */; };
 		3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */; };
 		AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */; };
+		BB00CC11DD22EE33FF445511 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445501 /* AppLog.swift */; };
+		BB00CC11DD22EE33FF445512 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445501 /* AppLog.swift */; };
+		BB00CC11DD22EE33FF445513 /* PluginScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445502 /* PluginScanner.swift */; };
+		BB00CC11DD22EE33FF445514 /* PluginScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445502 /* PluginScanner.swift */; };
 		AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */; };
 		444F7D5A52DE9378417AB54D /* PreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */; };
 		64E4CC8FC4A8FCFE7063F524 /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
@@ -46,6 +50,8 @@
 		7DE1A0204EA264D8B2859DC0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionInspectorView.swift; sourceTree = "<group>"; };
 		AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeep/UI/TimelineNav.swift; sourceTree = SOURCE_ROOT; };
+		BB00CC11DD22EE33FF445501 /* AppLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLog.swift; sourceTree = "<group>"; };
+		BB00CC11DD22EE33FF445502 /* PluginScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginScanner.swift; sourceTree = "<group>"; };
 		927280E6749AFAE80FE9ABE2 /* PTPeepQL.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PTPeepQL.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B5C2EE3C4A771CD8663C679D /* PTPeep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PTPeep.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BEC0768540CA11F5F2EA46DF /* PTPeep.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PTPeep.entitlements; sourceTree = "<group>"; };
@@ -60,6 +66,7 @@
 				F4B62CB61566F6966D59BB75 /* App */,
 				666F8E3F6DB18B8FC1CCC178 /* Parser */,
 				E935EF30B038543166AFFF5F /* ProTools */,
+				BB00CC11DD22EE33FF445500 /* Support */,
 				171480A457CCF37601A1C176 /* PTPeepQL */,
 				884F2B6FFE881E2F17C5FC00 /* UI */,
 				3FE17D1C9F579184EB565FF3 /* Products */,
@@ -119,6 +126,16 @@
 				AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */,
 			);
 			path = PTPeep/UI;
+			sourceTree = "<group>";
+		};
+		BB00CC11DD22EE33FF445500 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				BB00CC11DD22EE33FF445501 /* AppLog.swift */,
+				BB00CC11DD22EE33FF445502 /* PluginScanner.swift */,
+			);
+			name = Support;
+			path = PTPeep/Support;
 			sourceTree = "<group>";
 		};
 		E935EF30B038543166AFFF5F /* ProTools */ = {
@@ -241,6 +258,8 @@
 				3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* PTXBlockDecoder.swift in Sources */,
 				AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */,
+				BB00CC11DD22EE33FF445511 /* AppLog.swift in Sources */,
+				BB00CC11DD22EE33FF445513 /* PluginScanner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -256,6 +275,8 @@
 				39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */,
 				C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */,
 				AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */,
+				BB00CC11DD22EE33FF445512 /* AppLog.swift in Sources */,
+				BB00CC11DD22EE33FF445514 /* PluginScanner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
