@@ -198,17 +198,13 @@ struct SessionInspectorView: View {
                         }
                         return overviewHeight
                     }()
-                    // vScale: stretch to fill when few tracks; never compress (scroll handles overflow)
-                    let scrollableH = effectiveH - overhead
-                    let vScale = baseLanesH > 0 ? max(1.0, scrollableH / baseLanesH) : 1.0
-
                     SessionTimelineView(tc: tc,
                                         tracks: clippedTracks,
                                         allTracksSamples: totalSamples,
                                         sampleRate: sr,
                                         frameRate: session.frameRate,
                                         tcFormat:  session.tcFormat,
-                                        verticalScale: vScale,
+                                        verticalScale: 1.0,
                                         resolvedFiles: session.resolvedAudioFiles,
                                         memoryLocations: session.memoryLocations,
                                         hasHidden:   hasHidden,
@@ -719,7 +715,9 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     @Published var selTrack:    Int?    = nil   // selected track (start of range)
     @Published var selTrackEnd: Int?    = nil   // non-nil when drag spans multiple tracks
 
-    // Per-track vertical zoom level (0 = base, each step doubles height, max 4)
+    // Global track height level (0 = base, each step doubles all lane heights, max 4)
+    @Published var globalTrackHeightLevel: Int = 0
+    // Per-track overrides on top of the global level
     @Published var trackHeightLevels: [Int: Int] = [:]
 
     // Interaction context (not published — used by key handler only)
@@ -964,6 +962,10 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
     // MARK: Per-track vertical zoom (Ctrl+Up / Ctrl+Down)
 
+    func adjustGlobalTrackHeight(by delta: Int) {
+        globalTrackHeightLevel = min(max(globalTrackHeightLevel + delta, 0), 4)
+    }
+
     func adjustTrackHeight(by delta: Int) {
         guard let idx = selTrack else { return }
         let current = trackHeightLevels[idx, default: 0]
@@ -972,6 +974,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
     func resetTrackHeights() {
         trackHeightLevels.removeAll()
+        globalTrackHeightLevel = 0
     }
 
     func jumpTo(_ frac: Double) {
@@ -1085,8 +1088,8 @@ private struct SessionTimelineView: View {
         track.type == .video ? videoLaneH : audioLaneH
     }
     private func scaledLaneH(_ track: PTXTrack, index: Int) -> CGFloat {
-        let base   = Self.trackLaneH(track) * verticalScale
-        let level  = tc.trackHeightLevels[index, default: 0]
+        let base  = Self.trackLaneH(track) * verticalScale
+        let level = tc.globalTrackHeightLevel + tc.trackHeightLevels[index, default: 0]
         return base * CGFloat(1 << level)
     }
     private func trackColor(_ track: PTXTrack, index: Int) -> Color {
@@ -1208,20 +1211,18 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
-                // V zoom
+                // Track height (all lanes)
                 HStack(spacing: 4) {
                     Text("V:").foregroundStyle(.secondary)
-                    Button { overviewHeight = max(50, overviewHeight / 1.5) } label: {
-                        Image(systemName: "minus")
-                    }
-                    .buttonStyle(.borderless).controlSize(.mini)
-                    Button { overviewHeight = min(600, overviewHeight * 1.5) } label: {
-                        Image(systemName: "plus")
-                    }
-                    .buttonStyle(.borderless).controlSize(.mini)
+                    Button { tc.adjustGlobalTrackHeight(by: -1) } label: { Image(systemName: "minus") }
+                        .buttonStyle(.borderless).controlSize(.mini)
+                        .disabled(tc.globalTrackHeightLevel == 0)
+                    Button { tc.adjustGlobalTrackHeight(by: +1) } label: { Image(systemName: "plus") }
+                        .buttonStyle(.borderless).controlSize(.mini)
+                        .disabled(tc.globalTrackHeightLevel == 4)
                 }
 
-                if !tc.trackHeightLevels.isEmpty {
+                if !tc.trackHeightLevels.isEmpty || tc.globalTrackHeightLevel != 0 {
                     Divider().frame(height: 14)
                     Button { tc.resetTrackHeights() } label: {
                         Text("Reset Heights")
@@ -1390,11 +1391,12 @@ private struct SessionTimelineView: View {
                     selTrack:       tc.selTrack,
                     selTrackEnd:       tc.selTrackEnd,
                     trackHeightLevels: tc.trackHeightLevels,
-                    tracks:            tracks,
-                    total:          total,
-                    hideMuted:      hideMuted,
-                    verticalScale:  verticalScale,
-                    grmMode:        colorMode == .grm
+                    tracks:                  tracks,
+                    total:                   total,
+                    hideMuted:               hideMuted,
+                    verticalScale:           verticalScale,
+                    grmMode:                 colorMode == .grm,
+                    globalTrackHeightLevel:  tc.globalTrackHeightLevel
                 )
                 .equatable()
 
@@ -1694,25 +1696,27 @@ private struct TimelineLaneCanvas: View, Equatable {
     let selTrackEnd:       Int?
     let trackHeightLevels: [Int: Int]
 
-    let tracks:         [PTXTrack]
-    let total:          Double
-    let hideMuted:      Bool
-    let verticalScale:  CGFloat
-    let grmMode:        Bool
+    let tracks:               [PTXTrack]
+    let total:                Double
+    let hideMuted:            Bool
+    let verticalScale:        CGFloat
+    let grmMode:              Bool
+    let globalTrackHeightLevel: Int
 
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.viewStart          == rhs.viewStart          &&
-        lhs.window             == rhs.window             &&
-        lhs.selStart           == rhs.selStart           &&
-        lhs.selEnd             == rhs.selEnd             &&
-        lhs.selTrack           == rhs.selTrack           &&
-        lhs.selTrackEnd        == rhs.selTrackEnd        &&
-        lhs.trackHeightLevels  == rhs.trackHeightLevels  &&
-        lhs.tracks.count       == rhs.tracks.count       &&
-        lhs.total              == rhs.total              &&
-        lhs.hideMuted          == rhs.hideMuted          &&
-        lhs.verticalScale      == rhs.verticalScale      &&
-        lhs.grmMode            == rhs.grmMode
+        lhs.viewStart               == rhs.viewStart               &&
+        lhs.window                  == rhs.window                  &&
+        lhs.selStart                == rhs.selStart                &&
+        lhs.selEnd                  == rhs.selEnd                  &&
+        lhs.selTrack                == rhs.selTrack                &&
+        lhs.selTrackEnd             == rhs.selTrackEnd             &&
+        lhs.trackHeightLevels       == rhs.trackHeightLevels       &&
+        lhs.tracks.count            == rhs.tracks.count            &&
+        lhs.total                   == rhs.total                   &&
+        lhs.hideMuted               == rhs.hideMuted               &&
+        lhs.verticalScale           == rhs.verticalScale           &&
+        lhs.grmMode                 == rhs.grmMode                 &&
+        lhs.globalTrackHeightLevel  == rhs.globalTrackHeightLevel
     }
 
     private static let audioLaneH: CGFloat = 8
@@ -1721,7 +1725,7 @@ private struct TimelineLaneCanvas: View, Equatable {
 
     private func scaledLaneH(_ track: PTXTrack, index: Int) -> CGFloat {
         let base  = (track.type == .video ? Self.videoLaneH : Self.audioLaneH) * verticalScale
-        let level = trackHeightLevels[index, default: 0]
+        let level = globalTrackHeightLevel + trackHeightLevels[index, default: 0]
         return base * CGFloat(1 << level)
     }
 
