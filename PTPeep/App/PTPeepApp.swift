@@ -66,6 +66,46 @@ struct PTPeepApp: App {
     }
 }
 
+// MARK: - Peeping loader
+
+private struct PeepingView: View {
+    @State private var isUp = false
+    @State private var dotPhase = 0
+    private let dotTimer = Timer.publish(every: 0.45, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 88, height: 88)
+                // Squish on land, stretch on rise — spring anchored at bottom
+                .scaleEffect(
+                    CGSize(width: isUp ? 1.0 : 1.08, height: isUp ? 1.0 : 0.92),
+                    anchor: .bottom
+                )
+                .offset(y: isUp ? -14 : 6)
+                // Shadow grows as icon rises (further from "ground")
+                .shadow(
+                    color: .black.opacity(0.28),
+                    radius: isUp ? 14 : 3,
+                    x: 0, y: isUp ? 10 : 2
+                )
+                .animation(
+                    .interpolatingSpring(stiffness: 85, damping: 7)
+                        .repeatForever(autoreverses: true),
+                    value: isUp
+                )
+
+            Text("Peeping\([".", "..", "..."][dotPhase])")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+        }
+        .onAppear { isUp = true }
+        .onReceive(dotTimer) { _ in dotPhase = (dotPhase + 1) % 3 }
+    }
+}
+
 // MARK: - Settings
 
 private struct SettingsView: View {
@@ -379,7 +419,7 @@ struct AppContentView: View {
                 onClose:          { appState.closeTab(id: tab.id) }
             )
         } else if tab.isLoading {
-            ProgressView("Parsing session…")
+            PeepingView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if let err = tab.errorText {
             VStack(spacing: 12) {
