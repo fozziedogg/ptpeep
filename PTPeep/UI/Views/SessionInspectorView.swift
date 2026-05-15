@@ -38,6 +38,8 @@ struct SessionInspectorView: View {
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
     @State private var showTrackPlugins:   Bool   = true
+    @State private var installedPlugins:   Set<String>? = nil   // nil = not yet scanned
+    @State private var pluginScanRunning:  Bool   = false
     @StateObject private var tc = TimelineController()
 
     /// Max end-sample across all tracks — used to convert sample positions to timeline fractions.
@@ -387,9 +389,44 @@ struct SessionInspectorView: View {
             if session.plugins.isEmpty {
                 PlaceholderRow(text: "No plug-ins found")
             } else {
-                ForEach(session.plugins, id: \.self) { plugin in
-                    ListRow(text: plugin, systemImage: "puzzlepiece")
+                HStack {
+                    Spacer()
+                    Button(pluginScanRunning ? "Checking…" : "Check Availability") {
+                        scanInstalledPlugins()
+                    }
+                    .disabled(pluginScanRunning)
+                    .font(.system(size: 11))
+                    .padding(.trailing, 8)
+                    .padding(.bottom, 4)
                 }
+                ForEach(session.plugins, id: \.self) { plugin in
+                    PluginRow(plugin: plugin, installed: installedPlugins.map {
+                        $0.contains(plugin.lowercased())
+                    })
+                }
+            }
+        }
+    }
+
+    private func scanInstalledPlugins() {
+        pluginScanRunning = true
+        Task.detached(priority: .userInitiated) {
+            let dirs: [URL] = [
+                URL(fileURLWithPath: "/Library/Application Support/Avid/Audio/Plug-Ins"),
+                FileManager.default.homeDirectoryForCurrentUser
+                    .appendingPathComponent("Library/Application Support/Avid/Audio/Plug-Ins")
+            ]
+            var found = Set<String>()
+            for dir in dirs {
+                let items = (try? FileManager.default.contentsOfDirectory(
+                    at: dir, includingPropertiesForKeys: nil)) ?? []
+                for url in items where url.pathExtension.lowercased() == "aaxplugin" {
+                    found.insert(url.deletingPathExtension().lastPathComponent.lowercased())
+                }
+            }
+            await MainActor.run {
+                installedPlugins = found
+                pluginScanRunning = false
             }
         }
     }
@@ -678,6 +715,31 @@ private struct ListRow: View {
             Text(text)
                 .font(.subheadline)
             Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 3)
+    }
+}
+
+// MARK: - Plugin row (with optional availability badge)
+
+private struct PluginRow: View {
+    let plugin:    String
+    let installed: Bool?   // nil = not yet checked
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "puzzlepiece")
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+            Text(plugin)
+                .font(.subheadline)
+            Spacer()
+            if let ok = installed {
+                Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .foregroundStyle(ok ? .green : .red)
+                    .font(.system(size: 12))
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 3)
