@@ -159,9 +159,9 @@ struct SessionInspectorView: View {
         let hasMarkers  = session.memoryLocations.contains { $0.samplePosition > 0 }
         let clippedTracks = session.tracks
             .filter {
-                !$0.clips.isEmpty
+                // Show all tracks (including empty ones) — PT mixer order is meaningful.
                 // Either toggle can reveal a track that is both hidden and inactive.
-                && (showHiddenTracks   || !$0.isHidden   || (showInactiveTracks && $0.isInactive))
+                (showHiddenTracks   || !$0.isHidden   || (showInactiveTracks && $0.isInactive))
                 && (showInactiveTracks || !$0.isInactive || (showHiddenTracks   && $0.isHidden))
                 && (showVideoTrack     || $0.type != .video)
             }
@@ -179,7 +179,7 @@ struct SessionInspectorView: View {
         return VStack(spacing: 0) {
             InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
                 if clippedTracks.isEmpty {
-                    PlaceholderRow(text: "No clip position data — binary block decoder pending")
+                    PlaceholderRow(text: "No tracks found")
                 } else {
                     let videoCount  = clippedTracks.filter { $0.type == .video }.count
                     let otherCount  = clippedTracks.count - videoCount
