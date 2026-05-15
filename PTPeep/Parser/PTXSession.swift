@@ -126,6 +126,7 @@ struct PTXClip: Equatable {
     var lengthSamples: Int64 = 0
     var sourceFile:  String = ""    // base filename (no extension)
     var isMuted:     Bool   = false
+    var isGroup:     Bool   = false
 }
 
 struct ResolvedAudioFile: Identifiable {

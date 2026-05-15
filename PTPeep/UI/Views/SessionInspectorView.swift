@@ -1658,6 +1658,16 @@ private struct SessionTimelineView: View {
                         .background(RoundedRectangle(cornerRadius: 3)
                             .fill(Color(nsColor: .separatorColor).opacity(0.6)))
                 }
+                if clip.isGroup {
+                    Text("clip group")
+                        .font(.system(size: 9).weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .padding(.leading, 4)
+                        .background(RoundedRectangle(cornerRadius: 3)
+                            .fill(Color(nsColor: .separatorColor).opacity(0.6)))
+                }
 
                 Spacer(minLength: 8)
 

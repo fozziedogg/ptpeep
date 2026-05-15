@@ -333,7 +333,7 @@ final class PTXParser {
                 byPos[p.timelineSample] = PTXClip(
                     name: name, startSample: p.timelineSample, lengthSamples: len,
                     sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? "",
-                    isMuted: p.isMuted
+                    isMuted: p.isMuted, isGroup: p.isGroup
                 )
             }
 
