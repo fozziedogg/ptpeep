@@ -20,6 +20,7 @@ struct SessionInspectorView: View {
     let session: PTXSession
     let sessionURL: URL
     var onOpenInProTools: (() -> Void)? = nil
+    var onRescan:        (() -> Void)? = nil
     var onClose:         (() -> Void)? = nil
 
     // Overview toggles
@@ -92,6 +93,16 @@ struct SessionInspectorView: View {
             }
 
             Spacer()
+
+            if let rescan = onRescan {
+                Button(action: rescan) {
+                    Label("Rescan", systemImage: "arrow.clockwise")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Reparse the session file from disk")
+            }
 
             if let open = onOpenInProTools {
                 Button(action: open) {

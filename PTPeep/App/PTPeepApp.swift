@@ -313,6 +313,13 @@ final class AppState: ObservableObject {
         openTasks[tab.id] = Task { await _open(tabID: tab.id, url: url) }
     }
 
+    func rescan(tabID: UUID, url: URL) {
+        print("[AppState] rescan() \(url.lastPathComponent)")
+        openTasks[tabID]?.cancel()
+        updateTab(id: tabID) { $0.isLoading = true; $0.errorText = nil }
+        openTasks[tabID] = Task { await _open(tabID: tabID, url: url) }
+    }
+
     private func _open(tabID: UUID, url: URL) async {
         print("[AppState] _open() start: \(url.lastPathComponent)")
 
@@ -416,6 +423,7 @@ struct AppContentView: View {
                 session:          session,
                 sessionURL:       url,
                 onOpenInProTools: { appState.openInProTools(url: url) },
+                onRescan:         { appState.rescan(tabID: tab.id, url: url) },
                 onClose:          { appState.closeTab(id: tab.id) }
             )
         } else if tab.isLoading {
