@@ -1163,7 +1163,7 @@ final class PTXBlockDecoder {
             for j in (p + 18)..<end {
                 if (0..<sig.count).allSatisfy({ data[j + $0] == sig[$0] }) {
                     let raw = Int(u16(data, at: j - 6, be: false))
-                    if raw >= 1, raw <= 16 { colorIndex = raw - 1 }
+                    if raw >= 0, raw <= 15 { colorIndex = raw - 1 }
                     break
                 }
             }
