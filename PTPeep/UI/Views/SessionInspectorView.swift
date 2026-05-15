@@ -630,6 +630,13 @@ private struct AudioFileRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 3)
+        .contextMenu {
+            if let url = resolved?.url {
+                Button("Reveal in Finder") {
+                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                }
+            }
+        }
     }
 }
 
@@ -727,6 +734,9 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     var tracks:       [PTXTrack] = []
     var totalSamples: Double     = 1.0
     var hideMuted:    Bool       = false
+
+    // Saved view state for E zoom toggle (nil = not in zoom-toggle mode)
+    private var zoomSnapshot: (scale: Double, viewStart: Double, trackHeightLevels: [Int: Int])? = nil
 
     private var keyMonitor:      Any?
     private var scrollMonitor:   Any?
@@ -966,7 +976,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
     func jumpTo(_ frac: Double) {
         selStart = frac; selEnd = nil
-        ensureVisible(frac)
+        centerOn(frac)
     }
 
     func centerOn(_ frac: Double) {
@@ -982,17 +992,34 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         }
     }
 
-    /// E key: zoom H+V to show the selected clip, or the current range selection.
+    // E key (PT zoom toggle): first press saves view state and zooms to clip;
+    // second press restores the saved state.
     func zoomToFitCursor() {
+        // Second press — restore saved state
+        if let snap = zoomSnapshot {
+            scale             = snap.scale
+            viewStart         = snap.viewStart
+            trackHeightLevels = snap.trackHeightLevels
+            zoomSnapshot      = nil
+            return
+        }
+
+        // First press — need a cursor and a clip
         guard let s = selStart else { return }
+        let savedState = (scale: scale, viewStart: viewStart, trackHeightLevels: trackHeightLevels)
+
         if let e = selEnd, e != s {
+            zoomSnapshot = savedState
             zoomToSelection()
             return
         }
-        // Single cursor — find the clip whose in-point matches
+
         guard let idx = selTrack, idx < tracks.count else { return }
         let samp = Int64((s * totalSamples).rounded())
         guard let clip = tracks[idx].clips.first(where: { $0.startSample == samp }) else { return }
+
+        zoomSnapshot = savedState   // commit only once there's a clip to zoom to
+
         let clipStart = Double(clip.startSample) / totalSamples
         let clipEnd   = Double(clip.startSample + clip.lengthSamples) / totalSamples
         let span      = clipEnd - clipStart
@@ -1002,7 +1029,6 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         let newWin    = end - start
         scale         = max(1.0, 1.0 / newWin)
         viewStart     = start.clamped(to: 0...(1 - window))
-        // Vertical: bump selected track to level 2 (4×) if not already expanded
         if trackHeightLevels[idx, default: 0] < 2 { trackHeightLevels[idx] = 2 }
     }
 }
