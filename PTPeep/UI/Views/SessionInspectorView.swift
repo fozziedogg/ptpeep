@@ -401,11 +401,24 @@ struct SessionInspectorView: View {
                 }
                 ForEach(session.plugins, id: \.self) { plugin in
                     PluginRow(plugin: plugin, installed: installedPlugins.map {
-                        $0.contains(plugin.lowercased())
+                        $0.contains(pluginBundleName(plugin))
                     })
                 }
             }
         }
+    }
+
+    /// Strips trailing format suffix like " (mono)", " (stereo)", " (5.1)" so the
+    /// display name from the PTX binary can be matched against the .aaxplugin bundle name.
+    private func pluginBundleName(_ displayName: String) -> String {
+        var s = displayName
+        if let paren = s.lastIndex(of: "("), s.last == ")" {
+            let before = s[s.startIndex ..< paren]
+            if before.last == " " {
+                s = String(before.dropLast())
+            }
+        }
+        return s.lowercased()
     }
 
     private func scanInstalledPlugins() {
