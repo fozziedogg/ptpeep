@@ -1155,20 +1155,7 @@ final class PTXBlockDecoder {
             let samp = Int64(bitPattern: UInt64(u32(data, at: p + 10 + Int(nl),     be: false)) |
                                          (UInt64(u32(data, at: p + 10 + Int(nl) + 4, be: false)) << 32))
             guard samp >= 0 else { continue }
-            // Color: u16 LE at 6 bytes before the first nested block (0x5a sentinel).
-            // Values 0–15 are valid marker palette indices; anything higher = no custom color.
-            var colorIndex = -1
-            let sig: [UInt8] = [0x5a, 0x03, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x06, 0x25]
-            let end = block.dataOffset + block.dataSize - sig.count
-            for j in (p + 18)..<end {
-                if (0..<sig.count).allSatisfy({ data[j + $0] == sig[$0] }) {
-                    let raw = Int(u16(data, at: j - 6, be: false))
-                    if raw >= 5, raw <= 20 { colorIndex = raw - 5 }
-                    break
-                }
-            }
-            result.append(PTXMemoryLocation(number: number, name: name,
-                                            samplePosition: samp, colorIndex: colorIndex))
+            result.append(PTXMemoryLocation(number: number, name: name, samplePosition: samp))
         }
         // Sort by timeline position (the text export lists them in position order)
         return result.sorted { $0.samplePosition < $1.samplePosition }
