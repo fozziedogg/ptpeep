@@ -208,23 +208,12 @@ struct SessionInspectorView: View {
                         }
                         return overviewHeight
                     }()
-                    // Scale the timeline to visible tracks only — inactive/hidden tracks can
-                    // have clips far beyond the real session content and would inflate the range.
-                    let visibleMax = Double(max(
-                        clippedTracks.flatMap(\.clips)
-                            .map { $0.startSample + $0.lengthSamples }.max() ?? 1, 1
-                    ))
-                    let allMax = Double(max(
-                        session.tracks.flatMap(\.clips)
-                            .map { $0.startSample + $0.lengthSamples }.max() ?? 1, 1
-                    ))
-                    let _ = {
-                        print("[Overview] sr=\(sr)  visibleMax=\(Int64(visibleMax)) (\(String(format:"%.1f",visibleMax/sr))s)  allMax=\(Int64(allMax)) (\(String(format:"%.1f",allMax/sr))s)  clippedTracks=\(clippedTracks.count)/\(session.tracks.count)")
-                        for t in clippedTracks {
-                            let tmax = t.clips.map { $0.startSample + $0.lengthSamples }.max() ?? 0
-                            if tmax > 0 { print("  [\(t.name)] lastClipEnd=\(tmax) (\(String(format:"%.1f",Double(tmax)/sr))s)  clips=\(t.clips.count)") }
-                        }
-                    }()
+                    // Use session length from PTSL when available; fall back to last clip end.
+                    // This ensures the timeline extends to the full session end, not just the last clip.
+                    let clipMax = clippedTracks.flatMap(\.clips)
+                        .map { $0.startSample + $0.lengthSamples }.max() ?? 0
+                    let sessionMax = session.sessionLengthSamples.map { Int64($0) } ?? 0
+                    let visibleMax = Double(max(max(clipMax, sessionMax), 1))
                     SessionTimelineView(tc: tc,
                                         tracks: clippedTracks,
                                         allTracksSamples: visibleMax,

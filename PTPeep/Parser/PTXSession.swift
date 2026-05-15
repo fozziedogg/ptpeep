@@ -39,6 +39,35 @@ struct PTXSession {
         }
     }
 
+    /// Sample rate as a Double (defaults to 48000 if not yet populated from PTSL).
+    var sampleRateValue: Double { Double(sampleRate) ?? 48000.0 }
+
+    /// Session timeline length in samples, parsed from the PTSL `sessionLength` timecode string.
+    /// Returns nil when `sessionLength` is empty or unparseable.
+    /// Supports "HH:MM:SS:FF" (frames) and "HH:MM:SS.mmm" (milliseconds) formats.
+    var sessionLengthSamples: Int64? {
+        guard !sessionLength.isEmpty else { return nil }
+        let sr = sampleRateValue
+        let fps = frameRate
+        let s = sessionLength
+
+        // Try HH:MM:SS:FF
+        let colonParts = s.components(separatedBy: ":")
+        if colonParts.count == 4,
+           let hh = Int(colonParts[0]), let mm = Int(colonParts[1]),
+           let ss = Int(colonParts[2]), let ff = Int(colonParts[3]) {
+            let totalSeconds = Double(hh * 3600 + mm * 60 + ss)
+            return Int64((totalSeconds * sr + Double(ff) * sr / fps).rounded())
+        }
+        // Try HH:MM:SS (no frames)
+        if colonParts.count == 3,
+           let hh = Int(colonParts[0]), let mm = Int(colonParts[1]),
+           let ss = Double(colonParts[2]) {
+            return Int64(((Double(hh * 3600 + mm * 60) + ss) * sr).rounded())
+        }
+        return nil
+    }
+
     // Resolved audio file URLs (matched from Audio Files/ folder)
     var resolvedAudioFiles: [ResolvedAudioFile] = []
 }
