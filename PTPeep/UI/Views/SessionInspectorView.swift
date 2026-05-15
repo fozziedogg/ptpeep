@@ -741,15 +741,65 @@ private struct InstalledPluginIndex {
     private var bundleNames:  Set<String> = []   // lowercased CFBundleNames
 
     mutating func add(bundleURL: URL) {
-        let plist = bundleURL
-            .appendingPathComponent("Contents")
-            .appendingPathComponent("Info.plist")
-        if let dict = NSDictionary(contentsOf: plist) {
+        let contents = bundleURL.appendingPathComponent("Contents")
+
+        // Plist: CFBundleIdentifier + CFBundleName
+        if let dict = NSDictionary(contentsOf: contents.appendingPathComponent("Info.plist")) {
             if let bid = dict["CFBundleIdentifier"] as? String { bundleIds.insert(bid.lowercased()) }
             if let bn  = dict["CFBundleName"]       as? String { bundleNames.insert(bn.lowercased()) }
         }
-        // Always index the folder name too as a last-resort fallback
+
+        // Binary scan: extract all reverse-DNS strings (com./net./org. prefixes) from the
+        // MacOS executable. These are the AAX registration IDs embedded at compile time —
+        // they match the PTX second string exactly, even when the plist uses a different/newer ID
+        // (e.g. EQIII has CFBundleIdentifier "com.AVID.plugin.EQIII" but its binary contains
+        // "com.digidesign.aax.eq3.7band" which is what Pro Tools stores in the session).
+        let macosDir = contents.appendingPathComponent("MacOS")
+        if let exes = try? FileManager.default.contentsOfDirectory(at: macosDir,
+                                                                    includingPropertiesForKeys: nil),
+           let exe = exes.first,
+           let data = try? Data(contentsOf: exe) {
+            extractReverseDNSStrings(from: data)
+        }
+
+        // Folder name as last-resort fallback
         bundleNames.insert(bundleURL.deletingPathExtension().lastPathComponent.lowercased())
+    }
+
+    private mutating func extractReverseDNSStrings(from data: Data) {
+        // Scan for null-terminated or whitespace-terminated ASCII strings starting with
+        // "com.", "net.", or "org." — minimum 10, maximum 128 chars.
+        let prefixes: [UInt8] = [UInt8(ascii: "c"), UInt8(ascii: "n"), UInt8(ascii: "o")]
+        let dot = UInt8(ascii: ".")
+        var i = 0
+        while i < data.count - 10 {
+            let b = data[i]
+            guard prefixes.contains(b) else { i += 1; continue }
+            // Quick check: must look like "com.", "net.", "org."
+            let isMatch = (b == UInt8(ascii: "c") && i+3 < data.count &&
+                           data[i+1] == UInt8(ascii: "o") && data[i+2] == UInt8(ascii: "m") && data[i+3] == dot) ||
+                          (b == UInt8(ascii: "n") && i+3 < data.count &&
+                           data[i+1] == UInt8(ascii: "e") && data[i+2] == UInt8(ascii: "t") && data[i+3] == dot) ||
+                          (b == UInt8(ascii: "o") && i+3 < data.count &&
+                           data[i+1] == UInt8(ascii: "r") && data[i+2] == UInt8(ascii: "g") && data[i+3] == dot)
+            guard isMatch else { i += 1; continue }
+            // Collect printable ASCII up to 128 chars
+            var end = i + 4
+            while end < data.count && end - i < 128 {
+                let c = data[end]
+                if c == 0 || c == 10 || c == 13 || c == 32 { break }
+                if c < 32 || c > 126 { break }
+                end += 1
+            }
+            let len = end - i
+            if len >= 10 {
+                let slice = data[i..<end]
+                if let s = String(bytes: slice, encoding: .utf8) {
+                    bundleIds.insert(s.lowercased())
+                }
+            }
+            i = end + 1
+        }
     }
 
     func contains(_ displayName: String, secondString: String?) -> Bool {
