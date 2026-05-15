@@ -136,7 +136,6 @@ struct SessionInspectorView: View {
                 ("Bit Depth",     session.bitDepth.isEmpty      ? "—" : "\(session.bitDepth)-bit"),
                 ("Timecode",      session.tcFormat.isEmpty      ? "—" : session.tcFormat),
                 ("TC Start",      session.sessionStart.isEmpty  ? "—" : session.sessionStart),
-                ("Duration",      session.sessionLength.isEmpty ? "—" : session.sessionLength),
                 ("Tracks",        "\(session.tracks.filter { $0.type == .audio }.count)"),
                 ("Audio Files",   "\(session.audioFileNames.count)"),
             ]
@@ -209,9 +208,15 @@ struct SessionInspectorView: View {
                         }
                         return overviewHeight
                     }()
+                    // Scale the timeline to visible tracks only — inactive/hidden tracks can
+                    // have clips far beyond the real session content and would inflate the range.
+                    let visibleMax = Double(max(
+                        clippedTracks.flatMap(\.clips)
+                            .map { $0.startSample + $0.lengthSamples }.max() ?? 1, 1
+                    ))
                     SessionTimelineView(tc: tc,
                                         tracks: clippedTracks,
-                                        allTracksSamples: totalSamples,
+                                        allTracksSamples: visibleMax,
                                         sampleRate: sr,
                                         frameRate: session.frameRate,
                                         tcFormat:  session.tcFormat,
