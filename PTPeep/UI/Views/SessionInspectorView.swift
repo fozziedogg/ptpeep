@@ -679,7 +679,11 @@ private struct AudioFileRow: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
-            if let url = resolved?.url {
+            if resolved == nil {
+                Text("missing")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            } else if let url = resolved?.url {
                 Text(url.pathExtension.uppercased())
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -717,13 +721,24 @@ private struct ListRow: View {
 
 // MARK: - Plugin row (with optional availability badge)
 
+private let elasticAudioModes: Set<String> = [
+    "Polyphonic", "Rhythmic", "Monophonic", "Varispeed", "X-Form",
+]
+
 private struct PluginRow: View {
     let plugin:    String
     let installed: Bool?   // nil = not yet checked
 
+    private var isElastic: Bool { elasticAudioModes.contains(plugin) }
+
     var body: some View {
         HStack(spacing: 8) {
-            if let ok = installed {
+            if isElastic {
+                Image(systemName: "waveform.path")
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                    .frame(width: 16)
+            } else if let ok = installed {
                 Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(ok ? .green : .red)
                     .font(.system(size: 12))
@@ -735,6 +750,11 @@ private struct PluginRow: View {
             }
             Text(plugin)
                 .font(.subheadline)
+            if isElastic {
+                Text("Elastic Audio mode")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
         }
         .padding(.horizontal, 16)

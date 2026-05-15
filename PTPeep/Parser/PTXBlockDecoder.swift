@@ -954,12 +954,6 @@ final class PTXBlockDecoder {
     /// Returns (orderedNames, secondStrings) where secondStrings maps display name →
     /// the PTX "second string" field (reverse-DNS bundle ID for most plugins,
     /// or a variant/format name like "RX 9 Monitor Mono" for iZotope plugins).
-    // Elastic Audio algorithm names are stored in 0x1017 blocks like real plugins but are
-    // internal PT processing modes, not installable AAX plug-ins.
-    private static let elasticAudioNames: Set<String> = [
-        "Polyphonic", "Rhythmic", "Monophonic", "Varispeed", "X-Form",
-    ]
-
     static func extractPlugins(blocks: [PTXBlock], data: Data) -> (names: [String], secondStrings: [String: String]) {
         var seen = Set<String>()
         var result = [String]()
@@ -974,8 +968,7 @@ final class PTXBlockDecoder {
                   p + 5 + Int(nl) <= block.dataOffset + block.dataSize else { continue }
             let nameSlice = data[(p + 5) ..< (p + 5 + Int(nl))]
             guard let name = String(bytes: nameSlice, encoding: .utf8),
-                  !name.isEmpty,
-                  !elasticAudioNames.contains(name) else { continue }
+                  !name.isEmpty else { continue }
             // Second string: display_name + 12 OSType bytes + 4 flags + 3 bytes = +19
             let secondOff = p + 5 + Int(nl) + 19
             if seconds[name] == nil,
