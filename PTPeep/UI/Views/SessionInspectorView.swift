@@ -214,6 +214,17 @@ struct SessionInspectorView: View {
                         clippedTracks.flatMap(\.clips)
                             .map { $0.startSample + $0.lengthSamples }.max() ?? 1, 1
                     ))
+                    let allMax = Double(max(
+                        session.tracks.flatMap(\.clips)
+                            .map { $0.startSample + $0.lengthSamples }.max() ?? 1, 1
+                    ))
+                    let _ = {
+                        print("[Overview] sr=\(sr)  visibleMax=\(Int64(visibleMax)) (\(String(format:"%.1f",visibleMax/sr))s)  allMax=\(Int64(allMax)) (\(String(format:"%.1f",allMax/sr))s)  clippedTracks=\(clippedTracks.count)/\(session.tracks.count)")
+                        for t in clippedTracks {
+                            let tmax = t.clips.map { $0.startSample + $0.lengthSamples }.max() ?? 0
+                            if tmax > 0 { print("  [\(t.name)] lastClipEnd=\(tmax) (\(String(format:"%.1f",Double(tmax)/sr))s)  clips=\(t.clips.count)") }
+                        }
+                    }()
                     SessionTimelineView(tc: tc,
                                         tracks: clippedTracks,
                                         allTracksSamples: visibleMax,
