@@ -948,6 +948,10 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         trackHeightLevels[idx] = min(max(current + delta, 0), 4)
     }
 
+    func resetTrackHeights() {
+        trackHeightLevels.removeAll()
+    }
+
     func jumpTo(_ frac: Double) {
         selStart = frac; selEnd = nil
         ensureVisible(frac)
@@ -966,7 +970,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         }
     }
 
-    /// E key: zoom to show the selected clip, or the current range selection.
+    /// E key: zoom H+V to show the selected clip, or the current range selection.
     func zoomToFitCursor() {
         guard let s = selStart else { return }
         if let e = selEnd, e != s {
@@ -986,6 +990,8 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         let newWin    = end - start
         scale         = max(1.0, 1.0 / newWin)
         viewStart     = start.clamped(to: 0...(1 - window))
+        // Vertical: bump selected track to level 2 (4×) if not already expanded
+        if trackHeightLevels[idx, default: 0] < 2 { trackHeightLevels[idx] = 2 }
     }
 }
 
@@ -1174,6 +1180,14 @@ private struct SessionTimelineView: View {
                         Image(systemName: "plus")
                     }
                     .buttonStyle(.borderless).controlSize(.mini)
+                }
+
+                if !tc.trackHeightLevels.isEmpty {
+                    Divider().frame(height: 14)
+                    Button { tc.resetTrackHeights() } label: {
+                        Text("Reset Heights")
+                    }
+                    .buttonStyle(.borderless)
                 }
             }
             .font(.system(size: 11).monospacedDigit())
