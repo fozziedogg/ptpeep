@@ -418,11 +418,18 @@ struct SessionInspectorView: View {
                     .appendingPathComponent("Library/Application Support/Avid/Audio/Plug-Ins")
             ]
             var index = InstalledPluginIndex()
+            let fm = FileManager.default
             for dir in dirs {
-                let items = (try? FileManager.default.contentsOfDirectory(
-                    at: dir, includingPropertiesForKeys: nil)) ?? []
-                for url in items where url.pathExtension.lowercased() == "aaxplugin" {
-                    index.add(bundleURL: url)
+                guard let enumerator = fm.enumerator(
+                    at: dir,
+                    includingPropertiesForKeys: [.isDirectoryKey],
+                    options: [.skipsHiddenFiles]
+                ) else { continue }
+                for case let url as URL in enumerator {
+                    if url.pathExtension.lowercased() == "aaxplugin" {
+                        index.add(bundleURL: url)
+                        enumerator.skipDescendants()   // don't recurse inside the bundle
+                    }
                 }
             }
             await MainActor.run {
