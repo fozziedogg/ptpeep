@@ -715,11 +715,14 @@ final class PTXBlockDecoder {
             .filter { $0.contentType == 0x104f && $0.dataSize >= 11 }
             .sorted { $0.dataOffset < $1.dataOffset }
 
+        // Nameless sections (nl=0): collect separately for a second pass.
+        // These occur in some sessions (e.g. inactive tracks imported from AAF) where PT writes
+        // the 0x1052 block without an inline name.  We match them to audio tracks in orderedNames
+        // that were not claimed by any named section, preserving mixer order.
+        var namelessSections: [PTXBlock] = []
+
         for (sectionIdx, section) in trackSections.enumerated() {
             // Read track name: [u32 nameLen][nameBytes].
-            // When displayInfo is available (modern PT files) we always use the inline name.
-            // The positional fallback is unreliable in large sessions because 0x1052 sections
-            // include alternate playlists that shift the section index relative to orderedNames.
             let name: String
             if let nameLen = safeU32(data, at: section.dataOffset, be: false),
                nameLen >= 1, nameLen <= 256,
@@ -727,10 +730,13 @@ final class PTXBlockDecoder {
                let n = String(bytes: data[section.dataOffset + 4 ..< section.dataOffset + 4 + Int(nameLen)],
                               encoding: .utf8) {
                 name = n
-            } else if displayInfo.orderedNames.isEmpty, sectionIdx < displayInfo.orderedNames.count {
+            } else if displayInfo.orderedNames.isEmpty {
                 // Positional fallback only when displayInfo is absent (very old sessions).
+                guard sectionIdx < displayInfo.orderedNames.count else { continue }
                 name = displayInfo.orderedNames[sectionIdx]
             } else {
+                // displayInfo available but section has no inline name — defer to second pass.
+                namelessSections.append(section)
                 continue
             }
 
@@ -787,6 +793,51 @@ final class PTXBlockDecoder {
             } else {
                 channelCounts[name]! += 1
                 // Ignore subsequent sections — do not add novel positions from alternates.
+            }
+        }
+
+        // Second pass: assign nameless sections to audio tracks in orderedNames that were not
+        // claimed by any named section above.  This handles inactive/AAF-imported tracks whose
+        // 0x1052 blocks have nl=0.  We preserve the mixer order from orderedNames.
+        if !namelessSections.isEmpty && !displayInfo.orderedNames.isEmpty {
+            let unmatched = displayInfo.orderedNames.filter {
+                displayInfo.types[$0] == 0x00 && channelCounts[$0] == nil
+            }
+            for (i, section) in namelessSections.enumerated() {
+                guard i < unmatched.count else { break }
+                let name = unmatched[i]
+                // Extract placements using the same logic as the main loop.
+                let sStart = section.dataOffset, sEnd = section.dataOffset + section.dataSize
+                var lo2 = 0, hi2 = sortedRefs.count
+                while lo2 < hi2 { let m = (lo2+hi2)/2; if sortedRefs[m].dataOffset < sStart { lo2 = m+1 } else { hi2 = m } }
+                var refs2: [PTXBlock] = []
+                var j2 = lo2
+                while j2 < sortedRefs.count && sortedRefs[j2].dataOffset >= sStart {
+                    let r = sortedRefs[j2]
+                    if r.dataOffset + r.dataSize <= sEnd { refs2.append(r) } else { break }
+                    j2 += 1
+                }
+                let placements: [ClipPlacement] = refs2.compactMap { ref in
+                    guard parent1050(of: ref) != nil else { return nil }
+                    let byte0  = ref.dataSize >= 1  ? data[ref.dataOffset]      : 0x00
+                    let byte18 = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x00
+                    let isHidden = ref.dataSize >= 36 && data[ref.dataOffset + 35] == 0x01
+                    let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
+                    let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
+                    guard timeline >= 0 else { return nil }
+                    let isMuted = byte0 == 0x01; let isGroup = byte18 == 0x01
+                    let compoundEntry = isGroup && clipIdx < compoundPool.count ? compoundPool[clipIdx] : nil
+                    return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0,
+                                         isHidden: isHidden, isMuted: isMuted, isGroup: isGroup,
+                                         groupName: compoundEntry?.name, groupLength: compoundEntry?.lengthSamples)
+                }
+                if channelCounts[name] == nil {
+                    nameOrder.append(name)
+                    placementsByName[name] = placements
+                    channelCounts[name] = 1
+                } else {
+                    channelCounts[name]! += 1
+                }
             }
         }
 
