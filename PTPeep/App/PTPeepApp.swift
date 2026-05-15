@@ -19,6 +19,9 @@ struct PTPeepApp: App {
                     appState.open(url: url)
                 }
         }
+        Settings {
+            SettingsView()
+        }
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Open Session…") { appState.showOpenPanel() }
@@ -60,6 +63,25 @@ struct PTPeepApp: App {
                     .disabled(appState.tabs.count < 2)
             }
         }
+    }
+}
+
+// MARK: - Settings
+
+private struct SettingsView: View {
+    @AppStorage("colorMode") private var colorMode: ColorMode = .dark
+
+    var body: some View {
+        Form {
+            Picker("Appearance", selection: $colorMode) {
+                Text("Light").tag(ColorMode.light)
+                Text("Dark").tag(ColorMode.dark)
+                Text("GRM (color blind)").tag(ColorMode.grm)
+            }
+            .pickerStyle(.radioGroup)
+        }
+        .padding(20)
+        .frame(width: 280)
     }
 }
 
@@ -395,7 +417,6 @@ struct AppContentView: View {
 
 struct TabBarView: View {
     @EnvironmentObject var appState: AppState
-    @AppStorage("colorMode") private var colorMode: ColorMode = .dark
 
     var body: some View {
         HStack(spacing: 0) {
@@ -408,19 +429,6 @@ struct TabBarView: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
             }
-
-            Divider()
-                .frame(height: 18)
-                .padding(.horizontal, 4)
-
-            Picker("Appearance", selection: $colorMode) {
-                Text("L").tag(ColorMode.light)
-                Text("D").tag(ColorMode.dark)
-                Text("GRM").tag(ColorMode.grm)
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 88)
-            .help("Appearance: Light / Dark / GRM (color blind)")
 
             Divider()
                 .frame(height: 18)
