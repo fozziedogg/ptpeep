@@ -201,11 +201,14 @@ final class PTXParser {
 
         // Supplement with tracks that have no audio playlists (video, VCA, folder, aux).
         // Preserve PT mixer order from 0x251a (orderedNames) rather than sorting alphabetically.
+        // Routing folder tracks have type code 0x02 (aux) but the folder flag — treat as .folder.
         let nextIndex = session.tracks.count
         let extras: [PTXTrack] = displayInfo.orderedNames.compactMap { name -> PTXTrack? in
             guard !playlistNames.contains(name),
                   let typeCode = displayInfo.types[name] else { return nil }
-            return PTXTrack(index: nextIndex, name: name, type: trackType(from: typeCode),
+            let isRoutingFolder = displayInfo.folderMarkers.contains(name) && typeCode == 0x02
+            let resolvedType = isRoutingFolder ? .folder : trackType(from: typeCode)
+            return PTXTrack(index: nextIndex, name: name, type: resolvedType,
                             channelCount: displayInfo.channelCounts[name] ?? 1,
                             channelLabel: displayInfo.channelLabels[name],
                             isHidden: displayInfo.hidden.contains(name),

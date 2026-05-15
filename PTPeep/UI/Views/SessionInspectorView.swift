@@ -166,13 +166,12 @@ struct SessionInspectorView: View {
                 && (showVideoTrack     || $0.type != .video)
             }
             .sorted { a, b in
-                func rank(_ t: PTXTrack) -> Int {
-                    if t.type == .video            { return 0 }
-                    if t.isInactive && !t.isHidden { return 1 }
-                    if t.isHidden                  { return 2 }
-                    return 3
-                }
-                return rank(a) < rank(b)
+                // Video tracks always appear first (they anchor the timeline).
+                // Everything else keeps PT mixer order (index was reset to 0…N after reorder).
+                let av = a.type == .video ? 0 : 1
+                let bv = b.type == .video ? 0 : 1
+                if av != bv { return av < bv }
+                return a.index < b.index
             }
         let sr = Double(session.sampleRate) ?? 48000.0
         // Leave at least 200 px for the collapsible sections below the overview.

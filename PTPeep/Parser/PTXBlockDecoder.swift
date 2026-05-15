@@ -717,7 +717,9 @@ final class PTXBlockDecoder {
 
         for (sectionIdx, section) in trackSections.enumerated() {
             // Read track name: [u32 nameLen][nameBytes].
-            // Some sessions store nameLen=0 and rely on display-list order instead.
+            // When displayInfo is available (modern PT files) we always use the inline name.
+            // The positional fallback is unreliable in large sessions because 0x1052 sections
+            // include alternate playlists that shift the section index relative to orderedNames.
             let name: String
             if let nameLen = safeU32(data, at: section.dataOffset, be: false),
                nameLen >= 1, nameLen <= 256,
@@ -725,8 +727,8 @@ final class PTXBlockDecoder {
                let n = String(bytes: data[section.dataOffset + 4 ..< section.dataOffset + 4 + Int(nameLen)],
                               encoding: .utf8) {
                 name = n
-            } else if !displayInfo.orderedNames.isEmpty, sectionIdx < displayInfo.orderedNames.count {
-                // No inline name — match by position to the display-info order.
+            } else if displayInfo.orderedNames.isEmpty, sectionIdx < displayInfo.orderedNames.count {
+                // Positional fallback only when displayInfo is absent (very old sessions).
                 name = displayInfo.orderedNames[sectionIdx]
             } else {
                 continue
