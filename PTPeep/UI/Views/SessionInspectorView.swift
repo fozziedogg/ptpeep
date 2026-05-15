@@ -28,6 +28,7 @@ struct SessionInspectorView: View {
     @AppStorage("ov.showVideoTrack")     private var showVideoTrack:     Bool = true
     @AppStorage("ov.hideMutedClips")     private var hideMutedClips:     Bool = false
     @AppStorage("ov.showMarkers")        private var showMarkers:         Bool = false
+    @AppStorage("ov.showEmptyTracks")    private var showEmptyTracks:     Bool = true
     // Track list toggles (separate from overview)
     @AppStorage("tl.showHiddenTracks")   private var tlShowHiddenTracks:   Bool = false
     @AppStorage("tl.showInactiveTracks") private var tlShowInactiveTracks: Bool = true
@@ -159,11 +160,11 @@ struct SessionInspectorView: View {
         let hasMarkers  = session.memoryLocations.contains { $0.samplePosition > 0 }
         let clippedTracks = session.tracks
             .filter {
-                // Show all tracks (including empty ones) — PT mixer order is meaningful.
                 // Either toggle can reveal a track that is both hidden and inactive.
                 (showHiddenTracks   || !$0.isHidden   || (showInactiveTracks && $0.isInactive))
                 && (showInactiveTracks || !$0.isInactive || (showHiddenTracks   && $0.isHidden))
                 && (showVideoTrack     || $0.type != .video)
+                && (showEmptyTracks    || !$0.clips.isEmpty)
             }
             .sorted { a, b in
                 // Video tracks always appear first (they anchor the timeline).
@@ -186,8 +187,8 @@ struct SessionInspectorView: View {
                     // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                     let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                    + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                    // overhead = row1(24) + hover row(24) + sel row(24) + checkbox row(28, if shown) + ruler(30) + padding(8)
-                    let overhead: CGFloat = (hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers) ? 138 : 110
+                    // overhead = row1(24) + hover row(24) + sel row(24) + checkbox row(28) + ruler(30) + padding(8)
+                    let overhead: CGFloat = 138
                     // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                     let effectiveH: CGFloat = {
                         if overviewHeight == 0 {
@@ -216,6 +217,7 @@ struct SessionInspectorView: View {
                                         showVideo:     $showVideoTrack,
                                         hideMuted:     $hideMutedClips,
                                         showMarkers:   $showMarkers,
+                                        showEmpty:     $showEmptyTracks,
                                         overviewHeight: $overviewHeight)
                         .frame(height: effectiveH)
                         .padding(.horizontal, 16)
@@ -1061,6 +1063,7 @@ private struct SessionTimelineView: View {
     @Binding var showVideo:     Bool
     @Binding var hideMuted:     Bool
     @Binding var showMarkers:   Bool
+    @Binding var showEmpty:     Bool
     @Binding var overviewHeight: CGFloat
 
     // Hover state (view-owned for rendering; tc.hoverAbsFrac mirrors it for key handler)
@@ -1247,43 +1250,45 @@ private struct SessionTimelineView: View {
             )
 
             // ── Checkbox row ─────────────────────────────────────────────────
-            if hasHidden || hasInactive || hasVideo || hasMuted || hasMarkers {
-                HStack(spacing: 12) {
-                    if hasHidden {
-                        Toggle(isOn: $showHidden) {
-                            Text("Show Hidden Tracks").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
+            HStack(spacing: 12) {
+                if hasHidden {
+                    Toggle(isOn: $showHidden) {
+                        Text("Show Hidden Tracks").font(.caption).foregroundStyle(.secondary)
                     }
-                    if hasInactive {
-                        Toggle(isOn: $showInactive) {
-                            Text("Show Inactive Tracks").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    if hasVideo {
-                        Toggle(isOn: $showVideo) {
-                            Text("Show Video Track").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    if hasMuted {
-                        Toggle(isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 })) {
-                            Text("Show Muted Clips").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    if hasMarkers {
-                        Toggle(isOn: $showMarkers) {
-                            Text("Show Markers").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    Spacer()
+                    .toggleStyle(.checkbox)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                if hasInactive {
+                    Toggle(isOn: $showInactive) {
+                        Text("Show Inactive Tracks").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .toggleStyle(.checkbox)
+                }
+                if hasVideo {
+                    Toggle(isOn: $showVideo) {
+                        Text("Show Video Track").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .toggleStyle(.checkbox)
+                }
+                if hasMuted {
+                    Toggle(isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 })) {
+                        Text("Show Muted Clips").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .toggleStyle(.checkbox)
+                }
+                if hasMarkers {
+                    Toggle(isOn: $showMarkers) {
+                        Text("Show Markers").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .toggleStyle(.checkbox)
+                }
+                Toggle(isOn: $showEmpty) {
+                    Text("Show Empty Tracks").font(.caption).foregroundStyle(.secondary)
+                }
+                .toggleStyle(.checkbox)
+                Spacer()
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
 
             // ── Ruler (adaptive tick spacing) ─────────────────────────────────
             Canvas { ctx, size in
