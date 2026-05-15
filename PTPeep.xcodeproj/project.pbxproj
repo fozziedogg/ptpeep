@@ -56,6 +56,7 @@
 		4B29D7A6E14B870EF3F9366B /* PTXParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXParser.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXBlockDecoder.swift; sourceTree = "<group>"; };
 		61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeepQLExtension.swift; sourceTree = "<group>"; };
+		DD22EE33FF44AA55BB666601 /* PTPeepQL.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PTPeepQL.entitlements; sourceTree = "<group>"; };
 		79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
 		7DE1A0204EA264D8B2859DC0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionInspectorView.swift; sourceTree = "<group>"; };
@@ -88,6 +89,7 @@
 			isa = PBXGroup;
 			children = (
 				7DE1A0204EA264D8B2859DC0 /* Info.plist */,
+				DD22EE33FF44AA55BB666601 /* PTPeepQL.entitlements */,
 				79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */,
 				61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */,
 			);
@@ -410,6 +412,7 @@
 		53B434658D4C51471894D264 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PTPeepQL/PTPeepQL.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = PTPeepQL/Info.plist;
@@ -502,6 +505,7 @@
 		7D97CEBDFD3F92A4489DBD11 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PTPeepQL/PTPeepQL.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = PTPeepQL/Info.plist;
