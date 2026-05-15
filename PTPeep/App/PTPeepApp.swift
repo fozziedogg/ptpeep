@@ -85,6 +85,7 @@ struct TabState: Identifiable {
 
 // MARK: - AppDelegate for Finder file-open events
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var appState: AppState?
 
@@ -162,11 +163,13 @@ final class AppState: ObservableObject {
             guard let self,
                   let win = notification.object as? NSWindow,
                   !(win is NSSavePanel) else { return }
-            self.mainWindow = win
-            if !(win.delegate is CloseInterceptorDelegate) {
-                let interceptor = CloseInterceptorDelegate(originalDelegate: win.delegate)
-                win.delegate = interceptor
-                self.closeInterceptor = interceptor
+            MainActor.assumeIsolated {
+                self.mainWindow = win
+                if !(win.delegate is CloseInterceptorDelegate) {
+                    let interceptor = CloseInterceptorDelegate(originalDelegate: win.delegate)
+                    win.delegate = interceptor
+                    self.closeInterceptor = interceptor
+                }
             }
         }
     }
