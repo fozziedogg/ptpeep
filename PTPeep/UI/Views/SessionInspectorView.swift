@@ -425,7 +425,7 @@ struct SessionInspectorView: View {
                     includingPropertiesForKeys: [.isDirectoryKey],
                     options: [.skipsHiddenFiles]
                 ) else { continue }
-                for case let url as URL in enumerator {
+                while let url = enumerator.nextObject() as? URL {
                     if url.pathExtension.lowercased() == "aaxplugin" {
                         index.add(bundleURL: url)
                         enumerator.skipDescendants()   // don't recurse inside the bundle
