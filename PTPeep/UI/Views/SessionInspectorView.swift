@@ -37,9 +37,9 @@ struct SessionInspectorView: View {
     @State private var hiddenTrackTypes:   Set<PTXTrackType> = []
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
-    @State private var showTrackPlugins:   Bool   = true
-    @State private var installedPlugins:   InstalledPluginIndex? = nil   // nil = not yet scanned
-    @State private var pluginScanRunning:  Bool   = false
+    @State private var showTrackPlugins: Bool = true
+    @State private var didCheckPlugins:  Bool = false   // reset per session open
+    @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
 
     /// Max end-sample across all tracks — used to convert sample positions to timeline fractions.
@@ -389,60 +389,30 @@ struct SessionInspectorView: View {
             if session.plugins.isEmpty {
                 PlaceholderRow(text: "No plug-ins found")
             } else {
-                HStack {
+                HStack(spacing: 8) {
                     Spacer()
-                    Button(pluginScanRunning ? "Checking…" : "Check Availability") {
-                        scanInstalledPlugins()
+                    if !pluginScanner.scanCompleted {
+                        Button(pluginScanner.isScanning ? "Scanning…" : "Scan Plug-In Folder") {
+                            pluginScanner.scan()
+                        }
+                        .disabled(pluginScanner.isScanning)
+                        if !pluginScanner.isScanning {
+                            Text("(takes a moment)")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
+                        }
                     }
-                    .disabled(pluginScanRunning)
-                    .font(.system(size: 11))
-                    .padding(.trailing, 8)
-                    .padding(.bottom, 4)
+                    Button("Check Availability") { didCheckPlugins = true }
+                        .disabled(!pluginScanner.scanCompleted || didCheckPlugins)
                 }
+                .font(.system(size: 11))
+                .padding(.trailing, 8)
+                .padding(.bottom, 4)
                 ForEach(session.plugins, id: \.self) { plugin in
-                    PluginRow(plugin: plugin, installed: installedPlugins.map {
-                        $0.contains(plugin,
-                                    secondString: session.pluginSecondStrings[plugin])
-                    })
+                    PluginRow(plugin: plugin, installed: didCheckPlugins ? pluginScanner.index?.contains(
+                        plugin, secondString: session.pluginSecondStrings[plugin]
+                    ) : nil)
                 }
-            }
-        }
-    }
-
-    private func scanInstalledPlugins() {
-        pluginScanRunning = true
-        Task.detached(priority: .userInitiated) {
-            let dirs: [URL] = [
-                URL(fileURLWithPath: "/Library/Application Support/Avid/Audio/Plug-Ins"),
-                FileManager.default.homeDirectoryForCurrentUser
-                    .appendingPathComponent("Library/Application Support/Avid/Audio/Plug-Ins")
-            ]
-            var index = InstalledPluginIndex()
-            let fm = FileManager.default
-            var bundleCount = 0
-            for dir in dirs {
-                print("[PluginScan] Scanning \(dir.path)")
-                guard let enumerator = fm.enumerator(
-                    at: dir,
-                    includingPropertiesForKeys: [.isDirectoryKey],
-                    options: [.skipsHiddenFiles]
-                ) else { print("[PluginScan] Could not enumerate \(dir.path)"); continue }
-                while let url = enumerator.nextObject() as? URL {
-                    if url.pathExtension.lowercased() == "aaxplugin" {
-                        bundleCount += 1
-                        print("[PluginScan] [\(bundleCount)] \(url.lastPathComponent)")
-                        let t = Date()
-                        index.add(bundleURL: url)
-                        let ms = Int(Date().timeIntervalSince(t) * 1000)
-                        if ms > 50 { print("[PluginScan]   → \(ms)ms") }
-                        enumerator.skipDescendants()
-                    }
-                }
-            }
-            print("[PluginScan] Done. \(bundleCount) bundles scanned.")
-            await MainActor.run {
-                installedPlugins = index
-                pluginScanRunning = false
             }
         }
     }
@@ -734,6 +704,58 @@ private struct ListRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 3)
+    }
+}
+
+// MARK: - Plugin scanner (app-lifetime singleton)
+
+@MainActor
+private final class PluginScanner: ObservableObject {
+    static let shared = PluginScanner()
+    private init() {}
+
+    @Published private(set) var isScanning = false
+    @Published private(set) var scanCompleted = false
+    fileprivate(set) var index: InstalledPluginIndex? = nil
+
+    func scan() {
+        guard !isScanning, !scanCompleted else { return }
+        isScanning = true
+        Task.detached(priority: .userInitiated) {
+            let dirs: [URL] = [
+                URL(fileURLWithPath: "/Library/Application Support/Avid/Audio/Plug-Ins"),
+                FileManager.default.homeDirectoryForCurrentUser
+                    .appendingPathComponent("Library/Application Support/Avid/Audio/Plug-Ins")
+            ]
+            var idx = InstalledPluginIndex()
+            let fm = FileManager.default
+            var bundleCount = 0
+            for dir in dirs {
+                print("[PluginScan] Scanning \(dir.path)")
+                guard let enumerator = fm.enumerator(
+                    at: dir,
+                    includingPropertiesForKeys: [.isDirectoryKey],
+                    options: [.skipsHiddenFiles]
+                ) else { print("[PluginScan] Could not enumerate \(dir.path)"); continue }
+                while let url = enumerator.nextObject() as? URL {
+                    if url.pathExtension.lowercased() == "aaxplugin" {
+                        bundleCount += 1
+                        print("[PluginScan] [\(bundleCount)] \(url.lastPathComponent)")
+                        let t = Date()
+                        idx.add(bundleURL: url)
+                        let ms = Int(Date().timeIntervalSince(t) * 1000)
+                        if ms > 50 { print("[PluginScan]   → \(ms)ms") }
+                        enumerator.skipDescendants()
+                    }
+                }
+            }
+            print("[PluginScan] Done. \(bundleCount) bundles scanned.")
+            await MainActor.run {
+                self.index = idx
+                self.isScanning = false
+                self.scanCompleted = true
+            }
+        }
     }
 }
 
