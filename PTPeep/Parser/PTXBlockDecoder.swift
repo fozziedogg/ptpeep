@@ -951,9 +951,13 @@ final class PTXBlockDecoder {
     //
     // Multiple blocks may carry the same display name (mono/stereo variants). Deduplicate.
 
-    static func extractPlugins(blocks: [PTXBlock], data: Data) -> [String] {
+    /// Returns (orderedNames, secondStrings) where secondStrings maps display name →
+    /// the PTX "second string" field (reverse-DNS bundle ID for most plugins,
+    /// or a variant/format name like "RX 9 Monitor Mono" for iZotope plugins).
+    static func extractPlugins(blocks: [PTXBlock], data: Data) -> (names: [String], secondStrings: [String: String]) {
         var seen = Set<String>()
         var result = [String]()
+        var seconds = [String: String]()
         for block in blocks where block.contentType == 0x1017 {
             let p = block.dataOffset
             guard block.dataSize >= 5 else { continue }
@@ -965,11 +969,22 @@ final class PTXBlockDecoder {
             let nameSlice = data[(p + 5) ..< (p + 5 + Int(nl))]
             guard let name = String(bytes: nameSlice, encoding: .utf8),
                   !name.isEmpty else { continue }
+            // Second string: display_name + 12 OSType bytes + 4 flags + 3 bytes = +19
+            let secondOff = p + 5 + Int(nl) + 19
+            if seconds[name] == nil,
+               secondOff + 4 <= block.dataOffset + block.dataSize,
+               let sl = safeU32(data, at: secondOff, be: false), sl > 0, sl <= 512,
+               secondOff + 4 + Int(sl) <= block.dataOffset + block.dataSize {
+                let slice = data[(secondOff + 4) ..< (secondOff + 4 + Int(sl))]
+                if let s = String(bytes: slice, encoding: .utf8), !s.isEmpty {
+                    seconds[name] = s
+                }
+            }
             if seen.insert(name).inserted {
                 result.append(name)
             }
         }
-        return result
+        return (result, seconds)
     }
 
     // MARK: Per-track Plugin Extraction

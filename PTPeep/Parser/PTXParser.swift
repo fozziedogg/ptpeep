@@ -147,9 +147,10 @@ final class PTXParser {
         }
 
         // Plugins from 0x1017 blocks
-        let plugins = PTXBlockDecoder.extractPlugins(blocks: blocks, data: decoded)
+        let (plugins, pluginSeconds) = PTXBlockDecoder.extractPlugins(blocks: blocks, data: decoded)
         print("[PTXParser] Plugins: \(plugins)")
         session.plugins = plugins
+        session.pluginSecondStrings = pluginSeconds
 
         // Per-track plugin assignments (0x102d → 0x2627 OSType matching)
         let trackPlugins = PTXBlockDecoder.extractTrackPlugins(blocks: blocks, data: decoded)

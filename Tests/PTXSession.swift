@@ -17,7 +17,8 @@ struct PTXSession {
     var tcFormat:     String = ""   // e.g. "29.97 DF", "25", "23.976"
     var sessionStart: String = ""
     var sessionLength: String = ""
-    var plugins:      [String] = []
+    var plugins:         [String] = []
+    var pluginSecondStrings: [String: String] = [:]
 
     /// Exact frame rate for TC math. Pulldown rates use rational values so that
     /// samples = nominalFrames × (sr / frameRate) works out to an exact integer.

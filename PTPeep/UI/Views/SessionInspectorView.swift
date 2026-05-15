@@ -38,7 +38,7 @@ struct SessionInspectorView: View {
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
     @State private var showTrackPlugins:   Bool   = true
-    @State private var installedPlugins:   Set<String>? = nil   // nil = not yet scanned
+    @State private var installedPlugins:   InstalledPluginIndex? = nil   // nil = not yet scanned
     @State private var pluginScanRunning:  Bool   = false
     @StateObject private var tc = TimelineController()
 
@@ -401,24 +401,12 @@ struct SessionInspectorView: View {
                 }
                 ForEach(session.plugins, id: \.self) { plugin in
                     PluginRow(plugin: plugin, installed: installedPlugins.map {
-                        $0.contains(pluginBundleName(plugin))
+                        $0.contains(plugin,
+                                    secondString: session.pluginSecondStrings[plugin])
                     })
                 }
             }
         }
-    }
-
-    /// Strips trailing format suffix like " (mono)", " (stereo)", " (5.1)" so the
-    /// display name from the PTX binary can be matched against the .aaxplugin bundle name.
-    private func pluginBundleName(_ displayName: String) -> String {
-        var s = displayName
-        if let paren = s.lastIndex(of: "("), s.last == ")" {
-            let before = s[s.startIndex ..< paren]
-            if before.last == " " {
-                s = String(before.dropLast())
-            }
-        }
-        return s.lowercased()
     }
 
     private func scanInstalledPlugins() {
@@ -429,16 +417,16 @@ struct SessionInspectorView: View {
                 FileManager.default.homeDirectoryForCurrentUser
                     .appendingPathComponent("Library/Application Support/Avid/Audio/Plug-Ins")
             ]
-            var found = Set<String>()
+            var index = InstalledPluginIndex()
             for dir in dirs {
                 let items = (try? FileManager.default.contentsOfDirectory(
                     at: dir, includingPropertiesForKeys: nil)) ?? []
                 for url in items where url.pathExtension.lowercased() == "aaxplugin" {
-                    found.insert(url.deletingPathExtension().lastPathComponent.lowercased())
+                    index.add(bundleURL: url)
                 }
             }
             await MainActor.run {
-                installedPlugins = found
+                installedPlugins = index
                 pluginScanRunning = false
             }
         }
@@ -731,6 +719,53 @@ private struct ListRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 3)
+    }
+}
+
+// MARK: - Installed plugin index
+
+/// Indexes installed .aaxplugin bundles by bundle ID and CFBundleName for reliable matching.
+/// Matching strategy (in order):
+///   1. PTX second string vs CFBundleIdentifier (reverse-DNS, exact lowercased)
+///   2. PTX second string (format suffix stripped) vs CFBundleName (lowercased)
+///   3. PTX display name (format suffix stripped) vs CFBundleName (lowercased)
+private struct InstalledPluginIndex {
+    private var bundleIds:    Set<String> = []   // lowercased CFBundleIdentifiers
+    private var bundleNames:  Set<String> = []   // lowercased CFBundleNames
+
+    mutating func add(bundleURL: URL) {
+        let plist = bundleURL
+            .appendingPathComponent("Contents")
+            .appendingPathComponent("Info.plist")
+        if let dict = NSDictionary(contentsOf: plist) {
+            if let bid = dict["CFBundleIdentifier"] as? String { bundleIds.insert(bid.lowercased()) }
+            if let bn  = dict["CFBundleName"]       as? String { bundleNames.insert(bn.lowercased()) }
+        }
+        // Always index the folder name too as a last-resort fallback
+        bundleNames.insert(bundleURL.deletingPathExtension().lastPathComponent.lowercased())
+    }
+
+    func contains(_ displayName: String, secondString: String?) -> Bool {
+        let stripped = stripFormatSuffix(displayName).lowercased()
+        // 1. Second string as bundle ID
+        if let s = secondString, s.contains("."), bundleIds.contains(s.lowercased()) { return true }
+        // 2. Second string variant name stripped
+        if let s = secondString, bundleNames.contains(stripFormatSuffix(s).lowercased()) { return true }
+        // 3. Display name vs bundle name
+        return bundleNames.contains(stripped)
+    }
+
+    private func stripFormatSuffix(_ s: String) -> String {
+        var result = s
+        if let paren = result.lastIndex(of: "("), result.last == ")" {
+            let before = result[result.startIndex ..< paren]
+            if before.last == " " { result = String(before.dropLast()) }
+        }
+        // Also strip trailing " Mono", " Stereo", " 5.1", " 7.1" etc.
+        for suffix in [" Mono", " Stereo", " 5.1", " 7.1", " LCR", " Quad"] {
+            if result.hasSuffix(suffix) { result = String(result.dropLast(suffix.count)); break }
+        }
+        return result
     }
 }
 
