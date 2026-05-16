@@ -94,7 +94,8 @@ struct PTXTrack: Equatable {
     var clips:        [PTXClip] = []
     var inputPath:    String?  = nil   // I/O input bus name, e.g. "FULL MIX"
     var outputPath:   String?  = nil   // I/O output bus name, e.g. "STERO OUT"
-    var isAtmosObject: Bool    = false // true = Atmos Object send; false = Bed or non-Atmos
+    var isAtmosObject: Bool    = false // true = Atmos Object send
+    var isAtmosBed:    Bool    = false // true = Atmos Bed send
 
     var channelFormat: String {
         switch type {

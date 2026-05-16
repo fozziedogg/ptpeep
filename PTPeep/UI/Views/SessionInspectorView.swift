@@ -35,6 +35,8 @@ struct SessionInspectorView: View {
     @AppStorage("tl.showInactiveTracks") private var tlShowInactiveTracks: Bool = true
     @State private var markerSearch:         String  = ""
     @State private var hiddenTrackTypes:     Set<PTXTrackType> = []
+    @State private var hideAtmosObjects:     Bool = false
+    @State private var hideAtmosBeds:        Bool = false
     @State private var trackSectionExpanded:   Bool = false
     @State private var audioSectionExpanded:   Bool = false
     @State private var pluginSectionExpanded:  Bool = false
@@ -314,6 +316,25 @@ struct SessionInspectorView: View {
     }
 
     @ViewBuilder
+    private func atmosFilterBadge(label: String, color: Color, hidden: Binding<Bool>) -> some View {
+        Button { hidden.wrappedValue.toggle() } label: {
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(hidden.wrappedValue ? AnyShapeStyle(.tertiary) : AnyShapeStyle(color))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(hidden.wrappedValue
+                    ? Color(nsColor: .separatorColor).opacity(0.3)
+                    : color.opacity(0.15)))
+                .overlay(Capsule().strokeBorder(
+                    hidden.wrappedValue ? Color.clear : color.opacity(0.5),
+                    lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.1), value: hidden.wrappedValue)
+    }
+
+    @ViewBuilder
     private var trackFilterBadges: some View {
         if presentTrackTypes.count > 1 {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -341,11 +362,23 @@ struct SessionInspectorView: View {
                         .buttonStyle(.plain)
                         .animation(.easeInOut(duration: 0.1), value: hidden)
                     }
-                    if !hiddenTrackTypes.isEmpty {
-                        Button("Show all") { hiddenTrackTypes.removeAll() }
-                            .buttonStyle(.borderless)
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
+                    let hasAtmosObjects = session.tracks.contains { $0.isAtmosObject }
+                    let hasAtmosBeds    = session.tracks.contains { $0.isAtmosBed }
+                    if hasAtmosObjects {
+                        atmosFilterBadge(label: "OBJ", color: .purple, hidden: $hideAtmosObjects)
+                    }
+                    if hasAtmosBeds {
+                        atmosFilterBadge(label: "BED", color: .orange, hidden: $hideAtmosBeds)
+                    }
+                    if !hiddenTrackTypes.isEmpty || hideAtmosObjects || hideAtmosBeds {
+                        Button("Show all") {
+                            hiddenTrackTypes.removeAll()
+                            hideAtmosObjects = false
+                            hideAtmosBeds    = false
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -353,6 +386,10 @@ struct SessionInspectorView: View {
             }
             .background(Color(nsColor: .windowBackgroundColor))
         }
+    }
+
+    private var hasAtmosData: Bool {
+        session.tracks.contains { $0.isAtmosObject || $0.isAtmosBed }
     }
 
     private var trackColumnHeader: some View {
@@ -367,6 +404,10 @@ struct SessionInspectorView: View {
                     .frame(width: 110, alignment: .center)
                 Text("Output").font(.caption2).foregroundStyle(.tertiary)
                     .frame(width: 110, alignment: .center)
+            }
+            if hasAtmosData {
+                Text("Atmos").font(.caption2).foregroundStyle(.tertiary)
+                    .frame(width: 50, alignment: .center)
             }
             Spacer(minLength: 0)
         }
@@ -383,6 +424,8 @@ struct SessionInspectorView: View {
             !hiddenTrackTypes.contains($0.type)
             && (tlShowHiddenTracks   || !$0.isHidden)
             && (tlShowInactiveTracks || !$0.isInactive)
+            && (!hideAtmosObjects    || !$0.isAtmosObject)
+            && (!hideAtmosBeds       || !$0.isAtmosBed)
         }
         let hasPlugins   = session.tracks.contains { !$0.plugins.isEmpty }
         let totalCount   = session.tracks.count
@@ -427,7 +470,8 @@ struct SessionInspectorView: View {
             // ── Track rows ─────────────────────────────────────────────────
             ForEach(visibleTracks, id: \.index) { track in
                 TrackRow(track: track, showPlugins: showTrackPlugins,
-                         showRouting: showRouting, indented: track.folderName != nil)
+                         showRouting: showRouting, showAtmos: hasAtmosData,
+                         indented: track.folderName != nil)
             }
         }
     }
@@ -699,6 +743,7 @@ private struct TrackRow: View {
     let track: PTXTrack
     let showPlugins: Bool
     var showRouting: Bool = false
+    var showAtmos:   Bool = false
     var indented: Bool = false
 
     // Indent absorbed inside the name zone so Format/Input/Output columns
@@ -751,21 +796,35 @@ private struct TrackRow: View {
                         .lineLimit(1)
                         .frame(width: 110, alignment: .center)
 
-                    HStack(spacing: 3) {
+                    Text(track.outputPath ?? "")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .frame(width: 110, alignment: .center)
+                }
+                if showAtmos {
+                    Group {
                         if track.isAtmosObject {
                             Text("OBJ")
                                 .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 1)
-                                .background(Color.purple.opacity(0.8), in: RoundedRectangle(cornerRadius: 3))
+                                .foregroundStyle(Color.purple)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.purple.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+                                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.purple.opacity(0.4), lineWidth: 0.5))
+                        } else if track.isAtmosBed {
+                            Text("BED")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(Color.orange)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+                                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.orange.opacity(0.4), lineWidth: 0.5))
+                        } else {
+                            Color.clear
                         }
-                        Text(track.outputPath ?? "")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
                     }
-                    .frame(width: 110, alignment: .center)
+                    .frame(width: 50, alignment: .center)
                 }
                 Spacer(minLength: 0)
             }

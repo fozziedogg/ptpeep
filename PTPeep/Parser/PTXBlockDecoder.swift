@@ -1160,7 +1160,8 @@ final class PTXBlockDecoder {
     struct RoutingEntry {
         var inputPath:    String?
         var outputPath:   String?
-        var isAtmosObject: Bool = false   // true = Atmos Object, false = Bed (or non-Atmos)
+        var isAtmosObject: Bool = false  // true = Atmos Object send (bytes[0..1]==0, bytes[2]!=0)
+        var isAtmosBed:    Bool = false  // true = Atmos Bed send (bytes[0]!=0 = channel format code)
     }
 
     /// Returns a dictionary mapping track display names → routing entry (inputPath, outputPath).
@@ -1214,6 +1215,7 @@ final class PTXBlockDecoder {
             //   00 00 = Atmos Object; non-zero = Bed (value is channel format code).
             var outputPath: String? = nil
             var isAtmosObject = false
+            var isAtmosBed    = false
             if let pathBlock = all260e.first(where: { e in
                 guard e.dataOffset >= cStart, e.dataOffset + e.dataSize <= cEnd else { return false }
                 return all260d.contains(where: { d in
@@ -1231,10 +1233,14 @@ final class PTXBlockDecoder {
                     let bytes = data[(lpOff+4)..<(lpOff+4+Int(sl))]
                     if let s = String(bytes: bytes, encoding: .utf8), !s.isEmpty {
                         outputPath = s
-                        // Read the two-byte Atmos flag immediately after the string
+                        // Read Atmos flag bytes immediately after the string.
+                        // Object: bytes[0..1]==0x00, bytes[2]!=0x00 (bytes[2] is object index)
+                        // Bed:    bytes[0]!=0x00 (channel format code)
                         let flagOff = lpOff + 4 + Int(sl)
-                        if flagOff + 2 <= pathBlock.dataOffset + pathBlock.dataSize {
-                            isAtmosObject = data[flagOff] == 0x00 && data[flagOff + 1] == 0x00
+                        if flagOff + 3 <= pathBlock.dataOffset + pathBlock.dataSize {
+                            let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
+                            isAtmosObject = b0 == 0x00 && b1 == 0x00 && b2 != 0x00
+                            isAtmosBed    = b0 != 0x00
                         }
                     }
                 }
@@ -1273,7 +1279,8 @@ final class PTXBlockDecoder {
             guard outputPath != nil || inputPath != nil else { continue }
             strips.append(StripRouting(name: name, uid: uid,
                                        entry: RoutingEntry(inputPath: inputPath, outputPath: outputPath,
-                                                           isAtmosObject: isAtmosObject)))
+                                                           isAtmosObject: isAtmosObject,
+                                                           isAtmosBed: isAtmosBed)))
         }
 
         // Build UID → routing lookup
