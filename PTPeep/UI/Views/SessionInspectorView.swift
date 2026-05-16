@@ -751,11 +751,21 @@ private struct TrackRow: View {
                         .lineLimit(1)
                         .frame(width: 110, alignment: .center)
 
-                    Text(track.outputPath ?? "")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .frame(width: 110, alignment: .center)
+                    HStack(spacing: 3) {
+                        if track.isAtmosObject {
+                            Text("OBJ")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(Color.purple.opacity(0.8), in: RoundedRectangle(cornerRadius: 3))
+                        }
+                        Text(track.outputPath ?? "")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .frame(width: 110, alignment: .center)
                 }
                 Spacer(minLength: 0)
             }

@@ -305,7 +305,7 @@ final class PTXParser {
 
         // Track routing (input + output paths from 0x261b containers)
         let routing = PTXBlockDecoder.extractRouting(blocks: blocks, data: decoded, bigEndian: bigEndian)
-        print("[PTXParser] Routing: \(routing.map { "\($0.key): in=\($0.value.inputPath ?? "—") out=\($0.value.outputPath ?? "—")" }.sorted())")
+        print("[PTXParser] Routing: \(routing.map { "\($0.key): in=\($0.value.inputPath ?? "—") out=\($0.value.outputPath ?? "—")\($0.value.isAtmosObject ? " [OBJ]" : "")" }.sorted())")
 
         for i in session.tracks.indices {
             let name = session.tracks[i].name
@@ -321,8 +321,9 @@ final class PTXParser {
                 }).flatMap { routing[$0] }
             }
             if let e = entry {
-                session.tracks[i].inputPath  = e.inputPath
-                session.tracks[i].outputPath = e.outputPath
+                session.tracks[i].inputPath     = e.inputPath
+                session.tracks[i].outputPath    = e.outputPath
+                session.tracks[i].isAtmosObject = e.isAtmosObject
             }
         }
 

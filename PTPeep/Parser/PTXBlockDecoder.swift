@@ -1158,8 +1158,9 @@ final class PTXBlockDecoder {
     //   If no valid LP string follows the sentinel, the track has no input path.
 
     struct RoutingEntry {
-        var inputPath:  String?
-        var outputPath: String?
+        var inputPath:    String?
+        var outputPath:   String?
+        var isAtmosObject: Bool = false   // true = Atmos Object, false = Bed (or non-Atmos)
     }
 
     /// Returns a dictionary mapping track display names → routing entry (inputPath, outputPath).
@@ -1209,7 +1210,10 @@ final class PTXBlockDecoder {
             // ── Output path ───────────────────────────────────────────────────
             // LP string at byte offset +36 inside the first 0x260e block that is
             // nested within a 0x260d block in this container.
+            // The two bytes immediately after the LP string indicate Atmos routing:
+            //   00 00 = Atmos Object; non-zero = Bed (value is channel format code).
             var outputPath: String? = nil
+            var isAtmosObject = false
             if let pathBlock = all260e.first(where: { e in
                 guard e.dataOffset >= cStart, e.dataOffset + e.dataSize <= cEnd else { return false }
                 return all260d.contains(where: { d in
@@ -1227,6 +1231,11 @@ final class PTXBlockDecoder {
                     let bytes = data[(lpOff+4)..<(lpOff+4+Int(sl))]
                     if let s = String(bytes: bytes, encoding: .utf8), !s.isEmpty {
                         outputPath = s
+                        // Read the two-byte Atmos flag immediately after the string
+                        let flagOff = lpOff + 4 + Int(sl)
+                        if flagOff + 2 <= pathBlock.dataOffset + pathBlock.dataSize {
+                            isAtmosObject = data[flagOff] == 0x00 && data[flagOff + 1] == 0x00
+                        }
                     }
                 }
             }
@@ -1263,7 +1272,8 @@ final class PTXBlockDecoder {
 
             guard outputPath != nil || inputPath != nil else { continue }
             strips.append(StripRouting(name: name, uid: uid,
-                                       entry: RoutingEntry(inputPath: inputPath, outputPath: outputPath)))
+                                       entry: RoutingEntry(inputPath: inputPath, outputPath: outputPath,
+                                                           isAtmosObject: isAtmosObject)))
         }
 
         // Build UID → routing lookup
