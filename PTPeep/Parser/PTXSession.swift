@@ -98,7 +98,9 @@ struct PTXTrack: Equatable {
     var channelFormat: String {
         switch type {
         case .video:  return "Video"
-        case .vca, .folder: return ""
+        case .vca: return ""
+        case .folder:
+            if inputPath == nil && outputPath == nil { return "" }  // Basic Folder — no routing
         default: break
         }
         // Prefer the exact label decoded from the PT format byte; fall back to count.

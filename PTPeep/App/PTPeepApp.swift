@@ -227,6 +227,9 @@ final class AppState: ObservableObject {
                   !(win is NSSavePanel) else { return }
             MainActor.assumeIsolated {
                 self.mainWindow = win
+                if win.frameAutosaveName.isEmpty {
+                    win.setFrameAutosaveName("PTPeepMainWindow")
+                }
                 if !(win.delegate is CloseInterceptorDelegate) {
                     let interceptor = CloseInterceptorDelegate(originalDelegate: win.delegate)
                     win.delegate = interceptor

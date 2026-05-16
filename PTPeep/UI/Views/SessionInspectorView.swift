@@ -359,7 +359,7 @@ struct SessionInspectorView: View {
         HStack(spacing: 0) {
             Color.clear.frame(width: 24)  // icon (16) + gap (8)
             Text("Name").font(.caption2).foregroundStyle(.tertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: 200, alignment: .leading)
             Text("Format").font(.caption2).foregroundStyle(.tertiary)
                 .frame(width: 55, alignment: .center)
             if hasRoutingData {
@@ -368,6 +368,7 @@ struct SessionInspectorView: View {
                 Text("Output").font(.caption2).foregroundStyle(.tertiary)
                     .frame(width: 110, alignment: .center)
             }
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 3)
@@ -727,7 +728,7 @@ private struct TrackRow: View {
                             .foregroundStyle(.tertiary)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: 200, alignment: .leading)
                 .padding(.leading, 8)
 
                 Text(track.channelFormat)
@@ -748,6 +749,7 @@ private struct TrackRow: View {
                         .lineLimit(1)
                         .frame(width: 110, alignment: .center)
                 }
+                Spacer(minLength: 0)
             }
 
             // Plugin pills
@@ -1476,6 +1478,18 @@ private struct SessionTimelineView: View {
 
             // ── Checkbox row ─────────────────────────────────────────────────
             HStack(spacing: 12) {
+                if hasMarkers {
+                    Toggle(isOn: $showMarkers) {
+                        Text("Show Markers").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .toggleStyle(.checkbox)
+                }
+                if hasVideo {
+                    Toggle(isOn: $showVideo) {
+                        Text("Show Video Track").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .toggleStyle(.checkbox)
+                }
                 if hasHidden {
                     Toggle(isOn: $showHidden) {
                         Text("Show Hidden Tracks").font(.caption).foregroundStyle(.secondary)
@@ -1488,28 +1502,16 @@ private struct SessionTimelineView: View {
                     }
                     .toggleStyle(.checkbox)
                 }
-                if hasVideo {
-                    Toggle(isOn: $showVideo) {
-                        Text("Show Video Track").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
+                Toggle(isOn: $showEmpty) {
+                    Text("Show Empty Tracks").font(.caption).foregroundStyle(.secondary)
                 }
+                .toggleStyle(.checkbox)
                 if hasMuted {
                     Toggle(isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 })) {
                         Text("Show Muted Clips").font(.caption).foregroundStyle(.secondary)
                     }
                     .toggleStyle(.checkbox)
                 }
-                if hasMarkers {
-                    Toggle(isOn: $showMarkers) {
-                        Text("Show Markers").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                Toggle(isOn: $showEmpty) {
-                    Text("Show Empty Tracks").font(.caption).foregroundStyle(.secondary)
-                }
-                .toggleStyle(.checkbox)
                 Spacer()
             }
             .padding(.horizontal, 8)
