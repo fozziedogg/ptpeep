@@ -701,12 +701,20 @@ private struct TrackRow: View {
     var showRouting: Bool = false
     var indented: Bool = false
 
+    // Indent absorbed inside the name zone so Format/Input/Output columns
+    // stay at a fixed X position regardless of nesting.
+    private static let indentWidth: CGFloat = 12
+    private static let nameZoneWidth: CGFloat = 200   // matches column header
+
     var body: some View {
         let dimmed = track.isHidden || track.isInactive
-        let leadingPad: CGFloat = indented ? 28 : 16
+        let nameWidth = Self.nameZoneWidth - (indented ? Self.indentWidth : 0)
 
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 0) {
+                // Indent spacer (zero width when not nested)
+                Color.clear.frame(width: indented ? Self.indentWidth : 0)
+
                 Image(systemName: track.type.systemImage)
                     .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : track.type.tintColor)
                     .frame(width: 16)
@@ -728,7 +736,7 @@ private struct TrackRow: View {
                             .foregroundStyle(.tertiary)
                     }
                 }
-                .frame(width: 200, alignment: .leading)
+                .frame(width: nameWidth, alignment: .leading)
                 .padding(.leading, 8)
 
                 Text(track.channelFormat)
@@ -767,10 +775,11 @@ private struct TrackRow: View {
                         }
                     }
                 }
-                .padding(.leading, indented ? 34 : 22)
+                // Align pills with track name (indent + icon + gap)
+                .padding(.leading, (indented ? Self.indentWidth : 0) + 16 + 8)
             }
         }
-        .padding(.leading, leadingPad)
+        .padding(.leading, 16)
         .padding(.trailing, 16)
         .padding(.vertical, 3)
     }
