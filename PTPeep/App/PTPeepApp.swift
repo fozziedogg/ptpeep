@@ -152,24 +152,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var appState: AppState?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // SwiftUI's WindowGroup positions the window during the first run-loop cycle.
-        // Restore the saved frame (including monitor) on the cycle after that.
-        let savedFrameString = UserDefaults.standard.string(forKey: "NSWindow Frame PTPeepMainWindow")
-        print("[WindowRestore] applicationDidFinishLaunching — saved frame string: \(savedFrameString ?? "nil")")
-        print("[WindowRestore] screens: \(NSScreen.screens.map { "\($0.localizedName) frame=\($0.frame)" })")
-
+        // SwiftUI sets its own autosave name so AppKit's frame-autosave mechanism
+        // is unavailable to us. Instead we manually save/restore via our own key.
+        // The restore must happen after SwiftUI's WindowGroup finishes positioning
+        // the window (next run-loop cycle).
         DispatchQueue.main.async {
-            let win = NSApp.windows.first(where: { !($0 is NSSavePanel) })
-            print("[WindowRestore] async tick — win: \(win.map { "\($0)" } ?? "nil")")
-            guard let win else { return }
-            print("[WindowRestore] before restore — frame=\(win.frame) autosaveName='\(win.frameAutosaveName)'")
-            if win.frameAutosaveName.isEmpty {
-                win.setFrameAutosaveName("PTPeepMainWindow")
-                print("[WindowRestore] set autosave name")
+            guard let win = NSApp.windows.first(where: { !($0 is NSSavePanel) }) else { return }
+            if let saved = UserDefaults.standard.string(forKey: "ptpeepWindowFrame") {
+                let rect = NSRectFromString(saved)
+                if rect != .zero { win.setFrame(rect, display: true) }
             }
-            let restored = win.setFrameUsingName("PTPeepMainWindow", force: true)
-            print("[WindowRestore] setFrameUsingName(force:true) returned \(restored)")
-            print("[WindowRestore] after restore  — frame=\(win.frame) screen=\(win.screen?.localizedName ?? "nil")")
         }
     }
 
@@ -248,7 +240,6 @@ final class AppState: ObservableObject {
                   !(win is NSSavePanel) else { return }
             MainActor.assumeIsolated {
                 self.mainWindow = win
-                print("[WindowRestore] didBecomeKey — frame=\(win.frame) autosaveName='\(win.frameAutosaveName)' screen=\(win.screen?.localizedName ?? "nil")")
                 if win.frameAutosaveName.isEmpty {
                     win.setFrameAutosaveName("PTPeepMainWindow")
                 }
@@ -604,9 +595,16 @@ private final class CloseInterceptorDelegate: NSObject, NSWindowDelegate {
 
     func windowDidMove(_ notification: Notification) {
         if let win = notification.object as? NSWindow {
-            print("[WindowRestore] windowDidMove — frame=\(win.frame) screen=\(win.screen?.localizedName ?? "nil")")
+            UserDefaults.standard.set(NSStringFromRect(win.frame), forKey: "ptpeepWindowFrame")
         }
         originalDelegate?.windowDidMove?(notification)
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        if let win = notification.object as? NSWindow {
+            UserDefaults.standard.set(NSStringFromRect(win.frame), forKey: "ptpeepWindowFrame")
+        }
+        originalDelegate?.windowDidEndLiveResize?(notification)
     }
 
     override func responds(to aSelector: Selector!) -> Bool {
