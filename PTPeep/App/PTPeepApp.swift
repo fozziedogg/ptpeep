@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import Combine
 
 @main
 struct PTPeepApp: App {
@@ -109,7 +110,8 @@ private struct PeepingView: View {
 // MARK: - Settings
 
 private struct SettingsView: View {
-    @AppStorage("colorMode") private var colorMode: ColorMode = .dark
+    @AppStorage("colorMode")         private var colorMode:         ColorMode = .dark
+    @AppStorage("reopenPreviousTabs") private var reopenPreviousTabs: Bool    = false
 
     var body: some View {
         Form {
@@ -119,9 +121,11 @@ private struct SettingsView: View {
                 Text("GRM (color blind)").tag(ColorMode.grm)
             }
             .pickerStyle(.radioGroup)
+
+            Toggle("Reopen previous tabs on launch", isOn: $reopenPreviousTabs)
         }
         .padding(20)
-        .frame(width: 280)
+        .frame(width: 300)
     }
 }
 
@@ -185,10 +189,12 @@ final class AppState: ObservableObject {
     private var windowObserver:  Any?
     private var closeInterceptor: CloseInterceptorDelegate?
     private var openTasks:        [UUID: Task<Void, Never>] = [:]
+    private var tabsCancellable:  AnyCancellable?
 
     @Published var recentURLs: [URL] = []
-    private static let recentsKey = "recentSessionURLs"
-    private static let maxRecents = 10
+    private static let recentsKey   = "recentSessionURLs"
+    private static let openTabsKey  = "openTabURLs"
+    private static let maxRecents   = 10
 
     var selectedTab: TabState? {
         guard let id = selectedTabID else { return nil }
@@ -217,6 +223,20 @@ final class AppState: ObservableObject {
             .compactMap { URL(string: $0) }
             .filter { fm.fileExists(atPath: $0.path) }
 
+        // Save open tab URLs whenever the tabs array changes.
+        tabsCancellable = $tabs
+            .map { $0.compactMap { $0.sessionURL?.absoluteString } }
+            .sink { UserDefaults.standard.set($0, forKey: Self.openTabsKey) }
+
+        // Restore previous tabs if the user has that setting enabled.
+        if UserDefaults.standard.bool(forKey: "reopenPreviousTabs") {
+            let fm = FileManager.default
+            let savedURLs = (UserDefaults.standard.stringArray(forKey: Self.openTabsKey) ?? [])
+                .compactMap { URL(string: $0) }
+                .filter { fm.fileExists(atPath: $0.path) }
+            for url in savedURLs { open(url: url) }
+        }
+
         windowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didBecomeKeyNotification,
             object: nil,
@@ -229,6 +249,10 @@ final class AppState: ObservableObject {
                 self.mainWindow = win
                 if win.frameAutosaveName.isEmpty {
                     win.setFrameAutosaveName("PTPeepMainWindow")
+                    // setFrameAutosaveName restores the frame, but SwiftUI's WindowGroup
+                    // may reposition the window afterward. Force-apply the saved frame
+                    // so the correct monitor and position are always honored.
+                    win.setFrameUsingName("PTPeepMainWindow", force: true)
                 }
                 if !(win.delegate is CloseInterceptorDelegate) {
                     let interceptor = CloseInterceptorDelegate(originalDelegate: win.delegate)
