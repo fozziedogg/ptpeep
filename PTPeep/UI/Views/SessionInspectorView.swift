@@ -623,6 +623,7 @@ private struct TrackRow: View {
                     .font(.subheadline)
                     .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
                     .italic(track.isInactive)
+                    .lineLimit(1)
 
                 if track.isHidden {
                     Image(systemName: "eye.slash")
@@ -640,28 +641,19 @@ private struct TrackRow: View {
                 Text(track.channelFormat)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
+                    .frame(width: 60, alignment: .trailing)
 
-            // I/O routing
-            if track.inputPath != nil || track.outputPath != nil {
-                HStack(spacing: 4) {
-                    if let inp = track.inputPath {
-                        Label(inp, systemImage: "arrow.down.to.line")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    if track.inputPath != nil && track.outputPath != nil {
-                        Text("→")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    if let out = track.outputPath {
-                        Label(out, systemImage: "arrow.up.to.line")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.leading, indented ? 34 : 22)
+                Text(track.inputPath.map { "i: \($0)" } ?? "")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(width: 130, alignment: .leading)
+
+                Text(track.outputPath.map { "o: \($0)" } ?? "")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(width: 130, alignment: .leading)
             }
 
             // Plugin pills

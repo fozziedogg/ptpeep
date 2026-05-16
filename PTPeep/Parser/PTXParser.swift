@@ -308,26 +308,9 @@ final class PTXParser {
         print("[PTXParser] Routing: \(routing.map { "\($0.key): in=\($0.value.inputPath ?? "—") out=\($0.value.outputPath ?? "—")" }.sorted())")
 
         for i in session.tracks.indices {
-            let name = session.tracks[i].name
-            // Match by exact strip name, then .dupN suffix, then sorted tokens (same logic as plugins)
-            let entry: PTXBlockDecoder.RoutingEntry?
-            if let e = routing[name] {
-                entry = e
-            } else if let key = routing.keys.first(where: { $0.hasPrefix(name + ".dup") }) {
-                entry = routing[key]
-            } else {
-                let trackSorted = name.lowercased().split(separator: " ").sorted()
-                if let key = routing.keys.first(where: {
-                    stripDupSuffix($0).lowercased().split(separator: " ").sorted() == trackSorted
-                }) {
-                    entry = routing[key]
-                } else {
-                    entry = nil
-                }
-            }
-            if let e = entry {
-                session.tracks[i].inputPath  = e.inputPath
-                session.tracks[i].outputPath = e.outputPath
+            if let entry = routing[session.tracks[i].name] {
+                session.tracks[i].inputPath  = entry.inputPath
+                session.tracks[i].outputPath = entry.outputPath
             }
         }
 

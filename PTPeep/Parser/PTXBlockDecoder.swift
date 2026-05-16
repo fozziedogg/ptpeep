@@ -1162,24 +1162,32 @@ final class PTXBlockDecoder {
         var outputPath: String?
     }
 
-    /// Returns a dictionary mapping mixer-strip names → routing entry (inputPath, outputPath).
-    /// The keys are the raw 0x102d strip names, which may differ from the current display name
-    /// for renamed tracks.  The caller should use the same name-matching logic as for plugins.
+    /// Returns a dictionary mapping track display names → routing entry (inputPath, outputPath).
+    /// Uses UID-based matching (via 0x210b blocks) to handle renamed tracks, with a strip-name
+    /// fallback — mirroring the same two-pass strategy as extractTrackPlugins.
     static func extractRouting(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [String: RoutingEntry] {
-        var result: [String: RoutingEntry] = [:]
+        let sorted = blocks.sorted { $0.dataOffset < $1.dataOffset }
 
-        let all261b = blocks.filter { $0.contentType == 0x261b }
-        let all260d  = blocks.filter { $0.contentType == 0x260d }
-        let all260e  = blocks.filter { $0.contentType == 0x260e }
-        let all102d  = blocks.filter { $0.contentType == 0x102d }
+        let all261b = sorted.filter { $0.contentType == 0x261b }
+        let all260d  = sorted.filter { $0.contentType == 0x260d }
+        let all260e  = sorted.filter { $0.contentType == 0x260e }
+
+        // Per-strip routing data collected from 0x261b containers
+        struct StripRouting { var name: String; var uid: String; var entry: RoutingEntry }
+        var strips: [StripRouting] = []
 
         for container in all261b {
             let cStart = container.dataOffset
             let cEnd   = container.dataOffset + container.dataSize
 
-            // Track name from 0x102d strip, which wraps a 0x2619 sub-block.
-            // LP string starts at strip.dataOffset + 9 (past the 0x2619 block header).
-            guard let strip = all102d.first(where: {
+            // Track name + UID from 0x102d strip.
+            // Layout at strip.dataOffset + 9 (past 0x2619 sub-block header):
+            //   [0-3]  u32 LE nameLen
+            //   [4..4+nl-1]  strip name
+            //   [4+nl .. 4+nl+10]  11-byte suffix
+            //   [4+nl+11 .. 4+nl+18]  8-byte strip UID
+            guard let strip = sorted.first(where: {
+                $0.contentType == 0x102d &&
                 $0.dataOffset >= cStart && $0.dataOffset + $0.dataSize <= cEnd
             }) else { continue }
 
@@ -1189,6 +1197,14 @@ final class PTXBlockDecoder {
                   nameOff + 4 + Int(nl) <= data.count,
                   let name = String(bytes: data[(nameOff+4)..<(nameOff+4+Int(nl))], encoding: .utf8),
                   !name.isEmpty else { continue }
+
+            let uidStart = nameOff + 4 + Int(nl) + 11
+            let uid: String
+            if uidStart + 8 <= data.count {
+                uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
+            } else {
+                uid = ""
+            }
 
             // ── Output path ───────────────────────────────────────────────────
             // LP string at byte offset +36 inside the first 0x260e block that is
@@ -1245,9 +1261,45 @@ final class PTXBlockDecoder {
                 pos += 1
             }
 
-            if outputPath != nil || inputPath != nil {
-                result[name] = RoutingEntry(inputPath: inputPath, outputPath: outputPath)
+            guard outputPath != nil || inputPath != nil else { continue }
+            strips.append(StripRouting(name: name, uid: uid,
+                                       entry: RoutingEntry(inputPath: inputPath, outputPath: outputPath)))
+        }
+
+        // Build UID → routing lookup
+        var uidToRouting: [String: RoutingEntry] = [:]
+        for s in strips where !s.uid.isEmpty { uidToRouting[s.uid] = s.entry }
+
+        // Parse 0x210b blocks: display name → 8-byte UID (same layout as in extractTrackPlugins)
+        var trackToUID: [(trackName: String, uid: String)] = []
+        for b in sorted where b.contentType == 0x210b {
+            let doff = b.dataOffset
+            guard b.dataSize >= 24,
+                  let nl = safeU32(data, at: doff + 4, be: false),
+                  nl >= 1, nl <= 256,
+                  doff + 8 + Int(nl) + 8 + 8 <= data.count,
+                  let tname = String(bytes: data[(doff+8)..<(doff+8+Int(nl))], encoding: .utf8),
+                  !tname.isEmpty else { continue }
+            let uidStart = doff + 8 + Int(nl) + 8
+            let uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
+            trackToUID.append((trackName: tname, uid: uid))
+        }
+
+        var result: [String: RoutingEntry] = [:]
+
+        // Pass 1: UID-based match (handles renamed tracks)
+        var resolvedUIDs = Set<String>()
+        for (trackName, uid) in trackToUID {
+            if let entry = uidToRouting[uid] {
+                result[trackName] = entry
+                resolvedUIDs.insert(uid)
             }
+        }
+
+        // Pass 2: strip-name fallback for any strip not already resolved via UID
+        for s in strips {
+            guard !s.uid.isEmpty ? !resolvedUIDs.contains(s.uid) : result[s.name] == nil else { continue }
+            result[s.name] = s.entry
         }
 
         return result
