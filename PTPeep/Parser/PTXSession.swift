@@ -92,6 +92,8 @@ struct PTXTrack: Equatable {
     var colorIndex:   Int     = -1    // Pro Tools color index 0–55; -1 = no custom color
     var plugins:      [String] = []
     var clips:        [PTXClip] = []
+    var inputPath:    String?  = nil   // I/O input bus name, e.g. "FULL MIX"
+    var outputPath:   String?  = nil   // I/O output bus name, e.g. "STERO OUT"
 
     var channelFormat: String {
         if type == .video { return "Video" }

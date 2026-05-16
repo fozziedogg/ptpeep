@@ -642,6 +642,28 @@ private struct TrackRow: View {
                     .foregroundStyle(.secondary)
             }
 
+            // I/O routing
+            if track.inputPath != nil || track.outputPath != nil {
+                HStack(spacing: 4) {
+                    if let inp = track.inputPath {
+                        Label(inp, systemImage: "arrow.down.to.line")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    if track.inputPath != nil && track.outputPath != nil {
+                        Text("→")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    if let out = track.outputPath {
+                        Label(out, systemImage: "arrow.up.to.line")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.leading, indented ? 34 : 22)
+            }
+
             // Plugin pills
             if showPlugins && !track.plugins.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {

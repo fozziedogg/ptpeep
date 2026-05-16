@@ -1146,6 +1146,113 @@ final class PTXBlockDecoder {
         return result
     }
 
+    // MARK: Track Routing (I/O paths)
+    //
+    // Each 0x261b block is a per-track container holding the mixer strip (0x102d) and routing data.
+    //
+    // Output path: LP string at offset +36 within the first 0x260e block that is inside a 0x260d
+    //   block inside this 0x261b container. Bytes 0–1 of 0x260e = 0xff 0xff → no path assigned.
+    //
+    // Input path: stored as raw bytes in the container's tail (after all child blocks).
+    //   Pattern: {00 00 00 00} sentinel {4 bytes} separator {00} {u32le len} {UTF-8 string}
+    //   If no valid LP string follows the sentinel, the track has no input path.
+
+    struct RoutingEntry {
+        var inputPath:  String?
+        var outputPath: String?
+    }
+
+    /// Returns a dictionary mapping mixer-strip names → routing entry (inputPath, outputPath).
+    /// The keys are the raw 0x102d strip names, which may differ from the current display name
+    /// for renamed tracks.  The caller should use the same name-matching logic as for plugins.
+    static func extractRouting(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [String: RoutingEntry] {
+        var result: [String: RoutingEntry] = [:]
+
+        let all261b = blocks.filter { $0.contentType == 0x261b }
+        let all260d  = blocks.filter { $0.contentType == 0x260d }
+        let all260e  = blocks.filter { $0.contentType == 0x260e }
+        let all102d  = blocks.filter { $0.contentType == 0x102d }
+
+        for container in all261b {
+            let cStart = container.dataOffset
+            let cEnd   = container.dataOffset + container.dataSize
+
+            // Track name from 0x102d strip, which wraps a 0x2619 sub-block.
+            // LP string starts at strip.dataOffset + 9 (past the 0x2619 block header).
+            guard let strip = all102d.first(where: {
+                $0.dataOffset >= cStart && $0.dataOffset + $0.dataSize <= cEnd
+            }) else { continue }
+
+            let nameOff = strip.dataOffset + 9
+            guard let nl = safeU32(data, at: nameOff, be: false),
+                  nl >= 1, nl <= 64,
+                  nameOff + 4 + Int(nl) <= data.count,
+                  let name = String(bytes: data[(nameOff+4)..<(nameOff+4+Int(nl))], encoding: .utf8),
+                  !name.isEmpty else { continue }
+
+            // ── Output path ───────────────────────────────────────────────────
+            // LP string at byte offset +36 inside the first 0x260e block that is
+            // nested within a 0x260d block in this container.
+            var outputPath: String? = nil
+            if let pathBlock = all260e.first(where: { e in
+                guard e.dataOffset >= cStart, e.dataOffset + e.dataSize <= cEnd else { return false }
+                return all260d.contains(where: { d in
+                    d.dataOffset >= cStart && d.dataOffset + d.dataSize <= cEnd &&
+                    e.dataOffset >= d.dataOffset && e.dataOffset + e.dataSize <= d.dataOffset + d.dataSize
+                })
+            }) {
+                let lpOff = pathBlock.dataOffset + 36
+                if lpOff + 4 <= pathBlock.dataOffset + pathBlock.dataSize,
+                   pathBlock.dataSize >= 2,
+                   !(data[pathBlock.dataOffset] == 0xff && data[pathBlock.dataOffset + 1] == 0xff),
+                   let sl = safeU32(data, at: lpOff, be: false),
+                   sl > 0, sl <= 256,
+                   lpOff + 4 + Int(sl) <= pathBlock.dataOffset + pathBlock.dataSize {
+                    let bytes = data[(lpOff+4)..<(lpOff+4+Int(sl))]
+                    if let s = String(bytes: bytes, encoding: .utf8), !s.isEmpty {
+                        outputPath = s
+                    }
+                }
+            }
+
+            // ── Input path ────────────────────────────────────────────────────
+            // Scan from end of last child block forward, looking for the pattern:
+            //   {00 00 00 00} {4 bytes} {00} {u32le LP length} {string}
+            var inputPath: String? = nil
+            let lastChildEnd = blocks
+                .filter {
+                    $0.dataOffset >= cStart &&
+                    $0.dataOffset + $0.dataSize <= cEnd &&
+                    !($0.dataOffset == cStart && $0.dataSize == container.dataSize) // exclude container itself
+                }
+                .map { $0.dataOffset + $0.dataSize }
+                .max() ?? cStart
+
+            var pos = lastChildEnd
+            while pos + 9 < cEnd, inputPath == nil {
+                if data[pos] == 0 && data[pos+1] == 0 && data[pos+2] == 0 && data[pos+3] == 0 {
+                    let lpOff = pos + 9   // skip sentinel(4) + format(4) + separator(1)
+                    if lpOff + 4 <= cEnd,
+                       let sl = safeU32(data, at: lpOff, be: false),
+                       sl > 0, sl <= 128, lpOff + 4 + Int(sl) <= cEnd {
+                        let bytes = data[(lpOff+4)..<(lpOff+4+Int(sl))]
+                        if bytes.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
+                           let s = String(bytes: bytes, encoding: .utf8), !s.isEmpty {
+                            inputPath = s
+                        }
+                    }
+                }
+                pos += 1
+            }
+
+            if outputPath != nil || inputPath != nil {
+                result[name] = RoutingEntry(inputPath: inputPath, outputPath: outputPath)
+            }
+        }
+
+        return result
+    }
+
     // MARK: Memory Locations
     //
     // Block 0x2077 layout (one block per memory location):

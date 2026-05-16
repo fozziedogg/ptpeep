@@ -303,6 +303,34 @@ final class PTXParser {
             }
         }
 
+        // Track routing (input + output paths from 0x261b containers)
+        let routing = PTXBlockDecoder.extractRouting(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        print("[PTXParser] Routing: \(routing.map { "\($0.key): in=\($0.value.inputPath ?? "—") out=\($0.value.outputPath ?? "—")" }.sorted())")
+
+        for i in session.tracks.indices {
+            let name = session.tracks[i].name
+            // Match by exact strip name, then .dupN suffix, then sorted tokens (same logic as plugins)
+            let entry: PTXBlockDecoder.RoutingEntry?
+            if let e = routing[name] {
+                entry = e
+            } else if let key = routing.keys.first(where: { $0.hasPrefix(name + ".dup") }) {
+                entry = routing[key]
+            } else {
+                let trackSorted = name.lowercased().split(separator: " ").sorted()
+                if let key = routing.keys.first(where: {
+                    stripDupSuffix($0).lowercased().split(separator: " ").sorted() == trackSorted
+                }) {
+                    entry = routing[key]
+                } else {
+                    entry = nil
+                }
+            }
+            if let e = entry {
+                session.tracks[i].inputPath  = e.inputPath
+                session.tracks[i].outputPath = e.outputPath
+            }
+        }
+
         // Build a lookup: audioFileIndex → base name
         let fileNameByIndex: [Int: String] = audioFiles.reduce(into: [:]) { $0[$1.index] = $1.name }
 
