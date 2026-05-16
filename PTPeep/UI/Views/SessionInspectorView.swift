@@ -68,20 +68,27 @@ struct SessionInspectorView: View {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
                     // ── Tracks ───────────────────────────────────────────────────
                     Section {
-                        if trackSectionExpanded { tracksContent.padding(.bottom, 4) }
-                        Divider().padding(.horizontal, 16)
+                        VStack(alignment: .leading, spacing: 0) {
+                            if trackSectionExpanded { tracksContent }
+                            Divider().padding(.horizontal, 16)
+                        }
                     } header: {
                         VStack(spacing: 0) {
                             SectionHeader(title: "Tracks", systemImage: "slider.horizontal.3",
                                           count: session.tracks.count, isExpanded: $trackSectionExpanded)
-                            if trackSectionExpanded { trackColumnHeader }
+                            if trackSectionExpanded {
+                                trackFilterBadges
+                                trackColumnHeader
+                            }
                         }
                         .background(Color(nsColor: .windowBackgroundColor))
                     }
                     // ── Audio Files ───────────────────────────────────────────────
                     Section {
-                        if audioSectionExpanded { audioFilesContent.padding(.bottom, 4) }
-                        Divider().padding(.horizontal, 16)
+                        VStack(alignment: .leading, spacing: 0) {
+                            if audioSectionExpanded { audioFilesContent }
+                            Divider().padding(.horizontal, 16)
+                        }
                     } header: {
                         SectionHeader(title: "Audio Files", systemImage: "waveform",
                                       count: session.audioFileNames.count, isExpanded: $audioSectionExpanded)
@@ -89,8 +96,10 @@ struct SessionInspectorView: View {
                     }
                     // ── Plug-Ins ──────────────────────────────────────────────────
                     Section {
-                        if pluginSectionExpanded { pluginsContent.padding(.bottom, 4) }
-                        Divider().padding(.horizontal, 16)
+                        VStack(alignment: .leading, spacing: 0) {
+                            if pluginSectionExpanded { pluginsContent }
+                            Divider().padding(.horizontal, 16)
+                        }
                     } header: {
                         SectionHeader(title: "Plug-Ins Used", systemImage: "puzzlepiece.extension",
                                       count: session.plugins.count, isExpanded: $pluginSectionExpanded)
@@ -98,8 +107,10 @@ struct SessionInspectorView: View {
                     }
                     // ── Memory Locations ─────────────────────────────────────────
                     Section {
-                        if memLocSectionExpanded { memoryLocationsContent.padding(.bottom, 4) }
-                        Divider().padding(.horizontal, 16)
+                        VStack(alignment: .leading, spacing: 0) {
+                            if memLocSectionExpanded { memoryLocationsContent }
+                            Divider().padding(.horizontal, 16)
+                        }
                     } header: {
                         SectionHeader(title: "Memory Locations", systemImage: "mappin.and.ellipse",
                                       count: session.memoryLocations.count, isExpanded: $memLocSectionExpanded)
@@ -297,30 +308,74 @@ struct SessionInspectorView: View {
 
     // MARK: - Tracks
 
+    private var presentTrackTypes: [PTXTrackType] {
+        let order: [PTXTrackType] = [.audio, .instrument, .midi, .aux, .vca, .master, .folder, .video, .unknown]
+        return order.filter { t in session.tracks.contains { $0.type == t } }
+    }
+
+    @ViewBuilder
+    private var trackFilterBadges: some View {
+        if presentTrackTypes.count > 1 {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    ForEach(presentTrackTypes, id: \.self) { type in
+                        let hidden = hiddenTrackTypes.contains(type)
+                        Button {
+                            if hidden { hiddenTrackTypes.remove(type) }
+                            else      { hiddenTrackTypes.insert(type) }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: type.systemImage).font(.system(size: 8))
+                                Text(type.filterLabel).font(.system(size: 10))
+                            }
+                            .foregroundStyle(hidden ? AnyShapeStyle(.tertiary) : type.tintColor)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(hidden
+                                ? Color(nsColor: .separatorColor).opacity(0.3)
+                                : Color(nsColor: .separatorColor).opacity(0.55)))
+                            .overlay(Capsule().strokeBorder(
+                                hidden ? Color.clear : Color(nsColor: .separatorColor).opacity(0.4),
+                                lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.easeInOut(duration: 0.1), value: hidden)
+                    }
+                    if !hiddenTrackTypes.isEmpty {
+                        Button("Show all") { hiddenTrackTypes.removeAll() }
+                            .buttonStyle(.borderless)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 5)
+            }
+            .background(Color(nsColor: .windowBackgroundColor))
+        }
+    }
+
     private var trackColumnHeader: some View {
-        HStack(spacing: 8) {
-            Color.clear.frame(width: 16)
+        HStack(spacing: 0) {
+            Color.clear.frame(width: 24)  // icon (16) + gap (8)
             Text("Name").font(.caption2).foregroundStyle(.tertiary)
-            Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
             Text("Format").font(.caption2).foregroundStyle(.tertiary)
-                .frame(width: 55, alignment: .trailing)
+                .frame(width: 55, alignment: .center)
             if hasRoutingData {
                 Text("Input").font(.caption2).foregroundStyle(.tertiary)
-                    .frame(width: 110, alignment: .leading)
+                    .frame(width: 110, alignment: .center)
                 Text("Output").font(.caption2).foregroundStyle(.tertiary)
-                    .frame(width: 110, alignment: .leading)
+                    .frame(width: 110, alignment: .center)
             }
         }
-        .padding(.leading, 16)
-        .padding(.trailing, 16)
+        .padding(.horizontal, 16)
         .padding(.vertical, 3)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
     @ViewBuilder
     private var tracksContent: some View {
-        let typeOrder: [PTXTrackType] = [.audio, .instrument, .midi, .aux, .vca, .master, .folder, .video, .unknown]
-        let presentTypes = typeOrder.filter { t in session.tracks.contains { $0.type == t } }
         let hasHiddenTracks   = session.tracks.contains { $0.isHidden }
         let hasInactiveTracks = session.tracks.contains { $0.isInactive }
         let visibleTracks = session.tracks.filter {
@@ -335,68 +390,32 @@ struct SessionInspectorView: View {
         if session.tracks.isEmpty {
             PlaceholderRow(text: "No tracks found")
         } else {
-            // ── Type filter badges ─────────────────────────────────────────
-            if presentTypes.count > 1 {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        ForEach(presentTypes, id: \.self) { type in
-                            let hidden = hiddenTrackTypes.contains(type)
-                            Button {
-                                if hidden { hiddenTrackTypes.remove(type) }
-                                else      { hiddenTrackTypes.insert(type) }
-                            } label: {
-                                HStack(spacing: 3) {
-                                    Image(systemName: type.systemImage).font(.system(size: 8))
-                                    Text(type.filterLabel).font(.system(size: 10))
-                                }
-                                .foregroundStyle(hidden ? AnyShapeStyle(.tertiary) : type.tintColor)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(Capsule().fill(hidden
-                                    ? Color(nsColor: .separatorColor).opacity(0.3)
-                                    : Color(nsColor: .separatorColor).opacity(0.55)))
-                                .overlay(Capsule().strokeBorder(
-                                    hidden ? Color.clear : Color(nsColor: .separatorColor).opacity(0.4),
-                                    lineWidth: 0.5))
-                            }
-                            .buttonStyle(.plain)
-                            .animation(.easeInOut(duration: 0.1), value: hidden)
+            // ── Toolbar (toggles) ──────────────────────────────────────────
+            if hasPlugins || hasHiddenTracks || hasInactiveTracks {
+                HStack(spacing: 8) {
+                    if hasPlugins {
+                        Toggle(isOn: $showTrackPlugins) {
+                            Text("Show Plug-ins").font(.caption).foregroundStyle(.secondary)
                         }
-                        if !hiddenTrackTypes.isEmpty {
-                            Button("Show all") { hiddenTrackTypes.removeAll() }
-                                .buttonStyle(.borderless)
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
+                        .toggleStyle(.checkbox)
+                    }
+                    if hasHiddenTracks {
+                        Toggle(isOn: $tlShowHiddenTracks) {
+                            Text("Show Hidden").font(.caption).foregroundStyle(.secondary)
                         }
+                        .toggleStyle(.checkbox)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 5)
+                    if hasInactiveTracks {
+                        Toggle(isOn: $tlShowInactiveTracks) {
+                            Text("Show Inactive").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    Spacer()
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 5)
             }
-            // ── Toolbar ────────────────────────────────────────────────────
-            HStack(spacing: 8) {
-                if hasPlugins {
-                    Toggle(isOn: $showTrackPlugins) {
-                        Text("Show Plug-ins").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                if hasHiddenTracks {
-                    Toggle(isOn: $tlShowHiddenTracks) {
-                        Text("Show Hidden").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                if hasInactiveTracks {
-                    Toggle(isOn: $tlShowInactiveTracks) {
-                        Text("Show Inactive").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 5)
             if visibleCount < totalCount {
                 Text("Showing \(visibleCount) of \(totalCount) tracks")
                     .font(.caption2)
@@ -686,47 +705,48 @@ private struct TrackRow: View {
         let leadingPad: CGFloat = indented ? 28 : 16
 
         VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 8) {
+            HStack(spacing: 0) {
                 Image(systemName: track.type.systemImage)
                     .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : track.type.tintColor)
                     .frame(width: 16)
 
-                Text(track.name)
-                    .font(.subheadline)
-                    .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
-                    .italic(track.isInactive)
-                    .lineLimit(1)
-
-                if track.isHidden {
-                    Image(systemName: "eye.slash")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                HStack(spacing: 4) {
+                    Text(track.name)
+                        .font(.subheadline)
+                        .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+                        .italic(track.isInactive)
+                        .lineLimit(1)
+                    if track.isHidden {
+                        Image(systemName: "eye.slash")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    if track.isInactive {
+                        Text("inactive")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
-                if track.isInactive {
-                    Text("inactive")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 8)
 
                 Text(track.channelFormat)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .frame(width: 55, alignment: .trailing)
+                    .frame(width: 55, alignment: .center)
 
                 if showRouting {
-                    Text(track.inputPath.map { "i: \($0)" } ?? "")
+                    Text(track.inputPath ?? "")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                        .frame(width: 110, alignment: .leading)
+                        .frame(width: 110, alignment: .center)
 
-                    Text(track.outputPath.map { "o: \($0)" } ?? "")
+                    Text(track.outputPath ?? "")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                        .frame(width: 110, alignment: .leading)
+                        .frame(width: 110, alignment: .center)
                 }
             }
 
