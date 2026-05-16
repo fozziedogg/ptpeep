@@ -96,7 +96,11 @@ struct PTXTrack: Equatable {
     var outputPath:   String?  = nil   // I/O output bus name, e.g. "STERO OUT"
 
     var channelFormat: String {
-        if type == .video { return "Video" }
+        switch type {
+        case .video:  return "Video"
+        case .vca, .folder: return ""
+        default: break
+        }
         // Prefer the exact label decoded from the PT format byte; fall back to count.
         if let label = channelLabel { return label }
         switch channelCount {
