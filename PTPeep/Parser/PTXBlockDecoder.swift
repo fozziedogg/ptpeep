@@ -578,18 +578,60 @@ final class PTXBlockDecoder {
             }
         }
 
-        // Infer folder membership from track ordering.
-        // folderMarkers contains both basic (tc=11) and routing (tc=2) folder tracks,
-        // detected via the binary flag at nameEnd+53 in each 0x251a block.
-        // Every non-folder track that follows a folder marker belongs to that folder
-        // until the next folder marker appears.
-        var currentFolder: String? = nil
+        // Infer folder membership from track ordering using a stack-based algorithm.
+        //
+        // Signals available per 0x251a block:
+        //   tc=0x0002 routing folders: post[0]==0x01 → nested (stored as channelCount==2
+        //     via channelInfo); post[0]>=0x02 → top-level.
+        //   tc=0x000b basic folders: post[0] is always 0x00 regardless of depth.
+        //     Heuristic using post[62:64] (color/group index, in info.colors when <0x8000,
+        //     defaulting to 0xffff otherwise):
+        //       - new folder groupId == stack-top groupId → siblings → pop top.
+        //       - last non-folder groupId == stack-top groupId → new folder is a child.
+        //       - else → not a child here; pop stack top and retry.
+        //   tc=0x0002 routing folders cannot parent tc=0x000b basic folders, so when a
+        //   tc=0x000b folder appears any routing folders on the stack top are popped first.
+
+        struct StackEntry { var name: String; var tc: UInt16; var groupId: UInt16 }
+        var stack: [StackEntry] = []
+        var lastNonFolderGroupId: UInt16 = 0xffff
+
         for name in info.orderedNames {
-            let isFolderMarker = info.folderMarkers.contains(name)
-            if isFolderMarker {
-                currentFolder = name
-            } else if let folder = currentFolder {
-                info.folderOf[name] = folder
+            let isFolder = info.folderMarkers.contains(name)
+            let tc       = info.types[name] ?? 0
+            let groupId  = UInt16(info.colors[name] ?? 0xffff)
+
+            if isFolder {
+                if tc == 0x0002 {
+                    // Routing folder: channelCount==2 proxies post[0]==0x01 (nested).
+                    let isNested = (info.channelCounts[name] ?? 0) == 2
+                    if !isNested {
+                        stack.removeAll()
+                    } else {
+                        while let top = stack.last, top.tc == 0x0002 {
+                            stack.removeLast()
+                        }
+                    }
+                } else {
+                    // tc=0x000b basic folder — group-id heuristic.
+                    while let top = stack.last, top.tc == 0x0002 {
+                        stack.removeLast()
+                    }
+                    while let top = stack.last {
+                        if top.groupId == groupId {
+                            stack.removeLast(); break
+                        } else if lastNonFolderGroupId == top.groupId {
+                            break
+                        } else {
+                            stack.removeLast()
+                        }
+                    }
+                }
+                if let parent = stack.last { info.folderOf[name] = parent.name }
+                stack.append(StackEntry(name: name, tc: tc, groupId: groupId))
+            } else {
+                lastNonFolderGroupId = groupId
+                if let parent = stack.last { info.folderOf[name] = parent.name }
             }
         }
 
