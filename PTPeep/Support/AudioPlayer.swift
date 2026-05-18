@@ -95,7 +95,9 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     private let playerNode = AVAudioPlayerNode()
     private var stopWorkItem: DispatchWorkItem?
     private var ticker:       Timer?
-    private var clipDurSec:   Double = 1
+    private var clipDurSec:   Double = 1   // remaining scheduled duration (for stop timer)
+    private var fullDurSec:   Double = 1   // full clip duration (for playbackFraction math)
+    private var seekFraction: Double = 0   // 0..1 within clip where playback started
 
     init() {
         engine.attach(playerNode)
@@ -116,7 +118,8 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
     // MARK: Playback
 
-    func play(clip: PTXClip, url: URL, sampleRate: Double) {
+    /// Start (or restart) playback from `fromFraction` (0…1) within the clip.
+    func play(clip: PTXClip, url: URL, sampleRate: Double, fromFraction: Double = 0) {
         stop()
 
         // Apply the currently-stored device preference before starting
@@ -130,11 +133,16 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
         if !engine.isRunning { try? engine.start() }
 
-        let durSec = Double(clip.lengthSamples) / max(sampleRate, 1)
-        clipDurSec = max(durSec, 0.001)
+        let clampedFrac = max(0, min(0.9999, fromFraction))
+        seekFraction  = clampedFrac
+        fullDurSec    = max(Double(clip.lengthSamples) / max(sampleRate, 1), 0.001)
 
-        let startFrame = AVAudioFramePosition(clip.sourceOffset)
-        let frameCount = AVAudioFrameCount(clip.lengthSamples)
+        let seekSamples     = Int64(clampedFrac * Double(clip.lengthSamples))
+        let remainingSamples = max(clip.lengthSamples - seekSamples, 0)
+        clipDurSec           = max(Double(remainingSamples) / max(sampleRate, 1), 0.001)
+
+        let startFrame = AVAudioFramePosition(clip.sourceOffset + seekSamples)
+        let frameCount = AVAudioFrameCount(remainingSamples)
 
         playerNode.scheduleSegment(file, startingFrame: startFrame,
                                    frameCount: frameCount, at: nil)
@@ -142,14 +150,14 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
         isPlaying        = true
         playingClip      = clip
-        playbackFraction = 0
+        playbackFraction = clampedFrac
 
         // Timer to stop at clip end
         let work = DispatchWorkItem { [weak self] in self?.stop() }
         stopWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + durSec, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + clipDurSec, execute: work)
 
-        // ~60 fps ticker for playhead position
+        // ~60 fps ticker for playhead position (absolute fraction within full clip)
         ticker = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
             guard let self, let nodeTime = self.playerNode.lastRenderTime,
                   nodeTime.isSampleTimeValid,
@@ -157,7 +165,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
                   playerTime.isSampleTimeValid,
                   frameCount > 0 else { return }
             let elapsed = Double(playerTime.sampleTime) / file.processingFormat.sampleRate
-            self.playbackFraction = max(0, min(1, elapsed / self.clipDurSec))
+            self.playbackFraction = max(0, min(1, self.seekFraction + elapsed / self.fullDurSec))
         }
     }
 
@@ -174,10 +182,11 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
     // MARK: - Waveform loading
 
-    /// Reads PCM peaks for the clip region in the source file.
-    /// Returns `resolution` Float values in 0…1. Runs off the main actor.
+    /// Reads PCM peaks for the clip region in the source file, per channel.
+    /// Returns one `[Float]` per channel (mono → 1, stereo → 2, etc.), each normalised 0…1.
+    /// Runs off the main actor.
     static func loadWaveform(url: URL, startSample: Int64, lengthSamples: Int64,
-                             sampleRate: Double, resolution: Int = 500) async -> [Float] {
+                             sampleRate: Double, resolution: Int = 500) async -> [[Float]] {
         let asset = AVURLAsset(url: url)
         guard let track = try? await asset.loadTracks(withMediaType: .audio).first else { return [] }
         guard let reader = try? AVAssetReader(asset: asset) else { return [] }
@@ -209,10 +218,10 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         )
         guard reader.startReading() else { return [] }
 
-        // Bucket PCM frames into `resolution` peak bins
+        // Bucket PCM frames into `resolution` peak bins, per channel
         let totalFrames  = Int(lengthSamples)
         let bucketFrames = max(1, totalFrames / resolution)
-        var peaks        = [Float](repeating: 0, count: resolution)
+        var peaks        = [[Float]](repeating: [Float](repeating: 0, count: resolution), count: ch)
         var frameIdx     = 0
 
         while let sampleBuf = output.copyNextSampleBuffer() {
@@ -224,18 +233,20 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
             var i = 0
             while i + ch <= count {
-                var framePeak: Float = 0
-                for c in 0..<ch { framePeak = max(framePeak, abs(data[i + c])) }
                 let bucket = min(frameIdx / bucketFrames, resolution - 1)
-                peaks[bucket] = max(peaks[bucket], framePeak)
+                for c in 0..<ch {
+                    peaks[c][bucket] = max(peaks[c][bucket], abs(data[i + c]))
+                }
                 frameIdx += 1
                 i += ch
             }
         }
 
-        // Normalise to 0…1
-        let maxPeak = peaks.max() ?? 0
-        if maxPeak > 0 { peaks = peaks.map { $0 / maxPeak } }
+        // Normalise each channel independently to 0…1
+        for c in 0..<ch {
+            let maxPeak = peaks[c].max() ?? 0
+            if maxPeak > 0 { peaks[c] = peaks[c].map { $0 / maxPeak } }
+        }
         return peaks
     }
 }

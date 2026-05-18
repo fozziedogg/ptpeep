@@ -2524,8 +2524,8 @@ private extension PTXTrackType {
 
 // MARK: - Clip Waveform View
 
-/// Async waveform display for a resolved clip. Shows PCM peaks for the clip's region
-/// in the source file, with a moving playhead while AudioPlayer is active.
+/// Async waveform display for a resolved clip. Shows PCM peaks per channel,
+/// with a moving playhead and click/drag-to-seek.
 private struct ClipWaveformView: View {
     let clip:       PTXClip
     let url:        URL
@@ -2533,8 +2533,9 @@ private struct ClipWaveformView: View {
     let color:      Color
     @ObservedObject var audioPlayer: AudioPlayer
 
-    @State private var peaks: [Float] = []
-    @State private var loadID: UUID   = UUID()
+    @State private var peaks:     [[Float]] = []   // one [Float] per channel
+    @State private var loadID:    UUID      = UUID()
+    @State private var viewWidth: CGFloat   = 1
 
     var body: some View {
         Canvas { ctx, size in
@@ -2543,42 +2544,70 @@ private struct ClipWaveformView: View {
             let mid = h / 2
 
             if peaks.isEmpty {
-                // Loading state: faint centre line
                 ctx.fill(Path(CGRect(x: 0, y: mid - 0.5, width: w, height: 1)),
                          with: .color(.secondary.opacity(0.2)))
-            } else {
-                let barW = w / CGFloat(peaks.count)
-                for (i, peak) in peaks.enumerated() {
+            } else if peaks.count >= 2 {
+                // ── Stereo: L top half (downward), R bottom half (upward) ──
+                let halfH = h / 2
+                let barW  = w / CGFloat(peaks[0].count)
+                // Faint channel divider
+                ctx.fill(Path(CGRect(x: 0, y: halfH - 0.5, width: w, height: 0.5)),
+                         with: .color(.white.opacity(0.07)))
+                for (i, peak) in peaks[0].enumerated() {
+                    let barH = max(CGFloat(peak) * (halfH - 2) * 0.9, 1)
+                    ctx.fill(Path(CGRect(x: CGFloat(i) * barW, y: halfH - barH,
+                                         width: max(barW - 0.5, 0.5), height: barH)),
+                             with: .color(color.opacity(0.65)))
+                }
+                for (i, peak) in peaks[1].enumerated() {
+                    let barH = max(CGFloat(peak) * (halfH - 2) * 0.9, 1)
+                    ctx.fill(Path(CGRect(x: CGFloat(i) * barW, y: halfH,
+                                         width: max(barW - 0.5, 0.5), height: barH)),
+                             with: .color(color.opacity(0.65)))
+                }
+            } else if let ch = peaks.first {
+                // ── Mono: symmetric around centre ──
+                let barW = w / CGFloat(ch.count)
+                for (i, peak) in ch.enumerated() {
                     let barH = max(CGFloat(peak) * (h - 4) * 0.5, 1)
-                    let x    = CGFloat(i) * barW
-                    // Symmetric waveform (top + bottom)
-                    let rect = CGRect(x: x, y: mid - barH,
+                    let rect = CGRect(x: CGFloat(i) * barW, y: mid - barH,
                                       width: max(barW - 0.5, 0.5), height: barH * 2)
                     ctx.fill(Path(rect), with: .color(color.opacity(0.65)))
                 }
             }
 
             // Playhead
-            if audioPlayer.isPlaying, audioPlayer.playingClip == clip {
+            if audioPlayer.playingClip == clip {
                 let x = CGFloat(audioPlayer.playbackFraction) * w
                 ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: h)),
                          with: .color(.white.opacity(0.9)))
-                // Subtle glow behind playhead
-                ctx.fill(Path(CGRect(x: x - 2, y: 0, width: 4, height: h)),
+                ctx.fill(Path(CGRect(x: x - 2,   y: 0, width: 4, height: h)),
                          with: .color(.white.opacity(0.12)))
             }
         }
+        .background(GeometryReader { geo in
+            Color.clear
+                .onAppear       { viewWidth = geo.size.width }
+                .onChange(of: geo.size.width) { viewWidth = $0 }
+        })
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { val in
+                    let fraction = max(0, min(1, val.location.x / viewWidth))
+                    audioPlayer.play(clip: clip, url: url,
+                                     sampleRate: sampleRate, fromFraction: fraction)
+                }
+        )
         .task(id: loadID) {
             peaks = []
-            let result = await AudioPlayer.loadWaveform(
+            peaks = await AudioPlayer.loadWaveform(
                 url: url,
                 startSample: clip.sourceOffset,
                 lengthSamples: clip.lengthSamples,
                 sampleRate: sampleRate
             )
-            peaks = result
         }
-        .onChange(of: clip)  { _ in loadID = UUID() }
-        .onChange(of: url)   { _ in loadID = UUID() }
+        .onChange(of: clip) { _ in loadID = UUID() }
+        .onChange(of: url)  { _ in loadID = UUID() }
     }
 }
