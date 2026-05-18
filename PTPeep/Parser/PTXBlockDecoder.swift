@@ -1341,8 +1341,8 @@ final class PTXBlockDecoder {
     struct RoutingEntry {
         var inputPath:    String?
         var outputPath:   String?
-        var isAtmosObject: Bool = false  // true = Atmos Object send (bytes[0..1]==0, bytes[2]!=0)
-        var isAtmosBed:    Bool = false  // true = Atmos Bed send (bytes[0]!=0 = channel format code)
+        var isAtmosObject: Bool = false  // true = Atmos Object send (b0==b1==0, b2=slot, non-ff/non-0)
+        var isAtmosBed:    Bool = false  // true = Atmos Bed send (flagOff+11 != 0xff = Atmos group id)
     }
 
     /// Returns a dictionary mapping track display names → routing entry (inputPath, outputPath).
@@ -1415,17 +1415,19 @@ final class PTXBlockDecoder {
                     if let s = String(bytes: bytes, encoding: .utf8), !s.isEmpty {
                         outputPath = s
                         // Read Atmos routing bytes immediately after the output path string.
-                        // Layout: [b0: src chan fmt][b1: dst chan fmt][b2..b7: 0xff = plain bus, else Atmos]
-                        // Plain bus routing always has 0xff at b2 (bytes[0..1] are the channel
-                        // format code of the bus, repeated). Only flag as Atmos when b2 != 0xff.
-                        //   Object: b2 != 0xff && b0==0x00 && b1==0x00 && b2!=0x00 (b2=object slot)
-                        //   Bed:    b2 != 0xff && b0!=0x00                          (b0=chan fmt)
+                        // Layout: [b0: chanFmt][b1: chanFmt][b2..b9: 0xff = plain bus, else Object slot]
+                        //         [b10: 0x00][b11: Atmos group id, 0xff = not a Bed]
+                        //   Object: b2 != 0xff && b2 != 0x00 && b0==0x00 && b1==0x00 (b2=object slot)
+                        //   Bed:    b11 != 0xff (Atmos group: 0x00=Dialog, 0x0a=Music, etc.)
                         let flagOff = lpOff + 4 + Int(sl)
-                        if flagOff + 3 <= pathBlock.dataOffset + pathBlock.dataSize {
+                        if flagOff + 12 <= pathBlock.dataOffset + pathBlock.dataSize {
                             let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
-                            let isAtmos = b2 != 0xff
-                            isAtmosObject = isAtmos && b0 == 0x00 && b1 == 0x00 && b2 != 0x00
-                            isAtmosBed    = isAtmos && b0 != 0x00
+                            let b11 = data[flagOff + 11]
+                            isAtmosObject = b2 != 0xff && b2 != 0x00 && b0 == 0x00 && b1 == 0x00
+                            isAtmosBed    = !isAtmosObject && b11 != 0xff
+                        } else if flagOff + 3 <= pathBlock.dataOffset + pathBlock.dataSize {
+                            let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
+                            isAtmosObject = b2 != 0xff && b2 != 0x00 && b0 == 0x00 && b1 == 0x00
                         }
                     }
                 }
