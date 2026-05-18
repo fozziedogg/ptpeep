@@ -2625,18 +2625,14 @@ private struct ClipWaveformView: View {
                 async let primary   = AudioPlayer.loadWaveform(url: url,      startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
                 async let secondary = AudioPlayer.loadWaveform(url: companion, startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
                 let (p, s) = await (primary, secondary)
-                let result = (p.first.map { [$0] } ?? []) + (s.first.map { [$0] } ?? [])
-                print("[WaveformView] split-stereo peaks.count=\(result.count) for '\(clip.sourceFile)'")
-                peaks = result
+                peaks = (p.first.map { [$0] } ?? []) + (s.first.map { [$0] } ?? [])
             } else {
-                let result = await AudioPlayer.loadWaveform(
+                peaks = await AudioPlayer.loadWaveform(
                     url: url,
                     startSample: clip.sourceOffset,
                     lengthSamples: clip.lengthSamples,
                     sampleRate: sampleRate
                 )
-                print("[WaveformView] peaks.count=\(result.count) for clip '\(clip.name)' sourceFile='\(clip.sourceFile)'")
-                peaks = result
             }
         }
         .onChange(of: clip)         { _ in loadID = UUID() }
