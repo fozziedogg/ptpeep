@@ -144,6 +144,7 @@ final class PTXParser {
         print("[PTXParser] Audio files decoded: \(audioFiles.count)  (first 5: \(audioFiles.prefix(5).map(\.name)))")
         if !audioFiles.isEmpty {
             session.audioFileNames = audioFiles.map(\.name)
+            session.audioFileMeta  = audioFiles.map { (fileName: $0.fileName, folderName: $0.folderName) }
         }
 
         // Plugins from 0x1017 blocks
@@ -247,6 +248,7 @@ final class PTXParser {
                 let name = p.groupName ?? clipEntry?.name ?? "Clip \(p.clipIdx)"
                 byPos[p.timelineSample] = PTXClip(
                     name: name, startSample: p.timelineSample, lengthSamples: len,
+                    sourceOffset: clipEntry?.sourceOffset ?? 0,
                     sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? "",
                     isMuted: p.isMuted
                 )
@@ -593,27 +595,43 @@ final class PTXParser {
     // Locate actual WAV/AIFF files in the session's "Audio Files" folder.
 
     static func resolveAudioFiles(session: inout PTXSession, sessionURL: URL) {
-        let audioFilesDir = sessionURL.deletingLastPathComponent()
-            .appendingPathComponent("Audio Files")
+        let sessionDir = sessionURL.deletingLastPathComponent()
+        let fm = FileManager.default
 
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: audioFilesDir,
-            includingPropertiesForKeys: nil,
-            options: .skipsHiddenFiles
-        ) else { return }
+        // Fallback: scan Audio Files folder
+        let fallbackPaths = scanAudioFilesFolder(sessionURL: sessionURL)
 
-        // Build resolved list directly from folder contents — no binary-derived name matching needed.
-        var names: [String] = []
         var resolved: [ResolvedAudioFile] = []
-        let audioExts: Set<String> = ["wav", "aif", "aiff", "sd2", "mp3", "bwf", "w64", "rf64"]
-        for url in contents.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
-            guard audioExts.contains(url.pathExtension.lowercased()) else { continue }
-            let name = url.deletingPathExtension().lastPathComponent
-            names.append(name)
+        for (i, name) in session.audioFileNames.enumerated() {
+            var url: URL? = nil
+            if i < session.audioFileMeta.count {
+                let meta = session.audioFileMeta[i]
+                let candidate = sessionDir
+                    .appendingPathComponent(meta.folderName)
+                    .appendingPathComponent(meta.fileName)
+                if fm.fileExists(atPath: candidate.path) { url = candidate }
+            }
+            if url == nil { url = fallbackPaths[name] }
             resolved.append(ResolvedAudioFile(name: name, url: url))
         }
-        session.audioFileNames = names
         session.resolvedAudioFiles = resolved
+    }
+
+    private static func scanAudioFilesFolder(sessionURL: URL) -> [String: URL] {
+        let audioExts: Set<String> = ["wav", "aif", "aiff", "bwf", "w64", "rf64", "sd2", "mp3"]
+        let root = sessionURL.deletingLastPathComponent().appendingPathComponent("Audio Files")
+        guard let enumerator = FileManager.default.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return [:] }
+        var result: [String: URL] = [:]
+        for case let url as URL in enumerator {
+            guard audioExts.contains(url.pathExtension.lowercased()) else { continue }
+            let baseName = url.deletingPathExtension().lastPathComponent
+            if result[baseName] == nil { result[baseName] = url }
+        }
+        return result
     }
 }
 

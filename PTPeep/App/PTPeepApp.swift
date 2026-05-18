@@ -109,19 +109,41 @@ private struct PeepingView: View {
 // MARK: - Settings
 
 private struct SettingsView: View {
-    @AppStorage("colorMode") private var colorMode: ColorMode = .dark
+    @AppStorage("colorMode")            private var colorMode:   ColorMode = .dark
+    @AppStorage("audioOutputDeviceUID") private var deviceUID:   String    = ""
+
+    @State private var outputDevices: [AudioOutputDevice] = []
 
     var body: some View {
         Form {
-            Picker("Appearance", selection: $colorMode) {
-                Text("Light").tag(ColorMode.light)
-                Text("Dark").tag(ColorMode.dark)
-                Text("GRM (color blind)").tag(ColorMode.grm)
+            Section("Appearance") {
+                Picker("Theme", selection: $colorMode) {
+                    Text("Light").tag(ColorMode.light)
+                    Text("Dark").tag(ColorMode.dark)
+                    Text("GRM (color blind)").tag(ColorMode.grm)
+                }
+                .pickerStyle(.radioGroup)
             }
-            .pickerStyle(.radioGroup)
+
+            Section("Audio") {
+                Picker("Output Device", selection: $deviceUID) {
+                    Text("System Default").tag("")
+                    if !outputDevices.isEmpty { Divider() }
+                    ForEach(outputDevices) { dev in
+                        Text(dev.name).tag(dev.uid)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: deviceUID) { uid in
+                    // Notify any active AudioPlayer via UserDefaults observation.
+                    // The player re-applies the preference on next play().
+                    UserDefaults.standard.set(uid, forKey: "audioOutputDeviceUID")
+                }
+            }
         }
         .padding(20)
-        .frame(width: 280)
+        .frame(width: 320)
+        .onAppear { outputDevices = AudioDeviceManager.outputDevices() }
     }
 }
 

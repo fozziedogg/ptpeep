@@ -38,17 +38,20 @@ struct SessionInspectorView: View {
     @State private var trackSectionExpanded:   Bool = false
     @State private var audioSectionExpanded:   Bool = false
     @State private var pluginSectionExpanded:  Bool = false
+    @State private var showPluginOptions:      Bool = false
     @State private var memLocSectionExpanded:  Bool = false
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
     @State private var showTrackPlugins: Bool = false
     @State private var showTrackSends:   Bool = false
+    @State private var showTrackOptions: Bool = false
     @State private var trackSortColumn: TrackSortColumn = .none
     @State private var trackSortAscending: Bool = true
 
     private enum TrackSortColumn { case none, name, format, input, output, atmos }
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
+    @StateObject private var audioPlayer = AudioPlayer()
 
     private var hasRoutingData: Bool {
         session.tracks.contains { $0.inputPath != nil || $0.outputPath != nil }
@@ -56,6 +59,11 @@ struct SessionInspectorView: View {
     private var hasSendsData: Bool {
         session.tracks.contains { !$0.sendPaths.isEmpty }
     }
+    private var hasPlugins: Bool {
+        session.tracks.contains { !$0.plugins.isEmpty }
+    }
+    private var hasHiddenTracks: Bool   { session.tracks.contains { $0.isHidden } }
+    private var hasInactiveTracks: Bool { session.tracks.contains { $0.isInactive } }
 
     /// Max end-sample across all tracks — used to convert sample positions to timeline fractions.
     private var totalSamples: Double {
@@ -81,12 +89,8 @@ struct SessionInspectorView: View {
                         }
                     } header: {
                         VStack(spacing: 0) {
-                            SectionHeader(title: "Tracks", systemImage: "slider.horizontal.3",
-                                          count: session.tracks.count, isExpanded: $trackSectionExpanded)
-                            if trackSectionExpanded {
-                                trackFilterBadges
-                                trackColumnHeader
-                            }
+                            tracksHeader
+                            if trackSectionExpanded { trackColumnHeader }
                         }
                         .background(Color(nsColor: .windowBackgroundColor))
                     }
@@ -108,8 +112,7 @@ struct SessionInspectorView: View {
                             Divider().padding(.horizontal, 16)
                         }
                     } header: {
-                        SectionHeader(title: "Plug-Ins Used", systemImage: "puzzlepiece.extension",
-                                      count: session.plugins.count, isExpanded: $pluginSectionExpanded)
+                        pluginsHeader
                             .background(Color(nsColor: .windowBackgroundColor))
                     }
                     // ── Memory Locations ─────────────────────────────────────────
@@ -194,30 +197,29 @@ struct SessionInspectorView: View {
     // MARK: - Session Setup
 
     private var sessionSetupSection: some View {
-        InspectorSection(title: "Session Setup", systemImage: "info.circle", initiallyExpanded: true) {
-            let rows: [(String, String)] = [
-                ("Sample Rate",   session.sampleRate.isEmpty    ? "—" : "\(session.sampleRate) Hz"),
-                ("Bit Depth",     session.bitDepth.isEmpty      ? "—" : "\(session.bitDepth)-bit"),
-                ("Timecode",      session.tcFormat.isEmpty      ? "—" : session.tcFormat),
-                ("TC Start",      session.sessionStart.isEmpty  ? "—" : session.sessionStart),
-                ("Tracks",        "\(session.tracks.filter { $0.type == .audio }.count)"),
-                ("Audio Files",   "\(session.audioFileNames.count)"),
-            ]
-            let cols = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
-            LazyVGrid(columns: cols, alignment: .leading, spacing: 3) {
-                ForEach(rows, id: \.0) { label, value in
-                    HStack(spacing: 3) {
-                        Text(label + ":")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(value)
-                            .font(.caption.monospacedDigit())
-                            .lineLimit(1)
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 5)
+        HStack(spacing: 12) {
+            Image(systemName: "info.circle")
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+            Text("Session Setup")
+                .font(.subheadline.weight(.semibold))
+            Divider().frame(height: 12)
+            sessionField("SR",    session.sampleRate.isEmpty  ? "—" : "\(session.sampleRate) Hz")
+            sessionField("Bit",   session.bitDepth.isEmpty    ? "—" : "\(session.bitDepth)-bit")
+            sessionField("TC",    session.tcFormat.isEmpty    ? "—" : session.tcFormat)
+            sessionField("Start", session.sessionStart.isEmpty ? "—" : session.sessionStart)
+            Spacer()
+        }
+        .font(.system(size: 11).monospacedDigit())
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color(nsColor: .separatorColor).opacity(0.1))
+    }
+
+    private func sessionField(_ label: String, _ value: String) -> some View {
+        HStack(spacing: 3) {
+            Text(label + ":").foregroundStyle(.secondary)
+            Text(value)
         }
     }
 
@@ -261,8 +263,8 @@ struct SessionInspectorView: View {
                     // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                     let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                    + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                    // overhead = row1(24) + hover row(24) + sel row(24) + checkbox row(28) + ruler(30) + padding(8)
-                    let overhead: CGFloat = 138
+                    // overhead = toolbar(24) + hover row(24) + sel row(24) + transport(22) + waveform(64) + ruler(30) + padding(4)
+                    let overhead: CGFloat = 192
                     // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                     let effectiveH: CGFloat = {
                         if overviewHeight == 0 {
@@ -286,6 +288,7 @@ struct SessionInspectorView: View {
                                         tcFormat:  session.tcFormat,
                                         verticalScale: 1.0,
                                         resolvedFiles: session.resolvedAudioFiles,
+                                        audioPlayer: audioPlayer,
                                         memoryLocations: session.memoryLocations,
                                         hasHidden:   hasHidden,
                                         hasInactive: hasInactive,
@@ -315,92 +318,98 @@ struct SessionInspectorView: View {
 
     // MARK: - Tracks
 
+    // MARK: - Tracks header (custom — includes pane options menu)
+
+    private var tracksHeader: some View {
+        HStack(spacing: 0) {
+            // Left: tap to expand/collapse
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { trackSectionExpanded.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16)
+                    Text("Tracks")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text("(\(session.tracks.count))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.leading, 16)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // Right: pane options + chevron
+            let optionsActive = !hiddenTrackTypes.isEmpty || showTrackSends || showTrackPlugins
+                             || tlShowHiddenTracks || !tlShowInactiveTracks
+            Button { showTrackOptions.toggle() } label: {
+                Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
+                    .font(.caption)
+                    .foregroundStyle(optionsActive ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
+            .popover(isPresented: $showTrackOptions, arrowEdge: .bottom) {
+                trackOptionsPopover
+            }
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { trackSectionExpanded.toggle() }
+            } label: {
+                Image(systemName: trackSectionExpanded ? "chevron.down" : "chevron.right")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 16)
+            .padding(.vertical, 8)
+        }
+        .background(Color(nsColor: .separatorColor).opacity(0.1))
+    }
+
+    @ViewBuilder private var trackOptionsPopover: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Visibility")
+                .font(.system(size: 10).weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 2)
+            if hasHiddenTracks   { Toggle("Show Hidden Tracks",   isOn: $tlShowHiddenTracks).toggleStyle(.checkbox) }
+            if hasInactiveTracks { Toggle("Show Inactive Tracks", isOn: $tlShowInactiveTracks).toggleStyle(.checkbox) }
+            ForEach(presentTrackTypes, id: \.self) { type in
+                Toggle(isOn: Binding(
+                    get: { !hiddenTrackTypes.contains(type) },
+                    set: { show in
+                        if show { hiddenTrackTypes.remove(type) }
+                        else    { hiddenTrackTypes.insert(type) }
+                    }
+                )) {
+                    Label(type.filterLabel, systemImage: type.systemImage)
+                }
+                .toggleStyle(.checkbox)
+            }
+            if hasSendsData  { Toggle("Sends",    isOn: $showTrackSends).toggleStyle(.checkbox) }
+            if hasPlugins    { Toggle("Plug-ins", isOn: $showTrackPlugins).toggleStyle(.checkbox) }
+            if !hiddenTrackTypes.isEmpty {
+                Button("Show All") { hiddenTrackTypes.removeAll() }
+                    .buttonStyle(.borderless)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .font(.system(size: 12))
+        .padding(12)
+        .frame(minWidth: 180)
+    }
+
     private var presentTrackTypes: [PTXTrackType] {
         let order: [PTXTrackType] = [.audio, .instrument, .midi, .aux, .vca, .master, .folder, .video, .unknown]
         return order.filter { t in session.tracks.contains { $0.type == t } }
-    }
-
-    @ViewBuilder
-    private var trackFilterBadges: some View {
-        let hasPlugins = session.tracks.contains { !$0.plugins.isEmpty }
-        if presentTrackTypes.count > 1 || hasSendsData || hasPlugins {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(presentTrackTypes, id: \.self) { type in
-                        let hidden = hiddenTrackTypes.contains(type)
-                        Button {
-                            if hidden { hiddenTrackTypes.remove(type) }
-                            else      { hiddenTrackTypes.insert(type) }
-                        } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: type.systemImage).font(.system(size: 8))
-                                Text(type.filterLabel).font(.system(size: 10))
-                            }
-                            .foregroundStyle(hidden ? AnyShapeStyle(.tertiary) : type.tintColor)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(hidden
-                                ? Color(nsColor: .separatorColor).opacity(0.3)
-                                : Color(nsColor: .separatorColor).opacity(0.55)))
-                            .overlay(Capsule().strokeBorder(
-                                hidden ? Color.clear : Color(nsColor: .separatorColor).opacity(0.4),
-                                lineWidth: 0.5))
-                        }
-                        .buttonStyle(.plain)
-                        .animation(.easeInOut(duration: 0.1), value: hidden)
-                    }
-                    if hasSendsData {
-                        Button { showTrackSends.toggle() } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: "arrow.turn.up.right").font(.system(size: 8))
-                                Text("Sends").font(.system(size: 10))
-                            }
-                            .foregroundStyle(showTrackSends ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(showTrackSends
-                                ? Color(nsColor: .separatorColor).opacity(0.55)
-                                : Color(nsColor: .separatorColor).opacity(0.3)))
-                            .overlay(Capsule().strokeBorder(
-                                showTrackSends ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear,
-                                lineWidth: 0.5))
-                        }
-                        .buttonStyle(.plain)
-                        .animation(.easeInOut(duration: 0.1), value: showTrackSends)
-                    }
-                    if hasPlugins {
-                        Button { showTrackPlugins.toggle() } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: "puzzlepiece.extension").font(.system(size: 8))
-                                Text("Plug-ins").font(.system(size: 10))
-                            }
-                            .foregroundStyle(showTrackPlugins ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(showTrackPlugins
-                                ? Color(nsColor: .separatorColor).opacity(0.55)
-                                : Color(nsColor: .separatorColor).opacity(0.3)))
-                            .overlay(Capsule().strokeBorder(
-                                showTrackPlugins ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear,
-                                lineWidth: 0.5))
-                        }
-                        .buttonStyle(.plain)
-                        .animation(.easeInOut(duration: 0.1), value: showTrackPlugins)
-                    }
-                    if !hiddenTrackTypes.isEmpty {
-                        Button("Show all") {
-                            hiddenTrackTypes.removeAll()
-                        }
-                        .buttonStyle(.borderless)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 5)
-            }
-            .background(Color(nsColor: .windowBackgroundColor))
-        }
     }
 
     private var hasAtmosData: Bool {
@@ -460,8 +469,6 @@ struct SessionInspectorView: View {
 
     @ViewBuilder
     private var tracksContent: some View {
-        let hasHiddenTracks   = session.tracks.contains { $0.isHidden }
-        let hasInactiveTracks = session.tracks.contains { $0.isInactive }
         let filtered = session.tracks.filter {
             !hiddenTrackTypes.contains($0.type)
             && (tlShowHiddenTracks   || !$0.isHidden)
@@ -504,30 +511,9 @@ struct SessionInspectorView: View {
         }()
         let totalCount   = session.tracks.count
         let visibleCount = visibleTracks.count
-        let showRouting  = hasRoutingData
         if session.tracks.isEmpty {
             PlaceholderRow(text: "No tracks found")
         } else {
-            // ── Toolbar (toggles) ──────────────────────────────────────────
-            if hasHiddenTracks || hasInactiveTracks {
-                HStack(spacing: 8) {
-                    if hasHiddenTracks {
-                        Toggle(isOn: $tlShowHiddenTracks) {
-                            Text("Show Hidden").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    if hasInactiveTracks {
-                        Toggle(isOn: $tlShowInactiveTracks) {
-                            Text("Show Inactive").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 5)
-            }
             if visibleCount < totalCount || trackSortColumn != .none {
                 HStack(spacing: 8) {
                     if visibleCount < totalCount {
@@ -550,7 +536,11 @@ struct SessionInspectorView: View {
             // ── Track rows ─────────────────────────────────────────────────
             ForEach(visibleTracks, id: \.index) { track in
                 TrackRow(track: track, showPlugins: showTrackPlugins,
-                         showRouting: showRouting, showSends: showTrackSends,
+                         pluginInstalled: { name in
+                             guard pluginScanner.scanCompleted else { return nil }
+                             return pluginScanner.index?.contains(name, secondString: session.pluginSecondStrings[name])
+                         },
+                         showRouting: hasRoutingData, showSends: showTrackSends,
                          showAtmos: hasAtmosData, indentDepth: track.indentDepth)
             }
         }
@@ -571,6 +561,66 @@ struct SessionInspectorView: View {
     }
 
     // MARK: - Plugins
+
+    private var pluginsHeader: some View {
+        HStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { pluginSectionExpanded.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "puzzlepiece.extension")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16)
+                    Text("Plug-Ins Used")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text("(\(session.plugins.count))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.leading, 16)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Button { showPluginOptions.toggle() } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
+            .popover(isPresented: $showPluginOptions, arrowEdge: .bottom) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Button {
+                        pluginScanner.scan()
+                        showPluginOptions = false
+                    } label: {
+                        Label("Rescan Plug-ins Folder", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(pluginScanner.isScanning)
+                }
+                .font(.system(size: 12))
+                .padding(12)
+            }
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { pluginSectionExpanded.toggle() }
+            } label: {
+                Image(systemName: pluginSectionExpanded ? "chevron.down" : "chevron.right")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 16)
+            .padding(.vertical, 8)
+        }
+        .background(Color(nsColor: .separatorColor).opacity(0.1))
+    }
 
     @ViewBuilder
     private var pluginsContent: some View {
@@ -802,27 +852,10 @@ private struct SectionHeader: View {
 
 // MARK: - Row types
 
-private struct MetadataRow: View {
-    let label: String
-    let value: String
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(width: 120, alignment: .leading)
-            Text(value)
-                .font(.subheadline.monospacedDigit())
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 2)
-    }
-}
-
 private struct TrackRow: View {
     let track: PTXTrack
     let showPlugins: Bool
+    var pluginInstalled: (String) -> Bool? = { _ in nil }
     var showRouting: Bool = false
     var showSends:   Bool = false
     var showAtmos:   Bool = false
@@ -972,17 +1005,24 @@ private struct TrackRow: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
                         ForEach(track.plugins, id: \.self) { plugin in
+                            let ok = pluginInstalled(plugin)
+                            let fg: AnyShapeStyle = ok == nil ? AnyShapeStyle(.secondary)
+                                : ok! ? AnyShapeStyle(Color.green)  : AnyShapeStyle(Color.red)
+                            let bg: Color = ok == nil ? Color(nsColor: .separatorColor).opacity(0.4)
+                                : ok! ? Color.green.opacity(0.12)   : Color.red.opacity(0.12)
+                            let border: Color = ok == nil ? .clear
+                                : ok! ? Color.green.opacity(0.4)    : Color.red.opacity(0.4)
                             Text(plugin)
                                 .font(.system(size: 9))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(fg)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
-                                .background(Color(nsColor: .separatorColor).opacity(0.5))
+                                .background(bg)
                                 .clipShape(Capsule())
+                                .overlay(Capsule().strokeBorder(border, lineWidth: 0.5))
                         }
                     }
                 }
-                // Align pills with track name (indent + icon + gap)
                 .padding(.leading, totalIndent + 16 + 8)
             }
         }
@@ -1026,24 +1066,6 @@ private struct AudioFileRow: View {
         }
     }
 }
-
-private struct ListRow: View {
-    let text: String
-    let systemImage: String
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
-            Text(text)
-                .font(.subheadline)
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 3)
-    }
-}
-
 
 // MARK: - Plugin row (with optional availability badge)
 
@@ -1162,6 +1184,8 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
     // Signal to view to open the TC entry popover (numpad *)
     @Published var openTCEntry: Bool = false
+    // Signal to view to toggle playback (spacebar)
+    @Published var spacebarTapped: Int = 0
 
     // Navigation context — set by view on appear
     var tracks:       [PTXTrack] = []
@@ -1233,6 +1257,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
             case "t":      self.zoomIn();  return nil
             case "r":      self.zoomOut(); return nil
             case "e", "E": self.zoomToFitCursor(); return nil
+            case " ":      self.spacebarTapped += 1;      return nil  // Spacebar → play/stop
             case "\u{1b}": self.clearSelection();        return nil  // Escape
             case "\u{f729}":                                        // Home → go to start
                 self.selStart = 0.0; self.selEnd = nil; self.viewStart = 0.0
@@ -1484,6 +1509,7 @@ private struct SessionTimelineView: View {
     var tcFormat:  String = ""
     var verticalScale: CGFloat = 1.0
     var resolvedFiles: [ResolvedAudioFile] = []
+    var audioPlayer: AudioPlayer? = nil
     var memoryLocations: [PTXMemoryLocation] = []
 
     // Track filter toggles shown in the checkbox row
@@ -1512,8 +1538,10 @@ private struct SessionTimelineView: View {
     @State private var panOrigin:   (viewStart: Double, window: Double)? = nil
 
     // TC entry
-    @State private var showTCEntry:  Bool   = false
-    @State private var tcEntryText:  String = ""
+    @State private var showTCEntry:      Bool   = false
+    @State private var tcEntryText:      String = ""
+    @State private var showFiltersPopover: Bool  = false
+    @AppStorage("ov.autoplay") private var autoplay: Bool = false
 
     private static let audioLaneH: CGFloat = 8
     private static let videoLaneH: CGFloat = 16
@@ -1582,7 +1610,7 @@ private struct SessionTimelineView: View {
         let selectedClipTrackIdx: Int? = selectedClip != nil ? tc.selTrack : nil
 
         VStack(spacing: 0) {
-            // ── Row 1: TC cursor | track label | zoom ────────────────────────
+            // ── Toolbar: position | track + hover clip | zoom | filters ──────
             HStack(spacing: 8) {
                 // TC position / entry button — hover takes priority over cursor
                 Button {
@@ -1625,16 +1653,16 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
-                // Track name — hover takes priority over selected track
+                // Track name + format (hover lane > selected lane)
                 let displayIdx = hoverLane ?? tc.selTrack
                 if let idx = displayIdx, idx < tracks.count {
                     let track = tracks[idx]
-                    let color = trackColor(track, index: idx)
+                    let tcolor = trackColor(track, index: idx)
                     let fmtLabel: String = {
                         guard track.type == .video else { return track.channelFormat }
                         return tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)"
                     }()
-                    Text(track.name).foregroundStyle(color)
+                    Text(track.name).foregroundStyle(tcolor).lineLimit(1)
                     Text("[\(fmtLabel)]").foregroundStyle(.secondary)
                 } else {
                     Text("—").foregroundStyle(.tertiary)
@@ -1656,7 +1684,7 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
-                // Track height (all lanes)
+                // V zoom
                 HStack(spacing: 4) {
                     Text("V:").foregroundStyle(.secondary)
                     Button { tc.adjustGlobalTrackHeight(by: -1) } label: { Image(systemName: "minus") }
@@ -1667,12 +1695,49 @@ private struct SessionTimelineView: View {
                         .disabled(tc.globalTrackHeightLevel == 4)
                 }
 
+                Divider().frame(height: 14)
+
+                // Pane options
+                let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || showMarkers || !showEmpty
+                Button { showFiltersPopover.toggle() } label: {
+                    Image(systemName: filtersActive ? "ellipsis.circle.fill" : "ellipsis.circle")
+                        .foregroundStyle(filtersActive ? Color.accentColor : Color.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("Pane options")
+                .popover(isPresented: $showFiltersPopover, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Playback")
+                            .font(.system(size: 10).weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.bottom, 2)
+                        Toggle("Auto-play on click", isOn: $autoplay).toggleStyle(.checkbox)
+                        Divider()
+                        Text("Visibility")
+                            .font(.system(size: 10).weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.bottom, 2)
+                        if hasMarkers   { Toggle("Show Markers",         isOn: $showMarkers).toggleStyle(.checkbox) }
+                        if hasVideo     { Toggle("Show Video Track",     isOn: $showVideo).toggleStyle(.checkbox) }
+                        if hasHidden    { Toggle("Show Hidden Tracks",   isOn: $showHidden).toggleStyle(.checkbox) }
+                        if hasInactive  { Toggle("Show Inactive Tracks", isOn: $showInactive).toggleStyle(.checkbox) }
+                                          Toggle("Show Empty Tracks",    isOn: $showEmpty).toggleStyle(.checkbox)
+                        if hasMuted {
+                            Toggle("Show Muted Clips",
+                                   isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 }))
+                            .toggleStyle(.checkbox)
+                        }
+                    }
+                    .font(.system(size: 12))
+                    .padding(12)
+                    .frame(minWidth: 180)
+                }
+
+                // Reset Heights — inline only when non-default
                 if !tc.trackHeightLevels.isEmpty || tc.globalTrackHeightLevel != 0 {
                     Divider().frame(height: 14)
-                    Button { tc.resetTrackHeights() } label: {
-                        Text("Reset Heights")
-                    }
-                    .buttonStyle(.borderless)
+                    Button { tc.resetTrackHeights() } label: { Text("Reset Heights") }
+                        .buttonStyle(.borderless)
                 }
             }
             .font(.system(size: 11).monospacedDigit())
@@ -1680,57 +1745,107 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 8)
             .frame(height: 24)
 
-            // ── Row 2: selected clip (persistent — set by click) ─────────────
-            clipInfoRow(
-                clip: selectedClip, trackIdx: selectedClipTrackIdx,
-                label: "SELECT", sr: sr, isSelected: true
-            )
+            // ── HOVER / SELECT clip rows (aligned columns) ───────────────────
+            clipInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
+                        label: "HOVER", sr: sr, isSelected: false)
+            clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
+                        label: "SELECT", sr: sr, isSelected: true)
 
-            // ── Row 3: hover clip (ephemeral — follows cursor) ────────────────
-            clipInfoRow(
-                clip: hoverClip, trackIdx: hoverClipTrackIdx,
-                label: "HOVER", sr: sr, isSelected: false
-            )
+            // ── Transport strip ───────────────────────────────────────────────
+            HStack(spacing: 8) {
+                // Play / stop or offline indicator
+                if let clip = selectedClip, !clip.isGroup {
+                    let resolvedURL = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+                    if let ap = audioPlayer, let url = resolvedURL {
+                        let playing = ap.isPlaying && ap.playingClip == clip
+                        let selColor = selectedClipTrackIdx.map { t in
+                            t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
+                        } ?? Color.secondary
+                        Button {
+                            playing ? ap.stop() : ap.play(clip: clip, url: url, sampleRate: sr)
+                        } label: {
+                            Image(systemName: playing ? "stop.fill" : "play.fill")
+                                .foregroundStyle(playing ? Color.red : selColor)
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12))
+                    } else if !clip.sourceFile.isEmpty {
+                        // File could not be resolved on disk
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.orange)
+                        Text("Offline")
+                            .font(.system(size: 10).weight(.medium))
+                            .foregroundStyle(.orange)
+                    } else {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.clear)
+                    }
+                } else {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.clear)
+                }
 
-            // ── Checkbox row ─────────────────────────────────────────────────
-            HStack(spacing: 12) {
-                if hasMarkers {
-                    Toggle(isOn: $showMarkers) {
-                        Text("Show Markers").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
+                // Source file name when a clip is selected
+                if let clip = selectedClip, !clip.sourceFile.isEmpty {
+                    Divider().frame(height: 12)
+                    Text(clip.sourceFile)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
-                if hasVideo {
-                    Toggle(isOn: $showVideo) {
-                        Text("Show Video Track").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                if hasHidden {
-                    Toggle(isOn: $showHidden) {
-                        Text("Show Hidden Tracks").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                if hasInactive {
-                    Toggle(isOn: $showInactive) {
-                        Text("Show Inactive Tracks").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                Toggle(isOn: $showEmpty) {
-                    Text("Show Empty Tracks").font(.caption).foregroundStyle(.secondary)
-                }
-                .toggleStyle(.checkbox)
-                if hasMuted {
-                    Toggle(isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 })) {
-                        Text("Show Muted Clips").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
+
                 Spacer()
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 12)
+            .frame(height: 22)
+
+            // ── Clip waveform — always present to keep lane canvas height stable ─
+            let resolvedWaveURL: URL? = {
+                guard let clip = selectedClip, !clip.isGroup else { return nil }
+                return resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+            }()
+            // Split-stereo companion: Pro Tools stores stereo as separate .L/.R mono files.
+            // If the primary sourceFile ends with ".L" or ".R", look up the other half.
+            let resolvedWaveURLR: URL? = {
+                guard let clip = selectedClip, !clip.isGroup else { return nil }
+                let src = clip.sourceFile
+                let companionName: String
+                if src.hasSuffix(".L")      { companionName = src.dropLast(2) + ".R" }
+                else if src.hasSuffix(".R") { companionName = src.dropLast(2) + ".L" }
+                else { return nil }
+                return resolvedFiles.first(where: { $0.name == companionName })?.url
+            }()
+            let waveColor: Color = selectedClipTrackIdx.map { t in
+                t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
+            } ?? Color.accentColor
+            ZStack {
+                // Faint placeholder track so the area is visually defined even when empty
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.primary.opacity(0.04))
+                if let clip = selectedClip, !clip.isGroup,
+                   let url = resolvedWaveURL, let ap = audioPlayer {
+                    ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
+                                     sampleRate: sr, color: waveColor, audioPlayer: ap)
+                } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
+                          resolvedWaveURL == nil {
+                    // Clip is selected but source file is not on disk
+                    Label("Audio file offline", systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange.opacity(0.7))
+                } else {
+                    // Hairline centre rule — gives the empty zone a hint of purpose
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.12))
+                        .frame(height: 1)
+                }
+            }
+            .frame(height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .padding(.horizontal, 16)
             .padding(.vertical, 4)
 
             // ── Ruler (adaptive tick spacing) ─────────────────────────────────
@@ -1964,6 +2079,11 @@ private struct SessionTimelineView: View {
                                             // Place cursor at clip in-point; SEL row derives from this
                                             tc.selStart = Double(clip.startSample) / total
                                             tc.selEnd   = nil
+                                            // Autoplay: immediately play clip on click
+                                            if autoplay, let ap = audioPlayer, !clip.isGroup,
+                                               let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                                                ap.play(clip: clip, url: url, sampleRate: sr)
+                                            }
                                         } else {
                                             // Empty space → cursor only, no clip selected
                                             tc.selStart = frac
@@ -2000,25 +2120,31 @@ private struct SessionTimelineView: View {
             tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
             showTCEntry = true
         }
+        .onChange(of: tc.spacebarTapped) { _ in
+            guard let ap = audioPlayer, let clip = selectedClip, !clip.isGroup,
+                  let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+            else { return }
+            if ap.isPlaying && ap.playingClip == clip { ap.stop() }
+            else { ap.play(clip: clip, url: url, sampleRate: sr) }
+        }
     }
 
     private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
                              label: String, sr: Double, isSelected: Bool) -> some View {
-        // Row always occupies 24px — no layout shift or flicker when clip changes.
         let color = trackIdx.map { t in
             t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
         } ?? Color.secondary
 
         return HStack(spacing: 0) {
-            // Label badge — fixed width so HOVER/SEL columns line up
+            // Label badge — fixed width keeps SELECT/HOVER columns aligned
             Text(label)
                 .font(.system(size: 9).weight(.bold))
-                .foregroundStyle(isSelected ? color : Color.secondary)
+                .foregroundStyle(isSelected && clip != nil ? color : Color.secondary)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 2)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(isSelected
+                        .fill(isSelected && clip != nil
                               ? color.opacity(0.18)
                               : Color(nsColor: .separatorColor).opacity(0.5))
                 )
@@ -2056,9 +2182,7 @@ private struct SessionTimelineView: View {
                     Text("muted")
                         .font(.system(size: 9).weight(.medium))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .padding(.leading, 4)
+                        .padding(.horizontal, 4).padding(.vertical, 1).padding(.leading, 4)
                         .background(RoundedRectangle(cornerRadius: 3)
                             .fill(Color(nsColor: .separatorColor).opacity(0.6)))
                 }
@@ -2066,29 +2190,25 @@ private struct SessionTimelineView: View {
                     Text("clip group")
                         .font(.system(size: 9).weight(.medium))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .padding(.leading, 4)
+                        .padding(.horizontal, 4).padding(.vertical, 1).padding(.leading, 4)
                         .background(RoundedRectangle(cornerRadius: 3)
                             .fill(Color(nsColor: .separatorColor).opacity(0.6)))
                 }
 
                 Spacer(minLength: 8)
 
-                // In / Out / Length — plain text labels, fixed-width TC columns
+                // In / Out / Length
                 HStack(spacing: 0) {
                     Group {
                         Text("in ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(inTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
-
                     Group {
                         Text("  out ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(outTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 118, alignment: .trailing)
-
                     Group {
                         Text("  len ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(durTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
@@ -2104,9 +2224,9 @@ private struct SessionTimelineView: View {
         .font(.system(size: 11).monospacedDigit())
         .padding(.horizontal, 12)
         .frame(height: 24)
-        .background(isSelected
-            ? color.opacity(0.07)
-            : Color(nsColor: .separatorColor).opacity(0.05))
+        .background(isSelected && clip != nil
+                    ? color.opacity(0.07)
+                    : Color(nsColor: .separatorColor).opacity(0.05))
     }
 
 
@@ -2410,5 +2530,132 @@ private extension PTXTrackType {
         case .instrument: return "Inst"
         case .unknown:    return "Other"
         }
+    }
+}
+
+// MARK: - Clip Waveform View
+
+private func waveformChannelLabels(_ count: Int) -> [String] {
+    switch count {
+    case 2: return ["L", "R"]
+    case 3: return ["L", "R", "C"]
+    case 4: return ["L", "R", "Ls", "Rs"]
+    case 6: return ["L", "R", "C", "LFE", "Ls", "Rs"]
+    case 8: return ["L", "R", "C", "LFE", "Lss", "Rss", "Lrs", "Rrs"]
+    default: return (1...max(count, 1)).map { "\($0)" }
+    }
+}
+
+/// Async waveform display for a resolved clip. Shows PCM peaks per channel,
+/// with a moving playhead, click-to-seek, and drag-out-to-export.
+private struct ClipWaveformView: View {
+    let clip:         PTXClip
+    let url:          URL
+    var urlCompanion: URL?   = nil   // split-stereo .R (or .L) companion
+    let sampleRate:   Double
+    let color:        Color
+    @ObservedObject var audioPlayer: AudioPlayer
+
+    @State private var peaks:     [[Float]] = []   // one [Float] per channel
+    @State private var loadID:    UUID      = UUID()
+    @State private var viewWidth: CGFloat   = 1
+
+    var body: some View {
+        Canvas { ctx, size in
+            let w   = size.width
+            let h   = size.height
+            let mid = h / 2
+
+            if peaks.isEmpty {
+                ctx.fill(Path(CGRect(x: 0, y: mid - 0.5, width: w, height: 1)),
+                         with: .color(.secondary.opacity(0.2)))
+            } else {
+                // One equal-height band per channel, symmetric bars on each midline
+                // (matches sfxlibrary WaveformView rendering model)
+                let chCount    = peaks.count
+                let labels     = waveformChannelLabels(chCount)
+                let showLabels = chCount > 1
+                let labelW: CGFloat = showLabels ? 20 : 0
+                let drawW      = w - labelW
+                let n          = CGFloat(peaks[0].count)
+                let bandH      = h / CGFloat(chCount)
+                let step       = drawW / n
+                let lineW      = max(1, step * 0.6)
+
+                for (ch, channelPeaks) in peaks.enumerated() {
+                    let midY = bandH * CGFloat(ch) + bandH / 2
+                    var path = Path()
+                    for (i, peak) in channelPeaks.enumerated() {
+                        let x   = labelW + (CGFloat(i) + 0.5) * step
+                        let amp = CGFloat(peak) * (bandH / 2) * 0.9
+                        path.move(to:    CGPoint(x: x, y: midY - amp))
+                        path.addLine(to: CGPoint(x: x, y: midY + amp))
+                    }
+                    ctx.stroke(path, with: .color(color.opacity(0.85)),
+                               style: StrokeStyle(lineWidth: lineW))
+
+                    if showLabels {
+                        let label = ch < labels.count ? labels[ch] : "\(ch + 1)"
+                        ctx.draw(
+                            Text(label)
+                                .font(.system(size: 7, weight: .medium))
+                                .foregroundColor(.secondary),
+                            at: CGPoint(x: 3, y: midY), anchor: .leading
+                        )
+                    }
+                }
+
+                // Divider between channels (only for multi-channel)
+                if chCount > 1 {
+                    var div = Path()
+                    for ch in 1..<chCount {
+                        let y = bandH * CGFloat(ch)
+                        div.move(to:    CGPoint(x: 0, y: y))
+                        div.addLine(to: CGPoint(x: w, y: y))
+                    }
+                    ctx.stroke(div, with: .color(Color.primary.opacity(0.15)),
+                               style: StrokeStyle(lineWidth: 0.5))
+                }
+            }
+
+            // Playhead
+            if audioPlayer.playingClip == clip {
+                let x = CGFloat(audioPlayer.playbackFraction) * w
+                ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: h)),
+                         with: .color(.white.opacity(0.9)))
+                ctx.fill(Path(CGRect(x: x - 2,   y: 0, width: 4, height: h)),
+                         with: .color(.white.opacity(0.12)))
+            }
+        }
+        .background(GeometryReader { geo in
+            Color.clear
+                .onAppear       { viewWidth = geo.size.width }
+                .onChange(of: geo.size.width) { viewWidth = $0 }
+        })
+        // Tap to seek / start playback at that position
+        .onTapGesture { location in
+            let fraction = max(0, min(1, location.x / viewWidth))
+            audioPlayer.play(clip: clip, url: url, sampleRate: sampleRate, fromFraction: fraction)
+        }
+        .task(id: loadID) {
+            peaks = []
+            if let companion = urlCompanion {
+                // Split-stereo: load primary and companion in parallel, combine as [L, R]
+                async let primary   = AudioPlayer.loadWaveform(url: url,      startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
+                async let secondary = AudioPlayer.loadWaveform(url: companion, startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
+                let (p, s) = await (primary, secondary)
+                peaks = (p.first.map { [$0] } ?? []) + (s.first.map { [$0] } ?? [])
+            } else {
+                peaks = await AudioPlayer.loadWaveform(
+                    url: url,
+                    startSample: clip.sourceOffset,
+                    lengthSamples: clip.lengthSamples,
+                    sampleRate: sampleRate
+                )
+            }
+        }
+        .onChange(of: clip)         { _ in loadID = UUID() }
+        .onChange(of: url)          { _ in loadID = UUID() }
+        .onChange(of: urlCompanion) { _ in loadID = UUID() }
     }
 }

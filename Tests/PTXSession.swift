@@ -10,6 +10,7 @@ struct PTXSession {
     var memoryLocations: [PTXMemoryLocation] = []
     var tracks:          [PTXTrack]          = []
     var audioFileNames:  [String]            = []   // base names without extension
+    var audioFileMeta:   [(fileName: String, folderName: String)] = []  // parallel: full filename + subfolder
 
     // From PTSL (populated when PT is connected)
     var sampleRate:   String = ""   // e.g. "48000"
@@ -92,6 +93,7 @@ struct PTXClip: Equatable {
     var name:        String
     var startSample: Int64  = 0
     var lengthSamples: Int64 = 0
+    var sourceOffset: Int64  = 0    // offset into source audio file (samples)
     var sourceFile:  String = ""    // base filename (no extension)
     var isMuted:     Bool   = false
     var isGroup:     Bool   = false
@@ -100,6 +102,9 @@ struct PTXClip: Equatable {
 struct ResolvedAudioFile: Identifiable {
     var id = UUID()
     var name:    String          // display name (without extension)
-    var url:     URL
+    var url:     URL?            // nil = file not found on disk
+    var nodeID:  UInt32? = nil   // HFS+ catalog node ID from binary path data
     var tracks:  [String] = []   // which track names use this file
+
+    var isOnline: Bool { url != nil }
 }

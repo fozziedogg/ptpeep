@@ -36,7 +36,9 @@ struct PTXBlock {
 
 struct AudioFileEntry {
     let index: Int
-    let name: String       // base name without extension (e.g. "Kick_01")
+    let name: String        // base name without extension (e.g. "Kick_01")
+    let fileName: String    // full name with extension (e.g. "Kick_01.wav")
+    let folderName: String  // containing subfolder name from FOLDER_MARKER (e.g. "Audio Files")
 }
 
 struct ClipEntry {
@@ -154,35 +156,62 @@ final class PTXBlockDecoder {
     //
     // Block 0x103a layout (content starts at dataOffset):
     //   [9-byte header: u32 unknown, u8 version, u32 entry count]
-    //   Repeated entries (including directory entries):
-    //     [u32 nameLen][name bytes][4-byte type tag]["WAVE"/"AIFF"/"EVAW"/"FFIA" or zeros][5-byte trailing]
-    //   Only entries whose type tag is a recognised audio format are actual audio files.
-    //   Directory entries (e.g. "Audio Files") have a zero type tag and are skipped.
+    //   Repeated entries — each: [u32 nameLen][name bytes][4-byte typeField][5-byte trail]
+    //
+    //   Entry classification by typeField + trail[0]:
+    //     FOLDER_MARKER:   typeField = 0x00000000, trail[0] = 0x02
+    //       → updates the current "subfolder" name (e.g. "Audio Files", "Renamed Audio Files")
+    //     AUDIO_FILE:      typeField in { "EVAW","WAVE","AIFF","FFIA","VooM",… }
+    //       → audio/video file in the current subfolder (trail varies: 02 xx or 00 ff ff ff ff)
+    //     PATH_COMPONENT:  trail[0] = 0x01, trail[1] = depth (1-indexed from volume root)
+    //       → directory component; depth 1 = volume name, depth 2+ = subdirectories
+    //       → typeField = HFS+ catalog node ID (LE32) of that directory
+    //     Other entries:   ignored
+    //
+    //   Typical ordering within a block:
+    //     FOLDER_MARKER, AUDIO_FILE…, PATH_COMPONENT… (path suffix appears after files)
 
-    private static let audioTypeTags: Set<String> = ["WAVE", "AIFF", "EVAW", "FFIA"]
+    private static let audioTypeTags: Set<String> = ["WAVE", "AIFF", "EVAW", "FFIA", "VooM"]
 
     static func extractAudioFiles(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [AudioFileEntry] {
         var results = [AudioFileEntry]()
+
         for block in blocks where block.contentType == 0x103a {
             var pos = block.dataOffset + 9   // skip 9-byte block header
             let end = block.dataOffset + block.dataSize
+            var currentFolderName = "Audio Files"   // updated when a FOLDER_MARKER is seen
+
             while pos + 4 <= end {
                 guard let nl = safeU32(data, at: pos, be: bigEndian),
                       nl >= 1, nl <= 512,
                       pos + 4 + Int(nl) + 9 <= end else { break }
-                // Type tag: 4 bytes immediately after name
-                let tagStart = pos + 4 + Int(nl)
-                let tagBytes = data[tagStart ..< tagStart + 4]
-                let tag = String(bytes: tagBytes, encoding: .ascii) ?? ""
+
+                let nameSlice = data[(pos + 4) ..< (pos + 4 + Int(nl))]
+                let name = String(bytes: nameSlice, encoding: .utf8) ?? ""
+
+                let typeStart = pos + 4 + Int(nl)
+                let typeBytes = data[typeStart ..< typeStart + 4]
+                let tag = String(bytes: typeBytes, encoding: .ascii) ?? ""
+                let trail0 = data[typeStart + 4]
+
                 if Self.audioTypeTags.contains(tag) {
-                    let nameSlice = data[pos+4 ..< pos+4+Int(nl)]
-                    if let rawName = String(bytes: nameSlice, encoding: .utf8), !rawName.isEmpty {
-                        // Strip extension — AudioFileEntry stores base name only
-                        let name = (rawName as NSString).deletingPathExtension
-                        results.append(AudioFileEntry(index: results.count, name: name))
+                    // Audio file — trail varies but type tag is definitive
+                    if !name.isEmpty {
+                        let baseName = (name as NSString).deletingPathExtension
+                        results.append(AudioFileEntry(
+                            index: results.count,
+                            name: baseName,
+                            fileName: name,
+                            folderName: currentFolderName
+                        ))
                     }
+                } else if trail0 == 0x02 && typeBytes.allSatisfy({ $0 == 0 }) {
+                    // Folder marker — next batch of files is in this subfolder
+                    if !name.isEmpty { currentFolderName = name }
                 }
-                pos += 4 + Int(nl) + 4 + 5   // nameLen + name + type tag + 5 trailing bytes
+                // trail0 == 0x01 → path component (depth/nodeID), ignored for now
+
+                pos += 4 + Int(nl) + 9   // nameLen(4) + name + typeField(4) + trail(5)
             }
         }
         return results
@@ -911,10 +940,6 @@ final class PTXBlockDecoder {
                let n = String(bytes: data[section.dataOffset + 4 ..< section.dataOffset + 4 + Int(nameLen)],
                               encoding: .utf8) {
                 name = n
-            } else if displayInfo.orderedNames.isEmpty {
-                // Positional fallback only when displayInfo is absent (very old sessions).
-                guard sectionIdx < displayInfo.orderedNames.count else { continue }
-                name = displayInfo.orderedNames[sectionIdx]
             } else {
                 // displayInfo available but section has no inline name — defer to second pass.
                 namelessSections.append(section)
@@ -1108,7 +1133,7 @@ final class PTXBlockDecoder {
             let nomFps = Int(data[nomOff])
             let tcFormats = ["23.976","24","25","29.97 DF","29.97","30 DF","30",
                              "47.952","48","50","59.94 DF","59.94","60"]
-            if tcEnum >= 0 && tcEnum < tcFormats.count {
+            if tcEnum < tcFormats.count {
                 params.tcFormatString = tcFormats[tcEnum]
             }
             if nomFps >= 23 && nomFps <= 60 { params.tcFrameRate = nomFps }
