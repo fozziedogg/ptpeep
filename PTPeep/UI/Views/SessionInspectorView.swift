@@ -43,6 +43,7 @@ struct SessionInspectorView: View {
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
     @State private var showTrackPlugins: Bool = false
     @State private var showTrackSends:   Bool = false
+    @State private var showTrackOptions: Bool = false
     @State private var trackSortColumn: TrackSortColumn = .none
     @State private var trackSortAscending: Bool = true
 
@@ -56,6 +57,9 @@ struct SessionInspectorView: View {
     }
     private var hasSendsData: Bool {
         session.tracks.contains { !$0.sendPaths.isEmpty }
+    }
+    private var hasPlugins: Bool {
+        session.tracks.contains { !$0.plugins.isEmpty }
     }
 
     /// Max end-sample across all tracks — used to convert sample positions to timeline fractions.
@@ -82,12 +86,8 @@ struct SessionInspectorView: View {
                         }
                     } header: {
                         VStack(spacing: 0) {
-                            SectionHeader(title: "Tracks", systemImage: "slider.horizontal.3",
-                                          count: session.tracks.count, isExpanded: $trackSectionExpanded)
-                            if trackSectionExpanded {
-                                trackFilterBadges
-                                trackColumnHeader
-                            }
+                            tracksHeader
+                            if trackSectionExpanded { trackColumnHeader }
                         }
                         .background(Color(nsColor: .windowBackgroundColor))
                     }
@@ -315,6 +315,98 @@ struct SessionInspectorView: View {
     }
 
     // MARK: - Tracks
+
+    // MARK: - Tracks header (custom — includes pane options menu)
+
+    private var tracksHeader: some View {
+        HStack(spacing: 0) {
+            // Left: tap to expand/collapse
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { trackSectionExpanded.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16)
+                    Text("Tracks")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text("(\(session.tracks.count))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.leading, 16)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // Right: pane options + chevron
+            let optionsActive = !hiddenTrackTypes.isEmpty || showTrackSends || showTrackPlugins
+            Button { showTrackOptions.toggle() } label: {
+                Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
+                    .foregroundStyle(optionsActive ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.borderless)
+            .popover(isPresented: $showTrackOptions, arrowEdge: .bottom) {
+                trackOptionsPopover
+            }
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { trackSectionExpanded.toggle() }
+            } label: {
+                Image(systemName: trackSectionExpanded ? "chevron.down" : "chevron.right")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 16)
+            .padding(.vertical, 8)
+        }
+        .background(Color(nsColor: .separatorColor).opacity(0.1))
+    }
+
+    @ViewBuilder private var trackOptionsPopover: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if presentTrackTypes.count > 1 {
+                Text("Track Types")
+                    .font(.system(size: 10).weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 2)
+                ForEach(presentTrackTypes, id: \.self) { type in
+                    Toggle(isOn: Binding(
+                        get: { !hiddenTrackTypes.contains(type) },
+                        set: { show in
+                            if show { hiddenTrackTypes.remove(type) }
+                            else    { hiddenTrackTypes.insert(type) }
+                        }
+                    )) {
+                        Label(type.filterLabel, systemImage: type.systemImage)
+                    }
+                    .toggleStyle(.checkbox)
+                }
+                if !hiddenTrackTypes.isEmpty {
+                    Button("Show All") { hiddenTrackTypes.removeAll() }
+                        .buttonStyle(.borderless)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if hasSendsData || hasPlugins {
+                if presentTrackTypes.count > 1 { Divider() }
+                Text("Columns")
+                    .font(.system(size: 10).weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 2)
+                if hasSendsData  { Toggle("Sends",    isOn: $showTrackSends).toggleStyle(.checkbox) }
+                if hasPlugins    { Toggle("Plug-ins", isOn: $showTrackPlugins).toggleStyle(.checkbox) }
+            }
+        }
+        .font(.system(size: 12))
+        .padding(12)
+        .frame(minWidth: 160)
+    }
 
     private var presentTrackTypes: [PTXTrackType] {
         let order: [PTXTrackType] = [.audio, .instrument, .midi, .aux, .vca, .master, .folder, .video, .unknown]
@@ -1676,18 +1768,26 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
-                // Filters popover
-                let filtersActive = showHidden || showInactive || !showVideo || hideMuted || showMarkers || !showEmpty
+                // Pane options
+                let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || showMarkers || !showEmpty
                 Button { showFiltersPopover.toggle() } label: {
-                    Image(systemName: filtersActive
-                          ? "line.3.horizontal.decrease.circle.fill"
-                          : "line.3.horizontal.decrease.circle")
+                    Image(systemName: filtersActive ? "ellipsis.circle.fill" : "ellipsis.circle")
                         .foregroundStyle(filtersActive ? Color.accentColor : Color.secondary)
                 }
                 .buttonStyle(.borderless)
-                .help("Track and clip filters")
+                .help("Pane options")
                 .popover(isPresented: $showFiltersPopover, arrowEdge: .bottom) {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Playback")
+                            .font(.system(size: 10).weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.bottom, 2)
+                        Toggle("Auto-play on click", isOn: $autoplay).toggleStyle(.checkbox)
+                        Divider()
+                        Text("Visibility")
+                            .font(.system(size: 10).weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.bottom, 2)
                         if hasMarkers   { Toggle("Show Markers",         isOn: $showMarkers).toggleStyle(.checkbox) }
                         if hasVideo     { Toggle("Show Video Track",     isOn: $showVideo).toggleStyle(.checkbox) }
                         if hasHidden    { Toggle("Show Hidden Tracks",   isOn: $showHidden).toggleStyle(.checkbox) }
@@ -1701,6 +1801,7 @@ private struct SessionTimelineView: View {
                     }
                     .font(.system(size: 12))
                     .padding(12)
+                    .frame(minWidth: 180)
                 }
 
                 // Reset Heights — inline only when non-default
@@ -1743,15 +1844,6 @@ private struct SessionTimelineView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(.clear)
                 }
-
-                // Autoplay toggle
-                Button { autoplay.toggle() } label: {
-                    Image(systemName: "play.circle\(autoplay ? ".fill" : "")")
-                        .font(.system(size: 12))
-                        .foregroundStyle(autoplay ? Color.accentColor : Color.secondary.opacity(0.5))
-                }
-                .buttonStyle(.plain)
-                .help(autoplay ? "Auto-play on: clips play on click" : "Auto-play off")
 
                 // Source file name when a clip is selected
                 if let clip = selectedClip, !clip.sourceFile.isEmpty {
