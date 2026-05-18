@@ -900,8 +900,9 @@ private struct TrackRow: View {
                             let bedLabel: String = {
                                 guard track.atmosRendererInput > 0 else { return "BED" }
                                 let start = track.atmosRendererInput
-                                let end   = start + max(track.channelCount, 1) - 1
-                                return end > start ? "BED \(start)–\(end)" : "BED \(start)"
+                                guard track.atmosBedChannelCount > 1 else { return "BED \(start)" }
+                                let end = start + track.atmosBedChannelCount - 1
+                                return "BED \(start)–\(end)"
                             }()
                             Text(bedLabel)
                                 .font(.system(size: 9, weight: .semibold))

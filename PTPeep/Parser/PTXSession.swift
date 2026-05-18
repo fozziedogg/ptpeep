@@ -98,6 +98,7 @@ struct PTXTrack: Equatable {
     var isAtmosObject: Bool    = false // true = Atmos Object send
     var isAtmosBed:    Bool    = false // true = Atmos Bed send
     var atmosRendererInput: Int = 0   // 1-indexed renderer input channel (0 = unknown)
+    var atmosBedChannelCount: Int = 0 // BED assignment width in channels; 0 = unknown
     var sendPaths:     [String] = []  // aux send bus names (Send A, B, …)
 
     var channelFormat: String {

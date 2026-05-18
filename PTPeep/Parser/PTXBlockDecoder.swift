@@ -1341,10 +1341,27 @@ final class PTXBlockDecoder {
     struct RoutingEntry {
         var inputPath:    String?
         var outputPath:   String?
-        var isAtmosObject: Bool = false  // true = Atmos Object send (b0==b1==0, b2=slot, non-ff/non-0)
+        var isAtmosObject: Bool = false  // true = Atmos Object send (b2 != 0xff && b2 != 0x00)
         var isAtmosBed:    Bool = false  // true = Atmos Bed send (flagOff+11 != 0xff = Atmos group id)
         var atmosRendererInput: Int = 0  // 1-indexed renderer input channel (b11+1); 0 = unknown
-        var sendPaths:    [String] = []  // aux send bus names; byte[0]==0x13 in 0x260e discriminates sends
+        var bedChannelCount: Int = 0     // BED assignment width in channels (decoded from b1); 0 = unknown
+        var sendPaths:    [String] = []  // aux send bus names
+    }
+
+    /// Decode routing-block BED format byte → channel count.
+    /// This table differs from 0x251a: values above 5.1 are encoded differently.
+    private static func bedChannelCount(routingFormatByte b: UInt8) -> Int {
+        switch b {
+        case 0x00: return 1
+        case 0x01: return 2
+        case 0x02: return 3
+        case 0x03, 0x04: return 4
+        case 0x05: return 5
+        case 0x06: return 6
+        case 0x0e: return 8   // 7.1
+        case 0x11: return 10  // 7.1.2
+        default:   return 0   // unknown → show "BED N" without range
+        }
     }
 
     /// Returns a dictionary mapping track display names → routing entry (inputPath, outputPath).
@@ -1403,6 +1420,7 @@ final class PTXBlockDecoder {
             var isAtmosObject = false
             var isAtmosBed    = false
             var isAtmosRendererInput = 0
+            var atmosBedChannelCount = 0
 
             let routingBlocks = all260e.filter { e in
                 guard e.dataOffset >= cStart, e.dataOffset + e.dataSize <= cEnd else { return false }
@@ -1437,15 +1455,16 @@ final class PTXBlockDecoder {
                     //   Bed:    b11 != 0xff (Atmos group: 0x00=Dialog, 0x0a=Music, etc.)
                     let flagOff = lpOff + 4 + Int(sl)
                     if flagOff + 12 <= pathBlock.dataOffset + pathBlock.dataSize {
-                        let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
+                        let b1  = data[flagOff + 1], b2 = data[flagOff + 2]
                         let b11 = data[flagOff + 11]
-                        isAtmosObject = b2 != 0xff && b2 != 0x00 && b0 == 0x00 && b1 == 0x00
+                        isAtmosObject = b2 != 0xff && b2 != 0x00
                         isAtmosBed    = !isAtmosObject && b11 != 0xff
                         // b11 is 0-indexed renderer input; +1 gives the 1-indexed channel shown in PT
                         if isAtmosObject || isAtmosBed { isAtmosRendererInput = Int(b11) + 1 }
+                        if isAtmosBed { atmosBedChannelCount = PTXBlockDecoder.bedChannelCount(routingFormatByte: b1) }
                     } else if flagOff + 3 <= pathBlock.dataOffset + pathBlock.dataSize {
-                        let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
-                        isAtmosObject = b2 != 0xff && b2 != 0x00 && b0 == 0x00 && b1 == 0x00
+                        let b2 = data[flagOff + 2]
+                        isAtmosObject = b2 != 0xff && b2 != 0x00
                     }
                 }
             }
@@ -1486,6 +1505,7 @@ final class PTXBlockDecoder {
                                                            isAtmosObject: isAtmosObject,
                                                            isAtmosBed: isAtmosBed,
                                                            atmosRendererInput: isAtmosRendererInput,
+                                                           bedChannelCount: atmosBedChannelCount,
                                                            sendPaths: sendPaths)))
         }
 
