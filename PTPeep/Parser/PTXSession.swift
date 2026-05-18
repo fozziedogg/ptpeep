@@ -10,6 +10,7 @@ struct PTXSession {
     var memoryLocations: [PTXMemoryLocation] = []
     var tracks:          [PTXTrack]          = []
     var audioFileNames:  [String]            = []   // base names without extension
+    var audioFileMeta:   [(fileName: String, folderName: String)] = []  // parallel: full filename + subfolder
 
     // From PTSL (populated when PT is connected)
     var sampleRate:   String = ""   // e.g. "48000"

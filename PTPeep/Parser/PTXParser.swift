@@ -144,6 +144,7 @@ final class PTXParser {
         print("[PTXParser] Audio files decoded: \(audioFiles.count)  (first 5: \(audioFiles.prefix(5).map(\.name)))")
         if !audioFiles.isEmpty {
             session.audioFileNames = audioFiles.map(\.name)
+            session.audioFileMeta  = audioFiles.map { (fileName: $0.fileName, folderName: $0.folderName) }
         }
 
         // Plugins from 0x1017 blocks
@@ -759,104 +760,37 @@ final class PTXParser {
     }
 
     static func resolveAudioFiles(session: inout PTXSession, sessionURL: URL) {
-        // Primary: parse the PT-exported .txt file (same base name as .ptx) for authoritative
-        // absolute paths. PT stores "O N L I N E  F I L E S" with filename + colon-path.
-        let txtURL = sessionURL.deletingPathExtension().appendingPathExtension("txt")
-        let txtPaths = parseTxtAudioPaths(textURL: txtURL)
+        let sessionDir = sessionURL.deletingLastPathComponent()
+        let fm = FileManager.default
 
         // Fallback: recursive scan of Audio Files folder next to the session.
         let fallbackPaths = scanAudioFilesFolder(sessionURL: sessionURL)
 
-        // Resolve each binary-derived name against txt paths first, then folder scan.
-        // Preserves binary name list order; unresolved files get url = nil.
+        // Resolve each binary-derived name using binary meta (fileName + folderName) first,
+        // then fall back to folder scan by base name.
         var resolved: [ResolvedAudioFile] = []
-        for name in session.audioFileNames {
-            let url = txtPaths[name] ?? fallbackPaths[name]
+        for (i, name) in session.audioFileNames.enumerated() {
+            var url: URL? = nil
+
+            // Primary: try the exact binary-derived path
+            if i < session.audioFileMeta.count {
+                let meta = session.audioFileMeta[i]
+                let candidate = sessionDir
+                    .appendingPathComponent(meta.folderName)
+                    .appendingPathComponent(meta.fileName)
+                if fm.fileExists(atPath: candidate.path) { url = candidate }
+            }
+
+            // Fallback: scan-based lookup by base name
+            if url == nil { url = fallbackPaths[name] }
+
             resolved.append(ResolvedAudioFile(name: name, url: url))
         }
         session.resolvedAudioFiles = resolved
 
-        let found  = resolved.filter(\.isOnline).count
-        let total  = resolved.count
-        print("[PTXParser] Audio file resolution: \(found)/\(total) found (txt:\(txtPaths.count) scan:\(fallbackPaths.count))")
-    }
-
-    /// Parse "O N L I N E  F I L E S  I N  S E S S I O N" section from PT text export.
-    /// Returns a dictionary mapping base name (no extension) → resolved URL.
-    /// Paths in the txt are colon-separated Mac paths, e.g.
-    ///   "Macintosh HD:Users:foo:Audio Files:" → /Users/foo/Audio Files/
-    private static func parseTxtAudioPaths(textURL: URL) -> [String: URL] {
-        guard let text = try? String(contentsOf: textURL, encoding: .utf8) ??
-                              String(contentsOf: textURL, encoding: .isoLatin1)
-        else { return [:] }
-
-        var result: [String: URL] = [:]
-        let fm = FileManager.default
-
-        // Find the online files section — header uses spaced caps
-        let onlineHeader  = "O N L I N E  F I L E S  I N  S E S S I O N"
-        let offlineHeader = "O F F L I N E  F I L E S"
-        let clipsHeader   = "O N L I N E  C L I P S"
-        guard let sectionStart = text.range(of: onlineHeader) else { return [:] }
-
-        // Extract just this section (stop at offline or clips header)
-        let afterHeader = text[sectionStart.upperBound...]
-        let sectionEnd = [offlineHeader, clipsHeader].compactMap {
-            afterHeader.range(of: $0)?.lowerBound
-        }.min() ?? afterHeader.endIndex
-        let section = String(afterHeader[..<sectionEnd])
-
-        for line in section.components(separatedBy: "\n") {
-            // Lines are tab-separated: filename \t colonPath
-            let parts = line.components(separatedBy: "\t")
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty }
-            guard parts.count >= 2 else { continue }
-
-            let filename  = parts[0]   // e.g. "Kick_01.wav"
-            let colonPath = parts[1]   // e.g. "Macintosh HD:Users:foo:Audio Files:"
-            guard !filename.isEmpty, colonPath.contains(":") else { continue }
-
-            // Convert colon path + filename to POSIX URL candidates
-            if let url = colonPathToURL(colonPath: colonPath, filename: filename, fm: fm) {
-                let baseName = (filename as NSString).deletingPathExtension
-                if result[baseName] == nil { result[baseName] = url }
-            }
-        }
-        return result
-    }
-
-    /// Convert a PT colon-path + filename to a POSIX URL, trying both boot-volume
-    /// and /Volumes/ forms. Returns the first candidate that exists on disk,
-    /// or the /Volumes/ form as a best-guess if neither exists.
-    private static func colonPathToURL(colonPath: String, filename: String, fm: FileManager) -> URL? {
-        // Split on colon, drop trailing empty component
-        var components = colonPath.components(separatedBy: ":")
-        if components.last?.isEmpty == true { components.removeLast() }
-        guard !components.isEmpty else { return nil }
-
-        let volume = components[0]
-        let dirComponents = Array(components.dropFirst())
-        let dirPath = dirComponents.joined(separator: "/")
-
-        var candidates: [URL] = []
-
-        // For "Macintosh HD" (boot volume), try the root-relative path first
-        if volume.caseInsensitiveCompare("Macintosh HD") == .orderedSame || volume == "/" {
-            let posix = dirPath.isEmpty ? "/\(filename)" : "/\(dirPath)/\(filename)"
-            candidates.append(URL(fileURLWithPath: posix))
-        }
-
-        // Always include the /Volumes/ form for external drives (or renamed boot volumes)
-        let posix = dirPath.isEmpty
-            ? "/Volumes/\(volume)/\(filename)"
-            : "/Volumes/\(volume)/\(dirPath)/\(filename)"
-        candidates.append(URL(fileURLWithPath: posix))
-
-        for url in candidates {
-            if fm.fileExists(atPath: url.path) { return url }
-        }
-        return candidates.first
+        let found = resolved.filter(\.isOnline).count
+        let total = resolved.count
+        print("[PTXParser] Audio file resolution: \(found)/\(total) found (scan pool: \(fallbackPaths.count))")
     }
 
     /// Recursively scan the Audio Files folder next to the session.

@@ -36,7 +36,9 @@ struct PTXBlock {
 
 struct AudioFileEntry {
     let index: Int
-    let name: String       // base name without extension (e.g. "Kick_01")
+    let name: String        // base name without extension (e.g. "Kick_01")
+    let fileName: String    // full name with extension (e.g. "Kick_01.wav")
+    let folderName: String  // containing subfolder name from FOLDER_MARKER (e.g. "Audio Files")
 }
 
 struct ClipEntry {
@@ -154,35 +156,50 @@ final class PTXBlockDecoder {
     //
     // Block 0x103a layout (content starts at dataOffset):
     //   [9-byte header: u32 unknown, u8 version, u32 entry count]
-    //   Repeated entries (including directory entries):
-    //     [u32 nameLen][name bytes][4-byte type tag]["WAVE"/"AIFF"/"EVAW"/"FFIA" or zeros][5-byte trailing]
-    //   Only entries whose type tag is a recognised audio format are actual audio files.
-    //   Directory entries (e.g. "Audio Files") have a zero type tag and are skipped.
+    //   Repeated entries — each: [u32 nameLen][name bytes][4-byte typeField][5-byte trail]
+    //
+    //   FOLDER_MARKER:   typeField = 0x00000000, trail[0] = 0x02
+    //   AUDIO_FILE:      typeField in { "EVAW","WAVE","AIFF","FFIA",… }
+    //   PATH_COMPONENT:  trail[0] = 0x01 (ignored for now)
 
     private static let audioTypeTags: Set<String> = ["WAVE", "AIFF", "EVAW", "FFIA"]
 
     static func extractAudioFiles(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [AudioFileEntry] {
         var results = [AudioFileEntry]()
+
         for block in blocks where block.contentType == 0x103a {
             var pos = block.dataOffset + 9   // skip 9-byte block header
             let end = block.dataOffset + block.dataSize
+            var currentFolderName = "Audio Files"
+
             while pos + 4 <= end {
                 guard let nl = safeU32(data, at: pos, be: bigEndian),
                       nl >= 1, nl <= 512,
                       pos + 4 + Int(nl) + 9 <= end else { break }
-                // Type tag: 4 bytes immediately after name
-                let tagStart = pos + 4 + Int(nl)
-                let tagBytes = data[tagStart ..< tagStart + 4]
-                let tag = String(bytes: tagBytes, encoding: .ascii) ?? ""
+
+                let nameSlice = data[(pos + 4) ..< (pos + 4 + Int(nl))]
+                let name = String(bytes: nameSlice, encoding: .utf8) ?? ""
+
+                let typeStart = pos + 4 + Int(nl)
+                let typeBytes = data[typeStart ..< typeStart + 4]
+                let tag = String(bytes: typeBytes, encoding: .ascii) ?? ""
+                let trail0 = data[typeStart + 4]
+
                 if Self.audioTypeTags.contains(tag) {
-                    let nameSlice = data[pos+4 ..< pos+4+Int(nl)]
-                    if let rawName = String(bytes: nameSlice, encoding: .utf8), !rawName.isEmpty {
-                        // Strip extension — AudioFileEntry stores base name only
-                        let name = (rawName as NSString).deletingPathExtension
-                        results.append(AudioFileEntry(index: results.count, name: name))
+                    if !name.isEmpty {
+                        let baseName = (name as NSString).deletingPathExtension
+                        results.append(AudioFileEntry(
+                            index: results.count,
+                            name: baseName,
+                            fileName: name,
+                            folderName: currentFolderName
+                        ))
                     }
+                } else if trail0 == 0x02 && typeBytes.allSatisfy({ $0 == 0 }) {
+                    if !name.isEmpty { currentFolderName = name }
                 }
-                pos += 4 + Int(nl) + 4 + 5   // nameLen + name + type tag + 5 trailing bytes
+
+                pos += 4 + Int(nl) + 9
             }
         }
         return results
