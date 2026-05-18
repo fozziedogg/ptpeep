@@ -1164,6 +1164,8 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
     // Signal to view to open the TC entry popover (numpad *)
     @Published var openTCEntry: Bool = false
+    // Signal to view to toggle playback (spacebar)
+    @Published var spacebarTapped: Int = 0
 
     // Navigation context — set by view on appear
     var tracks:       [PTXTrack] = []
@@ -1235,6 +1237,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
             case "t":      self.zoomIn();  return nil
             case "r":      self.zoomOut(); return nil
             case "e", "E": self.zoomToFitCursor(); return nil
+            case " ":      self.spacebarTapped += 1;      return nil  // Spacebar → play/stop
             case "\u{1b}": self.clearSelection();        return nil  // Escape
             case "\u{f729}":                                        // Home → go to start
                 self.selStart = 0.0; self.selEnd = nil; self.viewStart = 0.0
@@ -1630,7 +1633,7 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
-                // Track name (hover > selected) + inline clip info when hovering a clip
+                // Track name + format (hover lane > selected lane)
                 let displayIdx = hoverLane ?? tc.selTrack
                 if let idx = displayIdx, idx < tracks.count {
                     let track = tracks[idx]
@@ -1641,17 +1644,6 @@ private struct SessionTimelineView: View {
                     }()
                     Text(track.name).foregroundStyle(tcolor).lineLimit(1)
                     Text("[\(fmtLabel)]").foregroundStyle(.secondary)
-                    if let clip = hoverClip {
-                        Text("·").foregroundStyle(.tertiary).padding(.horizontal, 2)
-                        Text(clip.name)
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Text("in \(formatTC(Double(clip.startSample) / sr, fps: frameRate))")
-                            .foregroundStyle(.secondary)
-                        Text("len \(formatTC(Double(clip.lengthSamples) / sr, fps: frameRate))")
-                            .foregroundStyle(.secondary)
-                    }
                 } else {
                     Text("—").foregroundStyle(.tertiary)
                 }
@@ -1724,8 +1716,58 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 8)
             .frame(height: 24)
 
-            // ── SELECT row: transport + clip info ────────────────────────────
-            selectedClipRow(clip: selectedClip, trackIdx: selectedClipTrackIdx, sr: sr)
+            // ── SELECT / HOVER clip rows (aligned columns) ───────────────────
+            clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
+                        label: "SELECT", sr: sr, isSelected: true)
+            clipInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
+                        label: "HOVER", sr: sr, isSelected: false)
+
+            // ── Transport strip ───────────────────────────────────────────────
+            HStack(spacing: 8) {
+                // Play / stop
+                if let ap = audioPlayer, let clip = selectedClip, !clip.isGroup,
+                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                    let playing = ap.isPlaying && ap.playingClip == clip
+                    let selColor = selectedClipTrackIdx.map { t in
+                        t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
+                    } ?? Color.secondary
+                    Button {
+                        playing ? ap.stop() : ap.play(clip: clip, url: url, sampleRate: sr)
+                    } label: {
+                        Image(systemName: playing ? "stop.fill" : "play.fill")
+                            .foregroundStyle(playing ? Color.red : selColor)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12))
+                } else {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.clear)
+                }
+
+                // Autoplay toggle
+                Button { autoplay.toggle() } label: {
+                    Image(systemName: "autoplay")
+                        .font(.system(size: 12))
+                        .foregroundStyle(autoplay ? Color.accentColor : Color.secondary.opacity(0.4))
+                }
+                .buttonStyle(.plain)
+                .help(autoplay ? "Auto-play on: clips play on click" : "Auto-play off")
+
+                // Source file name when a clip is selected
+                if let clip = selectedClip, !clip.sourceFile.isEmpty {
+                    Divider().frame(height: 12)
+                    Text(clip.sourceFile)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 22)
 
             // ── Ruler (adaptive tick spacing) ─────────────────────────────────
             Canvas { ctx, size in
@@ -1999,56 +2041,35 @@ private struct SessionTimelineView: View {
             tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
             showTCEntry = true
         }
+        .onChange(of: tc.spacebarTapped) { _ in
+            guard let ap = audioPlayer, let clip = selectedClip, !clip.isGroup,
+                  let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+            else { return }
+            if ap.isPlaying && ap.playingClip == clip { ap.stop() }
+            else { ap.play(clip: clip, url: url, sampleRate: sr) }
+        }
     }
 
-    private func selectedClipRow(clip: PTXClip?, trackIdx: Int?, sr: Double) -> some View {
+    private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
+                             label: String, sr: Double, isSelected: Bool) -> some View {
         let color = trackIdx.map { t in
             t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
         } ?? Color.secondary
 
         return HStack(spacing: 0) {
-            // Transport: play/stop + autoplay toggle (always present for stable layout)
-            HStack(spacing: 7) {
-                if let ap = audioPlayer, let clip, !clip.isGroup,
-                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
-                    let playing = ap.isPlaying && ap.playingClip == clip
-                    Button {
-                        playing ? ap.stop() : ap.play(clip: clip, url: url, sampleRate: sr)
-                    } label: {
-                        Image(systemName: playing ? "stop.fill" : "play.fill")
-                            .font(.system(size: 11))
-                            .foregroundStyle(playing ? Color.red : color)
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.clear)
-                }
-                Button { autoplay.toggle() } label: {
-                    Image(systemName: "autoplay")
-                        .font(.system(size: 11))
-                        .foregroundStyle(autoplay ? Color.accentColor : Color.secondary.opacity(0.5))
-                }
-                .buttonStyle(.plain)
-                .help(autoplay ? "Auto-play on: clips play on click" : "Auto-play off")
-            }
-            .frame(width: 38, alignment: .leading)
-            .padding(.leading, 8)
-
-            // SELECT badge
-            Text("SELECT")
+            // Label badge — fixed width keeps SELECT/HOVER columns aligned
+            Text(label)
                 .font(.system(size: 9).weight(.bold))
-                .foregroundStyle(clip != nil ? color : Color.secondary)
+                .foregroundStyle(isSelected && clip != nil ? color : Color.secondary)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 2)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(clip != nil
+                        .fill(isSelected && clip != nil
                               ? color.opacity(0.18)
                               : Color(nsColor: .separatorColor).opacity(0.5))
                 )
-                .padding(.trailing, 6)
+                .frame(width: 52, alignment: .leading)
 
             if let clip, let tIdx = trackIdx {
                 let inTC  = formatTC(Double(clip.startSample) / sr, fps: frameRate)
@@ -2058,14 +2079,14 @@ private struct SessionTimelineView: View {
 
                 // Color swatch
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(color)
+                    .fill(isSelected ? color : color.opacity(0.5))
                     .frame(width: 3, height: 14)
                     .padding(.trailing, 6)
 
                 // Track name
                 if !trackName.isEmpty {
                     Text(trackName)
-                        .foregroundStyle(color.opacity(0.75))
+                        .foregroundStyle(isSelected ? color.opacity(0.75) : Color.secondary)
                         .lineLimit(1)
                         .frame(width: 100, alignment: .leading)
                         .padding(.trailing, 4)
@@ -2073,8 +2094,8 @@ private struct SessionTimelineView: View {
 
                 // Clip name
                 Text(clip.name)
-                    .foregroundStyle(color)
-                    .fontWeight(.semibold)
+                    .foregroundStyle(isSelected ? color : Color(nsColor: .secondaryLabelColor))
+                    .fontWeight(isSelected ? .semibold : .regular)
                     .lineLimit(1)
                     .truncationMode(.middle)
 
@@ -2101,30 +2122,32 @@ private struct SessionTimelineView: View {
                 HStack(spacing: 0) {
                     Group {
                         Text("in ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                        + Text(inTC).foregroundColor(Color(nsColor: .labelColor))
+                        + Text(inTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
                     Group {
                         Text("  out ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                        + Text(outTC).foregroundColor(Color(nsColor: .labelColor))
+                        + Text(outTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 118, alignment: .trailing)
                     Group {
                         Text("  len ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                        + Text(durTC).foregroundColor(Color(nsColor: .labelColor))
+                        + Text(durTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
                 }
 
             } else {
-                Text("—").foregroundStyle(.tertiary).padding(.leading, 4)
+                Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
                 Spacer()
             }
         }
         .font(.system(size: 11).monospacedDigit())
-        .padding(.horizontal, 4)
-        .frame(height: 26)
-        .background(clip != nil ? color.opacity(0.07) : Color.clear)
+        .padding(.horizontal, 12)
+        .frame(height: 24)
+        .background(isSelected && clip != nil
+                    ? color.opacity(0.07)
+                    : Color(nsColor: .separatorColor).opacity(0.05))
     }
 
 
