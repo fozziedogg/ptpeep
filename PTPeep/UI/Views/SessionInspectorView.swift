@@ -2167,8 +2167,9 @@ private struct SessionTimelineView: View {
                     Text(trackName)
                         .foregroundStyle(isSelected ? color.opacity(0.75) : Color.secondary)
                         .lineLimit(1)
-                        .frame(width: 100, alignment: .leading)
-                        .padding(.trailing, 4)
+                        .frame(width: 90, alignment: .leading)
+                    if isSelected { clipCopyButton(trackName) }
+                    Spacer().frame(width: 4)
                 }
 
                 // Clip name
@@ -2177,6 +2178,7 @@ private struct SessionTimelineView: View {
                     .fontWeight(isSelected ? .semibold : .regular)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                if isSelected { clipCopyButton(clip.name) }
 
                 if clip.isMuted {
                     Text("muted")
@@ -2204,16 +2206,19 @@ private struct SessionTimelineView: View {
                         + Text(inTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
+                    if isSelected { clipCopyButton(inTC) }
                     Group {
                         Text("  out ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(outTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
-                    .frame(width: 118, alignment: .trailing)
+                    .frame(width: isSelected ? 108 : 118, alignment: .trailing)
+                    if isSelected { clipCopyButton(outTC) }
                     Group {
                         Text("  len ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(durTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
+                    if isSelected { clipCopyButton(durTC) }
                 }
 
             } else {
@@ -2227,6 +2232,20 @@ private struct SessionTimelineView: View {
         .background(isSelected && clip != nil
                     ? color.opacity(0.07)
                     : Color(nsColor: .separatorColor).opacity(0.05))
+    }
+
+    private func clipCopyButton(_ value: String) -> some View {
+        Button {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(value, forType: .string)
+        } label: {
+            Image(systemName: "doc.on.doc")
+                .font(.system(size: 8))
+                .foregroundStyle(.tertiary)
+        }
+        .buttonStyle(.plain)
+        .padding(.leading, 3)
+        .help("Copy \"\(value)\"")
     }
 
 

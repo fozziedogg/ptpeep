@@ -141,8 +141,8 @@ private struct SettingsView: View {
                 }
             }
         }
-        .padding(20)
-        .frame(width: 320)
+        .formStyle(.grouped)
+        .frame(width: 360)
         .onAppear { outputDevices = AudioDeviceManager.outputDevices() }
     }
 }
