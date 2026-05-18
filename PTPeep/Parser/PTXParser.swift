@@ -237,6 +237,20 @@ final class PTXParser {
         // Re-index after any reordering
         for i in session.tracks.indices { session.tracks[i].index = i }
 
+        // Compute indentDepth by walking the folderOf chain.
+        // Guard against cycles (shouldn't exist, but cap at 10 to be safe).
+        if !displayInfo.folderOf.isEmpty {
+            for i in session.tracks.indices {
+                var depth = 0
+                var current = session.tracks[i].folderName
+                while let parent = current, depth < 10 {
+                    depth += 1
+                    current = displayInfo.folderOf[parent]
+                }
+                session.tracks[i].indentDepth = depth
+            }
+        }
+
         // Assign per-track plugins. 0x102d strips are keyed by the name the track had when
         // the session was last written — which may differ from the current track name if the
         // user renamed the track in Pro Tools afterward. Fall-back order:

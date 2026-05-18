@@ -89,6 +89,7 @@ struct PTXTrack: Equatable {
     var isHidden:     Bool    = false
     var isInactive:   Bool    = false
     var folderName:   String? = nil   // non-nil when this track lives inside a folder
+    var indentDepth:  Int     = 0     // 0 = top-level, 1 = one folder deep, 2 = two folders deep, …
     var colorIndex:   Int     = -1    // Pro Tools color index 0–55; -1 = no custom color
     var plugins:      [String] = []
     var clips:        [PTXClip] = []

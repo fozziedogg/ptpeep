@@ -471,7 +471,7 @@ struct SessionInspectorView: View {
             ForEach(visibleTracks, id: \.index) { track in
                 TrackRow(track: track, showPlugins: showTrackPlugins,
                          showRouting: showRouting, showAtmos: hasAtmosData,
-                         indented: track.folderName != nil)
+                         indentDepth: track.indentDepth)
             }
         }
     }
@@ -744,7 +744,7 @@ private struct TrackRow: View {
     let showPlugins: Bool
     var showRouting: Bool = false
     var showAtmos:   Bool = false
-    var indented: Bool = false
+    var indentDepth: Int = 0
 
     // Indent absorbed inside the name zone so Format/Input/Output columns
     // stay at a fixed X position regardless of nesting.
@@ -753,12 +753,13 @@ private struct TrackRow: View {
 
     var body: some View {
         let dimmed = track.isHidden || track.isInactive
-        let nameWidth = Self.nameZoneWidth - (indented ? Self.indentWidth : 0)
+        let totalIndent = CGFloat(indentDepth) * Self.indentWidth
+        let nameWidth = Self.nameZoneWidth - totalIndent
 
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 0) {
                 // Indent spacer (zero width when not nested)
-                Color.clear.frame(width: indented ? Self.indentWidth : 0)
+                Color.clear.frame(width: totalIndent)
 
                 Image(systemName: track.type.systemImage)
                     .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : track.type.tintColor)
@@ -845,7 +846,7 @@ private struct TrackRow: View {
                     }
                 }
                 // Align pills with track name (indent + icon + gap)
-                .padding(.leading, (indented ? Self.indentWidth : 0) + 16 + 8)
+                .padding(.leading, totalIndent + 16 + 8)
             }
         }
         .padding(.leading, 16)
