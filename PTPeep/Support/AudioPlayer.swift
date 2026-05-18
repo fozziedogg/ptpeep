@@ -225,16 +225,20 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
             }
         }
 
-        // Normalise each channel independently to 0…1.
-        // Use a noise-floor threshold (~-120 dBFS) so channels with only
-        // floating-point quantisation noise aren't blown up to full scale.
+        // Normalise all channels against the global max so relative levels are preserved
+        // (e.g. a quiet rear channel stays visually quieter than the L/R mains).
+        // Use a noise-floor threshold (~-120 dBFS) so channels with only floating-point
+        // quantisation noise are treated as silent rather than blown up to full scale.
         let kSilenceThreshold: Float = 1e-6
-        for c in 0..<ch {
-            let maxPeak = peaks[c].max() ?? 0
-            if maxPeak > kSilenceThreshold {
-                peaks[c] = peaks[c].map { $0 / maxPeak }
-            } else {
-                peaks[c] = [Float](repeating: 0, count: resolution)
+        let globalMax = peaks.compactMap { $0.max() }.max() ?? 0
+        if globalMax > kSilenceThreshold {
+            for c in 0..<ch {
+                let chMax = peaks[c].max() ?? 0
+                if chMax > kSilenceThreshold {
+                    peaks[c] = peaks[c].map { $0 / globalMax }
+                } else {
+                    peaks[c] = [Float](repeating: 0, count: resolution)
+                }
             }
         }
         WaveformCache.shared.set(peaks: peaks, audioURL: url, startSample: startSample,
