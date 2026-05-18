@@ -187,18 +187,24 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     /// giving reliable per-channel data without AVAssetReader channel-count ambiguity.
     static func loadWaveform(url: URL, startSample: Int64, lengthSamples: Int64,
                              sampleRate: Double, resolution: Int = 500) async -> [[Float]] {
-        guard let file = try? AVAudioFile(forReading: url) else { return [] }
+        guard let file = try? AVAudioFile(forReading: url) else {
+            print("[Waveform] ❌ AVAudioFile failed to open: \(url.lastPathComponent)")
+            return []
+        }
 
         // processingFormat is guaranteed float32 non-interleaved with the correct channel count.
         let fmt = file.processingFormat
         let ch  = Int(fmt.channelCount)
+        print("[Waveform] \(url.lastPathComponent) — fileFormat: \(file.fileFormat), processingFormat ch=\(ch), totalFrames=\(file.length), startSample=\(startSample), lengthSamples=\(lengthSamples)")
 
         let totalFrames  = Int(lengthSamples)
         let bucketFrames = max(1, totalFrames / resolution)
         let chunkSize    = AVAudioFrameCount(min(totalFrames, 65536))
 
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: chunkSize)
-        else { return [] }
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: chunkSize) else {
+            print("[Waveform] ❌ Failed to create PCM buffer")
+            return []
+        }
 
         file.framePosition = startSample   // seek to clip start
 
@@ -208,9 +214,14 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         while frameIdx < totalFrames {
             let toRead = AVAudioFrameCount(min(totalFrames - frameIdx, Int(chunkSize)))
             buffer.frameLength = 0
-            do { try file.read(into: buffer, frameCount: toRead) } catch { break }
-            guard buffer.frameLength > 0, let channelData = buffer.floatChannelData else { break }
-
+            do { try file.read(into: buffer, frameCount: toRead) } catch {
+                print("[Waveform] ❌ read error at frame \(frameIdx): \(error)")
+                break
+            }
+            guard buffer.frameLength > 0, let channelData = buffer.floatChannelData else {
+                print("[Waveform] ⚠️ empty buffer or no channelData at frame \(frameIdx)")
+                break
+            }
             let n = Int(buffer.frameLength)
             for f in 0..<n {
                 let bucket = min(frameIdx / bucketFrames, resolution - 1)
@@ -226,6 +237,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
             let maxPeak = peaks[c].max() ?? 0
             if maxPeak > 0 { peaks[c] = peaks[c].map { $0 / maxPeak } }
         }
+        print("[Waveform] ✅ done — returning \(peaks.count) channel(s), \(frameIdx) frames read")
         return peaks
     }
 }

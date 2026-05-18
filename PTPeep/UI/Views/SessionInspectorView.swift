@@ -2604,12 +2604,14 @@ private struct ClipWaveformView: View {
         }
         .task(id: loadID) {
             peaks = []
-            peaks = await AudioPlayer.loadWaveform(
+            let result = await AudioPlayer.loadWaveform(
                 url: url,
                 startSample: clip.sourceOffset,
                 lengthSamples: clip.lengthSamples,
                 sampleRate: sampleRate
             )
+            print("[WaveformView] peaks.count=\(result.count) for clip '\(clip.name)' sourceFile='\(clip.sourceFile)'")
+            peaks = result
         }
         .onChange(of: clip) { _ in loadID = UUID() }
         .onChange(of: url)  { _ in loadID = UUID() }
