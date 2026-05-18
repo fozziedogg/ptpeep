@@ -38,6 +38,7 @@ struct SessionInspectorView: View {
     @State private var trackSectionExpanded:   Bool = false
     @State private var audioSectionExpanded:   Bool = false
     @State private var pluginSectionExpanded:  Bool = false
+    @State private var showPluginOptions:      Bool = false
     @State private var memLocSectionExpanded:  Bool = false
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
@@ -61,6 +62,8 @@ struct SessionInspectorView: View {
     private var hasPlugins: Bool {
         session.tracks.contains { !$0.plugins.isEmpty }
     }
+    private var hasHiddenTracks: Bool   { session.tracks.contains { $0.isHidden } }
+    private var hasInactiveTracks: Bool { session.tracks.contains { $0.isInactive } }
 
     /// Max end-sample across all tracks — used to convert sample positions to timeline fractions.
     private var totalSamples: Double {
@@ -109,8 +112,7 @@ struct SessionInspectorView: View {
                             Divider().padding(.horizontal, 16)
                         }
                     } header: {
-                        SectionHeader(title: "Plug-Ins Used", systemImage: "puzzlepiece.extension",
-                                      count: session.plugins.count, isExpanded: $pluginSectionExpanded)
+                        pluginsHeader
                             .background(Color(nsColor: .windowBackgroundColor))
                     }
                     // ── Memory Locations ─────────────────────────────────────────
@@ -344,6 +346,7 @@ struct SessionInspectorView: View {
 
             // Right: pane options + chevron
             let optionsActive = !hiddenTrackTypes.isEmpty || showTrackSends || showTrackPlugins
+                             || tlShowHiddenTracks || !tlShowInactiveTracks
             Button { showTrackOptions.toggle() } label: {
                 Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
                     .font(.caption)
@@ -376,6 +379,8 @@ struct SessionInspectorView: View {
                 .font(.system(size: 10).weight(.semibold))
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 2)
+            if hasHiddenTracks   { Toggle("Show Hidden Tracks",   isOn: $tlShowHiddenTracks).toggleStyle(.checkbox) }
+            if hasInactiveTracks { Toggle("Show Inactive Tracks", isOn: $tlShowInactiveTracks).toggleStyle(.checkbox) }
             ForEach(presentTrackTypes, id: \.self) { type in
                 Toggle(isOn: Binding(
                     get: { !hiddenTrackTypes.contains(type) },
@@ -399,7 +404,7 @@ struct SessionInspectorView: View {
         }
         .font(.system(size: 12))
         .padding(12)
-        .frame(minWidth: 160)
+        .frame(minWidth: 180)
     }
 
     private var presentTrackTypes: [PTXTrackType] {
@@ -464,8 +469,6 @@ struct SessionInspectorView: View {
 
     @ViewBuilder
     private var tracksContent: some View {
-        let hasHiddenTracks   = session.tracks.contains { $0.isHidden }
-        let hasInactiveTracks = session.tracks.contains { $0.isInactive }
         let filtered = session.tracks.filter {
             !hiddenTrackTypes.contains($0.type)
             && (tlShowHiddenTracks   || !$0.isHidden)
@@ -511,26 +514,6 @@ struct SessionInspectorView: View {
         if session.tracks.isEmpty {
             PlaceholderRow(text: "No tracks found")
         } else {
-            // ── Toolbar (toggles) ──────────────────────────────────────────
-            if hasHiddenTracks || hasInactiveTracks {
-                HStack(spacing: 8) {
-                    if hasHiddenTracks {
-                        Toggle(isOn: $tlShowHiddenTracks) {
-                            Text("Show Hidden").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    if hasInactiveTracks {
-                        Toggle(isOn: $tlShowInactiveTracks) {
-                            Text("Show Inactive").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 5)
-            }
             if visibleCount < totalCount || trackSortColumn != .none {
                 HStack(spacing: 8) {
                     if visibleCount < totalCount {
@@ -553,6 +536,10 @@ struct SessionInspectorView: View {
             // ── Track rows ─────────────────────────────────────────────────
             ForEach(visibleTracks, id: \.index) { track in
                 TrackRow(track: track, showPlugins: showTrackPlugins,
+                         pluginInstalled: { name in
+                             guard pluginScanner.scanCompleted else { return nil }
+                             return pluginScanner.index?.contains(name, secondString: session.pluginSecondStrings[name])
+                         },
                          showRouting: hasRoutingData, showSends: showTrackSends,
                          showAtmos: hasAtmosData, indentDepth: track.indentDepth)
             }
@@ -574,6 +561,66 @@ struct SessionInspectorView: View {
     }
 
     // MARK: - Plugins
+
+    private var pluginsHeader: some View {
+        HStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { pluginSectionExpanded.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "puzzlepiece.extension")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16)
+                    Text("Plug-Ins Used")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text("(\(session.plugins.count))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.leading, 16)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Button { showPluginOptions.toggle() } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
+            .popover(isPresented: $showPluginOptions, arrowEdge: .bottom) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Button {
+                        pluginScanner.scan()
+                        showPluginOptions = false
+                    } label: {
+                        Label("Rescan Plug-ins Folder", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(pluginScanner.isScanning)
+                }
+                .font(.system(size: 12))
+                .padding(12)
+            }
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { pluginSectionExpanded.toggle() }
+            } label: {
+                Image(systemName: pluginSectionExpanded ? "chevron.down" : "chevron.right")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 16)
+            .padding(.vertical, 8)
+        }
+        .background(Color(nsColor: .separatorColor).opacity(0.1))
+    }
 
     @ViewBuilder
     private var pluginsContent: some View {
@@ -808,6 +855,7 @@ private struct SectionHeader: View {
 private struct TrackRow: View {
     let track: PTXTrack
     let showPlugins: Bool
+    var pluginInstalled: (String) -> Bool? = { _ in nil }
     var showRouting: Bool = false
     var showSends:   Bool = false
     var showAtmos:   Bool = false
@@ -957,17 +1005,24 @@ private struct TrackRow: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
                         ForEach(track.plugins, id: \.self) { plugin in
+                            let ok = pluginInstalled(plugin)
+                            let fg: AnyShapeStyle = ok == nil ? AnyShapeStyle(.secondary)
+                                : ok! ? AnyShapeStyle(Color.green)  : AnyShapeStyle(Color.red)
+                            let bg: Color = ok == nil ? Color(nsColor: .separatorColor).opacity(0.4)
+                                : ok! ? Color.green.opacity(0.12)   : Color.red.opacity(0.12)
+                            let border: Color = ok == nil ? .clear
+                                : ok! ? Color.green.opacity(0.4)    : Color.red.opacity(0.4)
                             Text(plugin)
                                 .font(.system(size: 9))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(fg)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
-                                .background(Color(nsColor: .separatorColor).opacity(0.5))
+                                .background(bg)
                                 .clipShape(Capsule())
+                                .overlay(Capsule().strokeBorder(border, lineWidth: 0.5))
                         }
                     }
                 }
-                // Align pills with track name (indent + icon + gap)
                 .padding(.leading, totalIndent + 16 + 8)
             }
         }
