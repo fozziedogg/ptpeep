@@ -512,7 +512,7 @@ final class PTXBlockDecoder {
         case 0x0E: return (12, "7.1.4")
         case 0x0F: return (13, "9.0.4")
         case 0x10: return (14, "9.1.4")
-        default:   return (1,  "Mono")
+        default:   return (1,  String(format: "0x%02X", byte))
         }
     }
 
