@@ -1753,21 +1753,35 @@ private struct SessionTimelineView: View {
 
             // ── Transport strip ───────────────────────────────────────────────
             HStack(spacing: 8) {
-                // Play / stop
-                if let ap = audioPlayer, let clip = selectedClip, !clip.isGroup,
-                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
-                    let playing = ap.isPlaying && ap.playingClip == clip
-                    let selColor = selectedClipTrackIdx.map { t in
-                        t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
-                    } ?? Color.secondary
-                    Button {
-                        playing ? ap.stop() : ap.play(clip: clip, url: url, sampleRate: sr)
-                    } label: {
-                        Image(systemName: playing ? "stop.fill" : "play.fill")
-                            .foregroundStyle(playing ? Color.red : selColor)
+                // Play / stop or offline indicator
+                if let clip = selectedClip, !clip.isGroup {
+                    let resolvedURL = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+                    if let ap = audioPlayer, let url = resolvedURL {
+                        let playing = ap.isPlaying && ap.playingClip == clip
+                        let selColor = selectedClipTrackIdx.map { t in
+                            t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
+                        } ?? Color.secondary
+                        Button {
+                            playing ? ap.stop() : ap.play(clip: clip, url: url, sampleRate: sr)
+                        } label: {
+                            Image(systemName: playing ? "stop.fill" : "play.fill")
+                                .foregroundStyle(playing ? Color.red : selColor)
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12))
+                    } else if !clip.sourceFile.isEmpty {
+                        // File could not be resolved on disk
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.orange)
+                        Text("Offline")
+                            .font(.system(size: 10).weight(.medium))
+                            .foregroundStyle(.orange)
+                    } else {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.clear)
                     }
-                    .buttonStyle(.plain)
-                    .font(.system(size: 12))
                 } else {
                     Image(systemName: "play.fill")
                         .font(.system(size: 12))
@@ -1805,6 +1819,12 @@ private struct SessionTimelineView: View {
                    let url = resolvedWaveURL, let ap = audioPlayer {
                     ClipWaveformView(clip: clip, url: url, sampleRate: sr,
                                      color: waveColor, audioPlayer: ap)
+                } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
+                          resolvedWaveURL == nil {
+                    // Clip is selected but source file is not on disk
+                    Label("Audio file offline", systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange.opacity(0.7))
                 } else {
                     // Hairline centre rule — gives the empty zone a hint of purpose
                     Rectangle()
