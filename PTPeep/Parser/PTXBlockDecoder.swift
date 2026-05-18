@@ -520,6 +520,7 @@ final class PTXBlockDecoder {
         guard let b2519 = blocks.first(where: { $0.contentType == 0x2519 }) else { return TrackDisplayInfo() }
         var info = TrackDisplayInfo()
         var seenNames = Set<String>()
+        var uidToName = [String: String]()   // 16-char hex UID → track name (for 0x210c parsing)
 
         // Process only 0x251a sub-blocks that live inside 0x2519
         let parentStart = b2519.dataOffset
@@ -547,6 +548,15 @@ final class PTXBlockDecoder {
             info.types[name] = typeCode
             if seenNames.insert(name).inserted {
                 info.orderedNames.append(name)
+                // Collect UID for 0x210c folder membership parsing.
+                // Layout: [2 typeCode][4 nameLen][name][1 chanFmt][5 zeros][4 0x2a marker][8 UID]
+                // → UID starts at nameEndPos + 10
+                let uidEnd = nameEndPos + 18
+                if uidEnd <= sub.dataOffset + sub.dataSize {
+                    let uidHex = (nameEndPos+10..<nameEndPos+18)
+                        .map { String(format: "%02x", data[$0]) }.joined()
+                    uidToName[uidHex] = name
+                }
             }
 
             // Byte at nameEnd+53 (= p+59+nameLen) is 0x01 for both basic (tc=11) and
@@ -578,60 +588,113 @@ final class PTXBlockDecoder {
             }
         }
 
-        // Infer folder membership from track ordering using a stack-based algorithm.
-        //
-        // Signals available per 0x251a block:
-        //   tc=0x0002 routing folders: post[0]==0x01 → nested (stored as channelCount==2
-        //     via channelInfo); post[0]>=0x02 → top-level.
-        //   tc=0x000b basic folders: post[0] is always 0x00 regardless of depth.
-        //     Heuristic using post[62:64] (color/group index, in info.colors when <0x8000,
-        //     defaulting to 0xffff otherwise):
-        //       - new folder groupId == stack-top groupId → siblings → pop top.
-        //       - last non-folder groupId == stack-top groupId → new folder is a child.
-        //       - else → not a child here; pop stack top and retry.
-        //   tc=0x0002 routing folders cannot parent tc=0x000b basic folders, so when a
-        //   tc=0x000b folder appears any routing folders on the stack top are popped first.
+        // Build folder membership from 0x210c block (definitive parent-child mapping).
+        // Falls back to the heuristic stack algorithm if 0x210c is absent.
+        let folderOf210c = extractFolderMembership(blocks: blocks, data: data, uidToName: uidToName)
+        if !folderOf210c.isEmpty {
+            info.folderOf = folderOf210c
+        } else {
+            // Heuristic fallback: infer folder membership from track ordering.
+            //
+            // Signals available per 0x251a block:
+            //   tc=0x0002 routing folders: post[0]==0x01 → nested (stored as channelCount==2
+            //     via channelInfo); post[0]>=0x02 → top-level.
+            //   tc=0x000b basic folders: post[0] is always 0x00 regardless of depth.
+            //     Heuristic using post[62:64] (color/group index, in info.colors when <0x8000,
+            //     defaulting to 0xffff otherwise):
+            //       - new folder groupId == stack-top groupId → siblings → pop top.
+            //       - last non-folder groupId == stack-top groupId AND folder's color is not
+            //         shared with any routing folder → new folder is a child.
+            //       - else → not a child here; pop stack top and retry.
+            //   tc=0x0002 routing folders cannot parent tc=0x000b basic folders, so when a
+            //   tc=0x000b folder appears any routing folders on the stack top are popped first.
 
-        struct StackEntry { var name: String; var tc: UInt16; var groupId: UInt16 }
-        var stack: [StackEntry] = []
-        var lastNonFolderGroupId: UInt16 = 0xffff
-
-        for name in info.orderedNames {
-            let isFolder = info.folderMarkers.contains(name)
-            let tc       = info.types[name] ?? 0
-            let groupId  = UInt16(info.colors[name] ?? 0xffff)
-
-            if isFolder {
-                if tc == 0x0002 {
-                    // Routing folder: channelCount==2 proxies post[0]==0x01 (nested).
-                    let isNested = (info.channelCounts[name] ?? 0) == 2
-                    if !isNested {
-                        stack.removeAll()
-                    } else {
-                        while let top = stack.last, top.tc == 0x0002 {
-                            stack.removeLast()
-                        }
-                    }
-                } else {
-                    // tc=0x000b basic folder — group-id heuristic.
-                    while let top = stack.last, top.tc == 0x0002 {
-                        stack.removeLast()
-                    }
-                    while let top = stack.last {
-                        if top.groupId == groupId {
-                            stack.removeLast(); break
-                        } else if lastNonFolderGroupId == top.groupId {
-                            break
-                        } else {
-                            stack.removeLast()
-                        }
-                    }
+            // Pre-pass 1: collect p62 color values of all tc=0x0002 folder tracks.
+            var routingFolderColors = Set<Int>()
+            for sub in subBlocks {
+                let p = sub.dataOffset
+                guard p + 6 <= sub.dataOffset + sub.dataSize else { continue }
+                let tc2 = UInt16(data[p]) | UInt16(data[p + 1]) << 8
+                guard tc2 == 0x0002 else { continue }
+                guard let nl2 = safeU32(data, at: p + 2, be: false), nl2 >= 1, nl2 <= 256 else { continue }
+                let nameLen2 = Int(nl2)
+                let nameEnd2 = p + 6 + nameLen2
+                let folderFlagOff2 = nameEnd2 + 53
+                guard folderFlagOff2 < sub.dataOffset + sub.dataSize, data[folderFlagOff2] != 0 else { continue }
+                let colorOff2 = p + 68 + nameLen2
+                if colorOff2 + 1 < sub.dataOffset + sub.dataSize {
+                    let ci = Int(UInt16(data[colorOff2]) | UInt16(data[colorOff2 + 1]) << 8)
+                    if ci < 0x8000 { routingFolderColors.insert(ci) }
                 }
-                if let parent = stack.last { info.folderOf[name] = parent.name }
-                stack.append(StackEntry(name: name, tc: tc, groupId: groupId))
-            } else {
-                lastNonFolderGroupId = groupId
-                if let parent = stack.last { info.folderOf[name] = parent.name }
+            }
+
+            // Pre-pass 2: find 0x0000 section-boundary blocks within 0x2519.
+            let zeroBlocks = blocks.filter {
+                $0.contentType == 0x0000 &&
+                $0.dataOffset  >= parentStart &&
+                $0.dataOffset + $0.dataSize <= parentEnd
+            }
+            var boundaryOffsets = Set<Int>()
+            for zb in zeroBlocks {
+                let zbEnd = zb.dataOffset + zb.dataSize
+                if let nextSub = subBlocks.first(where: { $0.dataOffset > zb.dataOffset && $0.dataOffset < zbEnd + 500 }) {
+                    boundaryOffsets.insert(nextSub.dataOffset)
+                }
+            }
+
+            // Build a name→dataOffset dictionary (first occurrence only) for boundary lookup.
+            var nameToOffset = [String: Int]()
+            for sub in subBlocks {
+                let p = sub.dataOffset
+                guard p + 6 <= sub.dataOffset + sub.dataSize else { continue }
+                guard let nl = safeU32(data, at: p + 2, be: false), nl >= 1, nl <= 256 else { continue }
+                let nameLen = Int(nl)
+                let nameStart = p + 6
+                let nameEndPos = nameStart + nameLen
+                guard nameEndPos <= sub.dataOffset + sub.dataSize,
+                      let name = String(bytes: data[nameStart..<nameEndPos], encoding: .utf8) else { continue }
+                if nameToOffset[name] == nil { nameToOffset[name] = p }
+            }
+
+            struct StackEntry { var name: String; var tc: UInt16; var groupId: UInt16 }
+            var stack: [StackEntry] = []
+            var lastNonFolderGroupId: UInt16 = 0xffff
+
+            for name in info.orderedNames {
+                let isFolder = info.folderMarkers.contains(name)
+                let tc       = info.types[name] ?? 0
+                let groupId  = UInt16(info.colors[name] ?? 0xffff)
+
+                if let offset = nameToOffset[name], boundaryOffsets.contains(offset) {
+                    while let top = stack.last, top.tc == 0x0002 { stack.removeLast() }
+                }
+
+                if isFolder {
+                    if tc == 0x0002 {
+                        let isNested = (info.channelCounts[name] ?? 0) == 2
+                        if !isNested {
+                            stack.removeAll()
+                        } else {
+                            while let top = stack.last, top.tc == 0x0002 { stack.removeLast() }
+                        }
+                    } else {
+                        while let top = stack.last, top.tc == 0x0002 { stack.removeLast() }
+                        while let top = stack.last {
+                            if top.groupId == groupId {
+                                stack.removeLast(); break
+                            } else if lastNonFolderGroupId == top.groupId && !routingFolderColors.contains(Int(groupId)) {
+                                break
+                            } else {
+                                stack.removeLast()
+                            }
+                        }
+                    }
+                    if let parent = stack.last { info.folderOf[name] = parent.name }
+                    stack.append(StackEntry(name: name, tc: tc, groupId: groupId))
+                } else {
+                    lastNonFolderGroupId = groupId
+                    if let parent = stack.last { info.folderOf[name] = parent.name }
+                }
             }
         }
 
@@ -640,6 +703,82 @@ final class PTXBlockDecoder {
         print("[PTXBlockDecoder] Hidden:   \(info.hidden.sorted())")
         print("[PTXBlockDecoder] Inactive: \(info.inactive.sorted())")
         return info
+    }
+
+    // MARK: Folder Membership (0x210c)
+    //
+    // Block 0x210c encodes the explicit parent-child folder hierarchy.
+    //
+    // Layout:
+    //   Header: [u32 folderNodeCount][5 bytes][0x2a 0x00 0x00 0x00]  → first entry at offset+13
+    //
+    //   Each entry: [8-byte UID][u32 childCount][padding][0x2a 0x00 0x00 0x00 (next entry prefix)]
+    //     childCount == 0  → child/leaf record (this track belongs to the current parent)
+    //     childCount  > 0  → folder definition (this folder has childCount direct children)
+    //     padding = 5 bytes if childCount > 0, 1 byte if childCount == 0
+    //
+    //   Traversal: depth-first — a folder's N child records immediately follow it,
+    //   then any folder children are expanded in order (each appearing twice: once as
+    //   a child record with childCount=0, then as a parent record with childCount=M).
+    //
+    //   Stack algorithm: push folders (childCount>0) onto a stack; for each child record
+    //   (childCount=0), assign folderOf[child] = stack.top, decrement top.remaining,
+    //   pop when exhausted.
+
+    private static func extractFolderMembership(
+        blocks: [PTXBlock], data: Data, uidToName: [String: String]
+    ) -> [String: String] {
+        guard let b = blocks.first(where: { $0.contentType == 0x210c }),
+              b.dataSize >= 13 else { return [:] }
+
+        let blockEnd = b.dataOffset + b.dataSize
+
+        // Parse entries starting at offset+13 (past 4-byte count + 5 padding + 4-byte 0x2a marker).
+        // Each entry: UID(8) + childCount(4) + padding(5 if count>0, 1 if count=0).
+        // The 4-byte 0x2a marker that precedes the NEXT entry is included in the advance.
+        struct Entry { var name: String; var childCount: Int }
+        var entries = [Entry]()
+        var pos = b.dataOffset + 13
+
+        while pos + 8 <= blockEnd {
+            let uidHex = (0..<8).map { String(format: "%02x", data[pos + $0]) }.joined()
+            // The last entry in the block may not have a full 4-byte count field (block ends
+            // at the UID). Treat those tail bytes as count=0 (always a leaf in practice).
+            let count = pos + 12 <= blockEnd ? Int(u32(data, at: pos + 8, be: false)) : 0
+            if let name = uidToName[uidHex] {
+                entries.append(Entry(name: name, childCount: count))
+            }
+            // Advance past: UID(8) + childCount(4) + padding(5 or 1) + next 0x2a marker(4)
+            let advance = 8 + 4 + (count > 0 ? 5 : 1) + 4
+            pos += advance
+        }
+
+        guard !entries.isEmpty else { return [:] }
+
+        // Stack-based tree traversal.
+        // Folder entries (childCount>0) define direct children; child entries (childCount=0)
+        // belong to the current stack-top folder.
+        var folderOf = [String: String]()
+        var stack = [(name: String, remaining: Int)]()
+
+        for entry in entries {
+            if entry.childCount > 0 {
+                // Folder node — parent already established when it appeared as a child record
+                // (or top-level if first occurrence).
+                stack.append((entry.name, entry.childCount))
+            } else {
+                // Child record
+                if let parent = stack.last?.name {
+                    folderOf[entry.name] = parent
+                }
+                if !stack.isEmpty {
+                    stack[stack.count - 1].remaining -= 1
+                    while !stack.isEmpty && stack.last!.remaining == 0 { stack.removeLast() }
+                }
+            }
+        }
+
+        return folderOf
     }
 
     /// Builds the compound clip pool from 0x262b parent blocks and their 0x2628 children.
