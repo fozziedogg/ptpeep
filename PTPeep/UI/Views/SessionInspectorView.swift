@@ -2535,6 +2535,17 @@ private extension PTXTrackType {
 
 // MARK: - Clip Waveform View
 
+private func waveformChannelLabels(_ count: Int) -> [String] {
+    switch count {
+    case 2: return ["L", "R"]
+    case 3: return ["L", "R", "C"]
+    case 4: return ["L", "R", "Ls", "Rs"]
+    case 6: return ["L", "R", "C", "LFE", "Ls", "Rs"]
+    case 8: return ["L", "R", "C", "LFE", "Lss", "Rss", "Lrs", "Rrs"]
+    default: return (1...max(count, 1)).map { "\($0)" }
+    }
+}
+
 /// Async waveform display for a resolved clip. Shows PCM peaks per channel,
 /// with a moving playhead, click-to-seek, and drag-out-to-export.
 private struct ClipWaveformView: View {
@@ -2561,28 +2572,43 @@ private struct ClipWaveformView: View {
             } else {
                 // One equal-height band per channel, symmetric bars on each midline
                 // (matches sfxlibrary WaveformView rendering model)
+                let chCount    = peaks.count
+                let labels     = waveformChannelLabels(chCount)
+                let showLabels = chCount > 1
+                let labelW: CGFloat = showLabels ? 20 : 0
+                let drawW      = w - labelW
                 let n          = CGFloat(peaks[0].count)
-                let bandH      = h / CGFloat(peaks.count)
-                let step       = w / n
+                let bandH      = h / CGFloat(chCount)
+                let step       = drawW / n
                 let lineW      = max(1, step * 0.6)
 
                 for (ch, channelPeaks) in peaks.enumerated() {
                     let midY = bandH * CGFloat(ch) + bandH / 2
                     var path = Path()
                     for (i, peak) in channelPeaks.enumerated() {
-                        let x   = (CGFloat(i) + 0.5) * step
+                        let x   = labelW + (CGFloat(i) + 0.5) * step
                         let amp = CGFloat(peak) * (bandH / 2) * 0.9
                         path.move(to:    CGPoint(x: x, y: midY - amp))
                         path.addLine(to: CGPoint(x: x, y: midY + amp))
                     }
                     ctx.stroke(path, with: .color(color.opacity(0.85)),
                                style: StrokeStyle(lineWidth: lineW))
+
+                    if showLabels {
+                        let label = ch < labels.count ? labels[ch] : "\(ch + 1)"
+                        ctx.draw(
+                            Text(label)
+                                .font(.system(size: 7, weight: .medium))
+                                .foregroundColor(.secondary),
+                            at: CGPoint(x: 3, y: midY), anchor: .leading
+                        )
+                    }
                 }
 
                 // Divider between channels (only for multi-channel)
-                if peaks.count > 1 {
+                if chCount > 1 {
                     var div = Path()
-                    for ch in 1..<peaks.count {
+                    for ch in 1..<chCount {
                         let y = bandH * CGFloat(ch)
                         div.move(to:    CGPoint(x: 0, y: y))
                         div.addLine(to: CGPoint(x: w, y: y))

@@ -57,7 +57,7 @@ final class WaveformCache: @unchecked Sendable {
         let mt   = mtime(for: audioURL)
         let key  = fnv1a("\(audioURL.path)|\(startSample)|\(lengthSamples)|\(resolution)")
         let mtMs = Int64(mt * 1000)
-        return dir.appendingPathComponent("\(key)_\(mtMs).wc")
+        return dir.appendingPathComponent("\(key)_\(mtMs).wc2")
     }
 
     private func mtime(for url: URL) -> TimeInterval {
