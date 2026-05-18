@@ -567,15 +567,18 @@ struct SessionInspectorView: View {
             }
             if !pluginScanner.scanCompleted && !pluginScanner.isScanning {
                 HStack(spacing: 8) {
+                    Text("Scan your plug-in folder to check which plug-ins are installed.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
                     Spacer()
-                    Button("Scan Plug-In Folder") { pluginScanner.scan() }
+                    Button("Scan") { pluginScanner.scan() }
                     Text("(takes a moment)")
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                 }
                 .font(.system(size: 11))
-                .padding(.trailing, 8)
-                .padding(.bottom, 4)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
             }
             ForEach(session.plugins, id: \.self) { plugin in
                 PluginRow(plugin: plugin, installed: pluginScanner.scanCompleted ? pluginScanner.index?.contains(
