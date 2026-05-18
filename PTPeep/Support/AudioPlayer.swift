@@ -187,28 +187,27 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     /// Runs off the main actor.
     static func loadWaveform(url: URL, startSample: Int64, lengthSamples: Int64,
                              sampleRate: Double, resolution: Int = 500) async -> [[Float]] {
+        // Probe channel count before configuring the reader.
+        // AVAudioFile is the most reliable way to read the source format.
+        let ch = max(Int((try? AVAudioFile(forReading: url))?.fileFormat.channelCount ?? 1), 1)
+
         let asset = AVURLAsset(url: url)
         guard let track = try? await asset.loadTracks(withMediaType: .audio).first else { return [] }
         guard let reader = try? AVAssetReader(asset: asset) else { return [] }
 
+        // AVNumberOfChannelsKey must be set explicitly; without it AVAssetReaderTrackOutput
+        // may downmix to mono regardless of the source channel count.
         let outputSettings: [String: Any] = [
-            AVFormatIDKey:           kAudioFormatLinearPCM,
-            AVLinearPCMBitDepthKey:  32,
-            AVLinearPCMIsFloatKey:   true,
-            AVLinearPCMIsBigEndianKey: false,
-            AVLinearPCMIsNonInterleaved: false
+            AVFormatIDKey:              kAudioFormatLinearPCM,
+            AVLinearPCMBitDepthKey:     32,
+            AVLinearPCMIsFloatKey:      true,
+            AVLinearPCMIsBigEndianKey:  false,
+            AVLinearPCMIsNonInterleaved: false,
+            AVNumberOfChannelsKey:      ch
         ]
         let output = AVAssetReaderTrackOutput(track: track, outputSettings: outputSettings)
         output.alwaysCopiesSampleData = false
         reader.add(output)
-
-        // Channel count for interleaved stride
-        var channelCount = 1
-        if let descs = try? await track.load(.formatDescriptions),
-           let basic = descs.first.flatMap({ CMAudioFormatDescriptionGetStreamBasicDescription($0) }) {
-            channelCount = Int(basic.pointee.mChannelsPerFrame)
-        }
-        let ch = max(channelCount, 1)
 
         // Seek to clip region
         let sr = CMTimeScale(max(sampleRate, 1).rounded())
