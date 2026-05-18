@@ -407,7 +407,7 @@ struct SessionInspectorView: View {
             }
             if hasAtmosData {
                 Text("Atmos").font(.caption2).foregroundStyle(.tertiary)
-                    .frame(width: 50, alignment: .center)
+                    .frame(width: 65, alignment: .center)
             }
             Spacer(minLength: 0)
         }
@@ -806,7 +806,8 @@ private struct TrackRow: View {
                 if showAtmos {
                     Group {
                         if track.isAtmosObject {
-                            Text("OBJ")
+                            let label = track.atmosRendererInput > 0 ? "OBJ \(track.atmosRendererInput)" : "OBJ"
+                            Text(label)
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(Color.purple)
                                 .padding(.horizontal, 5)
@@ -814,7 +815,13 @@ private struct TrackRow: View {
                                 .background(Color.purple.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                                 .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.purple.opacity(0.4), lineWidth: 0.5))
                         } else if track.isAtmosBed {
-                            Text("BED")
+                            let bedLabel: String = {
+                                guard track.atmosRendererInput > 0 else { return "BED" }
+                                let start = track.atmosRendererInput
+                                let end   = start + max(track.channelCount, 1) - 1
+                                return end > start ? "BED \(start)–\(end)" : "BED \(start)"
+                            }()
+                            Text(bedLabel)
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(Color.orange)
                                 .padding(.horizontal, 5)
@@ -825,7 +832,7 @@ private struct TrackRow: View {
                             Color.clear
                         }
                     }
-                    .frame(width: 50, alignment: .center)
+                    .frame(width: 65, alignment: .center)
                 }
                 Spacer(minLength: 0)
             }

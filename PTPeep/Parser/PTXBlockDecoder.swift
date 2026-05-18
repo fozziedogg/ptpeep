@@ -1343,6 +1343,7 @@ final class PTXBlockDecoder {
         var outputPath:   String?
         var isAtmosObject: Bool = false  // true = Atmos Object send (b0==b1==0, b2=slot, non-ff/non-0)
         var isAtmosBed:    Bool = false  // true = Atmos Bed send (flagOff+11 != 0xff = Atmos group id)
+        var atmosRendererInput: Int = 0  // 1-indexed renderer input channel (b11+1); 0 = unknown
     }
 
     /// Returns a dictionary mapping track display names → routing entry (inputPath, outputPath).
@@ -1397,6 +1398,7 @@ final class PTXBlockDecoder {
             var outputPath: String? = nil
             var isAtmosObject = false
             var isAtmosBed    = false
+            var isAtmosRendererInput = 0
             if let pathBlock = all260e.first(where: { e in
                 guard e.dataOffset >= cStart, e.dataOffset + e.dataSize <= cEnd else { return false }
                 return all260d.contains(where: { d in
@@ -1425,6 +1427,8 @@ final class PTXBlockDecoder {
                             let b11 = data[flagOff + 11]
                             isAtmosObject = b2 != 0xff && b2 != 0x00 && b0 == 0x00 && b1 == 0x00
                             isAtmosBed    = !isAtmosObject && b11 != 0xff
+                            // b11 is 0-indexed renderer input; +1 gives the 1-indexed channel shown in PT
+                            if isAtmosObject || isAtmosBed { isAtmosRendererInput = Int(b11) + 1 }
                         } else if flagOff + 3 <= pathBlock.dataOffset + pathBlock.dataSize {
                             let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
                             isAtmosObject = b2 != 0xff && b2 != 0x00 && b0 == 0x00 && b1 == 0x00
@@ -1467,7 +1471,8 @@ final class PTXBlockDecoder {
             strips.append(StripRouting(name: name, uid: uid,
                                        entry: RoutingEntry(inputPath: inputPath, outputPath: outputPath,
                                                            isAtmosObject: isAtmosObject,
-                                                           isAtmosBed: isAtmosBed)))
+                                                           isAtmosBed: isAtmosBed,
+                                                           atmosRendererInput: isAtmosRendererInput)))
         }
 
         // Build UID → routing lookup

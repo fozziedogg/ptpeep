@@ -335,10 +335,11 @@ final class PTXParser {
                 }).flatMap { routing[$0] }
             }
             if let e = entry {
-                session.tracks[i].inputPath     = e.inputPath
-                session.tracks[i].outputPath    = e.outputPath
-                session.tracks[i].isAtmosObject = e.isAtmosObject
-                session.tracks[i].isAtmosBed    = e.isAtmosBed
+                session.tracks[i].inputPath          = e.inputPath
+                session.tracks[i].outputPath         = e.outputPath
+                session.tracks[i].isAtmosObject      = e.isAtmosObject
+                session.tracks[i].isAtmosBed         = e.isAtmosBed
+                session.tracks[i].atmosRendererInput = e.atmosRendererInput
             }
         }
 

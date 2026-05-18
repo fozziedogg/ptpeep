@@ -97,6 +97,7 @@ struct PTXTrack: Equatable {
     var outputPath:   String?  = nil   // I/O output bus name, e.g. "STERO OUT"
     var isAtmosObject: Bool    = false // true = Atmos Object send
     var isAtmosBed:    Bool    = false // true = Atmos Bed send
+    var atmosRendererInput: Int = 0   // 1-indexed renderer input channel (0 = unknown)
 
     var channelFormat: String {
         switch type {
