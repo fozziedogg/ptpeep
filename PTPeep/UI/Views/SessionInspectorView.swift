@@ -1515,8 +1515,10 @@ private struct SessionTimelineView: View {
     @State private var panOrigin:   (viewStart: Double, window: Double)? = nil
 
     // TC entry
-    @State private var showTCEntry:  Bool   = false
-    @State private var tcEntryText:  String = ""
+    @State private var showTCEntry:      Bool   = false
+    @State private var tcEntryText:      String = ""
+    @State private var showFiltersPopover: Bool  = false
+    @AppStorage("ov.autoplay") private var autoplay: Bool = false
 
     private static let audioLaneH: CGFloat = 8
     private static let videoLaneH: CGFloat = 16
@@ -1585,7 +1587,7 @@ private struct SessionTimelineView: View {
         let selectedClipTrackIdx: Int? = selectedClip != nil ? tc.selTrack : nil
 
         VStack(spacing: 0) {
-            // ── Row 1: TC cursor | track label | zoom ────────────────────────
+            // ── Toolbar: position | track + hover clip | zoom | filters ──────
             HStack(spacing: 8) {
                 // TC position / entry button — hover takes priority over cursor
                 Button {
@@ -1628,17 +1630,28 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
-                // Track name — hover takes priority over selected track
+                // Track name (hover > selected) + inline clip info when hovering a clip
                 let displayIdx = hoverLane ?? tc.selTrack
                 if let idx = displayIdx, idx < tracks.count {
                     let track = tracks[idx]
-                    let color = trackColor(track, index: idx)
+                    let tcolor = trackColor(track, index: idx)
                     let fmtLabel: String = {
                         guard track.type == .video else { return track.channelFormat }
                         return tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)"
                     }()
-                    Text(track.name).foregroundStyle(color)
+                    Text(track.name).foregroundStyle(tcolor).lineLimit(1)
                     Text("[\(fmtLabel)]").foregroundStyle(.secondary)
+                    if let clip = hoverClip {
+                        Text("·").foregroundStyle(.tertiary).padding(.horizontal, 2)
+                        Text(clip.name)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text("in \(formatTC(Double(clip.startSample) / sr, fps: frameRate))")
+                            .foregroundStyle(.secondary)
+                        Text("len \(formatTC(Double(clip.lengthSamples) / sr, fps: frameRate))")
+                            .foregroundStyle(.secondary)
+                    }
                 } else {
                     Text("—").foregroundStyle(.tertiary)
                 }
@@ -1659,7 +1672,7 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
-                // Track height (all lanes)
+                // V zoom
                 HStack(spacing: 4) {
                     Text("V:").foregroundStyle(.secondary)
                     Button { tc.adjustGlobalTrackHeight(by: -1) } label: { Image(systemName: "minus") }
@@ -1670,12 +1683,40 @@ private struct SessionTimelineView: View {
                         .disabled(tc.globalTrackHeightLevel == 4)
                 }
 
+                Divider().frame(height: 14)
+
+                // Filters popover
+                let filtersActive = showHidden || showInactive || !showVideo || hideMuted || showMarkers || !showEmpty
+                Button { showFiltersPopover.toggle() } label: {
+                    Image(systemName: filtersActive
+                          ? "line.3.horizontal.decrease.circle.fill"
+                          : "line.3.horizontal.decrease.circle")
+                        .foregroundStyle(filtersActive ? Color.accentColor : Color.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("Track and clip filters")
+                .popover(isPresented: $showFiltersPopover, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if hasMarkers   { Toggle("Show Markers",         isOn: $showMarkers).toggleStyle(.checkbox) }
+                        if hasVideo     { Toggle("Show Video Track",     isOn: $showVideo).toggleStyle(.checkbox) }
+                        if hasHidden    { Toggle("Show Hidden Tracks",   isOn: $showHidden).toggleStyle(.checkbox) }
+                        if hasInactive  { Toggle("Show Inactive Tracks", isOn: $showInactive).toggleStyle(.checkbox) }
+                                          Toggle("Show Empty Tracks",    isOn: $showEmpty).toggleStyle(.checkbox)
+                        if hasMuted {
+                            Toggle("Show Muted Clips",
+                                   isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 }))
+                            .toggleStyle(.checkbox)
+                        }
+                    }
+                    .font(.system(size: 12))
+                    .padding(12)
+                }
+
+                // Reset Heights — inline only when non-default
                 if !tc.trackHeightLevels.isEmpty || tc.globalTrackHeightLevel != 0 {
                     Divider().frame(height: 14)
-                    Button { tc.resetTrackHeights() } label: {
-                        Text("Reset Heights")
-                    }
-                    .buttonStyle(.borderless)
+                    Button { tc.resetTrackHeights() } label: { Text("Reset Heights") }
+                        .buttonStyle(.borderless)
                 }
             }
             .font(.system(size: 11).monospacedDigit())
@@ -1683,58 +1724,8 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 8)
             .frame(height: 24)
 
-            // ── Row 2: selected clip (persistent — set by click) ─────────────
-            clipInfoRow(
-                clip: selectedClip, trackIdx: selectedClipTrackIdx,
-                label: "SELECT", sr: sr, isSelected: true
-            )
-
-            // ── Row 3: hover clip (ephemeral — follows cursor) ────────────────
-            clipInfoRow(
-                clip: hoverClip, trackIdx: hoverClipTrackIdx,
-                label: "HOVER", sr: sr, isSelected: false
-            )
-
-            // ── Checkbox row ─────────────────────────────────────────────────
-            HStack(spacing: 12) {
-                if hasMarkers {
-                    Toggle(isOn: $showMarkers) {
-                        Text("Show Markers").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                if hasVideo {
-                    Toggle(isOn: $showVideo) {
-                        Text("Show Video Track").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                if hasHidden {
-                    Toggle(isOn: $showHidden) {
-                        Text("Show Hidden Tracks").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                if hasInactive {
-                    Toggle(isOn: $showInactive) {
-                        Text("Show Inactive Tracks").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                Toggle(isOn: $showEmpty) {
-                    Text("Show Empty Tracks").font(.caption).foregroundStyle(.secondary)
-                }
-                .toggleStyle(.checkbox)
-                if hasMuted {
-                    Toggle(isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 })) {
-                        Text("Show Muted Clips").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            // ── SELECT row: transport + clip info ────────────────────────────
+            selectedClipRow(clip: selectedClip, trackIdx: selectedClipTrackIdx, sr: sr)
 
             // ── Ruler (adaptive tick spacing) ─────────────────────────────────
             Canvas { ctx, size in
@@ -1967,6 +1958,11 @@ private struct SessionTimelineView: View {
                                             // Place cursor at clip in-point; SEL row derives from this
                                             tc.selStart = Double(clip.startSample) / total
                                             tc.selEnd   = nil
+                                            // Autoplay: immediately play clip on click
+                                            if autoplay, let ap = audioPlayer, !clip.isGroup,
+                                               let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                                                ap.play(clip: clip, url: url, sampleRate: sr)
+                                            }
                                         } else {
                                             // Empty space → cursor only, no clip selected
                                             tc.selStart = frac
@@ -2005,27 +2001,54 @@ private struct SessionTimelineView: View {
         }
     }
 
-    private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
-                             label: String, sr: Double, isSelected: Bool) -> some View {
-        // Row always occupies 24px — no layout shift or flicker when clip changes.
+    private func selectedClipRow(clip: PTXClip?, trackIdx: Int?, sr: Double) -> some View {
         let color = trackIdx.map { t in
             t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
         } ?? Color.secondary
 
         return HStack(spacing: 0) {
-            // Label badge — fixed width so HOVER/SEL columns line up
-            Text(label)
+            // Transport: play/stop + autoplay toggle (always present for stable layout)
+            HStack(spacing: 7) {
+                if let ap = audioPlayer, let clip, !clip.isGroup,
+                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                    let playing = ap.isPlaying && ap.playingClip == clip
+                    Button {
+                        playing ? ap.stop() : ap.play(clip: clip, url: url, sampleRate: sr)
+                    } label: {
+                        Image(systemName: playing ? "stop.fill" : "play.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(playing ? Color.red : color)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.clear)
+                }
+                Button { autoplay.toggle() } label: {
+                    Image(systemName: "autoplay")
+                        .font(.system(size: 11))
+                        .foregroundStyle(autoplay ? Color.accentColor : Color.secondary.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+                .help(autoplay ? "Auto-play on: clips play on click" : "Auto-play off")
+            }
+            .frame(width: 38, alignment: .leading)
+            .padding(.leading, 8)
+
+            // SELECT badge
+            Text("SELECT")
                 .font(.system(size: 9).weight(.bold))
-                .foregroundStyle(isSelected ? color : Color.secondary)
+                .foregroundStyle(clip != nil ? color : Color.secondary)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 2)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(isSelected
+                        .fill(clip != nil
                               ? color.opacity(0.18)
                               : Color(nsColor: .separatorColor).opacity(0.5))
                 )
-                .frame(width: 52, alignment: .leading)
+                .padding(.trailing, 6)
 
             if let clip, let tIdx = trackIdx {
                 let inTC  = formatTC(Double(clip.startSample) / sr, fps: frameRate)
@@ -2035,14 +2058,14 @@ private struct SessionTimelineView: View {
 
                 // Color swatch
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(isSelected ? color : color.opacity(0.5))
+                    .fill(color)
                     .frame(width: 3, height: 14)
                     .padding(.trailing, 6)
 
                 // Track name
                 if !trackName.isEmpty {
                     Text(trackName)
-                        .foregroundStyle(isSelected ? color.opacity(0.75) : Color.secondary)
+                        .foregroundStyle(color.opacity(0.75))
                         .lineLimit(1)
                         .frame(width: 100, alignment: .leading)
                         .padding(.trailing, 4)
@@ -2050,8 +2073,8 @@ private struct SessionTimelineView: View {
 
                 // Clip name
                 Text(clip.name)
-                    .foregroundStyle(isSelected ? color : Color(nsColor: .secondaryLabelColor))
-                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundStyle(color)
+                    .fontWeight(.semibold)
                     .lineLimit(1)
                     .truncationMode(.middle)
 
@@ -2059,9 +2082,7 @@ private struct SessionTimelineView: View {
                     Text("muted")
                         .font(.system(size: 9).weight(.medium))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .padding(.leading, 4)
+                        .padding(.horizontal, 4).padding(.vertical, 1).padding(.leading, 4)
                         .background(RoundedRectangle(cornerRadius: 3)
                             .fill(Color(nsColor: .separatorColor).opacity(0.6)))
                 }
@@ -2069,68 +2090,41 @@ private struct SessionTimelineView: View {
                     Text("clip group")
                         .font(.system(size: 9).weight(.medium))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .padding(.leading, 4)
+                        .padding(.horizontal, 4).padding(.vertical, 1).padding(.leading, 4)
                         .background(RoundedRectangle(cornerRadius: 3)
                             .fill(Color(nsColor: .separatorColor).opacity(0.6)))
                 }
 
                 Spacer(minLength: 8)
 
-                // In / Out / Length — plain text labels, fixed-width TC columns
+                // In / Out / Length
                 HStack(spacing: 0) {
                     Group {
                         Text("in ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                        + Text(inTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
+                        + Text(inTC).foregroundColor(Color(nsColor: .labelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
-
                     Group {
                         Text("  out ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                        + Text(outTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
+                        + Text(outTC).foregroundColor(Color(nsColor: .labelColor))
                     }
                     .frame(width: 118, alignment: .trailing)
-
                     Group {
                         Text("  len ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                        + Text(durTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
+                        + Text(durTC).foregroundColor(Color(nsColor: .labelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
-                }
-
-                // Play button — SELECT row only, when source file is resolved
-                if isSelected, let ap = audioPlayer, !clip.isGroup {
-                    let resolvedURL = resolvedFiles.first { $0.name == clip.sourceFile }?.url
-                    if let url = resolvedURL {
-                        let isThisClipPlaying = ap.isPlaying && ap.playingClip == clip
-                        Button {
-                            if isThisClipPlaying {
-                                ap.stop()
-                            } else {
-                                ap.play(clip: clip, url: url, sampleRate: sr)
-                            }
-                        } label: {
-                            Image(systemName: isThisClipPlaying ? "stop.fill" : "play.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(isThisClipPlaying ? Color.red : color)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.leading, 10)
-                    }
                 }
 
             } else {
-                Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
+                Text("—").foregroundStyle(.tertiary).padding(.leading, 4)
                 Spacer()
             }
         }
         .font(.system(size: 11).monospacedDigit())
-        .padding(.horizontal, 12)
-        .frame(height: 24)
-        .background(isSelected
-            ? color.opacity(0.07)
-            : Color(nsColor: .separatorColor).opacity(0.05))
+        .padding(.horizontal, 4)
+        .frame(height: 26)
+        .background(clip != nil ? color.opacity(0.07) : Color.clear)
     }
 
 
