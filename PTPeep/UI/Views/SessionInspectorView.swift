@@ -867,7 +867,19 @@ private struct TrackRow: View {
                 .frame(width: nameWidth, alignment: .leading)
                 .padding(.leading, 8)
 
-                Text(track.channelFormat)
+                Text({
+                    if track.isAtmosBed, track.atmosBedChannelCount > 0 {
+                        switch track.atmosBedChannelCount {
+                        case 1:  return "Mono"
+                        case 2:  return "Stereo"
+                        case 6:  return "5.1"
+                        case 8:  return "7.1"
+                        case 10: return "7.1.2"
+                        default: return "\(track.atmosBedChannelCount)ch"
+                        }
+                    }
+                    return track.channelFormat
+                }())
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(width: 55, alignment: .center)
@@ -888,7 +900,13 @@ private struct TrackRow: View {
                 if showAtmos {
                     Group {
                         if track.isAtmosObject {
-                            let label = track.atmosRendererInput > 0 ? "OBJ \(track.atmosRendererInput)" : "OBJ"
+                            let label: String = {
+                                guard track.atmosRendererInput > 0 else { return "OBJ" }
+                                if track.channelCount >= 2 {
+                                    return "OBJ \(track.atmosRendererInput)|\(track.atmosRendererInput + 1)"
+                                }
+                                return "OBJ \(track.atmosRendererInput)"
+                            }()
                             Text(label)
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(Color.purple)
