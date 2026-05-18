@@ -182,62 +182,42 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
     // MARK: - Waveform loading
 
-    /// Reads PCM peaks for the clip region in the source file, per channel.
-    /// Returns one `[Float]` per channel (mono → 1, stereo → 2, etc.), each normalised 0…1.
-    /// Runs off the main actor.
+    /// Reads PCM peaks for the clip region, one `[Float]` per channel (normalised 0…1).
+    /// Uses AVAudioFile whose `processingFormat` is always float32 deinterleaved —
+    /// giving reliable per-channel data without AVAssetReader channel-count ambiguity.
     static func loadWaveform(url: URL, startSample: Int64, lengthSamples: Int64,
                              sampleRate: Double, resolution: Int = 500) async -> [[Float]] {
-        // Probe channel count before configuring the reader.
-        // AVAudioFile is the most reliable way to read the source format.
-        let ch = max(Int((try? AVAudioFile(forReading: url))?.fileFormat.channelCount ?? 1), 1)
+        guard let file = try? AVAudioFile(forReading: url) else { return [] }
 
-        let asset = AVURLAsset(url: url)
-        guard let track = try? await asset.loadTracks(withMediaType: .audio).first else { return [] }
-        guard let reader = try? AVAssetReader(asset: asset) else { return [] }
+        // processingFormat is guaranteed float32 non-interleaved with the correct channel count.
+        let fmt = file.processingFormat
+        let ch  = Int(fmt.channelCount)
 
-        // AVNumberOfChannelsKey must be set explicitly; without it AVAssetReaderTrackOutput
-        // may downmix to mono regardless of the source channel count.
-        let outputSettings: [String: Any] = [
-            AVFormatIDKey:              kAudioFormatLinearPCM,
-            AVLinearPCMBitDepthKey:     32,
-            AVLinearPCMIsFloatKey:      true,
-            AVLinearPCMIsBigEndianKey:  false,
-            AVLinearPCMIsNonInterleaved: false,
-            AVNumberOfChannelsKey:      ch
-        ]
-        let output = AVAssetReaderTrackOutput(track: track, outputSettings: outputSettings)
-        output.alwaysCopiesSampleData = false
-        reader.add(output)
-
-        // Seek to clip region
-        let sr = CMTimeScale(max(sampleRate, 1).rounded())
-        reader.timeRange = CMTimeRange(
-            start:    CMTime(value: startSample,           timescale: sr),
-            duration: CMTime(value: max(lengthSamples, 1), timescale: sr)
-        )
-        guard reader.startReading() else { return [] }
-
-        // Bucket PCM frames into `resolution` peak bins, per channel
         let totalFrames  = Int(lengthSamples)
         let bucketFrames = max(1, totalFrames / resolution)
-        var peaks        = [[Float]](repeating: [Float](repeating: 0, count: resolution), count: ch)
-        var frameIdx     = 0
+        let chunkSize    = AVAudioFrameCount(min(totalFrames, 65536))
 
-        while let sampleBuf = output.copyNextSampleBuffer() {
-            guard let blockBuf = CMSampleBufferGetDataBuffer(sampleBuf) else { continue }
-            let byteLen = CMBlockBufferGetDataLength(blockBuf)
-            let count   = byteLen / MemoryLayout<Float>.size
-            var data    = [Float](repeating: 0, count: count)
-            CMBlockBufferCopyDataBytes(blockBuf, atOffset: 0, dataLength: byteLen, destination: &data)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: chunkSize)
+        else { return [] }
 
-            var i = 0
-            while i + ch <= count {
+        file.framePosition = startSample   // seek to clip start
+
+        var peaks    = [[Float]](repeating: [Float](repeating: 0, count: resolution), count: ch)
+        var frameIdx = 0
+
+        while frameIdx < totalFrames {
+            let toRead = AVAudioFrameCount(min(totalFrames - frameIdx, Int(chunkSize)))
+            buffer.frameLength = 0
+            do { try file.read(into: buffer, frameCount: toRead) } catch { break }
+            guard buffer.frameLength > 0, let channelData = buffer.floatChannelData else { break }
+
+            let n = Int(buffer.frameLength)
+            for f in 0..<n {
                 let bucket = min(frameIdx / bucketFrames, resolution - 1)
                 for c in 0..<ch {
-                    peaks[c][bucket] = max(peaks[c][bucket], abs(data[i + c]))
+                    peaks[c][bucket] = max(peaks[c][bucket], abs(channelData[c][f]))
                 }
                 frameIdx += 1
-                i += ch
             }
         }
 
