@@ -196,29 +196,23 @@ struct SessionInspectorView: View {
 
     private var sessionSetupSection: some View {
         InspectorSection(title: "Session Setup", systemImage: "info.circle", initiallyExpanded: true) {
-            let rows: [(String, String)] = [
-                ("Sample Rate",   session.sampleRate.isEmpty    ? "—" : "\(session.sampleRate) Hz"),
-                ("Bit Depth",     session.bitDepth.isEmpty      ? "—" : "\(session.bitDepth)-bit"),
-                ("Timecode",      session.tcFormat.isEmpty      ? "—" : session.tcFormat),
-                ("TC Start",      session.sessionStart.isEmpty  ? "—" : session.sessionStart),
-                ("Tracks",        "\(session.tracks.filter { $0.type == .audio }.count)"),
-                ("Audio Files",   "\(session.audioFileNames.count)"),
-            ]
-            let cols = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
-            LazyVGrid(columns: cols, alignment: .leading, spacing: 3) {
-                ForEach(rows, id: \.0) { label, value in
-                    HStack(spacing: 3) {
-                        Text(label + ":")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(value)
-                            .font(.caption.monospacedDigit())
-                            .lineLimit(1)
-                    }
-                }
+            HStack(spacing: 16) {
+                sessionField("SR",    session.sampleRate.isEmpty  ? "—" : "\(session.sampleRate) Hz")
+                sessionField("Bit",   session.bitDepth.isEmpty    ? "—" : "\(session.bitDepth)-bit")
+                sessionField("TC",    session.tcFormat.isEmpty    ? "—" : session.tcFormat)
+                sessionField("Start", session.sessionStart.isEmpty ? "—" : session.sessionStart)
+                Spacer()
             }
+            .font(.system(size: 11).monospacedDigit())
             .padding(.horizontal, 16)
-            .padding(.vertical, 5)
+            .padding(.vertical, 6)
+        }
+    }
+
+    private func sessionField(_ label: String, _ value: String) -> some View {
+        HStack(spacing: 3) {
+            Text(label + ":").foregroundStyle(.secondary)
+            Text(value)
         }
     }
 
@@ -1716,11 +1710,11 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 8)
             .frame(height: 24)
 
-            // ── SELECT / HOVER clip rows (aligned columns) ───────────────────
-            clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
-                        label: "SELECT", sr: sr, isSelected: true)
+            // ── HOVER / SELECT clip rows (aligned columns) ───────────────────
             clipInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
                         label: "HOVER", sr: sr, isSelected: false)
+            clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
+                        label: "SELECT", sr: sr, isSelected: true)
 
             // ── Transport strip ───────────────────────────────────────────────
             HStack(spacing: 8) {
