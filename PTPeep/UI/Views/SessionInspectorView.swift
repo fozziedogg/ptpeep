@@ -2562,21 +2562,28 @@ private struct ClipWaveformView: View {
                 // ── Stereo: L top half (downward), R bottom half (upward) ──
                 let halfH = h / 2
                 let barW  = w / CGFloat(peaks[0].count)
-                // Faint channel divider
-                ctx.fill(Path(CGRect(x: 0, y: halfH - 0.5, width: w, height: 0.5)),
-                         with: .color(.white.opacity(0.07)))
+                // L channel — bars grow downward from top edge
                 for (i, peak) in peaks[0].enumerated() {
-                    let barH = max(CGFloat(peak) * (halfH - 2) * 0.9, 1)
-                    ctx.fill(Path(CGRect(x: CGFloat(i) * barW, y: halfH - barH,
+                    let barH = max(CGFloat(peak) * (halfH - 1), 1)
+                    ctx.fill(Path(CGRect(x: CGFloat(i) * barW, y: 0,
                                          width: max(barW - 0.5, 0.5), height: barH)),
                              with: .color(color.opacity(0.65)))
                 }
+                // R channel — bars grow upward from bottom edge
                 for (i, peak) in peaks[1].enumerated() {
-                    let barH = max(CGFloat(peak) * (halfH - 2) * 0.9, 1)
-                    ctx.fill(Path(CGRect(x: CGFloat(i) * barW, y: halfH,
+                    let barH = max(CGFloat(peak) * (halfH - 1), 1)
+                    ctx.fill(Path(CGRect(x: CGFloat(i) * barW, y: h - barH,
                                          width: max(barW - 0.5, 0.5), height: barH)),
                              with: .color(color.opacity(0.65)))
                 }
+                // Channel divider
+                ctx.fill(Path(CGRect(x: 0, y: halfH - 0.5, width: w, height: 1)),
+                         with: .color(.primary.opacity(0.15)))
+                // L / R labels
+                ctx.draw(Text("L").font(.system(size: 7, weight: .semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: 6, y: halfH * 0.5), anchor: .center)
+                ctx.draw(Text("R").font(.system(size: 7, weight: .semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: 6, y: halfH + halfH * 0.5), anchor: .center)
             } else if let ch = peaks.first {
                 // ── Mono: symmetric around centre ──
                 let barW = w / CGFloat(ch.count)
