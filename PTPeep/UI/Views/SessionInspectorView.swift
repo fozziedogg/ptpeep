@@ -319,7 +319,8 @@ struct SessionInspectorView: View {
 
     @ViewBuilder
     private var trackFilterBadges: some View {
-        if presentTrackTypes.count > 1 {
+        let hasPlugins = session.tracks.contains { !$0.plugins.isEmpty }
+        if presentTrackTypes.count > 1 || hasPlugins {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
                     ForEach(presentTrackTypes, id: \.self) { type in
@@ -344,6 +345,25 @@ struct SessionInspectorView: View {
                         }
                         .buttonStyle(.plain)
                         .animation(.easeInOut(duration: 0.1), value: hidden)
+                    }
+                    if hasPlugins {
+                        Button { showTrackPlugins.toggle() } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "puzzlepiece.extension").font(.system(size: 8))
+                                Text("Plug-ins").font(.system(size: 10))
+                            }
+                            .foregroundStyle(showTrackPlugins ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(showTrackPlugins
+                                ? Color(nsColor: .separatorColor).opacity(0.55)
+                                : Color(nsColor: .separatorColor).opacity(0.3)))
+                            .overlay(Capsule().strokeBorder(
+                                showTrackPlugins ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear,
+                                lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.easeInOut(duration: 0.1), value: showTrackPlugins)
                     }
                     if !hiddenTrackTypes.isEmpty {
                         Button("Show all") {
@@ -460,7 +480,6 @@ struct SessionInspectorView: View {
                 }
             }
         }()
-        let hasPlugins   = session.tracks.contains { !$0.plugins.isEmpty }
         let totalCount   = session.tracks.count
         let visibleCount = visibleTracks.count
         let showRouting  = hasRoutingData
@@ -468,14 +487,8 @@ struct SessionInspectorView: View {
             PlaceholderRow(text: "No tracks found")
         } else {
             // ── Toolbar (toggles) ──────────────────────────────────────────
-            if hasPlugins || hasHiddenTracks || hasInactiveTracks {
+            if hasHiddenTracks || hasInactiveTracks {
                 HStack(spacing: 8) {
-                    if hasPlugins {
-                        Toggle(isOn: $showTrackPlugins) {
-                            Text("Show Plug-ins").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
                     if hasHiddenTracks {
                         Toggle(isOn: $tlShowHiddenTracks) {
                             Text("Show Hidden").font(.caption).foregroundStyle(.secondary)
