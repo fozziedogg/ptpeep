@@ -35,15 +35,13 @@ struct SessionInspectorView: View {
     @AppStorage("tl.showInactiveTracks") private var tlShowInactiveTracks: Bool = true
     @State private var markerSearch:         String  = ""
     @State private var hiddenTrackTypes:     Set<PTXTrackType> = []
-    @State private var hideAtmosObjects:     Bool = false
-    @State private var hideAtmosBeds:        Bool = false
     @State private var trackSectionExpanded:   Bool = false
     @State private var audioSectionExpanded:   Bool = false
     @State private var pluginSectionExpanded:  Bool = false
     @State private var memLocSectionExpanded:  Bool = false
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
-    @State private var showTrackPlugins: Bool = true
+    @State private var showTrackPlugins: Bool = false
     @State private var didCheckPlugins:  Bool = false   // reset per session open
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
@@ -316,25 +314,6 @@ struct SessionInspectorView: View {
     }
 
     @ViewBuilder
-    private func atmosFilterBadge(label: String, color: Color, hidden: Binding<Bool>) -> some View {
-        Button { hidden.wrappedValue.toggle() } label: {
-            Text(label)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(hidden.wrappedValue ? AnyShapeStyle(.tertiary) : AnyShapeStyle(color))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(Capsule().fill(hidden.wrappedValue
-                    ? Color(nsColor: .separatorColor).opacity(0.3)
-                    : color.opacity(0.15)))
-                .overlay(Capsule().strokeBorder(
-                    hidden.wrappedValue ? Color.clear : color.opacity(0.5),
-                    lineWidth: 0.5))
-        }
-        .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.1), value: hidden.wrappedValue)
-    }
-
-    @ViewBuilder
     private var trackFilterBadges: some View {
         if presentTrackTypes.count > 1 {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -362,19 +341,9 @@ struct SessionInspectorView: View {
                         .buttonStyle(.plain)
                         .animation(.easeInOut(duration: 0.1), value: hidden)
                     }
-                    let hasAtmosObjects = session.tracks.contains { $0.isAtmosObject }
-                    let hasAtmosBeds    = session.tracks.contains { $0.isAtmosBed }
-                    if hasAtmosObjects {
-                        atmosFilterBadge(label: "OBJ", color: .purple, hidden: $hideAtmosObjects)
-                    }
-                    if hasAtmosBeds {
-                        atmosFilterBadge(label: "BED", color: .orange, hidden: $hideAtmosBeds)
-                    }
-                    if !hiddenTrackTypes.isEmpty || hideAtmosObjects || hideAtmosBeds {
+                    if !hiddenTrackTypes.isEmpty {
                         Button("Show all") {
                             hiddenTrackTypes.removeAll()
-                            hideAtmosObjects = false
-                            hideAtmosBeds    = false
                         }
                         .buttonStyle(.borderless)
                         .font(.system(size: 10))
@@ -424,8 +393,6 @@ struct SessionInspectorView: View {
             !hiddenTrackTypes.contains($0.type)
             && (tlShowHiddenTracks   || !$0.isHidden)
             && (tlShowInactiveTracks || !$0.isInactive)
-            && (!hideAtmosObjects    || !$0.isAtmosObject)
-            && (!hideAtmosBeds       || !$0.isAtmosBed)
         }
         let hasPlugins   = session.tracks.contains { !$0.plugins.isEmpty }
         let totalCount   = session.tracks.count
