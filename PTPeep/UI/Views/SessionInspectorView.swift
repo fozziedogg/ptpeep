@@ -872,9 +872,16 @@ private struct TrackRow: View {
                         switch track.atmosBedChannelCount {
                         case 1:  return "Mono"
                         case 2:  return "Stereo"
+                        case 3:  return "LCR"
+                        case 4:  return "Quad"
+                        case 5:  return "5.0"
                         case 6:  return "5.1"
+                        case 7:  return "6.1"
                         case 8:  return "7.1"
+                        case 9:  return "7.0.2"
                         case 10: return "7.1.2"
+                        case 11: return "7.0.4"
+                        case 12: return "7.1.4"
                         default: return "\(track.atmosBedChannelCount)ch"
                         }
                     }
