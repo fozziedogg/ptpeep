@@ -1417,7 +1417,7 @@ final class PTXBlockDecoder {
                       !(data[pathBlock.dataOffset] == 0xff && data[pathBlock.dataOffset + 1] == 0xff)
                 else { continue }
 
-                let isSend = data[pathBlock.dataOffset] == 0x13
+                let isSend = outputPath != nil  // first valid block = main output; rest = sends
                 let lpOff  = pathBlock.dataOffset + 36
                 guard lpOff + 4 <= pathBlock.dataOffset + pathBlock.dataSize,
                       let sl = safeU32(data, at: lpOff, be: false),
