@@ -43,6 +43,10 @@ struct SessionInspectorView: View {
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
     @State private var showTrackPlugins: Bool = false
     @State private var didCheckPlugins:  Bool = false   // reset per session open
+    @State private var trackSortColumn: TrackSortColumn = .none
+    @State private var trackSortAscending: Bool = true
+
+    private enum TrackSortColumn { case none, name, format, input, output, atmos }
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
 
@@ -364,19 +368,14 @@ struct SessionInspectorView: View {
     private var trackColumnHeader: some View {
         HStack(spacing: 0) {
             Color.clear.frame(width: 24)  // icon (16) + gap (8)
-            Text("Name").font(.caption2).foregroundStyle(.tertiary)
-                .frame(width: 200, alignment: .leading)
-            Text("Format").font(.caption2).foregroundStyle(.tertiary)
-                .frame(width: 55, alignment: .center)
+            sortableColumnHeader("Name",   col: .name,   width: 200, alignment: .leading)
+            sortableColumnHeader("Format", col: .format, width: 55)
             if hasRoutingData {
-                Text("Input").font(.caption2).foregroundStyle(.tertiary)
-                    .frame(width: 110, alignment: .center)
-                Text("Output").font(.caption2).foregroundStyle(.tertiary)
-                    .frame(width: 110, alignment: .center)
+                sortableColumnHeader("Input",  col: .input,  width: 110)
+                sortableColumnHeader("Output", col: .output, width: 110)
             }
             if hasAtmosData {
-                Text("Atmos").font(.caption2).foregroundStyle(.tertiary)
-                    .frame(width: 65, alignment: .center)
+                sortableColumnHeader("Atmos",  col: .atmos,  width: 65)
             }
             Spacer(minLength: 0)
         }
@@ -385,15 +384,82 @@ struct SessionInspectorView: View {
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
+    private func sortableColumnHeader(_ title: String, col: TrackSortColumn,
+                                      width: CGFloat, alignment: Alignment = .center) -> some View {
+        Button {
+            if col == .none { return }
+            if trackSortColumn == col { trackSortAscending.toggle() }
+            else { trackSortColumn = col; trackSortAscending = true }
+        } label: {
+            HStack(spacing: 2) {
+                if alignment == .leading {
+                    Text(title).font(.caption2)
+                    if trackSortColumn == col {
+                        Image(systemName: trackSortAscending ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 7, weight: .bold))
+                    }
+                    Spacer(minLength: 0)
+                } else {
+                    Spacer(minLength: 0)
+                    Text(title).font(.caption2)
+                    if trackSortColumn == col {
+                        Image(systemName: trackSortAscending ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 7, weight: .bold))
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .foregroundStyle(trackSortColumn == col ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
+            .frame(width: width)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     @ViewBuilder
     private var tracksContent: some View {
         let hasHiddenTracks   = session.tracks.contains { $0.isHidden }
         let hasInactiveTracks = session.tracks.contains { $0.isInactive }
-        let visibleTracks = session.tracks.filter {
+        let filtered = session.tracks.filter {
             !hiddenTrackTypes.contains($0.type)
             && (tlShowHiddenTracks   || !$0.isHidden)
             && (tlShowInactiveTracks || !$0.isInactive)
         }
+        let visibleTracks: [PTXTrack] = {
+            let asc = trackSortAscending
+            switch trackSortColumn {
+            case .none:
+                return filtered
+            case .name:
+                return filtered.sorted {
+                    let c = $0.name.localizedCaseInsensitiveCompare($1.name)
+                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
+                }
+            case .format:
+                return filtered.sorted {
+                    let c = $0.channelFormat.localizedCaseInsensitiveCompare($1.channelFormat)
+                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
+                }
+            case .input:
+                return filtered.sorted {
+                    let a = $0.inputPath ?? "", b = $1.inputPath ?? ""
+                    let c = a.localizedCaseInsensitiveCompare(b)
+                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
+                }
+            case .output:
+                return filtered.sorted {
+                    let a = $0.outputPath ?? "", b = $1.outputPath ?? ""
+                    let c = a.localizedCaseInsensitiveCompare(b)
+                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
+                }
+            case .atmos:
+                return filtered.sorted {
+                    let a = $0.atmosRendererInput == 0 ? Int.max : $0.atmosRendererInput
+                    let b = $1.atmosRendererInput == 0 ? Int.max : $1.atmosRendererInput
+                    return a == b ? $0.index < $1.index : asc ? a < b : a > b
+                }
+            }
+        }()
         let hasPlugins   = session.tracks.contains { !$0.plugins.isEmpty }
         let totalCount   = session.tracks.count
         let visibleCount = visibleTracks.count
@@ -427,12 +493,24 @@ struct SessionInspectorView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 5)
             }
-            if visibleCount < totalCount {
-                Text("Showing \(visibleCount) of \(totalCount) tracks")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 2)
+            if visibleCount < totalCount || trackSortColumn != .none {
+                HStack(spacing: 8) {
+                    if visibleCount < totalCount {
+                        Text("Showing \(visibleCount) of \(totalCount) tracks")
+                            .font(.caption2).foregroundStyle(.tertiary)
+                    }
+                    if trackSortColumn != .none {
+                        Button("Session Order") {
+                            trackSortColumn = .none
+                            trackSortAscending = true
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 2)
             }
             // ── Track rows ─────────────────────────────────────────────────
             ForEach(visibleTracks, id: \.index) { track in
