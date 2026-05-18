@@ -42,7 +42,6 @@ struct SessionInspectorView: View {
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
     @State private var showTrackPlugins: Bool = false
-    @State private var didCheckPlugins:  Bool = false   // reset per session open
     @State private var trackSortColumn: TrackSortColumn = .none
     @State private var trackSortAscending: Bool = true
 
@@ -566,22 +565,20 @@ struct SessionInspectorView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 4)
             }
-            HStack(spacing: 8) {
-                Spacer()
-                if !pluginScanner.scanCompleted && !pluginScanner.isScanning {
+            if !pluginScanner.scanCompleted && !pluginScanner.isScanning {
+                HStack(spacing: 8) {
+                    Spacer()
                     Button("Scan Plug-In Folder") { pluginScanner.scan() }
                     Text("(takes a moment)")
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                 }
-                Button("Check Availability") { didCheckPlugins = true }
-                    .disabled(!pluginScanner.scanCompleted || didCheckPlugins)
+                .font(.system(size: 11))
+                .padding(.trailing, 8)
+                .padding(.bottom, 4)
             }
-            .font(.system(size: 11))
-            .padding(.trailing, 8)
-            .padding(.bottom, 4)
             ForEach(session.plugins, id: \.self) { plugin in
-                PluginRow(plugin: plugin, installed: didCheckPlugins ? pluginScanner.index?.contains(
+                PluginRow(plugin: plugin, installed: pluginScanner.scanCompleted ? pluginScanner.index?.contains(
                     plugin, secondString: session.pluginSecondStrings[plugin]
                 ) : nil)
             }
