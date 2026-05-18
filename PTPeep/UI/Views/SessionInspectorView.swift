@@ -2637,13 +2637,6 @@ private struct ClipWaveformView: View {
             let fraction = max(0, min(1, location.x / viewWidth))
             audioPlayer.play(clip: clip, url: url, sampleRate: sampleRate, fromFraction: fraction)
         }
-        // Drag out of app → hand the audio file to the receiving app (e.g. Pro Tools)
-        .onDrag {
-            audioPlayer.stop()
-            let provider = NSItemProvider(object: url as NSURL)
-            provider.suggestedName = url.lastPathComponent
-            return provider
-        }
         .task(id: loadID) {
             peaks = []
             if let companion = urlCompanion {
