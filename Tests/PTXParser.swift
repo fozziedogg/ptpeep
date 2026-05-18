@@ -602,18 +602,16 @@ final class PTXParser {
             options: .skipsHiddenFiles
         ) else { return }
 
-        // Build resolved list directly from folder contents — no binary-derived name matching needed.
-        var names: [String] = []
-        var resolved: [ResolvedAudioFile] = []
+        var result: [String: URL] = [:]
         let audioExts: Set<String> = ["wav", "aif", "aiff", "sd2", "mp3", "bwf", "w64", "rf64"]
-        for url in contents.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
+        for url in contents {
             guard audioExts.contains(url.pathExtension.lowercased()) else { continue }
             let name = url.deletingPathExtension().lastPathComponent
-            names.append(name)
-            resolved.append(ResolvedAudioFile(name: name, url: url))
+            if result[name] == nil { result[name] = url }
         }
-        session.audioFileNames = names
-        session.resolvedAudioFiles = resolved
+        session.resolvedAudioFiles = session.audioFileNames.map {
+            ResolvedAudioFile(name: $0, url: result[$0])
+        }
     }
 }
 
