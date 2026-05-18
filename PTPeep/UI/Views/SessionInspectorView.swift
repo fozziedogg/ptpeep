@@ -42,6 +42,7 @@ struct SessionInspectorView: View {
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
     @State private var showTrackPlugins: Bool = false
+    @State private var showTrackSends:   Bool = false
     @State private var trackSortColumn: TrackSortColumn = .none
     @State private var trackSortAscending: Bool = true
 
@@ -51,6 +52,9 @@ struct SessionInspectorView: View {
 
     private var hasRoutingData: Bool {
         session.tracks.contains { $0.inputPath != nil || $0.outputPath != nil }
+    }
+    private var hasSendsData: Bool {
+        session.tracks.contains { !$0.sendPaths.isEmpty }
     }
 
     /// Max end-sample across all tracks — used to convert sample positions to timeline fractions.
@@ -319,7 +323,7 @@ struct SessionInspectorView: View {
     @ViewBuilder
     private var trackFilterBadges: some View {
         let hasPlugins = session.tracks.contains { !$0.plugins.isEmpty }
-        if presentTrackTypes.count > 1 || hasPlugins {
+        if presentTrackTypes.count > 1 || hasSendsData || hasPlugins {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
                     ForEach(presentTrackTypes, id: \.self) { type in
@@ -344,6 +348,25 @@ struct SessionInspectorView: View {
                         }
                         .buttonStyle(.plain)
                         .animation(.easeInOut(duration: 0.1), value: hidden)
+                    }
+                    if hasSendsData {
+                        Button { showTrackSends.toggle() } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.turn.up.right").font(.system(size: 8))
+                                Text("Sends").font(.system(size: 10))
+                            }
+                            .foregroundStyle(showTrackSends ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(showTrackSends
+                                ? Color(nsColor: .separatorColor).opacity(0.55)
+                                : Color(nsColor: .separatorColor).opacity(0.3)))
+                            .overlay(Capsule().strokeBorder(
+                                showTrackSends ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear,
+                                lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.easeInOut(duration: 0.1), value: showTrackSends)
                     }
                     if hasPlugins {
                         Button { showTrackPlugins.toggle() } label: {
@@ -527,8 +550,8 @@ struct SessionInspectorView: View {
             // ── Track rows ─────────────────────────────────────────────────
             ForEach(visibleTracks, id: \.index) { track in
                 TrackRow(track: track, showPlugins: showTrackPlugins,
-                         showRouting: showRouting, showAtmos: hasAtmosData,
-                         indentDepth: track.indentDepth)
+                         showRouting: showRouting, showSends: showTrackSends,
+                         showAtmos: hasAtmosData, indentDepth: track.indentDepth)
             }
         }
     }
@@ -801,6 +824,7 @@ private struct TrackRow: View {
     let track: PTXTrack
     let showPlugins: Bool
     var showRouting: Bool = false
+    var showSends:   Bool = false
     var showAtmos:   Bool = false
     var indentDepth: Int = 0
 
@@ -896,7 +920,7 @@ private struct TrackRow: View {
             }
 
             // Send pills
-            if showRouting && !track.sendPaths.isEmpty {
+            if showSends && !track.sendPaths.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.turn.up.right")
