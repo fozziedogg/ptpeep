@@ -1808,6 +1808,17 @@ private struct SessionTimelineView: View {
                 guard let clip = selectedClip, !clip.isGroup else { return nil }
                 return resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
             }()
+            // Split-stereo companion: Pro Tools stores stereo as separate .L/.R mono files.
+            // If the primary sourceFile ends with ".L" or ".R", look up the other half.
+            let resolvedWaveURLR: URL? = {
+                guard let clip = selectedClip, !clip.isGroup else { return nil }
+                let src = clip.sourceFile
+                let companionName: String
+                if src.hasSuffix(".L")      { companionName = src.dropLast(2) + ".R" }
+                else if src.hasSuffix(".R") { companionName = src.dropLast(2) + ".L" }
+                else { return nil }
+                return resolvedFiles.first(where: { $0.name == companionName })?.url
+            }()
             let waveColor: Color = selectedClipTrackIdx.map { t in
                 t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
             } ?? Color.accentColor
@@ -1817,8 +1828,8 @@ private struct SessionTimelineView: View {
                     .fill(Color.primary.opacity(0.04))
                 if let clip = selectedClip, !clip.isGroup,
                    let url = resolvedWaveURL, let ap = audioPlayer {
-                    ClipWaveformView(clip: clip, url: url, sampleRate: sr,
-                                     color: waveColor, audioPlayer: ap)
+                    ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
+                                     sampleRate: sr, color: waveColor, audioPlayer: ap)
                 } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
                           resolvedWaveURL == nil {
                     // Clip is selected but source file is not on disk
@@ -2527,10 +2538,11 @@ private extension PTXTrackType {
 /// Async waveform display for a resolved clip. Shows PCM peaks per channel,
 /// with a moving playhead, click-to-seek, and drag-out-to-export.
 private struct ClipWaveformView: View {
-    let clip:       PTXClip
-    let url:        URL
-    let sampleRate: Double
-    let color:      Color
+    let clip:         PTXClip
+    let url:          URL
+    var urlCompanion: URL?   = nil   // split-stereo .R (or .L) companion
+    let sampleRate:   Double
+    let color:        Color
     @ObservedObject var audioPlayer: AudioPlayer
 
     @State private var peaks:     [[Float]] = []   // one [Float] per channel
@@ -2604,16 +2616,27 @@ private struct ClipWaveformView: View {
         }
         .task(id: loadID) {
             peaks = []
-            let result = await AudioPlayer.loadWaveform(
-                url: url,
-                startSample: clip.sourceOffset,
-                lengthSamples: clip.lengthSamples,
-                sampleRate: sampleRate
-            )
-            print("[WaveformView] peaks.count=\(result.count) for clip '\(clip.name)' sourceFile='\(clip.sourceFile)'")
-            peaks = result
+            if let companion = urlCompanion {
+                // Split-stereo: load primary and companion in parallel, combine as [L, R]
+                async let primary   = AudioPlayer.loadWaveform(url: url,      startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
+                async let secondary = AudioPlayer.loadWaveform(url: companion, startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
+                let (p, s) = await (primary, secondary)
+                let result = (p.first.map { [$0] } ?? []) + (s.first.map { [$0] } ?? [])
+                print("[WaveformView] split-stereo peaks.count=\(result.count) for '\(clip.sourceFile)'")
+                peaks = result
+            } else {
+                let result = await AudioPlayer.loadWaveform(
+                    url: url,
+                    startSample: clip.sourceOffset,
+                    lengthSamples: clip.lengthSamples,
+                    sampleRate: sampleRate
+                )
+                print("[WaveformView] peaks.count=\(result.count) for clip '\(clip.name)' sourceFile='\(clip.sourceFile)'")
+                peaks = result
+            }
         }
-        .onChange(of: clip) { _ in loadID = UUID() }
-        .onChange(of: url)  { _ in loadID = UUID() }
+        .onChange(of: clip)         { _ in loadID = UUID() }
+        .onChange(of: url)          { _ in loadID = UUID() }
+        .onChange(of: urlCompanion) { _ in loadID = UUID() }
     }
 }
