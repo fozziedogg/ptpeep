@@ -187,6 +187,13 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     /// giving reliable per-channel data without AVAssetReader channel-count ambiguity.
     static func loadWaveform(url: URL, startSample: Int64, lengthSamples: Int64,
                              sampleRate: Double, resolution: Int = 500) async -> [[Float]] {
+        // Cache hit?
+        if let cached = WaveformCache.shared.get(audioURL: url, startSample: startSample,
+                                                  lengthSamples: lengthSamples, resolution: resolution) {
+            print("[Waveform] cache hit — \(url.lastPathComponent)")
+            return cached
+        }
+
         guard let file = try? AVAudioFile(forReading: url) else {
             print("[Waveform] ❌ AVAudioFile failed to open: \(url.lastPathComponent)")
             return []
@@ -238,6 +245,8 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
             if maxPeak > 0 { peaks[c] = peaks[c].map { $0 / maxPeak } }
         }
         print("[Waveform] ✅ done — returning \(peaks.count) channel(s), \(frameIdx) frames read")
+        WaveformCache.shared.set(peaks: peaks, audioURL: url, startSample: startSample,
+                                 lengthSamples: lengthSamples, resolution: resolution)
         return peaks
     }
 }
