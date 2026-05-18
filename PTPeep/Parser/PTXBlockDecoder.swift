@@ -1414,14 +1414,18 @@ final class PTXBlockDecoder {
                     let bytes = data[(lpOff+4)..<(lpOff+4+Int(sl))]
                     if let s = String(bytes: bytes, encoding: .utf8), !s.isEmpty {
                         outputPath = s
-                        // Read Atmos flag bytes immediately after the string.
-                        // Object: bytes[0..1]==0x00, bytes[2]!=0x00 (bytes[2] is object index)
-                        // Bed:    bytes[0]!=0x00 (channel format code)
+                        // Read Atmos routing bytes immediately after the output path string.
+                        // Layout: [b0: src chan fmt][b1: dst chan fmt][b2..b7: 0xff = plain bus, else Atmos]
+                        // Plain bus routing always has 0xff at b2 (bytes[0..1] are the channel
+                        // format code of the bus, repeated). Only flag as Atmos when b2 != 0xff.
+                        //   Object: b2 != 0xff && b0==0x00 && b1==0x00 && b2!=0x00 (b2=object slot)
+                        //   Bed:    b2 != 0xff && b0!=0x00                          (b0=chan fmt)
                         let flagOff = lpOff + 4 + Int(sl)
                         if flagOff + 3 <= pathBlock.dataOffset + pathBlock.dataSize {
                             let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
-                            isAtmosObject = b0 == 0x00 && b1 == 0x00 && b2 != 0x00
-                            isAtmosBed    = b0 != 0x00
+                            let isAtmos = b2 != 0xff
+                            isAtmosObject = isAtmos && b0 == 0x00 && b1 == 0x00 && b2 != 0x00
+                            isAtmosBed    = isAtmos && b0 != 0x00
                         }
                     }
                 }
