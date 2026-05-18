@@ -49,6 +49,7 @@ struct SessionInspectorView: View {
     private enum TrackSortColumn { case none, name, format, input, output, atmos }
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
+    @StateObject private var audioPlayer = AudioPlayer()
 
     private var hasRoutingData: Bool {
         session.tracks.contains { $0.inputPath != nil || $0.outputPath != nil }
@@ -286,6 +287,7 @@ struct SessionInspectorView: View {
                                         tcFormat:  session.tcFormat,
                                         verticalScale: 1.0,
                                         resolvedFiles: session.resolvedAudioFiles,
+                                        audioPlayer: audioPlayer,
                                         memoryLocations: session.memoryLocations,
                                         hasHidden:   hasHidden,
                                         hasInactive: hasInactive,
@@ -1484,6 +1486,7 @@ private struct SessionTimelineView: View {
     var tcFormat:  String = ""
     var verticalScale: CGFloat = 1.0
     var resolvedFiles: [ResolvedAudioFile] = []
+    var audioPlayer: AudioPlayer? = nil
     var memoryLocations: [PTXMemoryLocation] = []
 
     // Track filter toggles shown in the checkbox row
@@ -2094,6 +2097,27 @@ private struct SessionTimelineView: View {
                         + Text(durTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
+                }
+
+                // Play button — SELECT row only, when source file is resolved
+                if isSelected, let ap = audioPlayer, !clip.isGroup {
+                    let resolvedURL = resolvedFiles.first { $0.name == clip.sourceFile }?.url
+                    if let url = resolvedURL {
+                        let isThisClipPlaying = ap.isPlaying && ap.playingClip == clip
+                        Button {
+                            if isThisClipPlaying {
+                                ap.stop()
+                            } else {
+                                ap.play(clip: clip, url: url, sampleRate: sr)
+                            }
+                        } label: {
+                            Image(systemName: isThisClipPlaying ? "stop.fill" : "play.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(isThisClipPlaying ? Color.red : color)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.leading, 10)
+                    }
                 }
 
             } else {

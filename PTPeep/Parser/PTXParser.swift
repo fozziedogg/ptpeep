@@ -376,6 +376,7 @@ final class PTXParser {
                 let name = stripChannelSuffix(p.groupName ?? clipEntry?.name ?? "Clip \(p.clipIdx)")
                 byPos[p.timelineSample] = PTXClip(
                     name: name, startSample: p.timelineSample, lengthSamples: len,
+                    sourceOffset: clipEntry?.sourceOffset ?? 0,
                     sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? "",
                     isMuted: p.isMuted, isGroup: p.isGroup
                 )

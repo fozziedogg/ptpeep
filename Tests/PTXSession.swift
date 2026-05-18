@@ -93,6 +93,7 @@ struct PTXClip: Equatable {
     var name:        String
     var startSample: Int64  = 0
     var lengthSamples: Int64 = 0
+    var sourceOffset: Int64  = 0    // offset into source audio file (samples)
     var sourceFile:  String = ""    // base filename (no extension)
     var isMuted:     Bool   = false
     var isGroup:     Bool   = false
