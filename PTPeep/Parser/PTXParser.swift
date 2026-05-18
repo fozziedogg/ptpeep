@@ -340,6 +340,7 @@ final class PTXParser {
                 session.tracks[i].isAtmosObject      = e.isAtmosObject
                 session.tracks[i].isAtmosBed         = e.isAtmosBed
                 session.tracks[i].atmosRendererInput = e.atmosRendererInput
+                session.tracks[i].sendPaths          = e.sendPaths
             }
         }
 

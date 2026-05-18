@@ -895,6 +895,28 @@ private struct TrackRow: View {
                 Spacer(minLength: 0)
             }
 
+            // Send pills
+            if showRouting && !track.sendPaths.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.turn.up.right")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.tertiary)
+                        ForEach(track.sendPaths, id: \.self) { send in
+                            Text(send)
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.teal.opacity(0.12))
+                                .clipShape(Capsule())
+                                .overlay(Capsule().strokeBorder(Color.teal.opacity(0.3), lineWidth: 0.5))
+                        }
+                    }
+                }
+                .padding(.leading, totalIndent + 16 + 8)
+            }
+
             // Plugin pills
             if showPlugins && !track.plugins.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {

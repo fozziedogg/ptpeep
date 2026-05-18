@@ -1344,6 +1344,7 @@ final class PTXBlockDecoder {
         var isAtmosObject: Bool = false  // true = Atmos Object send (b0==b1==0, b2=slot, non-ff/non-0)
         var isAtmosBed:    Bool = false  // true = Atmos Bed send (flagOff+11 != 0xff = Atmos group id)
         var atmosRendererInput: Int = 0  // 1-indexed renderer input channel (b11+1); 0 = unknown
+        var sendPaths:    [String] = []  // aux send bus names; byte[0]==0x13 in 0x260e discriminates sends
     }
 
     /// Returns a dictionary mapping track display names → routing entry (inputPath, outputPath).
@@ -1390,49 +1391,61 @@ final class PTXBlockDecoder {
                 uid = ""
             }
 
-            // ── Output path ───────────────────────────────────────────────────
-            // LP string at byte offset +36 inside the first 0x260e block that is
-            // nested within a 0x260d block in this container.
-            // The two bytes immediately after the LP string indicate Atmos routing:
-            //   00 00 = Atmos Object; non-zero = Bed (value is channel format code).
+            // ── Output path + sends ──────────────────────────────────────────
+            // All 0x260e blocks nested inside a 0x260d in this container encode routing.
+            // Discriminant: byte[0] of the 0x260e data:
+            //   0x13 → aux send (all tracks sending to the same bus share a common bus UID)
+            //   other → main output
+            // LP string is at offset +36 in all cases.
+            // Atmos flags (Object/Bed) apply only to the main output block.
             var outputPath: String? = nil
+            var sendPaths: [String] = []
             var isAtmosObject = false
             var isAtmosBed    = false
             var isAtmosRendererInput = 0
-            if let pathBlock = all260e.first(where: { e in
+
+            let routingBlocks = all260e.filter { e in
                 guard e.dataOffset >= cStart, e.dataOffset + e.dataSize <= cEnd else { return false }
                 return all260d.contains(where: { d in
                     d.dataOffset >= cStart && d.dataOffset + d.dataSize <= cEnd &&
                     e.dataOffset >= d.dataOffset && e.dataOffset + e.dataSize <= d.dataOffset + d.dataSize
                 })
-            }) {
-                let lpOff = pathBlock.dataOffset + 36
-                if lpOff + 4 <= pathBlock.dataOffset + pathBlock.dataSize,
-                   pathBlock.dataSize >= 2,
-                   !(data[pathBlock.dataOffset] == 0xff && data[pathBlock.dataOffset + 1] == 0xff),
-                   let sl = safeU32(data, at: lpOff, be: false),
-                   sl > 0, sl <= 256,
-                   lpOff + 4 + Int(sl) <= pathBlock.dataOffset + pathBlock.dataSize {
-                    let bytes = data[(lpOff+4)..<(lpOff+4+Int(sl))]
-                    if let s = String(bytes: bytes, encoding: .utf8), !s.isEmpty {
-                        outputPath = s
-                        // Read Atmos routing bytes immediately after the output path string.
-                        // Layout: [b0: chanFmt][b1: chanFmt][b2..b9: 0xff = plain bus, else Object slot]
-                        //         [b10: 0x00][b11: Atmos group id, 0xff = not a Bed]
-                        //   Object: b2 != 0xff && b2 != 0x00 && b0==0x00 && b1==0x00 (b2=object slot)
-                        //   Bed:    b11 != 0xff (Atmos group: 0x00=Dialog, 0x0a=Music, etc.)
-                        let flagOff = lpOff + 4 + Int(sl)
-                        if flagOff + 12 <= pathBlock.dataOffset + pathBlock.dataSize {
-                            let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
-                            let b11 = data[flagOff + 11]
-                            isAtmosObject = b2 != 0xff && b2 != 0x00 && b0 == 0x00 && b1 == 0x00
-                            isAtmosBed    = !isAtmosObject && b11 != 0xff
-                            // b11 is 0-indexed renderer input; +1 gives the 1-indexed channel shown in PT
-                            if isAtmosObject || isAtmosBed { isAtmosRendererInput = Int(b11) + 1 }
-                        } else if flagOff + 3 <= pathBlock.dataOffset + pathBlock.dataSize {
-                            let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
-                            isAtmosObject = b2 != 0xff && b2 != 0x00 && b0 == 0x00 && b1 == 0x00
-                        }
+            }
+
+            for pathBlock in routingBlocks {
+                guard pathBlock.dataSize >= 2,
+                      !(data[pathBlock.dataOffset] == 0xff && data[pathBlock.dataOffset + 1] == 0xff)
+                else { continue }
+
+                let isSend = data[pathBlock.dataOffset] == 0x13
+                let lpOff  = pathBlock.dataOffset + 36
+                guard lpOff + 4 <= pathBlock.dataOffset + pathBlock.dataSize,
+                      let sl = safeU32(data, at: lpOff, be: false),
+                      sl > 0, sl <= 256,
+                      lpOff + 4 + Int(sl) <= pathBlock.dataOffset + pathBlock.dataSize,
+                      let s = String(bytes: data[(lpOff+4)..<(lpOff+4+Int(sl))], encoding: .utf8),
+                      !s.isEmpty else { continue }
+
+                if isSend {
+                    if !sendPaths.contains(s) { sendPaths.append(s) }
+                } else if outputPath == nil {
+                    outputPath = s
+                    // Read Atmos routing bytes immediately after the output path string.
+                    // Layout: [b0: chanFmt][b1: chanFmt][b2..b9: 0xff = plain bus, else Object slot]
+                    //         [b10: 0x00][b11: Atmos group id, 0xff = not a Bed]
+                    //   Object: b2 != 0xff && b2 != 0x00 && b0==0x00 && b1==0x00 (b2=object slot)
+                    //   Bed:    b11 != 0xff (Atmos group: 0x00=Dialog, 0x0a=Music, etc.)
+                    let flagOff = lpOff + 4 + Int(sl)
+                    if flagOff + 12 <= pathBlock.dataOffset + pathBlock.dataSize {
+                        let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
+                        let b11 = data[flagOff + 11]
+                        isAtmosObject = b2 != 0xff && b2 != 0x00 && b0 == 0x00 && b1 == 0x00
+                        isAtmosBed    = !isAtmosObject && b11 != 0xff
+                        // b11 is 0-indexed renderer input; +1 gives the 1-indexed channel shown in PT
+                        if isAtmosObject || isAtmosBed { isAtmosRendererInput = Int(b11) + 1 }
+                    } else if flagOff + 3 <= pathBlock.dataOffset + pathBlock.dataSize {
+                        let b0 = data[flagOff], b1 = data[flagOff + 1], b2 = data[flagOff + 2]
+                        isAtmosObject = b2 != 0xff && b2 != 0x00 && b0 == 0x00 && b1 == 0x00
                     }
                 }
             }
@@ -1472,7 +1485,8 @@ final class PTXBlockDecoder {
                                        entry: RoutingEntry(inputPath: inputPath, outputPath: outputPath,
                                                            isAtmosObject: isAtmosObject,
                                                            isAtmosBed: isAtmosBed,
-                                                           atmosRendererInput: isAtmosRendererInput)))
+                                                           atmosRendererInput: isAtmosRendererInput,
+                                                           sendPaths: sendPaths)))
         }
 
         // Build UID → routing lookup
