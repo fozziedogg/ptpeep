@@ -2525,7 +2525,7 @@ private extension PTXTrackType {
 // MARK: - Clip Waveform View
 
 /// Async waveform display for a resolved clip. Shows PCM peaks per channel,
-/// with a moving playhead and click/drag-to-seek.
+/// with a moving playhead, click-to-seek, and drag-out-to-export.
 private struct ClipWaveformView: View {
     let clip:       PTXClip
     let url:        URL
@@ -2590,14 +2590,18 @@ private struct ClipWaveformView: View {
                 .onAppear       { viewWidth = geo.size.width }
                 .onChange(of: geo.size.width) { viewWidth = $0 }
         })
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { val in
-                    let fraction = max(0, min(1, val.location.x / viewWidth))
-                    audioPlayer.play(clip: clip, url: url,
-                                     sampleRate: sampleRate, fromFraction: fraction)
-                }
-        )
+        // Tap to seek / start playback at that position
+        .onTapGesture { location in
+            let fraction = max(0, min(1, location.x / viewWidth))
+            audioPlayer.play(clip: clip, url: url, sampleRate: sampleRate, fromFraction: fraction)
+        }
+        // Drag out of app → hand the audio file to the receiving app (e.g. Pro Tools)
+        .onDrag {
+            audioPlayer.stop()
+            let provider = NSItemProvider(object: url as NSURL)
+            provider.suggestedName = url.lastPathComponent
+            return provider
+        }
         .task(id: loadID) {
             peaks = []
             peaks = await AudioPlayer.loadWaveform(
