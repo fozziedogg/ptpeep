@@ -15,6 +15,9 @@
 		BB00CC11DD22EE33FF445512 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445501 /* AppLog.swift */; };
 		BB00CC11DD22EE33FF445513 /* PluginScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445502 /* PluginScanner.swift */; };
 		BB00CC11DD22EE33FF445514 /* PluginScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445502 /* PluginScanner.swift */; };
+		CC11DD22EE33FF44AA556615 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */; };
+		CC11DD22EE33FF44AA556616 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */; };
+		DD11EE22FF33AA44BB556601 /* PTPeepQL.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 927280E6749AFAE80FE9ABE2 /* PTPeepQL.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */; };
 		444F7D5A52DE9378417AB54D /* PreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */; };
 		64E4CC8FC4A8FCFE7063F524 /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
@@ -37,6 +40,13 @@
 			remoteGlobalIDString = 81406124F86955B21FD8970C;
 			remoteInfo = PTPeep;
 		};
+		DD11EE22FF33AA44BB556604 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 02339220E22D1FAD47913182 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 853E4B3211F9F3F9485D93C2;
+			remoteInfo = PTPeepQL;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -46,9 +56,11 @@
 		4B29D7A6E14B870EF3F9366B /* PTXParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXParser.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXBlockDecoder.swift; sourceTree = "<group>"; };
 		61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeepQLExtension.swift; sourceTree = "<group>"; };
+		DD22EE33FF44AA55BB666601 /* PTPeepQL.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PTPeepQL.entitlements; sourceTree = "<group>"; };
 		79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
 		7DE1A0204EA264D8B2859DC0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionInspectorView.swift; sourceTree = "<group>"; };
+		CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLookPreviewView.swift; sourceTree = "<group>"; };
 		AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeep/UI/TimelineNav.swift; sourceTree = SOURCE_ROOT; };
 		BB00CC11DD22EE33FF445501 /* AppLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLog.swift; sourceTree = "<group>"; };
 		BB00CC11DD22EE33FF445502 /* PluginScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginScanner.swift; sourceTree = "<group>"; };
@@ -77,6 +89,7 @@
 			isa = PBXGroup;
 			children = (
 				7DE1A0204EA264D8B2859DC0 /* Info.plist */,
+				DD22EE33FF44AA55BB666601 /* PTPeepQL.entitlements */,
 				79095A83A0B0C5BC3D767043 /* PreviewViewController.swift */,
 				61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */,
 			);
@@ -116,6 +129,7 @@
 			isa = PBXGroup;
 			children = (
 				7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */,
+				CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -168,10 +182,12 @@
 			buildPhases = (
 				AA01BB11CC22DD33EE44FF57 /* Resources */,
 				8C67127B5C772605C570F0E8 /* Sources */,
+				DD11EE22FF33AA44BB556602 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				DD11EE22FF33AA44BB556603 /* PBXTargetDependency */,
 			);
 			name = PTPeep;
 			packageProductDependencies = (
@@ -189,7 +205,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				7365D1472085240781F9CFDF /* PBXTargetDependency */,
 			);
 			name = PTPeepQL;
 			packageProductDependencies = (
@@ -235,6 +250,20 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		DD11EE22FF33AA44BB556602 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				DD11EE22FF33AA44BB556601 /* PTPeepQL.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXResourcesBuildPhase section */
 		AA01BB11CC22DD33EE44FF57 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
@@ -260,6 +289,7 @@
 				AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */,
 				BB00CC11DD22EE33FF445511 /* AppLog.swift in Sources */,
 				BB00CC11DD22EE33FF445513 /* PluginScanner.swift in Sources */,
+				CC11DD22EE33FF44AA556615 /* QuickLookPreviewView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,6 +307,7 @@
 				AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */,
 				BB00CC11DD22EE33FF445512 /* AppLog.swift in Sources */,
 				BB00CC11DD22EE33FF445514 /* PluginScanner.swift in Sources */,
+				CC11DD22EE33FF44AA556616 /* QuickLookPreviewView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -287,6 +318,11 @@
 			isa = PBXTargetDependency;
 			target = 81406124F86955B21FD8970C /* PTPeep */;
 			targetProxy = 4B36B85FAA208C40F5DD2D24 /* PBXContainerItemProxy */;
+		};
+		DD11EE22FF33AA44BB556603 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 853E4B3211F9F3F9485D93C2 /* PTPeepQL */;
+			targetProxy = DD11EE22FF33AA44BB556604 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -376,6 +412,7 @@
 		53B434658D4C51471894D264 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PTPeepQL/PTPeepQL.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = PTPeepQL/Info.plist;
@@ -468,6 +505,7 @@
 		7D97CEBDFD3F92A4489DBD11 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PTPeepQL/PTPeepQL.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = PTPeepQL/Info.plist;

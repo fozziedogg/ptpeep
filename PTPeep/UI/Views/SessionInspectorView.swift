@@ -33,14 +33,29 @@ struct SessionInspectorView: View {
     // Track list toggles (separate from overview)
     @AppStorage("tl.showHiddenTracks")   private var tlShowHiddenTracks:   Bool = false
     @AppStorage("tl.showInactiveTracks") private var tlShowInactiveTracks: Bool = true
-    @State private var markerSearch:       String  = ""
-    @State private var hiddenTrackTypes:   Set<PTXTrackType> = []
+    @State private var markerSearch:         String  = ""
+    @State private var hiddenTrackTypes:     Set<PTXTrackType> = []
+    @State private var trackSectionExpanded:   Bool = false
+    @State private var audioSectionExpanded:   Bool = false
+    @State private var pluginSectionExpanded:  Bool = false
+    @State private var memLocSectionExpanded:  Bool = false
     @State private var overviewHeight:   CGFloat = 0     // 0 = auto-init on first render
     @State private var availableHeight:  CGFloat = 500   // updated by GeometryReader in body
-    @State private var showTrackPlugins: Bool = true
-    @State private var didCheckPlugins:  Bool = false   // reset per session open
+    @State private var showTrackPlugins: Bool = false
+    @State private var showTrackSends:   Bool = false
+    @State private var trackSortColumn: TrackSortColumn = .none
+    @State private var trackSortAscending: Bool = true
+
+    private enum TrackSortColumn { case none, name, format, input, output, atmos }
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
+
+    private var hasRoutingData: Bool {
+        session.tracks.contains { $0.inputPath != nil || $0.outputPath != nil }
+    }
+    private var hasSendsData: Bool {
+        session.tracks.contains { !$0.sendPaths.isEmpty }
+    }
 
     /// Max end-sample across all tracks — used to convert sample positions to timeline fractions.
     private var totalSamples: Double {
@@ -57,11 +72,57 @@ struct SessionInspectorView: View {
             overviewSection
             Divider()
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    tracksSection
-                    audioFilesSection
-                    pluginsSection
-                    memoryLocationsSection
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    // ── Tracks ───────────────────────────────────────────────────
+                    Section {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if trackSectionExpanded { tracksContent }
+                            Divider().padding(.horizontal, 16)
+                        }
+                    } header: {
+                        VStack(spacing: 0) {
+                            SectionHeader(title: "Tracks", systemImage: "slider.horizontal.3",
+                                          count: session.tracks.count, isExpanded: $trackSectionExpanded)
+                            if trackSectionExpanded {
+                                trackFilterBadges
+                                trackColumnHeader
+                            }
+                        }
+                        .background(Color(nsColor: .windowBackgroundColor))
+                    }
+                    // ── Audio Files ───────────────────────────────────────────────
+                    Section {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if audioSectionExpanded { audioFilesContent }
+                            Divider().padding(.horizontal, 16)
+                        }
+                    } header: {
+                        SectionHeader(title: "Audio Files", systemImage: "waveform",
+                                      count: session.audioFileNames.count, isExpanded: $audioSectionExpanded)
+                            .background(Color(nsColor: .windowBackgroundColor))
+                    }
+                    // ── Plug-Ins ──────────────────────────────────────────────────
+                    Section {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if pluginSectionExpanded { pluginsContent }
+                            Divider().padding(.horizontal, 16)
+                        }
+                    } header: {
+                        SectionHeader(title: "Plug-Ins Used", systemImage: "puzzlepiece.extension",
+                                      count: session.plugins.count, isExpanded: $pluginSectionExpanded)
+                            .background(Color(nsColor: .windowBackgroundColor))
+                    }
+                    // ── Memory Locations ─────────────────────────────────────────
+                    Section {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if memLocSectionExpanded { memoryLocationsContent }
+                            Divider().padding(.horizontal, 16)
+                        }
+                    } header: {
+                        SectionHeader(title: "Memory Locations", systemImage: "mappin.and.ellipse",
+                                      count: session.memoryLocations.count, isExpanded: $memLocSectionExpanded)
+                            .background(Color(nsColor: .windowBackgroundColor))
+                    }
                 }
                 .padding(.vertical, 8)
             }
@@ -254,245 +315,364 @@ struct SessionInspectorView: View {
 
     // MARK: - Tracks
 
-    private var tracksSection: some View {
-        // Types present in the session (in a stable display order)
-        let typeOrder: [PTXTrackType] = [.audio, .instrument, .midi, .aux, .vca, .master, .folder, .video, .unknown]
-        let presentTypes = typeOrder.filter { t in session.tracks.contains { $0.type == t } }
+    private var presentTrackTypes: [PTXTrackType] {
+        let order: [PTXTrackType] = [.audio, .instrument, .midi, .aux, .vca, .master, .folder, .video, .unknown]
+        return order.filter { t in session.tracks.contains { $0.type == t } }
+    }
+
+    @ViewBuilder
+    private var trackFilterBadges: some View {
+        let hasPlugins = session.tracks.contains { !$0.plugins.isEmpty }
+        if presentTrackTypes.count > 1 || hasSendsData || hasPlugins {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    ForEach(presentTrackTypes, id: \.self) { type in
+                        let hidden = hiddenTrackTypes.contains(type)
+                        Button {
+                            if hidden { hiddenTrackTypes.remove(type) }
+                            else      { hiddenTrackTypes.insert(type) }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: type.systemImage).font(.system(size: 8))
+                                Text(type.filterLabel).font(.system(size: 10))
+                            }
+                            .foregroundStyle(hidden ? AnyShapeStyle(.tertiary) : type.tintColor)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(hidden
+                                ? Color(nsColor: .separatorColor).opacity(0.3)
+                                : Color(nsColor: .separatorColor).opacity(0.55)))
+                            .overlay(Capsule().strokeBorder(
+                                hidden ? Color.clear : Color(nsColor: .separatorColor).opacity(0.4),
+                                lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.easeInOut(duration: 0.1), value: hidden)
+                    }
+                    if hasSendsData {
+                        Button { showTrackSends.toggle() } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.turn.up.right").font(.system(size: 8))
+                                Text("Sends").font(.system(size: 10))
+                            }
+                            .foregroundStyle(showTrackSends ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(showTrackSends
+                                ? Color(nsColor: .separatorColor).opacity(0.55)
+                                : Color(nsColor: .separatorColor).opacity(0.3)))
+                            .overlay(Capsule().strokeBorder(
+                                showTrackSends ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear,
+                                lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.easeInOut(duration: 0.1), value: showTrackSends)
+                    }
+                    if hasPlugins {
+                        Button { showTrackPlugins.toggle() } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "puzzlepiece.extension").font(.system(size: 8))
+                                Text("Plug-ins").font(.system(size: 10))
+                            }
+                            .foregroundStyle(showTrackPlugins ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(showTrackPlugins
+                                ? Color(nsColor: .separatorColor).opacity(0.55)
+                                : Color(nsColor: .separatorColor).opacity(0.3)))
+                            .overlay(Capsule().strokeBorder(
+                                showTrackPlugins ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear,
+                                lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.easeInOut(duration: 0.1), value: showTrackPlugins)
+                    }
+                    if !hiddenTrackTypes.isEmpty {
+                        Button("Show all") {
+                            hiddenTrackTypes.removeAll()
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 5)
+            }
+            .background(Color(nsColor: .windowBackgroundColor))
+        }
+    }
+
+    private var hasAtmosData: Bool {
+        session.tracks.contains { $0.isAtmosObject || $0.isAtmosBed }
+    }
+
+    private var trackColumnHeader: some View {
+        HStack(spacing: 0) {
+            Color.clear.frame(width: 24)  // icon (16) + gap (8)
+            sortableColumnHeader("Name",   col: .name,   width: 200, alignment: .leading)
+            sortableColumnHeader("Format", col: .format, width: 55)
+            if hasRoutingData {
+                sortableColumnHeader("Input",  col: .input,  width: 110)
+                sortableColumnHeader("Output", col: .output, width: 110)
+            }
+            if hasAtmosData {
+                sortableColumnHeader("Atmos",  col: .atmos,  width: 65)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 3)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private func sortableColumnHeader(_ title: String, col: TrackSortColumn,
+                                      width: CGFloat, alignment: Alignment = .center) -> some View {
+        Button {
+            if col == .none { return }
+            if trackSortColumn == col { trackSortAscending.toggle() }
+            else { trackSortColumn = col; trackSortAscending = true }
+        } label: {
+            HStack(spacing: 2) {
+                if alignment == .leading {
+                    Text(title).font(.caption2)
+                    if trackSortColumn == col {
+                        Image(systemName: trackSortAscending ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 7, weight: .bold))
+                    }
+                    Spacer(minLength: 0)
+                } else {
+                    Spacer(minLength: 0)
+                    Text(title).font(.caption2)
+                    if trackSortColumn == col {
+                        Image(systemName: trackSortAscending ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 7, weight: .bold))
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .foregroundStyle(trackSortColumn == col ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
+            .frame(width: width)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var tracksContent: some View {
         let hasHiddenTracks   = session.tracks.contains { $0.isHidden }
         let hasInactiveTracks = session.tracks.contains { $0.isInactive }
-        let visibleTracks = session.tracks.filter {
+        let filtered = session.tracks.filter {
             !hiddenTrackTypes.contains($0.type)
             && (tlShowHiddenTracks   || !$0.isHidden)
             && (tlShowInactiveTracks || !$0.isInactive)
         }
-        let hasPlugins    = session.tracks.contains { !$0.plugins.isEmpty }
-        let totalCount    = session.tracks.count
-        let visibleCount  = visibleTracks.count
-        return InspectorSection(title: "Tracks", systemImage: "slider.horizontal.3",
-                         count: totalCount, initiallyExpanded: false) {
-            if session.tracks.isEmpty {
-                PlaceholderRow(text: "No tracks found")
-            } else {
-                // ── Type filter badges ─────────────────────────────────────────
-                if presentTypes.count > 1 {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 4) {
-                            ForEach(presentTypes, id: \.self) { type in
-                                let hidden = hiddenTrackTypes.contains(type)
-                                Button {
-                                    if hidden { hiddenTrackTypes.remove(type) }
-                                    else      { hiddenTrackTypes.insert(type) }
-                                } label: {
-                                    HStack(spacing: 3) {
-                                        Image(systemName: type.systemImage)
-                                            .font(.system(size: 8))
-                                        Text(type.filterLabel)
-                                            .font(.system(size: 10))
-                                    }
-                                    .foregroundStyle(hidden ? AnyShapeStyle(.tertiary) : type.tintColor)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 3)
-                                    .background(
-                                        Capsule()
-                                            .fill(hidden
-                                                  ? Color(nsColor: .separatorColor).opacity(0.3)
-                                                  : Color(nsColor: .separatorColor).opacity(0.55))
-                                    )
-                                    .overlay(
-                                        Capsule()
-                                            .strokeBorder(hidden ? Color.clear : Color(nsColor: .separatorColor).opacity(0.4),
-                                                          lineWidth: 0.5)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                                .animation(.easeInOut(duration: 0.1), value: hidden)
-                            }
-                            if !hiddenTrackTypes.isEmpty {
-                                Button("Show all") { hiddenTrackTypes.removeAll() }
-                                    .buttonStyle(.borderless)
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 5)
-                    }
-
+        let visibleTracks: [PTXTrack] = {
+            let asc = trackSortAscending
+            switch trackSortColumn {
+            case .none:
+                return filtered
+            case .name:
+                return filtered.sorted {
+                    let c = $0.name.localizedCaseInsensitiveCompare($1.name)
+                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
                 }
-
-                // ── Toolbar ────────────────────────────────────────────────────
+            case .format:
+                return filtered.sorted {
+                    let c = $0.channelFormat.localizedCaseInsensitiveCompare($1.channelFormat)
+                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
+                }
+            case .input:
+                return filtered.sorted {
+                    let a = $0.inputPath ?? "", b = $1.inputPath ?? ""
+                    let c = a.localizedCaseInsensitiveCompare(b)
+                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
+                }
+            case .output:
+                return filtered.sorted {
+                    let a = $0.outputPath ?? "", b = $1.outputPath ?? ""
+                    let c = a.localizedCaseInsensitiveCompare(b)
+                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
+                }
+            case .atmos:
+                return filtered.sorted {
+                    let a = $0.atmosRendererInput == 0 ? Int.max : $0.atmosRendererInput
+                    let b = $1.atmosRendererInput == 0 ? Int.max : $1.atmosRendererInput
+                    return a == b ? $0.index < $1.index : asc ? a < b : a > b
+                }
+            }
+        }()
+        let totalCount   = session.tracks.count
+        let visibleCount = visibleTracks.count
+        let showRouting  = hasRoutingData
+        if session.tracks.isEmpty {
+            PlaceholderRow(text: "No tracks found")
+        } else {
+            // ── Toolbar (toggles) ──────────────────────────────────────────
+            if hasHiddenTracks || hasInactiveTracks {
                 HStack(spacing: 8) {
-                    // Plug-ins toggle — only shown when at least one track has plugins
-                    if hasPlugins {
-                        Toggle(isOn: $showTrackPlugins) {
-                            Text("Show Plug-ins").font(.caption).foregroundStyle(.secondary)
-                        }
-                        .toggleStyle(.checkbox)
-                    }
-
                     if hasHiddenTracks {
                         Toggle(isOn: $tlShowHiddenTracks) {
                             Text("Show Hidden").font(.caption).foregroundStyle(.secondary)
                         }
                         .toggleStyle(.checkbox)
                     }
-
                     if hasInactiveTracks {
                         Toggle(isOn: $tlShowInactiveTracks) {
                             Text("Show Inactive").font(.caption).foregroundStyle(.secondary)
                         }
                         .toggleStyle(.checkbox)
                     }
-
                     Spacer()
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 5)
-
-                if visibleCount < totalCount {
-                    Text("Showing \(visibleCount) of \(totalCount) tracks")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 2)
+            }
+            if visibleCount < totalCount || trackSortColumn != .none {
+                HStack(spacing: 8) {
+                    if visibleCount < totalCount {
+                        Text("Showing \(visibleCount) of \(totalCount) tracks")
+                            .font(.caption2).foregroundStyle(.tertiary)
+                    }
+                    if trackSortColumn != .none {
+                        Button("Session Order") {
+                            trackSortColumn = .none
+                            trackSortAscending = true
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                    }
                 }
-
-                // ── Track rows ─────────────────────────────────────────────────
-                ForEach(visibleTracks, id: \.index) { track in
-                    TrackRow(track: track, showPlugins: showTrackPlugins,
-                             indented: track.folderName != nil)
-                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 2)
+            }
+            // ── Track rows ─────────────────────────────────────────────────
+            ForEach(visibleTracks, id: \.index) { track in
+                TrackRow(track: track, showPlugins: showTrackPlugins,
+                         showRouting: showRouting, showSends: showTrackSends,
+                         showAtmos: hasAtmosData, indentDepth: track.indentDepth)
             }
         }
     }
 
     // MARK: - Audio Files
 
-    private var audioFilesSection: some View {
-        InspectorSection(title: "Audio Files", systemImage: "waveform",
-                         count: session.audioFileNames.count, initiallyExpanded: false) {
-            if session.audioFileNames.isEmpty {
-                PlaceholderRow(text: "No audio files found")
-            } else {
-                ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { _, name in
-                    AudioFileRow(name: name,
-                                 resolved: session.resolvedAudioFiles.first { $0.name == name })
-                }
+    @ViewBuilder
+    private var audioFilesContent: some View {
+        if session.audioFileNames.isEmpty {
+            PlaceholderRow(text: "No audio files found")
+        } else {
+            ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { _, name in
+                AudioFileRow(name: name,
+                             resolved: session.resolvedAudioFiles.first { $0.name == name })
             }
         }
     }
 
     // MARK: - Plugins
 
-    private var pluginsSection: some View {
-        InspectorSection(title: "Plug-Ins Used", systemImage: "puzzlepiece.extension",
-                         count: session.plugins.count, initiallyExpanded: false) {
-            if session.plugins.isEmpty {
-                PlaceholderRow(text: "No plug-ins found")
-            } else {
-                if !pluginScanner.statusMessage.isEmpty {
-                    HStack(spacing: 6) {
-                        ProgressView().scaleEffect(0.6).frame(width: 14)
-                        Text(pluginScanner.statusMessage)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 4)
-                }
-                HStack(spacing: 8) {
+    @ViewBuilder
+    private var pluginsContent: some View {
+        if session.plugins.isEmpty {
+            PlaceholderRow(text: "No plug-ins found")
+        } else {
+            if !pluginScanner.statusMessage.isEmpty {
+                HStack(spacing: 6) {
+                    ProgressView().scaleEffect(0.6).frame(width: 14)
+                    Text(pluginScanner.statusMessage)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
                     Spacer()
-                    if !pluginScanner.scanCompleted && !pluginScanner.isScanning {
-                        Button("Scan Plug-In Folder") { pluginScanner.scan() }
-                        Text("(takes a moment)")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    }
-                    Button("Check Availability") { didCheckPlugins = true }
-                        .disabled(!pluginScanner.scanCompleted || didCheckPlugins)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
+            }
+            if !pluginScanner.scanCompleted && !pluginScanner.isScanning {
+                HStack(spacing: 8) {
+                    Text("Scan your plug-in folder to check which plug-ins are installed.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Scan") { pluginScanner.scan() }
+                    Text("(takes a moment)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
                 }
                 .font(.system(size: 11))
-                .padding(.trailing, 8)
-                .padding(.bottom, 4)
-                ForEach(session.plugins, id: \.self) { plugin in
-                    PluginRow(plugin: plugin, installed: didCheckPlugins ? pluginScanner.index?.contains(
-                        plugin, secondString: session.pluginSecondStrings[plugin]
-                    ) : nil)
-                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
+            }
+            ForEach(session.plugins, id: \.self) { plugin in
+                PluginRow(plugin: plugin, installed: pluginScanner.scanCompleted ? pluginScanner.index?.contains(
+                    plugin, secondString: session.pluginSecondStrings[plugin]
+                ) : nil)
             }
         }
     }
 
     // MARK: - Memory Locations
 
-    private var memoryLocationsSection: some View {
+    @ViewBuilder
+    private var memoryLocationsContent: some View {
         let sr       = Double(session.sampleRate) ?? 48000.0
         let fps      = session.frameRate
         let total    = totalSamples
         let filtered = markerSearch.isEmpty
             ? session.memoryLocations
             : session.memoryLocations.filter { $0.name.localizedCaseInsensitiveContains(markerSearch) }
-        return InspectorSection(title: "Memory Locations", systemImage: "mappin.and.ellipse",
-                                count: session.memoryLocations.count, initiallyExpanded: false) {
-            if session.memoryLocations.isEmpty {
-                PlaceholderRow(text: "No memory locations")
-            } else {
-                // Search field
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    TextField("Search", text: $markerSearch)
-                        .textFieldStyle(.plain)
-                        .font(.subheadline)
-                    if !markerSearch.isEmpty {
-                        Button { markerSearch = "" } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .buttonStyle(.plain)
+        if session.memoryLocations.isEmpty {
+            PlaceholderRow(text: "No memory locations")
+        } else {
+            // Search field
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").font(.caption).foregroundStyle(.tertiary)
+                TextField("Search", text: $markerSearch)
+                    .textFieldStyle(.plain)
+                    .font(.subheadline)
+                if !markerSearch.isEmpty {
+                    Button { markerSearch = "" } label: {
+                        Image(systemName: "xmark.circle.fill").font(.caption).foregroundStyle(.tertiary)
                     }
+                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 5)
-
-                if filtered.isEmpty {
-                    PlaceholderRow(text: "No results for \"\(markerSearch)\"")
-                } else {
-                    ForEach(filtered, id: \.number) { loc in
-                        let hasFrac = loc.samplePosition > 0 && total > 1
-                        let frac    = hasFrac ? Double(loc.samplePosition) / total : 0.0
-                        Button {
-                            guard hasFrac else { return }
-                            tc.jumpTo(frac)
-                        } label: {
-                            HStack(spacing: 8) {
-                                Text("\(loc.number)")
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 5)
+            if filtered.isEmpty {
+                PlaceholderRow(text: "No results for \"\(markerSearch)\"")
+            } else {
+                ForEach(filtered, id: \.number) { loc in
+                    let hasFrac = loc.samplePosition > 0 && total > 1
+                    let frac    = hasFrac ? Double(loc.samplePosition) / total : 0.0
+                    Button {
+                        guard hasFrac else { return }
+                        tc.jumpTo(frac)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text("\(loc.number)")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .frame(width: 24, alignment: .trailing)
+                            Text(loc.name)
+                                .font(.subheadline)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if hasFrac {
+                                Text(formatTC(samples: loc.samplePosition, sr: sr, fps: fps))
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(.secondary)
-                                    .frame(width: 24, alignment: .trailing)
-                                Text(loc.name)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                if hasFrac {
-                                    Text(formatTC(samples: loc.samplePosition, sr: sr, fps: fps))
-                                        .font(.caption.monospacedDigit())
-                                        .foregroundStyle(.secondary)
-                                    Image(systemName: "arrow.up.left")
-                                        .font(.caption2)
-                                        .foregroundStyle(.tertiary)
-                                }
+                                Image(systemName: "arrow.up.left")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 3)
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
-                        .disabled(!hasFrac)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 3)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .disabled(!hasFrac)
                 }
             }
         }
@@ -502,7 +682,7 @@ struct SessionInspectorView: View {
 
 // MARK: - Timecode formatting
 
-private func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
+func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
     guard sr > 0, fps > 0, samples >= 0 else { return "—" }
     let totalFrames = Int64((Double(samples) / sr * fps).rounded())
     let fr  = Int64(fps.rounded())
@@ -513,7 +693,7 @@ private func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
     return String(format: "%d:%02d:%02d:%02d", hr, min, sec, f)
 }
 
-private func formatTC(_ seconds: Double, fps: Double) -> String {
+func formatTC(_ seconds: Double, fps: Double) -> String {
     guard seconds.isFinite, seconds >= 0, fps > 0 else { return "0:00:00:00" }
     let totalFrames = Int((seconds * fps).rounded())
     let fr  = Int(fps.rounded())
@@ -584,6 +764,42 @@ private struct InspectorSection<Content: View>: View {
     }
 }
 
+// MARK: - Sticky section header (used inside LazyVStack pinnedViews)
+
+private struct SectionHeader: View {
+    let title: String
+    let systemImage: String
+    var count: Int? = nil
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        Button { withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() } } label: {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                if let n = count {
+                    Text("(\(n))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
+
 // MARK: - Row types
 
 private struct MetadataRow: View {
@@ -607,39 +823,148 @@ private struct MetadataRow: View {
 private struct TrackRow: View {
     let track: PTXTrack
     let showPlugins: Bool
-    var indented: Bool = false
+    var showRouting: Bool = false
+    var showSends:   Bool = false
+    var showAtmos:   Bool = false
+    var indentDepth: Int = 0
+
+    // Indent absorbed inside the name zone so Format/Input/Output columns
+    // stay at a fixed X position regardless of nesting.
+    private static let indentWidth: CGFloat = 12
+    private static let nameZoneWidth: CGFloat = 200   // matches column header
 
     var body: some View {
         let dimmed = track.isHidden || track.isInactive
-        let leadingPad: CGFloat = indented ? 28 : 16
+        let totalIndent = CGFloat(indentDepth) * Self.indentWidth
+        let nameWidth = Self.nameZoneWidth - totalIndent
 
         VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 8) {
+            HStack(spacing: 0) {
+                // Indent spacer (zero width when not nested)
+                Color.clear.frame(width: totalIndent)
+
                 Image(systemName: track.type.systemImage)
                     .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : track.type.tintColor)
                     .frame(width: 16)
 
-                Text(track.name)
-                    .font(.subheadline)
-                    .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
-                    .italic(track.isInactive)
-
-                if track.isHidden {
-                    Image(systemName: "eye.slash")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                HStack(spacing: 4) {
+                    Text(track.name)
+                        .font(.subheadline)
+                        .foregroundStyle(dimmed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+                        .italic(track.isInactive)
+                        .lineLimit(1)
+                    if track.isHidden {
+                        Image(systemName: "eye.slash")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    if track.isInactive {
+                        Text("inactive")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
-                if track.isInactive {
-                    Text("inactive")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
+                .frame(width: nameWidth, alignment: .leading)
+                .padding(.leading, 8)
 
-                Spacer()
-
-                Text(track.channelFormat)
+                Text({
+                    if track.isAtmosBed, track.atmosBedChannelCount > 0 {
+                        switch track.atmosBedChannelCount {
+                        case 1:  return "Mono"
+                        case 2:  return "Stereo"
+                        case 3:  return "LCR"
+                        case 4:  return "Quad"
+                        case 5:  return "5.0"
+                        case 6:  return "5.1"
+                        case 7:  return "6.1"
+                        case 8:  return "7.1"
+                        case 9:  return "7.0.2"
+                        case 10: return "7.1.2"
+                        case 11: return "7.0.4"
+                        case 12: return "7.1.4"
+                        default: return "\(track.atmosBedChannelCount)ch"
+                        }
+                    }
+                    return track.channelFormat
+                }())
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .frame(width: 55, alignment: .center)
+
+                if showRouting {
+                    Text(track.inputPath ?? "")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .frame(width: 110, alignment: .center)
+
+                    Text(track.outputPath ?? "")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .frame(width: 110, alignment: .center)
+                }
+                if showAtmos {
+                    Group {
+                        if track.isAtmosObject {
+                            let label: String = {
+                                guard track.atmosRendererInput > 0 else { return "OBJ" }
+                                if track.channelCount >= 2 {
+                                    return "OBJ \(track.atmosRendererInput)|\(track.atmosRendererInput + 1)"
+                                }
+                                return "OBJ \(track.atmosRendererInput)"
+                            }()
+                            Text(label)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(Color.purple)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.purple.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+                                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.purple.opacity(0.4), lineWidth: 0.5))
+                        } else if track.isAtmosBed {
+                            let bedLabel: String = {
+                                guard track.atmosRendererInput > 0 else { return "BED" }
+                                let start = track.atmosRendererInput
+                                guard track.atmosBedChannelCount > 1 else { return "BED \(start)" }
+                                let end = start + track.atmosBedChannelCount - 1
+                                return "BED \(start)–\(end)"
+                            }()
+                            Text(bedLabel)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(Color.orange)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+                                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.orange.opacity(0.4), lineWidth: 0.5))
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(width: 65, alignment: .center)
+                }
+                Spacer(minLength: 0)
+            }
+
+            // Send pills
+            if showSends && !track.sendPaths.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.turn.up.right")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.tertiary)
+                        ForEach(track.sendPaths, id: \.self) { send in
+                            Text(send)
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.teal.opacity(0.12))
+                                .clipShape(Capsule())
+                                .overlay(Capsule().strokeBorder(Color.teal.opacity(0.3), lineWidth: 0.5))
+                        }
+                    }
+                }
+                .padding(.leading, totalIndent + 16 + 8)
             }
 
             // Plugin pills
@@ -657,10 +982,11 @@ private struct TrackRow: View {
                         }
                     }
                 }
-                .padding(.leading, indented ? 34 : 22)
+                // Align pills with track name (indent + icon + gap)
+                .padding(.leading, totalIndent + 16 + 8)
             }
         }
-        .padding(.leading, leadingPad)
+        .padding(.leading, 16)
         .padding(.trailing, 16)
         .padding(.vertical, 3)
     }
@@ -679,7 +1005,11 @@ private struct AudioFileRow: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
-            if let url = resolved?.url {
+            if resolved == nil {
+                Text("missing")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            } else if let url = resolved?.url {
                 Text(url.pathExtension.uppercased())
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -717,13 +1047,24 @@ private struct ListRow: View {
 
 // MARK: - Plugin row (with optional availability badge)
 
+private let elasticAudioModes: Set<String> = [
+    "Polyphonic", "Rhythmic", "Monophonic", "Varispeed", "X-Form",
+]
+
 private struct PluginRow: View {
     let plugin:    String
     let installed: Bool?   // nil = not yet checked
 
+    private var isElastic: Bool { elasticAudioModes.contains(plugin) }
+
     var body: some View {
         HStack(spacing: 8) {
-            if let ok = installed {
+            if isElastic {
+                Image(systemName: "waveform.path")
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                    .frame(width: 16)
+            } else if let ok = installed {
                 Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(ok ? .green : .red)
                     .font(.system(size: 12))
@@ -735,6 +1076,11 @@ private struct PluginRow: View {
             }
             Text(plugin)
                 .font(.subheadline)
+            if isElastic {
+                Text("Elastic Audio mode")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
         }
         .padding(.horizontal, 16)
@@ -852,7 +1198,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
                 let dx = Double(event.scrollingDeltaX)
                 let dy = Double(event.scrollingDeltaY)
                 if abs(dx) > abs(dy) && abs(dx) > 0.1 {
-                    let delta = dx / 300.0 * self.window
+                    let delta = -dx / 300.0 * self.window
                     self.viewStart = (self.viewStart + delta).clamped(to: 0...(1 - self.window))
                     return nil
                 }
@@ -1348,6 +1694,18 @@ private struct SessionTimelineView: View {
 
             // ── Checkbox row ─────────────────────────────────────────────────
             HStack(spacing: 12) {
+                if hasMarkers {
+                    Toggle(isOn: $showMarkers) {
+                        Text("Show Markers").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .toggleStyle(.checkbox)
+                }
+                if hasVideo {
+                    Toggle(isOn: $showVideo) {
+                        Text("Show Video Track").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .toggleStyle(.checkbox)
+                }
                 if hasHidden {
                     Toggle(isOn: $showHidden) {
                         Text("Show Hidden Tracks").font(.caption).foregroundStyle(.secondary)
@@ -1360,28 +1718,16 @@ private struct SessionTimelineView: View {
                     }
                     .toggleStyle(.checkbox)
                 }
-                if hasVideo {
-                    Toggle(isOn: $showVideo) {
-                        Text("Show Video Track").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
+                Toggle(isOn: $showEmpty) {
+                    Text("Show Empty Tracks").font(.caption).foregroundStyle(.secondary)
                 }
+                .toggleStyle(.checkbox)
                 if hasMuted {
                     Toggle(isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 })) {
                         Text("Show Muted Clips").font(.caption).foregroundStyle(.secondary)
                     }
                     .toggleStyle(.checkbox)
                 }
-                if hasMarkers {
-                    Toggle(isOn: $showMarkers) {
-                        Text("Show Markers").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .toggleStyle(.checkbox)
-                }
-                Toggle(isOn: $showEmpty) {
-                    Text("Show Empty Tracks").font(.caption).foregroundStyle(.secondary)
-                }
-                .toggleStyle(.checkbox)
                 Spacer()
             }
             .padding(.horizontal, 8)
@@ -1957,7 +2303,7 @@ private struct TCEntryPopover: View {
 // Row 2 (indices 46–68): very dark
 // colorIndex == -1 → no custom color; fall back to cycling palette.
 
-private let ptPalette: [Color] = [
+let ptPalette: [Color] = [
     // Row 0 — vivid
     Color(hex: 0x2d32f2), Color(hex: 0x5035f2), Color(hex: 0x7d3af2),
     Color(hex: 0xb043f3), Color(hex: 0xae3aba), Color(hex: 0xad3485),
@@ -1988,7 +2334,7 @@ private let ptPalette: [Color] = [
 ]
 
 // Okabe-Ito colorblind-safe palette (used in GRM mode)
-private let grmPalette: [Color] = [
+let grmPalette: [Color] = [
     Color(hex: 0x0072B2),  // blue
     Color(hex: 0xE69F00),  // orange
     Color(hex: 0x009E73),  // bluish green
@@ -1998,7 +2344,7 @@ private let grmPalette: [Color] = [
     Color(hex: 0xF0E442),  // yellow
 ]
 
-private func ptTrackColor(_ track: PTXTrack, index: Int, grm: Bool = false) -> Color {
+func ptTrackColor(_ track: PTXTrack, index: Int, grm: Bool = false) -> Color {
     if track.type == .video { return Color(white: 0.52) }
     if grm { return grmPalette[index % grmPalette.count] }
     let idx = track.colorIndex
@@ -2010,7 +2356,7 @@ private func ptTrackColor(_ track: PTXTrack, index: Int, grm: Bool = false) -> C
     return fallback[index % fallback.count]
 }
 
-private extension Color {
+extension Color {
     init(hex: UInt32) {
         let r = Double((hex >> 16) & 0xff) / 255
         let g = Double((hex >>  8) & 0xff) / 255

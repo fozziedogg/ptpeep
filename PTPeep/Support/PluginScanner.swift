@@ -208,6 +208,26 @@ final class PluginScanner: ObservableObject {
         }
     }
 
+    // MARK: QL index loading (synchronous, for Quick Look extension)
+
+    enum QLResult {
+        case valid(InstalledPluginIndex)
+        case stale
+        case missing
+    }
+
+    /// Synchronously checks the cache and returns the plugin index.
+    /// Called from the QL extension's preparePreviewOfFile (async context, off main thread).
+    nonisolated static func qlLoadIndex() -> QLResult {
+        guard let url  = cacheURL,
+              let data = try? Data(contentsOf: url),
+              let cache = try? JSONDecoder().decode(PluginCache.self, from: data)
+        else { return .missing }
+        let sig = buildSignature()
+        guard cache.signature == sig else { return .stale }
+        return .valid(cache.index)
+    }
+
     // MARK: Signature (metadata-only walk, ~50ms for 200 plugins)
 
     private nonisolated static func buildSignature() -> [PluginCache.Entry] {

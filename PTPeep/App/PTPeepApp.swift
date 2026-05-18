@@ -151,6 +151,20 @@ struct TabState: Identifiable {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var appState: AppState?
 
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // SwiftUI sets its own autosave name so AppKit's frame-autosave mechanism
+        // is unavailable to us. Instead we manually save/restore via our own key.
+        // The restore must happen after SwiftUI's WindowGroup finishes positioning
+        // the window (next run-loop cycle).
+        DispatchQueue.main.async {
+            guard let win = NSApp.windows.first(where: { !($0 is NSSavePanel) }) else { return }
+            if let saved = UserDefaults.standard.string(forKey: "ptpeepWindowFrame") {
+                let rect = NSRectFromString(saved)
+                if rect != .zero { win.setFrame(rect, display: true) }
+            }
+        }
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         guard let url = urls.first(where: { $0.pathExtension.lowercased() == "ptx" }) else { return }
         bringWindowForward(application)
@@ -185,7 +199,6 @@ final class AppState: ObservableObject {
     private var windowObserver:  Any?
     private var closeInterceptor: CloseInterceptorDelegate?
     private var openTasks:        [UUID: Task<Void, Never>] = [:]
-
     @Published var recentURLs: [URL] = []
     private static let recentsKey = "recentSessionURLs"
     private static let maxRecents = 10
@@ -227,6 +240,9 @@ final class AppState: ObservableObject {
                   !(win is NSSavePanel) else { return }
             MainActor.assumeIsolated {
                 self.mainWindow = win
+                if win.frameAutosaveName.isEmpty {
+                    win.setFrameAutosaveName("PTPeepMainWindow")
+                }
                 if !(win.delegate is CloseInterceptorDelegate) {
                     let interceptor = CloseInterceptorDelegate(originalDelegate: win.delegate)
                     win.delegate = interceptor
@@ -575,6 +591,20 @@ private final class CloseInterceptorDelegate: NSObject, NSWindowDelegate {
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         sender.orderOut(nil)
         return false
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        if let win = notification.object as? NSWindow {
+            UserDefaults.standard.set(NSStringFromRect(win.frame), forKey: "ptpeepWindowFrame")
+        }
+        originalDelegate?.windowDidMove?(notification)
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        if let win = notification.object as? NSWindow {
+            UserDefaults.standard.set(NSStringFromRect(win.frame), forKey: "ptpeepWindowFrame")
+        }
+        originalDelegate?.windowDidEndLiveResize?(notification)
     }
 
     override func responds(to aSelector: Selector!) -> Bool {

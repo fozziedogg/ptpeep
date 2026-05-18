@@ -89,12 +89,26 @@ struct PTXTrack: Equatable {
     var isHidden:     Bool    = false
     var isInactive:   Bool    = false
     var folderName:   String? = nil   // non-nil when this track lives inside a folder
+    var indentDepth:  Int     = 0     // 0 = top-level, 1 = one folder deep, 2 = two folders deep, …
     var colorIndex:   Int     = -1    // Pro Tools color index 0–55; -1 = no custom color
     var plugins:      [String] = []
     var clips:        [PTXClip] = []
+    var inputPath:    String?  = nil   // I/O input bus name, e.g. "FULL MIX"
+    var outputPath:   String?  = nil   // I/O output bus name, e.g. "STERO OUT"
+    var isAtmosObject: Bool    = false // true = Atmos Object send
+    var isAtmosBed:    Bool    = false // true = Atmos Bed send
+    var atmosRendererInput: Int = 0   // 1-indexed renderer input channel (0 = unknown)
+    var atmosBedChannelCount: Int = 0 // BED assignment width in channels; 0 = unknown
+    var sendPaths:     [String] = []  // aux send bus names (Send A, B, …)
 
     var channelFormat: String {
-        if type == .video { return "Video" }
+        switch type {
+        case .video:  return "Video"
+        case .vca: return ""
+        case .folder:
+            if inputPath == nil && outputPath == nil { return "" }  // Basic Folder — no routing
+        default: break
+        }
         // Prefer the exact label decoded from the PT format byte; fall back to count.
         if let label = channelLabel { return label }
         switch channelCount {

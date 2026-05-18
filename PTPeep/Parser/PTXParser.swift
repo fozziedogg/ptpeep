@@ -237,6 +237,20 @@ final class PTXParser {
         // Re-index after any reordering
         for i in session.tracks.indices { session.tracks[i].index = i }
 
+        // Compute indentDepth by walking the folderOf chain.
+        // Guard against cycles (shouldn't exist, but cap at 10 to be safe).
+        if !displayInfo.folderOf.isEmpty {
+            for i in session.tracks.indices {
+                var depth = 0
+                var current = session.tracks[i].folderName
+                while let parent = current, depth < 10 {
+                    depth += 1
+                    current = displayInfo.folderOf[parent]
+                }
+                session.tracks[i].indentDepth = depth
+            }
+        }
+
         // Assign per-track plugins. 0x102d strips are keyed by the name the track had when
         // the session was last written — which may differ from the current track name if the
         // user renamed the track in Pro Tools afterward. Fall-back order:
@@ -300,6 +314,34 @@ final class PTXParser {
         for i in session.tracks.indices where session.tracks[i].plugins.isEmpty {
             if let suf = wordSuffix(session.tracks[i]), let inherited = groupPlugins[suf] {
                 session.tracks[i].plugins = inherited
+            }
+        }
+
+        // Track routing (input + output paths from 0x261b containers)
+        let routing = PTXBlockDecoder.extractRouting(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        print("[PTXParser] Routing: \(routing.map { "\($0.key): in=\($0.value.inputPath ?? "—") out=\($0.value.outputPath ?? "—")\($0.value.isAtmosObject ? " [OBJ]" : $0.value.isAtmosBed ? " [BED]" : "")" }.sorted())")
+
+        for i in session.tracks.indices {
+            let name = session.tracks[i].name
+            let entry: PTXBlockDecoder.RoutingEntry?
+            if let e = routing[name] {
+                entry = e
+            } else if let key = routing.keys.first(where: { $0.hasPrefix(name + ".dup") }) {
+                entry = routing[key]
+            } else {
+                let trackSorted = name.lowercased().split(separator: " ").sorted()
+                entry = routing.keys.first(where: {
+                    stripDupSuffix($0).lowercased().split(separator: " ").sorted() == trackSorted
+                }).flatMap { routing[$0] }
+            }
+            if let e = entry {
+                session.tracks[i].inputPath          = e.inputPath
+                session.tracks[i].outputPath         = e.outputPath
+                session.tracks[i].isAtmosObject      = e.isAtmosObject
+                session.tracks[i].isAtmosBed            = e.isAtmosBed
+                session.tracks[i].atmosRendererInput    = e.atmosRendererInput
+                session.tracks[i].atmosBedChannelCount  = e.bedChannelCount
+                session.tracks[i].sendPaths             = e.sendPaths
             }
         }
 

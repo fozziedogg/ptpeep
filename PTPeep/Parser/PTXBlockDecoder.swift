@@ -512,7 +512,7 @@ final class PTXBlockDecoder {
         case 0x0E: return (12, "7.1.4")
         case 0x0F: return (13, "9.0.4")
         case 0x10: return (14, "9.1.4")
-        default:   return (1,  "Mono")
+        default:   return (1,  String(format: "0x%02X", byte))
         }
     }
 
@@ -520,6 +520,7 @@ final class PTXBlockDecoder {
         guard let b2519 = blocks.first(where: { $0.contentType == 0x2519 }) else { return TrackDisplayInfo() }
         var info = TrackDisplayInfo()
         var seenNames = Set<String>()
+        var uidToName = [String: String]()   // 16-char hex UID → track name (for 0x210c parsing)
 
         // Process only 0x251a sub-blocks that live inside 0x2519
         let parentStart = b2519.dataOffset
@@ -547,6 +548,15 @@ final class PTXBlockDecoder {
             info.types[name] = typeCode
             if seenNames.insert(name).inserted {
                 info.orderedNames.append(name)
+                // Collect UID for 0x210c folder membership parsing.
+                // Layout: [2 typeCode][4 nameLen][name][1 chanFmt][5 zeros][4 0x2a marker][8 UID]
+                // → UID starts at nameEndPos + 10
+                let uidEnd = nameEndPos + 18
+                if uidEnd <= sub.dataOffset + sub.dataSize {
+                    let uidHex = (nameEndPos+10..<nameEndPos+18)
+                        .map { String(format: "%02x", data[$0]) }.joined()
+                    uidToName[uidHex] = name
+                }
             }
 
             // Byte at nameEnd+53 (= p+59+nameLen) is 0x01 for both basic (tc=11) and
@@ -578,18 +588,113 @@ final class PTXBlockDecoder {
             }
         }
 
-        // Infer folder membership from track ordering.
-        // folderMarkers contains both basic (tc=11) and routing (tc=2) folder tracks,
-        // detected via the binary flag at nameEnd+53 in each 0x251a block.
-        // Every non-folder track that follows a folder marker belongs to that folder
-        // until the next folder marker appears.
-        var currentFolder: String? = nil
-        for name in info.orderedNames {
-            let isFolderMarker = info.folderMarkers.contains(name)
-            if isFolderMarker {
-                currentFolder = name
-            } else if let folder = currentFolder {
-                info.folderOf[name] = folder
+        // Build folder membership from 0x210c block (definitive parent-child mapping).
+        // Falls back to the heuristic stack algorithm if 0x210c is absent.
+        let folderOf210c = extractFolderMembership(blocks: blocks, data: data, uidToName: uidToName)
+        if !folderOf210c.isEmpty {
+            info.folderOf = folderOf210c
+        } else {
+            // Heuristic fallback: infer folder membership from track ordering.
+            //
+            // Signals available per 0x251a block:
+            //   tc=0x0002 routing folders: post[0]==0x01 → nested (stored as channelCount==2
+            //     via channelInfo); post[0]>=0x02 → top-level.
+            //   tc=0x000b basic folders: post[0] is always 0x00 regardless of depth.
+            //     Heuristic using post[62:64] (color/group index, in info.colors when <0x8000,
+            //     defaulting to 0xffff otherwise):
+            //       - new folder groupId == stack-top groupId → siblings → pop top.
+            //       - last non-folder groupId == stack-top groupId AND folder's color is not
+            //         shared with any routing folder → new folder is a child.
+            //       - else → not a child here; pop stack top and retry.
+            //   tc=0x0002 routing folders cannot parent tc=0x000b basic folders, so when a
+            //   tc=0x000b folder appears any routing folders on the stack top are popped first.
+
+            // Pre-pass 1: collect p62 color values of all tc=0x0002 folder tracks.
+            var routingFolderColors = Set<Int>()
+            for sub in subBlocks {
+                let p = sub.dataOffset
+                guard p + 6 <= sub.dataOffset + sub.dataSize else { continue }
+                let tc2 = UInt16(data[p]) | UInt16(data[p + 1]) << 8
+                guard tc2 == 0x0002 else { continue }
+                guard let nl2 = safeU32(data, at: p + 2, be: false), nl2 >= 1, nl2 <= 256 else { continue }
+                let nameLen2 = Int(nl2)
+                let nameEnd2 = p + 6 + nameLen2
+                let folderFlagOff2 = nameEnd2 + 53
+                guard folderFlagOff2 < sub.dataOffset + sub.dataSize, data[folderFlagOff2] != 0 else { continue }
+                let colorOff2 = p + 68 + nameLen2
+                if colorOff2 + 1 < sub.dataOffset + sub.dataSize {
+                    let ci = Int(UInt16(data[colorOff2]) | UInt16(data[colorOff2 + 1]) << 8)
+                    if ci < 0x8000 { routingFolderColors.insert(ci) }
+                }
+            }
+
+            // Pre-pass 2: find 0x0000 section-boundary blocks within 0x2519.
+            let zeroBlocks = blocks.filter {
+                $0.contentType == 0x0000 &&
+                $0.dataOffset  >= parentStart &&
+                $0.dataOffset + $0.dataSize <= parentEnd
+            }
+            var boundaryOffsets = Set<Int>()
+            for zb in zeroBlocks {
+                let zbEnd = zb.dataOffset + zb.dataSize
+                if let nextSub = subBlocks.first(where: { $0.dataOffset > zb.dataOffset && $0.dataOffset < zbEnd + 500 }) {
+                    boundaryOffsets.insert(nextSub.dataOffset)
+                }
+            }
+
+            // Build a name→dataOffset dictionary (first occurrence only) for boundary lookup.
+            var nameToOffset = [String: Int]()
+            for sub in subBlocks {
+                let p = sub.dataOffset
+                guard p + 6 <= sub.dataOffset + sub.dataSize else { continue }
+                guard let nl = safeU32(data, at: p + 2, be: false), nl >= 1, nl <= 256 else { continue }
+                let nameLen = Int(nl)
+                let nameStart = p + 6
+                let nameEndPos = nameStart + nameLen
+                guard nameEndPos <= sub.dataOffset + sub.dataSize,
+                      let name = String(bytes: data[nameStart..<nameEndPos], encoding: .utf8) else { continue }
+                if nameToOffset[name] == nil { nameToOffset[name] = p }
+            }
+
+            struct StackEntry { var name: String; var tc: UInt16; var groupId: UInt16 }
+            var stack: [StackEntry] = []
+            var lastNonFolderGroupId: UInt16 = 0xffff
+
+            for name in info.orderedNames {
+                let isFolder = info.folderMarkers.contains(name)
+                let tc       = info.types[name] ?? 0
+                let groupId  = UInt16(info.colors[name] ?? 0xffff)
+
+                if let offset = nameToOffset[name], boundaryOffsets.contains(offset) {
+                    while let top = stack.last, top.tc == 0x0002 { stack.removeLast() }
+                }
+
+                if isFolder {
+                    if tc == 0x0002 {
+                        let isNested = (info.channelCounts[name] ?? 0) == 2
+                        if !isNested {
+                            stack.removeAll()
+                        } else {
+                            while let top = stack.last, top.tc == 0x0002 { stack.removeLast() }
+                        }
+                    } else {
+                        while let top = stack.last, top.tc == 0x0002 { stack.removeLast() }
+                        while let top = stack.last {
+                            if top.groupId == groupId {
+                                stack.removeLast(); break
+                            } else if lastNonFolderGroupId == top.groupId && !routingFolderColors.contains(Int(groupId)) {
+                                break
+                            } else {
+                                stack.removeLast()
+                            }
+                        }
+                    }
+                    if let parent = stack.last { info.folderOf[name] = parent.name }
+                    stack.append(StackEntry(name: name, tc: tc, groupId: groupId))
+                } else {
+                    lastNonFolderGroupId = groupId
+                    if let parent = stack.last { info.folderOf[name] = parent.name }
+                }
             }
         }
 
@@ -598,6 +703,82 @@ final class PTXBlockDecoder {
         print("[PTXBlockDecoder] Hidden:   \(info.hidden.sorted())")
         print("[PTXBlockDecoder] Inactive: \(info.inactive.sorted())")
         return info
+    }
+
+    // MARK: Folder Membership (0x210c)
+    //
+    // Block 0x210c encodes the explicit parent-child folder hierarchy.
+    //
+    // Layout:
+    //   Header: [u32 folderNodeCount][5 bytes][0x2a 0x00 0x00 0x00]  → first entry at offset+13
+    //
+    //   Each entry: [8-byte UID][u32 childCount][padding][0x2a 0x00 0x00 0x00 (next entry prefix)]
+    //     childCount == 0  → child/leaf record (this track belongs to the current parent)
+    //     childCount  > 0  → folder definition (this folder has childCount direct children)
+    //     padding = 5 bytes if childCount > 0, 1 byte if childCount == 0
+    //
+    //   Traversal: depth-first — a folder's N child records immediately follow it,
+    //   then any folder children are expanded in order (each appearing twice: once as
+    //   a child record with childCount=0, then as a parent record with childCount=M).
+    //
+    //   Stack algorithm: push folders (childCount>0) onto a stack; for each child record
+    //   (childCount=0), assign folderOf[child] = stack.top, decrement top.remaining,
+    //   pop when exhausted.
+
+    private static func extractFolderMembership(
+        blocks: [PTXBlock], data: Data, uidToName: [String: String]
+    ) -> [String: String] {
+        guard let b = blocks.first(where: { $0.contentType == 0x210c }),
+              b.dataSize >= 13 else { return [:] }
+
+        let blockEnd = b.dataOffset + b.dataSize
+
+        // Parse entries starting at offset+13 (past 4-byte count + 5 padding + 4-byte 0x2a marker).
+        // Each entry: UID(8) + childCount(4) + padding(5 if count>0, 1 if count=0).
+        // The 4-byte 0x2a marker that precedes the NEXT entry is included in the advance.
+        struct Entry { var name: String; var childCount: Int }
+        var entries = [Entry]()
+        var pos = b.dataOffset + 13
+
+        while pos + 8 <= blockEnd {
+            let uidHex = (0..<8).map { String(format: "%02x", data[pos + $0]) }.joined()
+            // The last entry in the block may not have a full 4-byte count field (block ends
+            // at the UID). Treat those tail bytes as count=0 (always a leaf in practice).
+            let count = pos + 12 <= blockEnd ? Int(u32(data, at: pos + 8, be: false)) : 0
+            if let name = uidToName[uidHex] {
+                entries.append(Entry(name: name, childCount: count))
+            }
+            // Advance past: UID(8) + childCount(4) + padding(5 or 1) + next 0x2a marker(4)
+            let advance = 8 + 4 + (count > 0 ? 5 : 1) + 4
+            pos += advance
+        }
+
+        guard !entries.isEmpty else { return [:] }
+
+        // Stack-based tree traversal.
+        // Folder entries (childCount>0) define direct children; child entries (childCount=0)
+        // belong to the current stack-top folder.
+        var folderOf = [String: String]()
+        var stack = [(name: String, remaining: Int)]()
+
+        for entry in entries {
+            if entry.childCount > 0 {
+                // Folder node — parent already established when it appeared as a child record
+                // (or top-level if first occurrence).
+                stack.append((entry.name, entry.childCount))
+            } else {
+                // Child record
+                if let parent = stack.last?.name {
+                    folderOf[entry.name] = parent
+                }
+                if !stack.isEmpty {
+                    stack[stack.count - 1].remaining -= 1
+                    while !stack.isEmpty && stack.last!.remaining == 0 { stack.removeLast() }
+                }
+            }
+        }
+
+        return folderOf
     }
 
     /// Builds the compound clip pool from 0x262b parent blocks and their 0x2628 children.
@@ -1141,6 +1322,227 @@ final class PTXBlockDecoder {
             if let plugins = nameToPlugins[tb.name] {
                 result[tb.name] = plugins
             }
+        }
+
+        return result
+    }
+
+    // MARK: Track Routing (I/O paths)
+    //
+    // Each 0x261b block is a per-track container holding the mixer strip (0x102d) and routing data.
+    //
+    // Output path: LP string at offset +36 within the first 0x260e block that is inside a 0x260d
+    //   block inside this 0x261b container. Bytes 0–1 of 0x260e = 0xff 0xff → no path assigned.
+    //
+    // Input path: stored as raw bytes in the container's tail (after all child blocks).
+    //   Pattern: {00 00 00 00} sentinel {4 bytes} separator {00} {u32le len} {UTF-8 string}
+    //   If no valid LP string follows the sentinel, the track has no input path.
+
+    struct RoutingEntry {
+        var inputPath:    String?
+        var outputPath:   String?
+        var isAtmosObject: Bool = false  // true = Atmos Object send (b2 != 0xff && b2 != 0x00)
+        var isAtmosBed:    Bool = false  // true = Atmos Bed send (flagOff+11 != 0xff = Atmos group id)
+        var atmosRendererInput: Int = 0  // 1-indexed renderer input channel (b11+1); 0 = unknown
+        var bedChannelCount: Int = 0     // BED assignment width in channels (decoded from b1); 0 = unknown
+        var sendPaths:    [String] = []  // aux send bus names
+    }
+
+    /// Decode routing-block BED format byte → channel count.
+    /// This table differs from 0x251a: values above 5.1 are encoded differently.
+    private static func bedChannelCount(routingFormatByte b: UInt8) -> Int {
+        switch b {
+        case 0x00: return 1
+        case 0x01: return 2
+        case 0x02: return 3
+        case 0x03, 0x04: return 4
+        case 0x05: return 5
+        case 0x06: return 6
+        case 0x0e: return 8   // 7.1
+        case 0x11: return 10  // 7.1.2
+        default:   return 0   // unknown → show "BED N" without range
+        }
+    }
+
+    /// Returns a dictionary mapping track display names → routing entry (inputPath, outputPath).
+    /// Uses UID-based matching (via 0x210b blocks) to handle renamed tracks, with a strip-name
+    /// fallback — mirroring the same two-pass strategy as extractTrackPlugins.
+    static func extractRouting(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [String: RoutingEntry] {
+        let sorted = blocks.sorted { $0.dataOffset < $1.dataOffset }
+
+        let all261b = sorted.filter { $0.contentType == 0x261b }
+        let all260d  = sorted.filter { $0.contentType == 0x260d }
+        let all260e  = sorted.filter { $0.contentType == 0x260e }
+
+        // Per-strip routing data collected from 0x261b containers
+        struct StripRouting { var name: String; var uid: String; var entry: RoutingEntry }
+        var strips: [StripRouting] = []
+
+        for container in all261b {
+            let cStart = container.dataOffset
+            let cEnd   = container.dataOffset + container.dataSize
+
+            // Track name + UID from 0x102d strip.
+            // Layout at strip.dataOffset + 9 (past 0x2619 sub-block header):
+            //   [0-3]  u32 LE nameLen
+            //   [4..4+nl-1]  strip name
+            //   [4+nl .. 4+nl+10]  11-byte suffix
+            //   [4+nl+11 .. 4+nl+18]  8-byte strip UID
+            guard let strip = sorted.first(where: {
+                $0.contentType == 0x102d &&
+                $0.dataOffset >= cStart && $0.dataOffset + $0.dataSize <= cEnd
+            }) else { continue }
+
+            let nameOff = strip.dataOffset + 9
+            guard let nl = safeU32(data, at: nameOff, be: false),
+                  nl >= 1, nl <= 64,
+                  nameOff + 4 + Int(nl) <= data.count,
+                  let name = String(bytes: data[(nameOff+4)..<(nameOff+4+Int(nl))], encoding: .utf8),
+                  !name.isEmpty else { continue }
+
+            let uidStart = nameOff + 4 + Int(nl) + 11
+            let uid: String
+            if uidStart + 8 <= data.count {
+                uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
+            } else {
+                uid = ""
+            }
+
+            // ── Output path + sends ──────────────────────────────────────────
+            // All 0x260e blocks nested inside a 0x260d in this container encode routing.
+            // Discriminant: byte[0] of the 0x260e data:
+            //   0x13 → aux send (all tracks sending to the same bus share a common bus UID)
+            //   other → main output
+            // LP string is at offset +36 in all cases.
+            // Atmos flags (Object/Bed) apply only to the main output block.
+            var outputPath: String? = nil
+            var sendPaths: [String] = []
+            var isAtmosObject = false
+            var isAtmosBed    = false
+            var isAtmosRendererInput = 0
+            var atmosBedChannelCount = 0
+
+            let routingBlocks = all260e.filter { e in
+                guard e.dataOffset >= cStart, e.dataOffset + e.dataSize <= cEnd else { return false }
+                return all260d.contains(where: { d in
+                    d.dataOffset >= cStart && d.dataOffset + d.dataSize <= cEnd &&
+                    e.dataOffset >= d.dataOffset && e.dataOffset + e.dataSize <= d.dataOffset + d.dataSize
+                })
+            }
+
+            for pathBlock in routingBlocks {
+                guard pathBlock.dataSize >= 2,
+                      !(data[pathBlock.dataOffset] == 0xff && data[pathBlock.dataOffset + 1] == 0xff)
+                else { continue }
+
+                let isSend = outputPath != nil  // first valid block = main output; rest = sends
+                let lpOff  = pathBlock.dataOffset + 36
+                guard lpOff + 4 <= pathBlock.dataOffset + pathBlock.dataSize,
+                      let sl = safeU32(data, at: lpOff, be: false),
+                      sl > 0, sl <= 256,
+                      lpOff + 4 + Int(sl) <= pathBlock.dataOffset + pathBlock.dataSize,
+                      let s = String(bytes: data[(lpOff+4)..<(lpOff+4+Int(sl))], encoding: .utf8),
+                      !s.isEmpty else { continue }
+
+                if isSend {
+                    if !sendPaths.contains(s) { sendPaths.append(s) }
+                } else if outputPath == nil {
+                    outputPath = s
+                    // Read Atmos routing bytes immediately after the output path string.
+                    // Layout: [b0: chanFmt][b1: chanFmt][b2..b9: 0xff = plain bus, else Object slot]
+                    //         [b10: 0x00][b11: Atmos group id, 0xff = not a Bed]
+                    //   Object: b2 != 0xff && b2 != 0x00 && b0==0x00 && b1==0x00 (b2=object slot)
+                    //   Bed:    b11 != 0xff (Atmos group: 0x00=Dialog, 0x0a=Music, etc.)
+                    let flagOff = lpOff + 4 + Int(sl)
+                    if flagOff + 12 <= pathBlock.dataOffset + pathBlock.dataSize {
+                        let b1  = data[flagOff + 1], b2 = data[flagOff + 2]
+                        let b11 = data[flagOff + 11]
+                        isAtmosObject = b2 != 0xff && b2 != 0x00
+                        isAtmosBed    = !isAtmosObject && b11 != 0xff
+                        // b11 is 0-indexed renderer input; +1 gives the 1-indexed channel shown in PT
+                        if isAtmosObject || isAtmosBed { isAtmosRendererInput = Int(b11) + 1 }
+                        if isAtmosBed { atmosBedChannelCount = PTXBlockDecoder.bedChannelCount(routingFormatByte: b1) }
+                    } else if flagOff + 3 <= pathBlock.dataOffset + pathBlock.dataSize {
+                        let b2 = data[flagOff + 2]
+                        isAtmosObject = b2 != 0xff && b2 != 0x00
+                    }
+                }
+            }
+
+            // ── Input path ────────────────────────────────────────────────────
+            // Scan from end of last child block forward, looking for the pattern:
+            //   {00 00 00 00} {4 bytes} {00} {u32le LP length} {string}
+            var inputPath: String? = nil
+            let lastChildEnd = blocks
+                .filter {
+                    $0.dataOffset >= cStart &&
+                    $0.dataOffset + $0.dataSize <= cEnd &&
+                    !($0.dataOffset == cStart && $0.dataSize == container.dataSize) // exclude container itself
+                }
+                .map { $0.dataOffset + $0.dataSize }
+                .max() ?? cStart
+
+            var pos = lastChildEnd
+            while pos + 9 < cEnd, inputPath == nil {
+                if data[pos] == 0 && data[pos+1] == 0 && data[pos+2] == 0 && data[pos+3] == 0 {
+                    let lpOff = pos + 9   // skip sentinel(4) + format(4) + separator(1)
+                    if lpOff + 4 <= cEnd,
+                       let sl = safeU32(data, at: lpOff, be: false),
+                       sl > 0, sl <= 128, lpOff + 4 + Int(sl) <= cEnd {
+                        let bytes = data[(lpOff+4)..<(lpOff+4+Int(sl))]
+                        if bytes.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
+                           let s = String(bytes: bytes, encoding: .utf8), !s.isEmpty {
+                            inputPath = s
+                        }
+                    }
+                }
+                pos += 1
+            }
+
+            guard outputPath != nil || inputPath != nil else { continue }
+            strips.append(StripRouting(name: name, uid: uid,
+                                       entry: RoutingEntry(inputPath: inputPath, outputPath: outputPath,
+                                                           isAtmosObject: isAtmosObject,
+                                                           isAtmosBed: isAtmosBed,
+                                                           atmosRendererInput: isAtmosRendererInput,
+                                                           bedChannelCount: atmosBedChannelCount,
+                                                           sendPaths: sendPaths)))
+        }
+
+        // Build UID → routing lookup
+        var uidToRouting: [String: RoutingEntry] = [:]
+        for s in strips where !s.uid.isEmpty { uidToRouting[s.uid] = s.entry }
+
+        // Parse 0x210b blocks: display name → 8-byte UID (same layout as in extractTrackPlugins)
+        var trackToUID: [(trackName: String, uid: String)] = []
+        for b in sorted where b.contentType == 0x210b {
+            let doff = b.dataOffset
+            guard b.dataSize >= 24,
+                  let nl = safeU32(data, at: doff + 4, be: false),
+                  nl >= 1, nl <= 256,
+                  doff + 8 + Int(nl) + 8 + 8 <= data.count,
+                  let tname = String(bytes: data[(doff+8)..<(doff+8+Int(nl))], encoding: .utf8),
+                  !tname.isEmpty else { continue }
+            let uidStart = doff + 8 + Int(nl) + 8
+            let uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
+            trackToUID.append((trackName: tname, uid: uid))
+        }
+
+        var result: [String: RoutingEntry] = [:]
+
+        // Pass 1: UID-based match (handles renamed tracks)
+        var resolvedUIDs = Set<String>()
+        for (trackName, uid) in trackToUID {
+            if let entry = uidToRouting[uid] {
+                result[trackName] = entry
+                resolvedUIDs.insert(uid)
+            }
+        }
+
+        // Pass 2: strip-name fallback for any strip not already resolved via UID
+        for s in strips {
+            guard !s.uid.isEmpty ? !resolvedUIDs.contains(s.uid) : result[s.name] == nil else { continue }
+            result[s.name] = s.entry
         }
 
         return result
