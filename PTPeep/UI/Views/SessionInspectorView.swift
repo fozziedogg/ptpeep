@@ -195,18 +195,23 @@ struct SessionInspectorView: View {
     // MARK: - Session Setup
 
     private var sessionSetupSection: some View {
-        InspectorSection(title: "Session Setup", systemImage: "info.circle", initiallyExpanded: true) {
-            HStack(spacing: 16) {
-                sessionField("SR",    session.sampleRate.isEmpty  ? "—" : "\(session.sampleRate) Hz")
-                sessionField("Bit",   session.bitDepth.isEmpty    ? "—" : "\(session.bitDepth)-bit")
-                sessionField("TC",    session.tcFormat.isEmpty    ? "—" : session.tcFormat)
-                sessionField("Start", session.sessionStart.isEmpty ? "—" : session.sessionStart)
-                Spacer()
-            }
-            .font(.system(size: 11).monospacedDigit())
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
+        HStack(spacing: 12) {
+            Image(systemName: "info.circle")
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+            Text("Session Setup")
+                .font(.subheadline.weight(.semibold))
+            Divider().frame(height: 12)
+            sessionField("SR",    session.sampleRate.isEmpty  ? "—" : "\(session.sampleRate) Hz")
+            sessionField("Bit",   session.bitDepth.isEmpty    ? "—" : "\(session.bitDepth)-bit")
+            sessionField("TC",    session.tcFormat.isEmpty    ? "—" : session.tcFormat)
+            sessionField("Start", session.sessionStart.isEmpty ? "—" : session.sessionStart)
+            Spacer()
         }
+        .font(.system(size: 11).monospacedDigit())
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color(nsColor: .separatorColor).opacity(0.1))
     }
 
     private func sessionField(_ label: String, _ value: String) -> some View {
@@ -256,8 +261,8 @@ struct SessionInspectorView: View {
                     // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                     let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                    + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                    // overhead = row1(24) + hover row(24) + sel row(24) + checkbox row(28) + ruler(30) + padding(8)
-                    let overhead: CGFloat = 138
+                    // overhead = toolbar(24) + hover row(24) + sel row(24) + transport(22) + waveform(64) + ruler(30) + padding(4)
+                    let overhead: CGFloat = 192
                     // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                     let effectiveH: CGFloat = {
                         if overviewHeight == 0 {
@@ -1741,9 +1746,9 @@ private struct SessionTimelineView: View {
 
                 // Autoplay toggle
                 Button { autoplay.toggle() } label: {
-                    Image(systemName: "autoplay")
+                    Image(systemName: "play.circle\(autoplay ? ".fill" : "")")
                         .font(.system(size: 12))
-                        .foregroundStyle(autoplay ? Color.accentColor : Color.secondary.opacity(0.4))
+                        .foregroundStyle(autoplay ? Color.accentColor : Color.secondary.opacity(0.5))
                 }
                 .buttonStyle(.plain)
                 .help(autoplay ? "Auto-play on: clips play on click" : "Auto-play off")
@@ -1762,6 +1767,34 @@ private struct SessionTimelineView: View {
             }
             .padding(.horizontal, 12)
             .frame(height: 22)
+
+            // ── Clip waveform — always present to keep lane canvas height stable ─
+            let resolvedWaveURL: URL? = {
+                guard let clip = selectedClip, !clip.isGroup else { return nil }
+                return resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+            }()
+            let waveColor: Color = selectedClipTrackIdx.map { t in
+                t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
+            } ?? Color.accentColor
+            ZStack {
+                // Faint placeholder track so the area is visually defined even when empty
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.primary.opacity(0.04))
+                if let clip = selectedClip, !clip.isGroup,
+                   let url = resolvedWaveURL, let ap = audioPlayer {
+                    ClipWaveformView(clip: clip, url: url, sampleRate: sr,
+                                     color: waveColor, audioPlayer: ap)
+                } else {
+                    // Hairline centre rule — gives the empty zone a hint of purpose
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.12))
+                        .frame(height: 1)
+                }
+            }
+            .frame(height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
 
             // ── Ruler (adaptive tick spacing) ─────────────────────────────────
             Canvas { ctx, size in
@@ -2445,5 +2478,66 @@ private extension PTXTrackType {
         case .instrument: return "Inst"
         case .unknown:    return "Other"
         }
+    }
+}
+
+// MARK: - Clip Waveform View
+
+/// Async waveform display for a resolved clip. Shows PCM peaks for the clip's region
+/// in the source file, with a moving playhead while AudioPlayer is active.
+private struct ClipWaveformView: View {
+    let clip:       PTXClip
+    let url:        URL
+    let sampleRate: Double
+    let color:      Color
+    @ObservedObject var audioPlayer: AudioPlayer
+
+    @State private var peaks: [Float] = []
+    @State private var loadID: UUID   = UUID()
+
+    var body: some View {
+        Canvas { ctx, size in
+            let w   = size.width
+            let h   = size.height
+            let mid = h / 2
+
+            if peaks.isEmpty {
+                // Loading state: faint centre line
+                ctx.fill(Path(CGRect(x: 0, y: mid - 0.5, width: w, height: 1)),
+                         with: .color(.secondary.opacity(0.2)))
+            } else {
+                let barW = w / CGFloat(peaks.count)
+                for (i, peak) in peaks.enumerated() {
+                    let barH = max(CGFloat(peak) * (h - 4) * 0.5, 1)
+                    let x    = CGFloat(i) * barW
+                    // Symmetric waveform (top + bottom)
+                    let rect = CGRect(x: x, y: mid - barH,
+                                      width: max(barW - 0.5, 0.5), height: barH * 2)
+                    ctx.fill(Path(rect), with: .color(color.opacity(0.65)))
+                }
+            }
+
+            // Playhead
+            if audioPlayer.isPlaying, audioPlayer.playingClip == clip {
+                let x = CGFloat(audioPlayer.playbackFraction) * w
+                ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: h)),
+                         with: .color(.white.opacity(0.9)))
+                // Subtle glow behind playhead
+                ctx.fill(Path(CGRect(x: x - 2, y: 0, width: 4, height: h)),
+                         with: .color(.white.opacity(0.12)))
+            }
+        }
+        .task(id: loadID) {
+            peaks = []
+            let result = await AudioPlayer.loadWaveform(
+                url: url,
+                startSample: clip.sourceOffset,
+                lengthSamples: clip.lengthSamples,
+                sampleRate: sampleRate
+            )
+            peaks = result
+        }
+        .onChange(of: clip)  { _ in loadID = UUID() }
+        .onChange(of: url)   { _ in loadID = UUID() }
     }
 }
