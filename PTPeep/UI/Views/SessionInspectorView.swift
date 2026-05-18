@@ -2558,40 +2558,37 @@ private struct ClipWaveformView: View {
             if peaks.isEmpty {
                 ctx.fill(Path(CGRect(x: 0, y: mid - 0.5, width: w, height: 1)),
                          with: .color(.secondary.opacity(0.2)))
-            } else if peaks.count >= 2 {
-                // ── Stereo: L top half (downward), R bottom half (upward) ──
-                let halfH = h / 2
-                let barW  = w / CGFloat(peaks[0].count)
-                // L channel — bars grow downward from top edge
-                for (i, peak) in peaks[0].enumerated() {
-                    let barH = max(CGFloat(peak) * (halfH - 1), 1)
-                    ctx.fill(Path(CGRect(x: CGFloat(i) * barW, y: 0,
-                                         width: max(barW - 0.5, 0.5), height: barH)),
-                             with: .color(color.opacity(0.65)))
+            } else {
+                // One equal-height band per channel, symmetric bars on each midline
+                // (matches sfxlibrary WaveformView rendering model)
+                let n          = CGFloat(peaks[0].count)
+                let bandH      = h / CGFloat(peaks.count)
+                let step       = w / n
+                let lineW      = max(1, step * 0.6)
+
+                for (ch, channelPeaks) in peaks.enumerated() {
+                    let midY = bandH * CGFloat(ch) + bandH / 2
+                    var path = Path()
+                    for (i, peak) in channelPeaks.enumerated() {
+                        let x   = (CGFloat(i) + 0.5) * step
+                        let amp = CGFloat(peak) * (bandH / 2) * 0.9
+                        path.move(to:    CGPoint(x: x, y: midY - amp))
+                        path.addLine(to: CGPoint(x: x, y: midY + amp))
+                    }
+                    ctx.stroke(path, with: .color(color.opacity(0.85)),
+                               style: StrokeStyle(lineWidth: lineW))
                 }
-                // R channel — bars grow upward from bottom edge
-                for (i, peak) in peaks[1].enumerated() {
-                    let barH = max(CGFloat(peak) * (halfH - 1), 1)
-                    ctx.fill(Path(CGRect(x: CGFloat(i) * barW, y: h - barH,
-                                         width: max(barW - 0.5, 0.5), height: barH)),
-                             with: .color(color.opacity(0.65)))
-                }
-                // Channel divider
-                ctx.fill(Path(CGRect(x: 0, y: halfH - 0.5, width: w, height: 1)),
-                         with: .color(.primary.opacity(0.15)))
-                // L / R labels
-                ctx.draw(Text("L").font(.system(size: 7, weight: .semibold)).foregroundColor(.secondary),
-                         at: CGPoint(x: 6, y: halfH * 0.5), anchor: .center)
-                ctx.draw(Text("R").font(.system(size: 7, weight: .semibold)).foregroundColor(.secondary),
-                         at: CGPoint(x: 6, y: halfH + halfH * 0.5), anchor: .center)
-            } else if let ch = peaks.first {
-                // ── Mono: symmetric around centre ──
-                let barW = w / CGFloat(ch.count)
-                for (i, peak) in ch.enumerated() {
-                    let barH = max(CGFloat(peak) * (h - 4) * 0.5, 1)
-                    let rect = CGRect(x: CGFloat(i) * barW, y: mid - barH,
-                                      width: max(barW - 0.5, 0.5), height: barH * 2)
-                    ctx.fill(Path(rect), with: .color(color.opacity(0.65)))
+
+                // Divider between channels (only for multi-channel)
+                if peaks.count > 1 {
+                    var div = Path()
+                    for ch in 1..<peaks.count {
+                        let y = bandH * CGFloat(ch)
+                        div.move(to:    CGPoint(x: 0, y: y))
+                        div.addLine(to: CGPoint(x: w, y: y))
+                    }
+                    ctx.stroke(div, with: .color(Color.primary.opacity(0.15)),
+                               style: StrokeStyle(lineWidth: 0.5))
                 }
             }
 
