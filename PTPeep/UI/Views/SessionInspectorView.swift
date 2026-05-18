@@ -346,9 +346,12 @@ struct SessionInspectorView: View {
             let optionsActive = !hiddenTrackTypes.isEmpty || showTrackSends || showTrackPlugins
             Button { showTrackOptions.toggle() } label: {
                 Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
+                    .font(.caption)
                     .foregroundStyle(optionsActive ? Color.accentColor : Color.secondary)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
             .popover(isPresented: $showTrackOptions, arrowEdge: .bottom) {
                 trackOptionsPopover
             }
@@ -369,38 +372,29 @@ struct SessionInspectorView: View {
 
     @ViewBuilder private var trackOptionsPopover: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if presentTrackTypes.count > 1 {
-                Text("Track Types")
-                    .font(.system(size: 10).weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.bottom, 2)
-                ForEach(presentTrackTypes, id: \.self) { type in
-                    Toggle(isOn: Binding(
-                        get: { !hiddenTrackTypes.contains(type) },
-                        set: { show in
-                            if show { hiddenTrackTypes.remove(type) }
-                            else    { hiddenTrackTypes.insert(type) }
-                        }
-                    )) {
-                        Label(type.filterLabel, systemImage: type.systemImage)
+            Text("Visibility")
+                .font(.system(size: 10).weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 2)
+            ForEach(presentTrackTypes, id: \.self) { type in
+                Toggle(isOn: Binding(
+                    get: { !hiddenTrackTypes.contains(type) },
+                    set: { show in
+                        if show { hiddenTrackTypes.remove(type) }
+                        else    { hiddenTrackTypes.insert(type) }
                     }
-                    .toggleStyle(.checkbox)
+                )) {
+                    Label(type.filterLabel, systemImage: type.systemImage)
                 }
-                if !hiddenTrackTypes.isEmpty {
-                    Button("Show All") { hiddenTrackTypes.removeAll() }
-                        .buttonStyle(.borderless)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
+                .toggleStyle(.checkbox)
             }
-            if hasSendsData || hasPlugins {
-                if presentTrackTypes.count > 1 { Divider() }
-                Text("Columns")
-                    .font(.system(size: 10).weight(.semibold))
+            if hasSendsData  { Toggle("Sends",    isOn: $showTrackSends).toggleStyle(.checkbox) }
+            if hasPlugins    { Toggle("Plug-ins", isOn: $showTrackPlugins).toggleStyle(.checkbox) }
+            if !hiddenTrackTypes.isEmpty {
+                Button("Show All") { hiddenTrackTypes.removeAll() }
+                    .buttonStyle(.borderless)
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                    .padding(.bottom, 2)
-                if hasSendsData  { Toggle("Sends",    isOn: $showTrackSends).toggleStyle(.checkbox) }
-                if hasPlugins    { Toggle("Plug-ins", isOn: $showTrackPlugins).toggleStyle(.checkbox) }
             }
         }
         .font(.system(size: 12))
