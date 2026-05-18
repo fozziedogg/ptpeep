@@ -413,89 +413,6 @@ struct SessionInspectorView: View {
         return order.filter { t in session.tracks.contains { $0.type == t } }
     }
 
-    @ViewBuilder
-    private var trackFilterBadges: some View {
-        let hasPlugins = session.tracks.contains { !$0.plugins.isEmpty }
-        if presentTrackTypes.count > 1 || hasSendsData || hasPlugins {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(presentTrackTypes, id: \.self) { type in
-                        let hidden = hiddenTrackTypes.contains(type)
-                        Button {
-                            if hidden { hiddenTrackTypes.remove(type) }
-                            else      { hiddenTrackTypes.insert(type) }
-                        } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: type.systemImage).font(.system(size: 8))
-                                Text(type.filterLabel).font(.system(size: 10))
-                            }
-                            .foregroundStyle(hidden ? AnyShapeStyle(.tertiary) : type.tintColor)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(hidden
-                                ? Color(nsColor: .separatorColor).opacity(0.3)
-                                : Color(nsColor: .separatorColor).opacity(0.55)))
-                            .overlay(Capsule().strokeBorder(
-                                hidden ? Color.clear : Color(nsColor: .separatorColor).opacity(0.4),
-                                lineWidth: 0.5))
-                        }
-                        .buttonStyle(.plain)
-                        .animation(.easeInOut(duration: 0.1), value: hidden)
-                    }
-                    if hasSendsData {
-                        Button { showTrackSends.toggle() } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: "arrow.turn.up.right").font(.system(size: 8))
-                                Text("Sends").font(.system(size: 10))
-                            }
-                            .foregroundStyle(showTrackSends ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(showTrackSends
-                                ? Color(nsColor: .separatorColor).opacity(0.55)
-                                : Color(nsColor: .separatorColor).opacity(0.3)))
-                            .overlay(Capsule().strokeBorder(
-                                showTrackSends ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear,
-                                lineWidth: 0.5))
-                        }
-                        .buttonStyle(.plain)
-                        .animation(.easeInOut(duration: 0.1), value: showTrackSends)
-                    }
-                    if hasPlugins {
-                        Button { showTrackPlugins.toggle() } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: "puzzlepiece.extension").font(.system(size: 8))
-                                Text("Plug-ins").font(.system(size: 10))
-                            }
-                            .foregroundStyle(showTrackPlugins ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(showTrackPlugins
-                                ? Color(nsColor: .separatorColor).opacity(0.55)
-                                : Color(nsColor: .separatorColor).opacity(0.3)))
-                            .overlay(Capsule().strokeBorder(
-                                showTrackPlugins ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear,
-                                lineWidth: 0.5))
-                        }
-                        .buttonStyle(.plain)
-                        .animation(.easeInOut(duration: 0.1), value: showTrackPlugins)
-                    }
-                    if !hiddenTrackTypes.isEmpty {
-                        Button("Show all") {
-                            hiddenTrackTypes.removeAll()
-                        }
-                        .buttonStyle(.borderless)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 5)
-            }
-            .background(Color(nsColor: .windowBackgroundColor))
-        }
-    }
-
     private var hasAtmosData: Bool {
         session.tracks.contains { $0.isAtmosObject || $0.isAtmosBed }
     }
@@ -597,7 +514,6 @@ struct SessionInspectorView: View {
         }()
         let totalCount   = session.tracks.count
         let visibleCount = visibleTracks.count
-        let showRouting  = hasRoutingData
         if session.tracks.isEmpty {
             PlaceholderRow(text: "No tracks found")
         } else {
@@ -643,7 +559,7 @@ struct SessionInspectorView: View {
             // ── Track rows ─────────────────────────────────────────────────
             ForEach(visibleTracks, id: \.index) { track in
                 TrackRow(track: track, showPlugins: showTrackPlugins,
-                         showRouting: showRouting, showSends: showTrackSends,
+                         showRouting: hasRoutingData, showSends: showTrackSends,
                          showAtmos: hasAtmosData, indentDepth: track.indentDepth)
             }
         }
@@ -895,24 +811,6 @@ private struct SectionHeader: View {
 
 // MARK: - Row types
 
-private struct MetadataRow: View {
-    let label: String
-    let value: String
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(width: 120, alignment: .leading)
-            Text(value)
-                .font(.subheadline.monospacedDigit())
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 2)
-    }
-}
-
 private struct TrackRow: View {
     let track: PTXTrack
     let showPlugins: Bool
@@ -1119,24 +1017,6 @@ private struct AudioFileRow: View {
         }
     }
 }
-
-private struct ListRow: View {
-    let text: String
-    let systemImage: String
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
-            Text(text)
-                .font(.subheadline)
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 3)
-    }
-}
-
 
 // MARK: - Plugin row (with optional availability badge)
 

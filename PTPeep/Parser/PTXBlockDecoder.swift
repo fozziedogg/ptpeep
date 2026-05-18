@@ -171,7 +171,7 @@ final class PTXBlockDecoder {
     //   Typical ordering within a block:
     //     FOLDER_MARKER, AUDIO_FILE…, PATH_COMPONENT… (path suffix appears after files)
 
-    private static let audioTypeTags: Set<String> = ["WAVE", "AIFF", "EVAW", "FFIA"]
+    private static let audioTypeTags: Set<String> = ["WAVE", "AIFF", "EVAW", "FFIA", "VooM"]
 
     static func extractAudioFiles(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [AudioFileEntry] {
         var results = [AudioFileEntry]()
@@ -940,10 +940,6 @@ final class PTXBlockDecoder {
                let n = String(bytes: data[section.dataOffset + 4 ..< section.dataOffset + 4 + Int(nameLen)],
                               encoding: .utf8) {
                 name = n
-            } else if displayInfo.orderedNames.isEmpty {
-                // Positional fallback only when displayInfo is absent (very old sessions).
-                guard sectionIdx < displayInfo.orderedNames.count else { continue }
-                name = displayInfo.orderedNames[sectionIdx]
             } else {
                 // displayInfo available but section has no inline name — defer to second pass.
                 namelessSections.append(section)
@@ -1137,7 +1133,7 @@ final class PTXBlockDecoder {
             let nomFps = Int(data[nomOff])
             let tcFormats = ["23.976","24","25","29.97 DF","29.97","30 DF","30",
                              "47.952","48","50","59.94 DF","59.94","60"]
-            if tcEnum >= 0 && tcEnum < tcFormats.count {
+            if tcEnum < tcFormats.count {
                 params.tcFormatString = tcFormats[tcEnum]
             }
             if nomFps >= 23 && nomFps <= 60 { params.tcFrameRate = nomFps }

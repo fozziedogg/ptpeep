@@ -95,7 +95,6 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     private let playerNode = AVAudioPlayerNode()
     private var stopWorkItem: DispatchWorkItem?
     private var ticker:       Timer?
-    private var clipStartSec: Double = 0
     private var clipDurSec:   Double = 1
 
     init() {
@@ -131,10 +130,8 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
         if !engine.isRunning { try? engine.start() }
 
-        let startSec  = Double(clip.sourceOffset) / max(sampleRate, 1)
-        let durSec    = Double(clip.lengthSamples) / max(sampleRate, 1)
-        clipStartSec  = startSec
-        clipDurSec    = max(durSec, 0.001)
+        let durSec = Double(clip.lengthSamples) / max(sampleRate, 1)
+        clipDurSec = max(durSec, 0.001)
 
         let startFrame = AVAudioFramePosition(clip.sourceOffset)
         let frameCount = AVAudioFrameCount(clip.lengthSamples)

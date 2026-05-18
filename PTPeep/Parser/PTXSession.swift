@@ -151,7 +151,6 @@ struct ResolvedAudioFile: Identifiable {
     var id = UUID()
     var name:    String          // display name (without extension)
     var url:     URL?            // nil = file not found on disk
-    var nodeID:  UInt32? = nil   // HFS+ catalog node ID from binary path data (for future relinking)
     var tracks:  [String] = []   // which track names use this file
 
     var isOnline: Bool { url != nil }
