@@ -40,6 +40,15 @@ actor PTSLSessionInfo {
     private var ptslMajor: Int = 5
     private var ptslMinor: Int = 0
 
+    // Private URLSession to avoid HTTP/2 connection-pooling issues with URLSession.shared.
+    // Using ephemeral config so stale connections from before PT started are never reused.
+    private let urlSession: URLSession = {
+        let cfg = URLSessionConfiguration.ephemeral
+        cfg.timeoutIntervalForRequest  = 5
+        cfg.timeoutIntervalForResource = 10
+        return URLSession(configuration: cfg)
+    }()
+
     private func registerConnection() async throws -> String {
         if let sid = sessionId { return sid }
         let body = #"{"company_name":"Fozzie","application_name":"PTPeep"}"#
@@ -226,7 +235,7 @@ actor PTSLSessionInfo {
         req.setValue("application/grpc+json", forHTTPHeaderField: "Content-Type")
         req.setValue("trailers", forHTTPHeaderField: "TE")
 
-        let (responseData, _) = try await URLSession.shared.data(for: req)
+        let (responseData, _) = try await urlSession.data(for: req)
 
         // Strip 5-byte gRPC frame prefix from response
         guard responseData.count > 5 else { throw PTSLError.badResponse }
