@@ -1640,64 +1640,8 @@ private struct SessionTimelineView: View {
         let selectedClipTrackIdx: Int? = selectedClip != nil ? tc.selTrack : nil
 
         VStack(spacing: 0) {
-            // ── Toolbar: position | track + hover clip | zoom | filters ──────
+            // ── Toolbar: zoom | filters ─────────────────────────────────────
             HStack(spacing: 8) {
-                // TC position / entry button — hover takes priority over cursor
-                Button {
-                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
-                    showTCEntry = true
-                } label: {
-                    Group {
-                        if let absFrac = hoverAbsFrac {
-                            Text(formatTC(absFrac * total / sr, fps: frameRate))
-                                .foregroundStyle(.secondary)
-                        } else if let s = tc.selStart {
-                            if let e = tc.selEnd {
-                                let lo  = min(s, e)
-                                let dur = abs(e - s) * total / sr
-                                Text("\(formatTC(lo * total / sr, fps: frameRate))  +\(formatTC(dur, fps: frameRate))")
-                                    .foregroundStyle(.primary)
-                            } else {
-                                let samp = Int64((s * total).rounded())
-                                Text("\(formatTC(s * total / sr, fps: frameRate))  (\(samp))")
-                                    .foregroundStyle(.primary)
-                            }
-                        } else {
-                            Text("──:──:──:──")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .frame(width: 160, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .help("Click or press numpad * to go to timecode")
-                .popover(isPresented: $showTCEntry, arrowEdge: .bottom) {
-                    TCEntryPopover(text: $tcEntryText) { text in
-                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
-                                                              totalSamples: total, sampleRate: sr) {
-                            tc.jumpTo(frac)
-                        }
-                        showTCEntry = false
-                    }
-                }
-
-                Divider().frame(height: 14)
-
-                // Track name + format (hover lane > selected lane)
-                let displayIdx = hoverLane ?? tc.selTrack
-                if let idx = displayIdx, idx < tracks.count {
-                    let track = tracks[idx]
-                    let tcolor = trackColor(track, index: idx)
-                    let fmtLabel: String = {
-                        guard track.type == .video else { return track.channelFormat }
-                        return tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)"
-                    }()
-                    Text(track.name).foregroundStyle(tcolor).lineLimit(1)
-                    Text("[\(fmtLabel)]").foregroundStyle(.secondary)
-                } else {
-                    Text("—").foregroundStyle(.tertiary)
-                }
-
                 Spacer()
 
                 // H zoom
@@ -1778,7 +1722,23 @@ private struct SessionTimelineView: View {
             // ── HOVER / SELECT clip rows (aligned columns) ───────────────────
             clipInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
                         label: "HOVER", sr: sr, isSelected: false,
-                        resolvedURL: resolvedFiles.first(where: { $0.name == hoverClip?.sourceFile })?.url)
+                        resolvedURL: resolvedFiles.first(where: { $0.name == hoverClip?.sourceFile })?.url,
+                        cursorAbsFrac: hoverClip == nil ? hoverAbsFrac : nil,
+                        cursorLane:    hoverClip == nil ? hoverLane    : nil)
+                .onTapGesture {
+                    // Clicking the hover row (when showing cursor position) opens TC entry
+                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                    showTCEntry = true
+                }
+                .popover(isPresented: $showTCEntry, arrowEdge: .bottom) {
+                    TCEntryPopover(text: $tcEntryText) { text in
+                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
+                                                              totalSamples: total, sampleRate: sr) {
+                            tc.jumpTo(frac)
+                        }
+                        showTCEntry = false
+                    }
+                }
             clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
                         label: "SELECT", sr: sr, isSelected: true,
                         resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
@@ -2240,7 +2200,9 @@ private struct SessionTimelineView: View {
 
     private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
                              label: String, sr: Double, isSelected: Bool,
-                             resolvedURL: URL? = nil) -> some View {
+                             resolvedURL: URL? = nil,
+                             cursorAbsFrac: Double? = nil,
+                             cursorLane: Int? = nil) -> some View {
         let color = trackIdx.map { t in
             t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
         } ?? Color.secondary
@@ -2338,6 +2300,36 @@ private struct SessionTimelineView: View {
                     if isSelected { clipCopyButton(tcForPT(durTC)) }
                 }
 
+            } else if let absFrac = cursorAbsFrac {
+                // No clip hovered — show lane name (if any) and cursor TC in the IN position
+                let laneIdx = cursorLane
+                if let idx = laneIdx, idx < tracks.count {
+                    let track  = tracks[idx]
+                    let tcolor = trackColor(track, index: idx)
+                    let fmt: String = track.type == .video
+                        ? (tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)")
+                        : track.channelFormat
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(tcolor.opacity(0.5))
+                        .frame(width: 3, height: 14)
+                        .padding(.trailing, 6)
+                    Text(track.name).foregroundStyle(tcolor.opacity(0.75)).lineLimit(1)
+                        .frame(width: 90, alignment: .leading)
+                    Spacer().frame(width: 4)
+                    Text("[\(fmt)]").foregroundStyle(.secondary).lineLimit(1)
+                } else {
+                    Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
+                }
+                Spacer(minLength: 8)
+                // Cursor TC in the IN column position, styled to match
+                HStack(spacing: 0) {
+                    Group {
+                        Text("pos ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                        + Text(formatTC(absFrac * total / sr, fps: frameRate))
+                            .foregroundColor(Color(nsColor: .secondaryLabelColor))
+                    }
+                    .frame(width: 106, alignment: .trailing)
+                }
             } else {
                 Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
                 Spacer()
