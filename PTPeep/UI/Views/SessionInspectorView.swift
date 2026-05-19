@@ -3288,7 +3288,7 @@ private struct RegionWaveformView: View {
 
                 for (i, peak) in ch0.enumerated() {
                     let idx = pxStart + i
-                    if idx < assembled.count { assembled[idx] = peak }
+                    if idx >= 0 && idx < assembled.count { assembled[idx] = peak }
                 }
             }
             result[segment.trackIdx] = assembled
