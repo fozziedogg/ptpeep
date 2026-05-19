@@ -110,9 +110,17 @@ actor PTSLSessionInfo {
         let group   = PlatformSupport.makeEventLoopGroup(loopCount: 1, networkPreference: .best)
         let channel = ClientConnection.insecure(group: group)
             .connect(host: "localhost", port: 31416)
-        let client  = Ptsl_PTSLAsyncClient(channel: channel)
+        let client  = Ptsl_PTSLAsyncClient(channel: channel,
+                                            defaultCallOptions: CallOptions(timeLimit: .timeout(.seconds(15))))
         _grpcClient = client
         return client
+    }
+
+    private func resetConnection() {
+        sessionId   = nil
+        _grpcClient = nil
+        ptslMajor   = 5
+        ptslMinor   = 0
     }
 
     private func sendRequest(commandId: Int, body: String, streaming: Bool = false) async throws -> String {
@@ -127,10 +135,15 @@ actor PTSLSessionInfo {
         req.requestBodyJson = body
 
         let response: Ptsl_Response
-        if streaming {
-            response = try await grpcClient().sendGrpcStreamingRequest(req)
-        } else {
-            response = try await grpcClient().sendGrpcRequest(req)
+        do {
+            if streaming {
+                response = try await grpcClient().sendGrpcStreamingRequest(req)
+            } else {
+                response = try await grpcClient().sendGrpcRequest(req)
+            }
+        } catch {
+            resetConnection()
+            throw error
         }
 
         if response.header.status == .tstatusQueued {
