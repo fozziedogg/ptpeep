@@ -1542,6 +1542,25 @@ private struct SessionTimelineView: View {
     @State private var showFiltersPopover: Bool  = false
     @AppStorage("ov.autoplay") private var autoplay: Bool = false
 
+    // BWF metadata panel
+    @AppStorage("bwf.panelVisible")     private var bwfPanelVisible: Bool   = false
+    @AppStorage("bwf.selectedFields")   private var bwfFieldsRaw:    String = BWFFieldKey.defaults.map(\.rawValue).joined(separator: ",")
+    @State private var bwfMetadata:     BWFMetadata? = nil
+    @State private var showBWFSettings: Bool         = false
+
+    private var bwfSelectedFields: [BWFFieldKey] {
+        bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
+    }
+    private func bwfToggleField(_ key: BWFFieldKey) {
+        var current = bwfSelectedFields
+        if let idx = current.firstIndex(of: key) {
+            current.remove(at: idx)
+        } else if current.count < 5 {
+            current.append(key)
+        }
+        bwfFieldsRaw = current.map(\.rawValue).joined(separator: ",")
+    }
+
     private static let audioLaneH: CGFloat = 8
     private static let videoLaneH: CGFloat = 16
     private static let laneGap:    CGFloat = 2
@@ -1814,6 +1833,44 @@ private struct SessionTimelineView: View {
                     .foregroundStyle(Color.accentColor)
                     .help("Import and spot this clip to its Pro Tools timeline position")
                 }
+
+                Divider().frame(height: 12)
+
+                // BWF toggle + settings
+                Button {
+                    bwfPanelVisible.toggle()
+                    if bwfPanelVisible, let clip = selectedClip,
+                       let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                        Task.detached(priority: .userInitiated) {
+                            let m = BWFParser.parse(url: url)
+                            await MainActor.run { bwfMetadata = m }
+                        }
+                    } else if !bwfPanelVisible {
+                        bwfMetadata = nil
+                    }
+                } label: {
+                    Text("BWF")
+                        .font(.system(size: 9).weight(.semibold))
+                        .foregroundStyle(bwfPanelVisible ? Color.accentColor : Color.secondary)
+                        .padding(.horizontal, 5).padding(.vertical, 2)
+                        .background(RoundedRectangle(cornerRadius: 3)
+                            .fill(bwfPanelVisible
+                                  ? Color.accentColor.opacity(0.15)
+                                  : Color(nsColor: .separatorColor).opacity(0.5)))
+                }
+                .buttonStyle(.plain)
+
+                if bwfPanelVisible {
+                    Button { showBWFSettings = true } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showBWFSettings, arrowEdge: .bottom) {
+                        BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
+                    }
+                }
             }
             .padding(.horizontal, 12)
             .frame(height: 22)
@@ -1862,6 +1919,18 @@ private struct SessionTimelineView: View {
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .padding(.horizontal, 16)
             .padding(.vertical, 4)
+
+            // ── BWF metadata panel ────────────────────────────────────────────
+            if bwfPanelVisible {
+                BWFMetadataPanel(
+                    metadata:       bwfMetadata,
+                    selectedFields: bwfSelectedFields,
+                    sampleRate:     sr,
+                    frameRate:      frameRate
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+            }
 
             // ── Ruler (adaptive tick spacing) ─────────────────────────────────
             Canvas { ctx, size in
@@ -2141,6 +2210,16 @@ private struct SessionTimelineView: View {
             else { return }
             if ap.isPlaying && ap.playingClip == clip { ap.stop() }
             else { ap.play(clip: clip, url: url, sampleRate: sr) }
+        }
+        .onChange(of: selectedClip?.sourceFile) { sourceFile in
+            guard bwfPanelVisible else { return }
+            bwfMetadata = nil
+            guard let name = sourceFile,
+                  let url  = resolvedFiles.first(where: { $0.name == name })?.url else { return }
+            Task.detached(priority: .userInitiated) {
+                let m = BWFParser.parse(url: url)
+                await MainActor.run { bwfMetadata = m }
+            }
         }
     }
 
@@ -2572,6 +2651,122 @@ private extension PTXTrackType {
         case .instrument: return "Inst"
         case .unknown:    return "Other"
         }
+    }
+}
+
+// MARK: - BWF Metadata Panel
+
+private struct BWFMetadataPanel: View {
+    let metadata:       BWFMetadata?
+    let selectedFields: [BWFFieldKey]
+    let sampleRate:     Double
+    let frameRate:      Double
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let meta = metadata {
+                VStack(spacing: 1) {
+                    ForEach(selectedFields) { key in
+                        let value = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate)
+                        HStack(alignment: .top, spacing: 6) {
+                            Text(key.label.uppercased())
+                                .font(.system(size: 8).weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                                .frame(width: 88, alignment: .trailing)
+                                .padding(.top, 1)
+                            Text(value ?? "—")
+                                .font(.system(size: 10).monospacedDigit())
+                                .foregroundStyle(value != nil ? Color(nsColor: .labelColor) : Color.secondary)
+                                .lineLimit(key == .bextCodingHistory ? 4 : 1)
+                                .truncationMode(.tail)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 6)
+                        .background(Color(nsColor: .separatorColor).opacity(0.04))
+                    }
+                }
+                .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.03)))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5))
+            } else {
+                HStack {
+                    Spacer()
+                    Text("No BWF metadata")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.03)))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5))
+            }
+        }
+    }
+}
+
+// MARK: - BWF Settings Popover
+
+private struct BWFSettingsPopover: View {
+    @Binding var selectedRaw: String
+
+    private var selected: [BWFFieldKey] {
+        selectedRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
+    }
+    private func toggle(_ key: BWFFieldKey) {
+        var current = selected
+        if let idx = current.firstIndex(of: key) {
+            current.remove(at: idx)
+        } else if current.count < 5 {
+            current.append(key)
+        }
+        selectedRaw = current.map(\.rawValue).joined(separator: ",")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("BWF Fields")
+                    .font(.system(size: 11).weight(.semibold))
+                Spacer()
+                Text("\(selected.count)/5")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
+
+            Divider()
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(BWFFieldKey.allCases) { key in
+                        let isOn      = selected.contains(key)
+                        let atMax     = selected.count >= 5 && !isOn
+                        Button {
+                            if !atMax { toggle(key) }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(isOn ? Color.accentColor : Color.secondary.opacity(atMax ? 0.4 : 0.7))
+                                    .font(.system(size: 12))
+                                Text(key.label)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(atMax ? Color.secondary.opacity(0.4) : Color(nsColor: .labelColor))
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .frame(maxHeight: 320)
+        }
+        .frame(width: 200)
+        .padding(.bottom, 8)
     }
 }
 
