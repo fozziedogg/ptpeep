@@ -1,5 +1,5 @@
 import Foundation
-#if canImport(GRPC)
+#if PTSL_ENABLED
 import GRPC
 import NIOPosix
 #endif
@@ -14,6 +14,11 @@ import NIOPosix
 // URLSession cannot do HTTP/2 cleartext (h2c), causing -1005 errors with PT's gRPC
 // server. The QL extension target does not link grpc-swift; augment() is a no-op there.
 
+enum PTSLError: Error {
+    case notConnected, noSession, badResponse
+    case commandFailed(String)
+}
+
 actor PTSLSessionInfo {
 
     static let shared = PTSLSessionInfo()
@@ -24,7 +29,7 @@ actor PTSLSessionInfo {
     /// Safe to call when PT is not running — returns without modifying `session`.
     /// No-op in the Quick Look extension target (grpc-swift not linked there).
     func augment(session: inout PTXSession) async {
-#if canImport(GRPC)
+#if PTSL_ENABLED
         guard let _ = try? await registerConnection() else { return }
 
         async let sr  = fetchSampleRate()
@@ -53,7 +58,7 @@ actor PTSLSessionInfo {
     ///   2. CreateAudioClips       (cmd 127) → clip_id (src in/out + timeline position)
     ///   3. SpotClipsByID          (cmd 124) → places the clip at startSample
     func spotClip(clip: PTXClip, sourceURL: URL) async throws {
-#if canImport(GRPC)
+#if PTSL_ENABLED
         AppLog.shared.log("[Spot] Starting — \(sourceURL.lastPathComponent)")
 
         do {
@@ -83,14 +88,7 @@ actor PTSLSessionInfo {
 #endif
     }
 
-    // MARK: - Errors
-
-    enum PTSLError: Error {
-        case notConnected, noSession, badResponse
-        case commandFailed(String)
-    }
-
-#if canImport(GRPC)
+#if PTSL_ENABLED
     // MARK: - gRPC client (grpc-swift / NIO — main app target only)
 
     private var sessionId:   String?
