@@ -76,8 +76,6 @@ struct SessionInspectorView: View {
         VStack(spacing: 0) {
             header
             Divider()
-            sessionSetupSection
-            Divider()
             overviewSection
             Divider()
             ScrollView {
@@ -150,6 +148,16 @@ struct SessionInspectorView: View {
 
     // MARK: - Header
 
+    /// Compact session-setup subtitle: "24-bit · 48kHz · 23.976 · 00:58:00:00"
+    private var sessionSetupSubtitle: String {
+        var parts: [String] = []
+        if !session.bitDepth.isEmpty   { parts.append("\(session.bitDepth)-bit") }
+        if !session.sampleRate.isEmpty { parts.append("\(session.sampleRate)Hz") }
+        if !session.tcFormat.isEmpty   { parts.append(session.tcFormat) }
+        if !session.sessionStart.isEmpty { parts.append(session.sessionStart) }
+        return parts.joined(separator: " · ")
+    }
+
     private var header: some View {
         HStack(spacing: 12) {
             Image(systemName: "waveform.and.mic")
@@ -157,8 +165,16 @@ struct SessionInspectorView: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(session.sessionName)
-                    .font(.headline)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(session.sessionName)
+                        .font(.headline)
+                    let sub = sessionSetupSubtitle
+                    if !sub.isEmpty {
+                        Text("(\(sub))")
+                            .font(.system(size: 11).monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Text(sessionURL.deletingLastPathComponent().path)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -201,35 +217,6 @@ struct SessionInspectorView: View {
         .padding(.vertical, 12)
     }
 
-    // MARK: - Session Setup
-
-    private var sessionSetupSection: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "info.circle")
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
-            Text("Session Setup")
-                .font(.subheadline.weight(.semibold))
-            Divider().frame(height: 12)
-            sessionField("SR",    session.sampleRate.isEmpty  ? "—" : "\(session.sampleRate) Hz")
-            sessionField("Bit",   session.bitDepth.isEmpty    ? "—" : "\(session.bitDepth)-bit")
-            sessionField("TC",    session.tcFormat.isEmpty    ? "—" : session.tcFormat)
-            sessionField("Start", session.sessionStart.isEmpty ? "—" : session.sessionStart)
-            Spacer()
-        }
-        .font(.system(size: 11).monospacedDigit())
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .separatorColor).opacity(0.1))
-    }
-
-    private func sessionField(_ label: String, _ value: String) -> some View {
-        HStack(spacing: 3) {
-            Text(label + ":").foregroundStyle(.secondary)
-            Text(value)
-        }
-    }
-
     // MARK: - Overview (Universe-style timeline)
 
     private var overviewSection: some View {
@@ -258,8 +245,8 @@ struct SessionInspectorView: View {
                 return a.index < b.index
             }
         let sr = Double(session.sampleRate) ?? 48000.0
-        // Leave at least 200 px for the collapsible sections below the overview.
-        let maxH = max(100, availableHeight - 280)
+        // Leave ~180 px for the collapsible sections below the overview.
+        let maxH = max(100, availableHeight - 180)
         return VStack(spacing: 0) {
             InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
                 if clippedTracks.isEmpty {
@@ -270,12 +257,14 @@ struct SessionInspectorView: View {
                     // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                     let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                    + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                    // overhead = toolbar(24) + hover row(24) + sel row(24) + transport(22) + waveform(64) + ruler(30) + padding(4)
-                    let overhead: CGFloat = 192
-                    // Auto-init height on first render: fit all tracks at scale 1, capped at 300
+                    // Scale by current global track height level
+                    let scaledLanesH = baseLanesH * CGFloat(1 << tc.globalTrackHeightLevel)
+                    // overhead = hover+toolbar row(24) + sel row(24) + transport(22) + waveform(64) + ruler(30) + padding(4)
+                    let overhead: CGFloat = 168
+                    // Auto-init height on first render: fit all tracks at current zoom, capped at 500
                     let effectiveH: CGFloat = {
                         if overviewHeight == 0 {
-                            let h = min(baseLanesH + overhead, 300)
+                            let h = min(scaledLanesH + overhead, 500)
                             DispatchQueue.main.async { overviewHeight = h }
                             return h
                         }
@@ -1184,7 +1173,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     @Published var selTrackEnd: Int?    = nil   // non-nil when drag spans multiple tracks
 
     // Global track height level (0 = base, each step doubles all lane heights, max 4)
-    @Published var globalTrackHeightLevel: Int = 0
+    @Published var globalTrackHeightLevel: Int = 2
     // Per-track overrides on top of the global level
     @Published var trackHeightLevels: [Int: Int] = [:]
 
@@ -1719,11 +1708,31 @@ private struct SessionTimelineView: View {
         }()
 
         VStack(spacing: 0) {
-            // ── Toolbar: zoom | filters ─────────────────────────────────────
-            HStack(spacing: 8) {
-                Spacer()
+            // ── HOVER row + zoom/filter controls (single row) ───────────────
+            HStack(spacing: 0) {
+                // Hover clip info (left side — no in/out/length)
+                hoverInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
+                             sr: sr, total: total,
+                             resolvedURL: resolvedFiles.first(where: { $0.name == hoverClip?.sourceFile })?.url,
+                             cursorAbsFrac: hoverClip == nil ? hoverAbsFrac : nil,
+                             cursorLane:    hoverClip == nil ? hoverLane    : nil)
+                    .onTapGesture {
+                        tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                        showTCEntry = true
+                    }
+                    .popover(isPresented: $showTCEntry, arrowEdge: .bottom) {
+                        TCEntryPopover(text: $tcEntryText) { text in
+                            if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
+                                                                  totalSamples: total, sampleRate: sr) {
+                                tc.jumpTo(frac)
+                            }
+                            showTCEntry = false
+                        }
+                    }
 
-                // H zoom
+                Spacer(minLength: 8)
+
+                // Zoom controls (right side)
                 HStack(spacing: 4) {
                     Text("H:").foregroundStyle(.secondary)
                     Button { tc.zoomOut() } label: { Image(systemName: "minus") }
@@ -1735,9 +1744,8 @@ private struct SessionTimelineView: View {
                         .buttonStyle(.borderless).controlSize(.mini)
                 }
 
-                Divider().frame(height: 14)
+                Divider().frame(height: 14).padding(.horizontal, 6)
 
-                // V zoom
                 HStack(spacing: 4) {
                     Text("V:").foregroundStyle(.secondary)
                     Button { tc.adjustGlobalTrackHeight(by: -1) } label: { Image(systemName: "minus") }
@@ -1748,9 +1756,8 @@ private struct SessionTimelineView: View {
                         .disabled(tc.globalTrackHeightLevel == 4)
                 }
 
-                Divider().frame(height: 14)
+                Divider().frame(height: 14).padding(.horizontal, 6)
 
-                // Pane options
                 let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || showMarkers || !showEmpty
                 Button { showFiltersPopover.toggle() } label: {
                     Image(systemName: filtersActive ? "ellipsis.circle.fill" : "ellipsis.circle")
@@ -1786,10 +1793,9 @@ private struct SessionTimelineView: View {
                     .frame(minWidth: 180)
                 }
 
-                // Reset Heights — inline only when non-default
-                if !tc.trackHeightLevels.isEmpty || tc.globalTrackHeightLevel != 0 {
-                    Divider().frame(height: 14)
-                    Button { tc.resetTrackHeights() } label: { Text("Reset Heights") }
+                if !tc.trackHeightLevels.isEmpty || tc.globalTrackHeightLevel != 2 {
+                    Divider().frame(height: 14).padding(.horizontal, 6)
+                    Button { tc.resetTrackHeights() } label: { Text("Reset") }
                         .buttonStyle(.borderless)
                 }
             }
@@ -1798,26 +1804,7 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 8)
             .frame(height: 24)
 
-            // ── HOVER / SELECT clip rows (aligned columns) ───────────────────
-            clipInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
-                        label: "HOVER", sr: sr, total: total, isSelected: false,
-                        resolvedURL: resolvedFiles.first(where: { $0.name == hoverClip?.sourceFile })?.url,
-                        cursorAbsFrac: hoverClip == nil ? hoverAbsFrac : nil,
-                        cursorLane:    hoverClip == nil ? hoverLane    : nil)
-                .onTapGesture {
-                    // Clicking the hover row (when showing cursor position) opens TC entry
-                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
-                    showTCEntry = true
-                }
-                .popover(isPresented: $showTCEntry, arrowEdge: .bottom) {
-                    TCEntryPopover(text: $tcEntryText) { text in
-                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
-                                                              totalSamples: total, sampleRate: sr) {
-                            tc.jumpTo(frac)
-                        }
-                        showTCEntry = false
-                    }
-                }
+            // ── SELECT clip row ───────────────────────────────────────────────
             clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
                         label: "SELECT", sr: sr, total: total, isSelected: true,
                         resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
@@ -2315,6 +2302,77 @@ private struct SessionTimelineView: View {
                 await MainActor.run { bwfMetadata = m }
             }
         }
+    }
+
+    /// Compact hover row — shows track/clip name only, no in/out/length.
+    /// Used in the merged hover+toolbar row to save vertical space.
+    private func hoverInfoRow(clip: PTXClip?, trackIdx: Int?,
+                              sr: Double, total: Double,
+                              resolvedURL: URL? = nil,
+                              cursorAbsFrac: Double? = nil,
+                              cursorLane: Int? = nil) -> some View {
+        let color = trackIdx.map { t in
+            t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
+        } ?? Color.secondary
+
+        return HStack(spacing: 0) {
+            Text("HOVER")
+                .font(.system(size: 9).weight(.bold))
+                .foregroundStyle(Color.secondary)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(nsColor: .separatorColor).opacity(0.5)))
+                .frame(width: 52, alignment: .leading)
+
+            if let clip, let tIdx = trackIdx {
+                let trackName = tIdx < tracks.count ? tracks[tIdx].name : ""
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(color.opacity(0.5))
+                    .frame(width: 3, height: 14)
+                    .padding(.trailing, 6)
+                if !trackName.isEmpty {
+                    Text(trackName)
+                        .foregroundStyle(color.opacity(0.75))
+                        .lineLimit(1)
+                        .frame(width: 90, alignment: .leading)
+                    Spacer().frame(width: 4)
+                }
+                Text(clip.name)
+                    .foregroundStyle(Color(nsColor: .secondaryLabelColor))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } else if let absFrac = cursorAbsFrac {
+                let laneIdx = cursorLane
+                if let idx = laneIdx, idx < tracks.count {
+                    let track  = tracks[idx]
+                    let tcolor = trackColor(track, index: idx)
+                    let fmt: String = track.type == .video
+                        ? (tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)")
+                        : track.channelFormat
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(tcolor.opacity(0.5))
+                        .frame(width: 3, height: 14)
+                        .padding(.trailing, 6)
+                    Text(track.name).foregroundStyle(tcolor.opacity(0.75)).lineLimit(1)
+                        .frame(width: 90, alignment: .leading)
+                    Spacer().frame(width: 4)
+                    Text("[\(fmt)]").foregroundStyle(.secondary).lineLimit(1)
+                } else {
+                    Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
+                }
+                Spacer(minLength: 8)
+                Group {
+                    Text("pos ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                    + Text(formatTC(absFrac * total / sr, fps: frameRate))
+                        .foregroundColor(Color(nsColor: .secondaryLabelColor))
+                }
+            } else {
+                Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
+            }
+        }
+        .font(.system(size: 11).monospacedDigit())
+        .padding(.leading, 12)
     }
 
     private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
