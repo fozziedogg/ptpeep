@@ -70,10 +70,15 @@ actor PTSLSessionInfo {
     func spotRegion(_ region: PlayRegion) async throws {
 #if PTSL_ENABLED
         do { _ = try await registerConnection() } catch { throw error }
+        // Fetch the PT edit cursor once; all clips are offset relative to it.
+        // Falls back to the region's own start if PT is unreachable.
+        let playhead = (try? await fetchPlayheadSamples()) ?? region.startSample
         for segment in region.segments {
             for (clip, url) in segment.clips {
                 do {
-                    try await spotClipAtOriginalPosition(clip: clip, sourceURL: url)
+                    try await spotClipAtOriginalPosition(clip: clip, sourceURL: url,
+                                                         regionStart: region.startSample,
+                                                         playhead: playhead)
                 } catch {
                     AppLog.shared.log("[Spot] Skipping clip \(clip.name): \(error)")
                 }
@@ -287,31 +292,46 @@ actor PTSLSessionInfo {
         AppLog.shared.log("[Spot] SpotClipsByID: \(resp)")
     }
 
-    /// Spots a single clip at its original `startSample` position with full handles.
-    private func spotClipAtOriginalPosition(clip: PTXClip, sourceURL: URL) async throws {
-        // Read actual file length so post-roll handle is fully accessible in PT.
-        // Falls back to the clip's out-point if the file can't be opened.
+    /// Spots a single clip relative to the PT playhead, with full source-file handles.
+    ///
+    /// Target timeline position = playhead + (clip.startSample - regionStart).
+    /// This preserves the relative spacing of all clips in the region while
+    /// placing the region's start point at the PT edit cursor.
+    ///
+    /// Handles: srcStart=0/srcEnd=fileLength exposes the full source file.
+    /// timelineStart/End span that same range so PT uses them as the initial
+    /// clip edges — the user can trim back into pre-/post-roll without limit.
+    private func spotClipAtOriginalPosition(clip: PTXClip, sourceURL: URL,
+                                             regionStart: Int64, playhead: Int64) async throws {
+        // Actual file length — needed for post-roll handle extent.
         let fileLength: Int64 = (try? AVAudioFile(forReading: sourceURL))
             .map { Int64($0.length) } ?? (clip.sourceOffset + clip.lengthSamples)
 
-        AppLog.shared.log("[Spot] Region clip \(clip.name) srcOffset=\(clip.sourceOffset) fileLen=\(fileLength) start=\(clip.startSample)")
+        // Where the clip's in-point (syncPoint) lands on the PT timeline.
+        let targetSample = playhead + (clip.startSample - regionStart)
+
+        AppLog.shared.log("[Spot] \(clip.name) srcOffset=\(clip.sourceOffset) fileLen=\(fileLength) target=\(targetSample)")
 
         if isPTSL2025_06orLater {
             let fileId = try await importAudioToClipList(path: sourceURL.path)
+
+            // Compute where file-sample-0 lands so timelineStart/End span the full file.
+            // PT uses timelineStart/End as the initial clip edges (what's visible/trimmable).
+            let fileOriginOnTimeline = targetSample - clip.sourceOffset
             let clipId = try await createAudioClip(
                 fileId:        fileId,
-                srcStart:      0,                    // full file — pre-roll handle accessible
-                srcEnd:        fileLength,            // full file — post-roll handle accessible
-                syncPoint:     clip.sourceOffset,    // in-point within the source file
-                timelineStart: clip.startSample,
-                timelineEnd:   clip.startSample + clip.lengthSamples
+                srcStart:      0,                          // expose full pre-roll
+                srcEnd:        fileLength,                  // expose full post-roll
+                syncPoint:     clip.sourceOffset,           // in-point within source file
+                timelineStart: max(0, fileOriginOnTimeline),
+                timelineEnd:   max(0, fileOriginOnTimeline) + fileLength
             )
-            // SLType_SyncPoint: places syncPoint (sourceOffset in file) at clip.startSample on timeline
-            try await spotClipByID(clipId: clipId, atSample: clip.startSample)
+            // SLType_SyncPoint places syncPoint at targetSample on the PT timeline.
+            try await spotClipByID(clipId: clipId, atSample: targetSample)
         } else {
-            // Legacy cmd 2: imports whole file, places file-sample-0 at spotAt,
-            // so sourceOffset lands at startSample. Handles are accessible by trimming in PT.
-            let spotAt = max(0, clip.startSample - clip.sourceOffset)
+            // Legacy cmd 2: file-sample-0 is placed at spotAt, so sourceOffset lands
+            // at spotAt+sourceOffset = targetSample. Full file is imported → handles available.
+            let spotAt = max(0, targetSample - clip.sourceOffset)
             try await importLegacy(path: sourceURL.path, spotSamples: spotAt)
         }
     }
