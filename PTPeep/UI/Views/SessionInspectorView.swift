@@ -1555,7 +1555,7 @@ private struct SessionTimelineView: View {
         var current = bwfSelectedFields
         if let idx = current.firstIndex(of: key) {
             current.remove(at: idx)
-        } else if current.count < 5 {
+        } else {
             current.append(key)
         }
         bwfFieldsRaw = current.map(\.rawValue).joined(separator: ",")
@@ -2308,19 +2308,19 @@ private struct SessionTimelineView: View {
                         + Text(inTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
-                    if isSelected { clipCopyButton(inTC) }
+                    if isSelected { clipCopyButton(inTC.replacing(":", with: "")) }
                     Group {
                         Text("  out ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(outTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: isSelected ? 108 : 118, alignment: .trailing)
-                    if isSelected { clipCopyButton(outTC) }
+                    if isSelected { clipCopyButton(outTC.replacing(":", with: "")) }
                     Group {
                         Text("  len ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(durTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
-                    if isSelected { clipCopyButton(durTC) }
+                    if isSelected { clipCopyButton(durTC.replacing(":", with: "")) }
                 }
 
             } else {
@@ -2716,7 +2716,7 @@ private struct BWFSettingsPopover: View {
         var current = selected
         if let idx = current.firstIndex(of: key) {
             current.remove(at: idx)
-        } else if current.count < 5 {
+        } else {
             current.append(key)
         }
         selectedRaw = current.map(\.rawValue).joined(separator: ",")
@@ -2728,9 +2728,6 @@ private struct BWFSettingsPopover: View {
                 Text("BWF Fields")
                     .font(.system(size: 11).weight(.semibold))
                 Spacer()
-                Text("\(selected.count)/5")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 12)
             .padding(.top, 10)
@@ -2741,18 +2738,17 @@ private struct BWFSettingsPopover: View {
             ScrollView {
                 VStack(spacing: 0) {
                     ForEach(BWFFieldKey.allCases) { key in
-                        let isOn      = selected.contains(key)
-                        let atMax     = selected.count >= 5 && !isOn
+                        let isOn = selected.contains(key)
                         Button {
-                            if !atMax { toggle(key) }
+                            toggle(key)
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(isOn ? Color.accentColor : Color.secondary.opacity(atMax ? 0.4 : 0.7))
+                                    .foregroundStyle(isOn ? Color.accentColor : Color.secondary.opacity(0.7))
                                     .font(.system(size: 12))
                                 Text(key.label)
                                     .font(.system(size: 11))
-                                    .foregroundStyle(atMax ? Color.secondary.opacity(0.4) : Color(nsColor: .labelColor))
+                                    .foregroundStyle(Color(nsColor: .labelColor))
                                 Spacer()
                             }
                             .padding(.horizontal, 12)

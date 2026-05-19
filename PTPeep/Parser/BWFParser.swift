@@ -9,6 +9,7 @@ enum BWFFieldKey: String, CaseIterable, Identifiable {
     case ixmlTape       = "ixml.tape"
     case ixmlNote       = "ixml.note"
     case ixmlCircled    = "ixml.circled"
+    case ixmlTrackNames = "ixml.trackNames"
     // bext chunk
     case bextDescription   = "bext.description"
     case bextOriginator    = "bext.originator"
@@ -29,11 +30,12 @@ enum BWFFieldKey: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .ixmlScene:         return "Scene"
-        case .ixmlTake:          return "Take"
-        case .ixmlTape:          return "Roll"
-        case .ixmlNote:          return "Note"
-        case .ixmlCircled:       return "Circled"
+        case .ixmlScene:      return "Scene"
+        case .ixmlTake:       return "Take"
+        case .ixmlTape:       return "Roll"
+        case .ixmlNote:       return "Note"
+        case .ixmlCircled:    return "Circled"
+        case .ixmlTrackNames: return "Channel Names"
         case .bextDescription:   return "Description"
         case .bextOriginator:    return "Originator"
         case .bextOriginatorRef: return "Originator Ref"
@@ -52,7 +54,7 @@ enum BWFFieldKey: String, CaseIterable, Identifiable {
     }
 
     static let defaults: [BWFFieldKey] = [
-        .ixmlScene, .ixmlTake, .bextTimeReference, .bextDescription, .bextOriginator
+        .ixmlScene, .ixmlTake, .ixmlTrackNames, .bextTimeReference, .bextDescription
     ]
 }
 
@@ -65,6 +67,7 @@ struct BWFMetadata {
     var tape:          String?
     var note:          String?
     var circled:       String?
+    var trackNames:    [(channel: Int, name: String)] = []  // from TRACK_LIST
     // bext
     var description:   String?
     var originator:    String?
@@ -84,11 +87,14 @@ struct BWFMetadata {
     /// Return a display string for the given field. Pass `sampleRate` for TC formatting.
     func displayValue(for key: BWFFieldKey, sampleRate: Double, frameRate: Double) -> String? {
         switch key {
-        case .ixmlScene:         return scene
-        case .ixmlTake:          return take
-        case .ixmlTape:          return tape
-        case .ixmlNote:          return note
-        case .ixmlCircled:       return circled
+        case .ixmlScene:      return scene
+        case .ixmlTake:       return take
+        case .ixmlTape:       return tape
+        case .ixmlNote:       return note
+        case .ixmlCircled:    return circled
+        case .ixmlTrackNames:
+            guard !trackNames.isEmpty else { return nil }
+            return trackNames.map { "Ch\($0.channel): \($0.name)" }.joined(separator: "  ")
         case .bextDescription:   return description
         case .bextOriginator:    return originator
         case .bextOriginatorRef: return originatorRef
@@ -246,19 +252,33 @@ enum BWFParser {
                      ?? String(data: data[start..<end], encoding: .isoLatin1)
         else { return }
 
-        func tag(_ name: String) -> String? {
-            guard let r1 = xml.range(of: "<\(name)>"),
-                  let r2 = xml.range(of: "</\(name)>", range: r1.upperBound..<xml.endIndex)
-            else { return nil }
-            let v = String(xml[r1.upperBound..<r2.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-            return v.isEmpty ? nil : v
-        }
+        meta.scene   = tag(in: xml, "SCENE")
+        meta.take    = tag(in: xml, "TAKE")
+        meta.tape    = tag(in: xml, "TAPE")
+        meta.note    = tag(in: xml, "NOTE")
+        meta.circled = tag(in: xml, "CIRCLED")
 
-        meta.scene   = tag("SCENE")
-        meta.take    = tag("TAKE")
-        meta.tape    = tag("TAPE")
-        meta.note    = tag("NOTE")
-        meta.circled = tag("CIRCLED")
+        // Parse TRACK_LIST — each <TRACK> has <CHANNEL_INDEX> and <NAME>
+        var searchFrom = xml.startIndex
+        while let t1 = xml.range(of: "<TRACK>", range: searchFrom..<xml.endIndex),
+              let t2 = xml.range(of: "</TRACK>", range: t1.upperBound..<xml.endIndex) {
+            let trackXML = String(xml[t1.upperBound..<t2.lowerBound])
+            if let name = tag(in: trackXML, "NAME"),
+               let chStr = tag(in: trackXML, "CHANNEL_INDEX"),
+               let ch = Int(chStr) {
+                meta.trackNames.append((channel: ch, name: name))
+            }
+            searchFrom = t2.upperBound
+        }
+        meta.trackNames.sort { $0.channel < $1.channel }
+    }
+
+    private static func tag(in xml: String, _ name: String) -> String? {
+        guard let r1 = xml.range(of: "<\(name)>"),
+              let r2 = xml.range(of: "</\(name)>", range: r1.upperBound..<xml.endIndex)
+        else { return nil }
+        let v = String(xml[r1.upperBound..<r2.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return v.isEmpty ? nil : v
     }
 }
 
