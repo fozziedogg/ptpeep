@@ -1805,8 +1805,12 @@ private struct SessionTimelineView: View {
                    let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
                     Button {
                         Task {
-                            try? await PTSLSessionInfo.shared.spotClip(
-                                clip: clip, sourceURL: url)
+                            do {
+                                try await PTSLSessionInfo.shared.spotClip(
+                                    clip: clip, sourceURL: url)
+                            } catch {
+                                AppLog.shared.log("[Spot] Error: \(error)")
+                            }
                         }
                     } label: {
                         Label("Spot to PT", systemImage: "pin.fill")

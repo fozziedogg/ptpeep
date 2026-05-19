@@ -53,10 +53,8 @@ actor PTSLSessionInfo {
     /// Import `sourceURL` into the open PT session and place the clip at its original
     /// timeline position (defined by `clip.startSample` / `clip.sourceOffset`).
     ///
-    /// Uses the 3-step modern PTSL approach (PT 2025.06+, all unary RPCs):
-    ///   1. ImportAudioToClipList  (cmd 123) → file_id
-    ///   2. CreateAudioClips       (cmd 127) → clip_id (src in/out + timeline position)
-    ///   3. SpotClipsByID          (cmd 124) → places the clip at startSample
+    /// PT 2025.06+: 3-step modern PTSL (cmds 123 → 127 → 124), sub-clip aware.
+    /// PT 2024 and earlier: command 2 streaming Import with ML_Spot (creates a new track).
     func spotClip(clip: PTXClip, sourceURL: URL) async throws {
 #if PTSL_ENABLED
         AppLog.shared.log("[Spot] Starting — \(sourceURL.lastPathComponent)")
@@ -69,20 +67,27 @@ actor PTSLSessionInfo {
             throw error
         }
 
-        let fileId = try await importAudioToClipList(path: sourceURL.path)
-        AppLog.shared.log("[Spot] file_id: \(fileId)")
-
-        let clipId = try await createAudioClip(
-            fileId:        fileId,
-            srcStart:      clip.sourceOffset,
-            srcEnd:        clip.sourceOffset + clip.lengthSamples,
-            timelineStart: clip.startSample,
-            timelineEnd:   clip.startSample + clip.lengthSamples
-        )
-        AppLog.shared.log("[Spot] clip_id: \(clipId)")
-
-        try await spotClipByID(clipId: clipId, atSample: clip.startSample)
-        AppLog.shared.log("[Spot] Done")
+        do {
+            if isPTSL2025_06orLater {
+                let fileId = try await importAudioToClipList(path: sourceURL.path)
+                AppLog.shared.log("[Spot] file_id: \(fileId)")
+                let clipId = try await createAudioClip(
+                    fileId:        fileId,
+                    srcStart:      clip.sourceOffset,
+                    srcEnd:        clip.sourceOffset + clip.lengthSamples,
+                    timelineStart: clip.startSample,
+                    timelineEnd:   clip.startSample + clip.lengthSamples
+                )
+                AppLog.shared.log("[Spot] clip_id: \(clipId)")
+                try await spotClipByID(clipId: clipId, atSample: clip.startSample)
+            } else {
+                try await importLegacy(path: sourceURL.path, spotSamples: clip.startSample)
+            }
+            AppLog.shared.log("[Spot] Done")
+        } catch {
+            AppLog.shared.log("[Spot] Failed: \(error)")
+            throw error
+        }
 #else
         throw PTSLError.notConnected
 #endif
@@ -95,6 +100,10 @@ actor PTSLSessionInfo {
     private var ptslMajor:   Int = 5
     private var ptslMinor:   Int = 0
     private var _grpcClient: Ptsl_PTSLAsyncClient?
+
+    private var isPTSL2025_06orLater: Bool {
+        ptslMajor > 2025 || (ptslMajor == 2025 && ptslMinor >= 6)
+    }
 
     private func grpcClient() -> Ptsl_PTSLAsyncClient {
         if let c = _grpcClient { return c }
@@ -251,6 +260,33 @@ actor PTSLSessionInfo {
     }
 
     // MARK: - Spot helpers
+
+    /// Legacy spot for PT 2024 and earlier (cmd 2, streaming).
+    /// Places the clip on a NEW track at `spotSamples` from session start.
+    /// The user must move it to the target track manually in PT.
+    private func importLegacy(path: String, spotSamples: Int64) async throws {
+        let escaped = path
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let body = """
+        {
+            "import_type": "Audio",
+            "audio_data": {
+                "file_list": ["\(escaped)"],
+                "audio_operations": "ConvertAudio",
+                "audio_destination": "MD_NewTrack",
+                "audio_location": "ML_Spot",
+                "location_data": {
+                    "location_type": "Start",
+                    "location_value": "\(spotSamples)",
+                    "location_options": "Samples"
+                }
+            }
+        }
+        """
+        AppLog.shared.log("[Spot] Legacy import (cmd 2) spot=\(spotSamples)")
+        _ = try await sendRequest(commandId: 2, body: body, streaming: true)
+    }
 
     private func importAudioToClipList(path: String) async throws -> String {
         let escaped = path
