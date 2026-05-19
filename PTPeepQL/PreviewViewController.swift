@@ -28,9 +28,6 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             session.sessionName = url.deletingPathExtension().lastPathComponent
         }
 
-        // Augment via PTSL if Pro Tools is running with this session open
-        await PTSLSessionInfo.shared.augment(session: &session)
-
         // Load plugin index from cache (fast synchronous read — no binary scan)
         let pluginResult = PluginScanner.qlLoadIndex()
 

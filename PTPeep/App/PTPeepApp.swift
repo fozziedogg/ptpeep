@@ -387,16 +387,6 @@ final class AppState: ObservableObject {
         mainWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
-        // Augment with PTSL in background (no-op if PT not connected)
-        await PTSLSessionInfo.shared.augment(session: &parsed)
-        print("[AppState] _open() PTSL done")
-
-        guard !Task.isCancelled,
-              tabs.contains(where: { $0.id == tabID }) else {
-            print("[AppState] _open() discarding PTSL result (tab closed or superseded)")
-            return
-        }
-
         updateTab(id: tabID) { $0.session = parsed }
         print("[AppState] _open() complete ✓")
 

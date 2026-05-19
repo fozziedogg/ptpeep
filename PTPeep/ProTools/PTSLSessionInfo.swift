@@ -4,15 +4,13 @@ import GRPC
 import NIOPosix
 #endif
 
-// MARK: - PTSL session metadata fetch
+// MARK: - PTSL spot integration
 //
-// Augments the binary-parsed PTXSession with live data from Pro Tools via PTSL gRPC.
-// Requires Pro Tools 2022.12+ running with the target session open.
-// Falls back silently if PT is not connected.
+// Provides "Spot to PT" functionality only. Session data comes entirely from the
+// binary .ptx parse — PTSL is never used to read or augment session info.
 //
 // Transport: grpc-swift 1.x over NIO (h2c cleartext to localhost:31416).
-// URLSession cannot do HTTP/2 cleartext (h2c), causing -1005 errors with PT's gRPC
-// server. The QL extension target does not link grpc-swift; augment() is a no-op there.
+// The QL extension target does not link grpc-swift; spotClip() throws notConnected there.
 
 enum PTSLError: Error {
     case notConnected, noSession, badResponse
@@ -22,31 +20,6 @@ enum PTSLError: Error {
 actor PTSLSessionInfo {
 
     static let shared = PTSLSessionInfo()
-
-    // MARK: - Augment
-
-    /// Fills in sample rate, bit depth, TC format, session length, and track types.
-    /// Safe to call when PT is not running — returns without modifying `session`.
-    /// No-op in the Quick Look extension target (grpc-swift not linked there).
-    func augment(session: inout PTXSession) async {
-#if PTSL_ENABLED
-        guard let _ = try? await registerConnection() else { return }
-
-        async let sr  = fetchSampleRate()
-        async let bd  = fetchBitDepth()
-        async let tc  = fetchTCFormat()
-        async let len = fetchSessionLength()
-
-        session.sampleRate    = (try? await sr)  ?? ""
-        session.bitDepth      = (try? await bd)  ?? ""
-        session.tcFormat      = (try? await tc)  ?? ""
-        session.sessionLength = (try? await len) ?? ""
-
-        if let trackList = try? await fetchTrackList() {
-            mergeTrackTypes(trackList, into: &session)
-        }
-#endif
-    }
 
     // MARK: - Spot to Pro Tools
 
@@ -193,38 +166,6 @@ actor PTSLSessionInfo {
         ptslMinor = json["version_minor"] as? Int ?? 0
     }
 
-    // MARK: - Metadata fetches
-
-    private func fetchSampleRate() async throws -> String {
-        let resp = try await sendRequest(commandId: 35, body: "{}")
-        guard let json = parseJSON(resp),
-              let raw  = json["sample_rate"] as? String else { return "" }
-        return raw
-            .replacingOccurrences(of: "SRate_", with: "")
-            .replacingOccurrences(of: "SR_",    with: "")
-    }
-
-    private func fetchBitDepth() async throws -> String {
-        let resp = try await sendRequest(commandId: 36, body: "{}")
-        guard let json = parseJSON(resp),
-              let raw  = json["bit_depth"] as? String else { return "" }
-        return raw.replacingOccurrences(of: "Bit", with: "")
-    }
-
-    private func fetchTCFormat() async throws -> String {
-        let resp = try await sendRequest(commandId: 38, body: "{}")
-        guard let json = parseJSON(resp),
-              let raw  = json["current_setting"] as? String else { return "" }
-        return raw
-    }
-
-    private func fetchSessionLength() async throws -> String {
-        let resp = try await sendRequest(commandId: 45, body: "{}")
-        guard let json = parseJSON(resp),
-              let len  = json["session_length"] as? String else { return "" }
-        return len
-    }
-
     /// Returns the PT edit cursor position in samples (in_time from GetTimelineSelection, cmd 82).
     private func fetchPlayheadSamples() async throws -> Int64 {
         let body = isPTSL2025_06orLater
@@ -235,42 +176,6 @@ actor PTSLSessionInfo {
               let inStr   = json["in_time"] as? String,
               let samples = Int64(inStr) else { return 0 }
         return samples
-    }
-
-    private func fetchTrackList() async throws -> [[String: Any]] {
-        let body: String
-        if ptslMajor > 2023 || (ptslMajor == 2023 && ptslMinor >= 9) {
-            body = #"{"track_filter_list":[{"filter":"All","is_inverted":false}],"pagination_request":{"limit":500,"offset":0}}"#
-        } else {
-            body = #"{"track_filter_list":[{"filter":"All","is_inverted":false}]}"#
-        }
-        let resp = try await sendRequest(commandId: 3, body: body)
-        guard let json  = parseJSON(resp),
-              let list  = json["track_list"] as? [[String: Any]] else { return [] }
-        return list
-    }
-
-    private func mergeTrackTypes(_ ptslTracks: [[String: Any]], into session: inout PTXSession) {
-        let typeMap: [String: PTXTrackType] = [
-            "TT_Audio":       .audio,
-            "TT_Midi":        .midi,
-            "TT_Aux":         .aux,
-            "TT_MasterFader": .master,
-            "TT_VCA":         .vca,
-            "TT_Instrument":  .instrument,
-        ]
-        var nameToType: [String: PTXTrackType] = [:]
-        for t in ptslTracks {
-            if let name    = t["name"]    as? String,
-               let typeStr = t["type"]    as? String {
-                nameToType[name] = typeMap[typeStr] ?? .unknown
-            }
-        }
-        for i in session.tracks.indices {
-            if let t = nameToType[session.tracks[i].name] {
-                session.tracks[i].type = t
-            }
-        }
     }
 
     // MARK: - Spot helpers
