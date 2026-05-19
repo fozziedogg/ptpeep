@@ -1684,7 +1684,7 @@ private struct SessionTimelineView: View {
 
             // Safety cap: don't build a region that would require reading
             // hundreds of files or gigabytes of audio on the main thread.
-            let kMaxClips: Int    = 100
+            let kMaxClips: Int    = 25
             let kMaxSec:   Double = 120.0
             let durationSec = Double(endSamp - startSamp) / sr
             guard durationSec <= kMaxSec else { return nil }
@@ -1966,7 +1966,7 @@ private struct SessionTimelineView: View {
                     RegionWaveformView(region: region, segColors: segColors, audioPlayer: ap)
                 } else if tc.selEnd != nil {
                     // Selection exists but exceeds the cap — don't try to play or preview it
-                    Label("Selection too large to play (> 100 clips or > 2 min)",
+                    Label("Selection too large to play (> 25 clips or > 2 min)",
                           systemImage: "exclamationmark.triangle")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
