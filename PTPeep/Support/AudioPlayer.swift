@@ -90,9 +90,13 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     @Published var isPlaying: Bool = false
     @Published var playingClip: PTXClip? = nil
     @Published var playbackFraction: Double = 0   // 0…1 within the clip's duration
+    @Published var volume: Float = 1.0 {          // linear gain; 1.0 = unity, >1.0 = over-unity
+        didSet { gainNode.volume = volume }
+    }
 
     private let engine     = AVAudioEngine()
     private let playerNode = AVAudioPlayerNode()
+    private let gainNode   = AVAudioMixerNode()
     private var stopWorkItem: DispatchWorkItem?
     private var ticker:       Timer?
     private var clipDurSec:   Double = 1   // remaining scheduled duration (for stop timer)
@@ -101,7 +105,9 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
     init() {
         engine.attach(playerNode)
-        engine.connect(playerNode, to: engine.mainMixerNode, format: nil)
+        engine.attach(gainNode)
+        engine.connect(playerNode, to: gainNode, format: nil)
+        engine.connect(gainNode, to: engine.mainMixerNode, format: nil)
     }
 
     // MARK: Device routing

@@ -1894,29 +1894,36 @@ private struct SessionTimelineView: View {
             let waveColor: Color = selectedClipTrackIdx.map { t in
                 t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
             } ?? Color.accentColor
-            ZStack {
-                // Faint placeholder track so the area is visually defined even when empty
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.primary.opacity(0.04))
-                if let clip = selectedClip, !clip.isGroup,
-                   let url = resolvedWaveURL, let ap = audioPlayer {
-                    ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
-                                     sampleRate: sr, color: waveColor, audioPlayer: ap)
-                } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
-                          resolvedWaveURL == nil {
-                    // Clip is selected but source file is not on disk
-                    Label("Audio file offline", systemImage: "exclamationmark.triangle")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.orange.opacity(0.7))
-                } else {
-                    // Hairline centre rule — gives the empty zone a hint of purpose
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.12))
-                        .frame(height: 1)
+            HStack(spacing: 4) {
+                ZStack {
+                    // Faint placeholder track so the area is visually defined even when empty
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.primary.opacity(0.04))
+                    if let clip = selectedClip, !clip.isGroup,
+                       let url = resolvedWaveURL, let ap = audioPlayer {
+                        ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
+                                         sampleRate: sr, color: waveColor, audioPlayer: ap)
+                    } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
+                              resolvedWaveURL == nil {
+                        // Clip is selected but source file is not on disk
+                        Label("Audio file offline", systemImage: "exclamationmark.triangle")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.orange.opacity(0.7))
+                    } else {
+                        // Hairline centre rule — gives the empty zone a hint of purpose
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.12))
+                            .frame(height: 1)
+                    }
+                }
+                .frame(height: 56)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                if let ap = audioPlayer {
+                    VolumeFaderView(volume: Binding(get: { ap.volume }, set: { ap.volume = $0 }))
+                        .frame(width: 20, height: 56)
                 }
             }
-            .frame(height: 56)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
             .padding(.horizontal, 16)
             .padding(.vertical, 4)
 
@@ -2308,19 +2315,19 @@ private struct SessionTimelineView: View {
                         + Text(inTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
-                    if isSelected { clipCopyButton(inTC.replacing(":", with: "")) }
+                    if isSelected { clipCopyButton(tcForPT(inTC)) }
                     Group {
                         Text("  out ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(outTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: isSelected ? 108 : 118, alignment: .trailing)
-                    if isSelected { clipCopyButton(outTC.replacing(":", with: "")) }
+                    if isSelected { clipCopyButton(tcForPT(outTC)) }
                     Group {
                         Text("  len ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(durTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
-                    if isSelected { clipCopyButton(durTC.replacing(":", with: "")) }
+                    if isSelected { clipCopyButton(tcForPT(durTC)) }
                 }
 
             } else {
@@ -2334,6 +2341,12 @@ private struct SessionTimelineView: View {
         .background(isSelected && clip != nil
                     ? color.opacity(0.07)
                     : Color(nsColor: .separatorColor).opacity(0.05))
+    }
+
+    /// Strip colons and zero-pad to 8 digits so PT can accept a direct paste into any TC field.
+    private func tcForPT(_ tc: String) -> String {
+        let digits = tc.replacingOccurrences(of: ":", with: "")
+        return digits.count < 8 ? String(repeating: "0", count: 8 - digits.count) + digits : digits
     }
 
     private func clipCopyButton(_ value: String) -> some View {
@@ -2763,6 +2776,88 @@ private struct BWFSettingsPopover: View {
         }
         .frame(width: 200)
         .padding(.bottom, 8)
+    }
+}
+
+// MARK: - Volume Fader
+
+private struct VolumeFaderView: View {
+    @Binding var volume: Float
+
+    private let minDB: Double = -60
+    private let maxDB: Double = +12
+
+    private var dB: Double {
+        volume > 0 ? 20 * log10(Double(volume)) : minDB
+    }
+    private func posFromDB(_ db: Double) -> Double {
+        (db.clamped(to: minDB...maxDB) - minDB) / (maxDB - minDB)
+    }
+    private var faderPos: Double { posFromDB(dB) }
+    private var unityPos: Double { posFromDB(0) }  // ≈ 0.833
+
+    @State private var dragOriginPos: Double? = nil
+
+    var body: some View {
+        GeometryReader { geo in
+            let h = geo.size.height
+            let knobH: CGFloat = 5
+            let trackH = h - knobH
+
+            ZStack(alignment: .bottom) {
+                // Track
+                Capsule()
+                    .fill(Color(nsColor: .separatorColor).opacity(0.5))
+                    .frame(width: 2)
+                    .frame(maxWidth: .infinity)
+
+                // Over-unity zone (unity → top)
+                Capsule()
+                    .fill(Color.orange.opacity(0.25))
+                    .frame(width: 2,
+                           height: CGFloat((1 - unityPos)) * trackH)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .offset(y: -CGFloat(unityPos) * trackH - knobH / 2)
+
+                // Fill bar (bottom → knob)
+                Capsule()
+                    .fill(Color.accentColor.opacity(0.45))
+                    .frame(width: 2,
+                           height: max(0, CGFloat(faderPos) * trackH))
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                // Unity tick
+                Rectangle()
+                    .fill(dB > -0.1 ? Color.orange.opacity(0.8) : Color.accentColor.opacity(0.6))
+                    .frame(width: 10, height: 1)
+                    .frame(maxWidth: .infinity)
+                    .offset(y: -CGFloat(unityPos) * trackH - knobH / 2)
+
+                // Knob
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color(nsColor: .controlColor))
+                    .overlay(RoundedRectangle(cornerRadius: 2)
+                        .strokeBorder(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5))
+                    .frame(width: 16, height: knobH)
+                    .offset(y: -CGFloat(faderPos) * trackH)
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { val in
+                        if dragOriginPos == nil { dragOriginPos = faderPos }
+                        let delta = Double(-val.translation.height / trackH)
+                        let newPos = ((dragOriginPos ?? faderPos) + delta).clamped(to: 0...1)
+                        let newDB = minDB + newPos * (maxDB - minDB)
+                        volume = newDB <= minDB ? 0 : Float(pow(10, newDB / 20))
+                    }
+                    .onEnded { _ in dragOriginPos = nil }
+            )
+            .onTapGesture(count: 2) {
+                volume = 1.0  // double-click resets to unity
+            }
+        }
+        .help(String(format: "%.1f dB — double-click to reset", dB))
     }
 }
 
