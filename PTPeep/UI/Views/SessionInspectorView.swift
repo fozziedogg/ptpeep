@@ -19,6 +19,7 @@ enum ColorMode: String {
 struct SessionInspectorView: View {
     let session: PTXSession
     let sessionURL: URL
+    var isResolvingFiles: Bool = false
     var onOpenInProTools: (() -> Void)? = nil
     var onRescan:        (() -> Void)? = nil
     var onClose:         (() -> Void)? = nil
@@ -97,12 +98,18 @@ struct SessionInspectorView: View {
                     // ── Audio Files ───────────────────────────────────────────────
                     Section {
                         VStack(alignment: .leading, spacing: 0) {
-                            if audioSectionExpanded { audioFilesContent }
+                            if audioSectionExpanded {
+                                LazyVStack(alignment: .leading, spacing: 0) {
+                                    audioFilesContent
+                                }
+                            }
                             Divider().padding(.horizontal, 16)
                         }
                     } header: {
                         SectionHeader(title: "Audio Files", systemImage: "waveform",
-                                      count: session.audioFileNames.count, isExpanded: $audioSectionExpanded)
+                                      count: session.audioFileNames.count,
+                                      isLoading: isResolvingFiles,
+                                      isExpanded: $audioSectionExpanded)
                             .background(Color(nsColor: .windowBackgroundColor))
                     }
                     // ── Plug-Ins ──────────────────────────────────────────────────
@@ -263,7 +270,7 @@ struct SessionInspectorView: View {
                     // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                     let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                    + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                    // overhead = toolbar(24) + hover row(24) + sel row(24) + transport(22) + waveform(64) + ruler(30) + padding(4)
+                    // overhead = toolbar(24) + hover row(24) + sel row(24) + transport(22) + ruler(30) + waveform(64) + padding(4)
                     let overhead: CGFloat = 192
                     // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                     let effectiveH: CGFloat = {
@@ -819,6 +826,7 @@ private struct SectionHeader: View {
     let title: String
     let systemImage: String
     var count: Int? = nil
+    var isLoading: Bool = false
     @Binding var isExpanded: Bool
 
     var body: some View {
@@ -830,7 +838,11 @@ private struct SectionHeader: View {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
-                if let n = count {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .scaleEffect(0.7)
+                } else if let n = count {
                     Text("(\(n))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -1881,63 +1893,6 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 12)
             .frame(height: 22)
 
-            // ── Clip waveform — always present to keep lane canvas height stable ─
-            let resolvedWaveURL: URL? = {
-                guard let clip = selectedClip, !clip.isGroup else { return nil }
-                return resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
-            }()
-            // Split-stereo companion: Pro Tools stores stereo as separate .L/.R mono files.
-            // If the primary sourceFile ends with ".L" or ".R", look up the other half.
-            let resolvedWaveURLR: URL? = {
-                guard let clip = selectedClip, !clip.isGroup else { return nil }
-                let src = clip.sourceFile
-                let companionName: String
-                if src.hasSuffix(".L")      { companionName = src.dropLast(2) + ".R" }
-                else if src.hasSuffix(".R") { companionName = src.dropLast(2) + ".L" }
-                else { return nil }
-                return resolvedFiles.first(where: { $0.name == companionName })?.url
-            }()
-            let waveColor: Color = selectedClipTrackIdx.map { t in
-                t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
-            } ?? Color.accentColor
-            ZStack {
-                // Faint placeholder track so the area is visually defined even when empty
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.primary.opacity(0.04))
-                if let clip = selectedClip, !clip.isGroup,
-                   let url = resolvedWaveURL, let ap = audioPlayer {
-                    ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
-                                     sampleRate: sr, color: waveColor, audioPlayer: ap)
-                } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
-                          resolvedWaveURL == nil {
-                    // Clip is selected but source file is not on disk
-                    Label("Audio file offline", systemImage: "exclamationmark.triangle")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.orange.opacity(0.7))
-                } else {
-                    // Hairline centre rule — gives the empty zone a hint of purpose
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.12))
-                        .frame(height: 1)
-                }
-            }
-            .frame(height: 56)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 4)
-
-            // ── BWF metadata panel ────────────────────────────────────────────
-            if bwfPanelVisible {
-                BWFMetadataPanel(
-                    metadata:       bwfMetadata,
-                    selectedFields: bwfSelectedFields,
-                    sampleRate:     sr,
-                    frameRate:      frameRate
-                )
-                .padding(.horizontal, 16)
-                .padding(.bottom, 4)
-            }
-
             // ── Ruler (adaptive tick spacing) ─────────────────────────────────
             Canvas { ctx, size in
                 let vStart      = tc.viewStart
@@ -2029,6 +1984,63 @@ private struct SessionTimelineView: View {
                         )
                 }
             )
+
+            // ── Clip waveform — always present to keep lane canvas height stable ─
+            let resolvedWaveURL: URL? = {
+                guard let clip = selectedClip, !clip.isGroup else { return nil }
+                return resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+            }()
+            // Split-stereo companion: Pro Tools stores stereo as separate .L/.R mono files.
+            // If the primary sourceFile ends with ".L" or ".R", look up the other half.
+            let resolvedWaveURLR: URL? = {
+                guard let clip = selectedClip, !clip.isGroup else { return nil }
+                let src = clip.sourceFile
+                let companionName: String
+                if src.hasSuffix(".L")      { companionName = src.dropLast(2) + ".R" }
+                else if src.hasSuffix(".R") { companionName = src.dropLast(2) + ".L" }
+                else { return nil }
+                return resolvedFiles.first(where: { $0.name == companionName })?.url
+            }()
+            let waveColor: Color = selectedClipTrackIdx.map { t in
+                t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
+            } ?? Color.accentColor
+            ZStack {
+                // Faint placeholder track so the area is visually defined even when empty
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.primary.opacity(0.04))
+                if let clip = selectedClip, !clip.isGroup,
+                   let url = resolvedWaveURL, let ap = audioPlayer {
+                    ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
+                                     sampleRate: sr, color: waveColor, audioPlayer: ap)
+                } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
+                          resolvedWaveURL == nil {
+                    // Clip is selected but source file is not on disk
+                    Label("Audio file offline", systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange.opacity(0.7))
+                } else {
+                    // Hairline centre rule — gives the empty zone a hint of purpose
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.12))
+                        .frame(height: 1)
+                }
+            }
+            .frame(height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
+
+            // ── BWF metadata panel ────────────────────────────────────────────
+            if bwfPanelVisible {
+                BWFMetadataPanel(
+                    metadata:       bwfMetadata,
+                    selectedFields: bwfSelectedFields,
+                    sampleRate:     sr,
+                    frameRate:      frameRate
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+            }
 
             // ── Scrollable lane area ──────────────────────────────────────────
             ScrollView(.vertical, showsIndicators: false) {
@@ -2852,7 +2864,7 @@ private struct VolumeFaderView: View {
                     }
                     .onEnded { _ in dragOriginPos = nil }
             )
-            .onTapGesture(count: 2) { volume = 1.0 }
+            .simultaneousGesture(TapGesture(count: 2).onEnded { volume = 1.0 })
         }
         .help(String(format: "%.1f dB  —  double-click to reset", dB))
     }
