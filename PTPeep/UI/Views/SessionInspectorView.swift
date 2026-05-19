@@ -19,6 +19,7 @@ enum ColorMode: String {
 struct SessionInspectorView: View {
     let session: PTXSession
     let sessionURL: URL
+    var isResolvingFiles: Bool = false
     var onOpenInProTools: (() -> Void)? = nil
     var onRescan:        (() -> Void)? = nil
     var onClose:         (() -> Void)? = nil
@@ -97,12 +98,18 @@ struct SessionInspectorView: View {
                     // ── Audio Files ───────────────────────────────────────────────
                     Section {
                         VStack(alignment: .leading, spacing: 0) {
-                            if audioSectionExpanded { audioFilesContent }
+                            if audioSectionExpanded {
+                                LazyVStack(alignment: .leading, spacing: 0) {
+                                    audioFilesContent
+                                }
+                            }
                             Divider().padding(.horizontal, 16)
                         }
                     } header: {
                         SectionHeader(title: "Audio Files", systemImage: "waveform",
-                                      count: session.audioFileNames.count, isExpanded: $audioSectionExpanded)
+                                      count: session.audioFileNames.count,
+                                      isLoading: isResolvingFiles,
+                                      isExpanded: $audioSectionExpanded)
                             .background(Color(nsColor: .windowBackgroundColor))
                     }
                     // ── Plug-Ins ──────────────────────────────────────────────────
@@ -274,12 +281,11 @@ struct SessionInspectorView: View {
                         }
                         return overviewHeight
                     }()
-                    // Use session length from PTSL when available; fall back to last clip end.
-                    // This ensures the timeline extends to the full session end, not just the last clip.
+                    // Extend one hour past the last clip. Do NOT use PTSL session length —
+                    // PT may have a different session open than the file we're inspecting.
                     let clipMax = clippedTracks.flatMap(\.clips)
                         .map { $0.startSample + $0.lengthSamples }.max() ?? 0
-                    let sessionMax = session.sessionLengthSamples.map { Int64($0) } ?? 0
-                    let visibleMax = Double(max(max(clipMax, sessionMax), 1)) + sr * 3600
+                    let visibleMax = Double(max(clipMax, 1)) + sr * 3600
                     SessionTimelineView(tc: tc,
                                         tracks: clippedTracks,
                                         allTracksSamples: visibleMax,
@@ -820,6 +826,7 @@ private struct SectionHeader: View {
     let title: String
     let systemImage: String
     var count: Int? = nil
+    var isLoading: Bool = false
     @Binding var isExpanded: Bool
 
     var body: some View {
@@ -831,7 +838,11 @@ private struct SectionHeader: View {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
-                if let n = count {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .scaleEffect(0.7)
+                } else if let n = count {
                     Text("(\(n))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -1543,6 +1554,25 @@ private struct SessionTimelineView: View {
     @State private var showFiltersPopover: Bool  = false
     @AppStorage("ov.autoplay") private var autoplay: Bool = false
 
+    // BWF metadata panel
+    @AppStorage("bwf.panelVisible")     private var bwfPanelVisible: Bool   = false
+    @AppStorage("bwf.selectedFields")   private var bwfFieldsRaw:    String = BWFFieldKey.defaults.map(\.rawValue).joined(separator: ",")
+    @State private var bwfMetadata:     BWFMetadata? = nil
+    @State private var showBWFSettings: Bool         = false
+
+    private var bwfSelectedFields: [BWFFieldKey] {
+        bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
+    }
+    private func bwfToggleField(_ key: BWFFieldKey) {
+        var current = bwfSelectedFields
+        if let idx = current.firstIndex(of: key) {
+            current.remove(at: idx)
+        } else {
+            current.append(key)
+        }
+        bwfFieldsRaw = current.map(\.rawValue).joined(separator: ",")
+    }
+
     private static let audioLaneH: CGFloat = 8
     private static let videoLaneH: CGFloat = 16
     private static let laneGap:    CGFloat = 2
@@ -1610,64 +1640,8 @@ private struct SessionTimelineView: View {
         let selectedClipTrackIdx: Int? = selectedClip != nil ? tc.selTrack : nil
 
         VStack(spacing: 0) {
-            // ── Toolbar: position | track + hover clip | zoom | filters ──────
+            // ── Toolbar: zoom | filters ─────────────────────────────────────
             HStack(spacing: 8) {
-                // TC position / entry button — hover takes priority over cursor
-                Button {
-                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
-                    showTCEntry = true
-                } label: {
-                    Group {
-                        if let absFrac = hoverAbsFrac {
-                            Text(formatTC(absFrac * total / sr, fps: frameRate))
-                                .foregroundStyle(.secondary)
-                        } else if let s = tc.selStart {
-                            if let e = tc.selEnd {
-                                let lo  = min(s, e)
-                                let dur = abs(e - s) * total / sr
-                                Text("\(formatTC(lo * total / sr, fps: frameRate))  +\(formatTC(dur, fps: frameRate))")
-                                    .foregroundStyle(.primary)
-                            } else {
-                                let samp = Int64((s * total).rounded())
-                                Text("\(formatTC(s * total / sr, fps: frameRate))  (\(samp))")
-                                    .foregroundStyle(.primary)
-                            }
-                        } else {
-                            Text("──:──:──:──")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .frame(width: 160, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .help("Click or press numpad * to go to timecode")
-                .popover(isPresented: $showTCEntry, arrowEdge: .bottom) {
-                    TCEntryPopover(text: $tcEntryText) { text in
-                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
-                                                              totalSamples: total, sampleRate: sr) {
-                            tc.jumpTo(frac)
-                        }
-                        showTCEntry = false
-                    }
-                }
-
-                Divider().frame(height: 14)
-
-                // Track name + format (hover lane > selected lane)
-                let displayIdx = hoverLane ?? tc.selTrack
-                if let idx = displayIdx, idx < tracks.count {
-                    let track = tracks[idx]
-                    let tcolor = trackColor(track, index: idx)
-                    let fmtLabel: String = {
-                        guard track.type == .video else { return track.channelFormat }
-                        return tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)"
-                    }()
-                    Text(track.name).foregroundStyle(tcolor).lineLimit(1)
-                    Text("[\(fmtLabel)]").foregroundStyle(.secondary)
-                } else {
-                    Text("—").foregroundStyle(.tertiary)
-                }
-
                 Spacer()
 
                 // H zoom
@@ -1747,9 +1721,27 @@ private struct SessionTimelineView: View {
 
             // ── HOVER / SELECT clip rows (aligned columns) ───────────────────
             clipInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
-                        label: "HOVER", sr: sr, isSelected: false)
+                        label: "HOVER", sr: sr, total: total, isSelected: false,
+                        resolvedURL: resolvedFiles.first(where: { $0.name == hoverClip?.sourceFile })?.url,
+                        cursorAbsFrac: hoverClip == nil ? hoverAbsFrac : nil,
+                        cursorLane:    hoverClip == nil ? hoverLane    : nil)
+                .onTapGesture {
+                    // Clicking the hover row (when showing cursor position) opens TC entry
+                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                    showTCEntry = true
+                }
+                .popover(isPresented: $showTCEntry, arrowEdge: .bottom) {
+                    TCEntryPopover(text: $tcEntryText) { text in
+                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
+                                                              totalSamples: total, sampleRate: sr) {
+                            tc.jumpTo(frac)
+                        }
+                        showTCEntry = false
+                    }
+                }
             clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
-                        label: "SELECT", sr: sr, isSelected: true)
+                        label: "SELECT", sr: sr, total: total, isSelected: true,
+                        resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
 
             // ── Transport strip ───────────────────────────────────────────────
             HStack(spacing: 8) {
@@ -1799,6 +1791,64 @@ private struct SessionTimelineView: View {
                 }
 
                 Spacer()
+
+                // Volume fader
+                if let ap = audioPlayer {
+                    VolumeFaderView(volume: Binding(get: { ap.volume }, set: { ap.volume = $0 }))
+                        .frame(width: 72)
+                }
+
+                // Spot to PT: only when clip is selected and online
+                if let clip = selectedClip, !clip.isGroup,
+                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                    Button {
+                        Task { try? await PTSLSessionInfo.shared.spotClip(clip: clip, sourceURL: url) }
+                    } label: {
+                        Label("Spot to PT", systemImage: "pin.fill")
+                            .font(.system(size: 10))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                    .help("Import and spot this clip to its Pro Tools timeline position")
+                }
+
+                Divider().frame(height: 12)
+
+                // BWF toggle + settings
+                Button {
+                    bwfPanelVisible.toggle()
+                    if bwfPanelVisible, let clip = selectedClip,
+                       let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                        Task.detached(priority: .userInitiated) {
+                            let m = BWFParser.parse(url: url)
+                            await MainActor.run { bwfMetadata = m }
+                        }
+                    } else if !bwfPanelVisible {
+                        bwfMetadata = nil
+                    }
+                } label: {
+                    Text("BWF")
+                        .font(.system(size: 9).weight(.semibold))
+                        .foregroundStyle(bwfPanelVisible ? Color.accentColor : Color.secondary)
+                        .padding(.horizontal, 5).padding(.vertical, 2)
+                        .background(RoundedRectangle(cornerRadius: 3)
+                            .fill(bwfPanelVisible
+                                  ? Color.accentColor.opacity(0.15)
+                                  : Color(nsColor: .separatorColor).opacity(0.5)))
+                }
+                .buttonStyle(.plain)
+
+                if bwfPanelVisible {
+                    Button { showBWFSettings = true } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showBWFSettings, arrowEdge: .bottom) {
+                        BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
+                    }
+                }
             }
             .padding(.horizontal, 12)
             .frame(height: 22)
@@ -1808,16 +1858,16 @@ private struct SessionTimelineView: View {
                 guard let clip = selectedClip, !clip.isGroup else { return nil }
                 return resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
             }()
-            // Split-stereo companion: Pro Tools stores stereo as separate .L/.R mono files.
-            // If the primary sourceFile ends with ".L" or ".R", look up the other half.
+            // Split-stereo companion: Pro Tools multi-mono stores L/R as separate files.
+            // Naming convention: BaseName_L-TrackInfo[.L] / BaseName_R-TrackInfo[.R]
+            // Must swap both the _L-/_R- stem marker AND the trailing .L/.R suffix.
             let resolvedWaveURLR: URL? = {
                 guard let clip = selectedClip, !clip.isGroup else { return nil }
                 let src = clip.sourceFile
-                let companionName: String
-                if src.hasSuffix(".L")      { companionName = src.dropLast(2) + ".R" }
-                else if src.hasSuffix(".R") { companionName = src.dropLast(2) + ".L" }
-                else { return nil }
-                return resolvedFiles.first(where: { $0.name == companionName })?.url
+                if let companion = multiMonoCompanion(src) {
+                    return resolvedFiles.first(where: { $0.name == companion })?.url
+                }
+                return nil
             }()
             let waveColor: Color = selectedClipTrackIdx.map { t in
                 t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
@@ -1848,97 +1898,17 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 4)
 
-            // ── Ruler (adaptive tick spacing) ─────────────────────────────────
-            Canvas { ctx, size in
-                let vStart      = tc.viewStart
-                let vWindow     = tc.window
-                let visibleSecs = vWindow * total / sr
-
-                // Baseline rule
-                ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: 0.5)),
-                         with: .color(.secondary.opacity(0.35)))
-
-                // ── TC ticks — top zone (y 0…18) ──────────────────────────────
-                let fps = frameRate
-                let stepCandidates: [Double] = [
-                    1/fps, 2/fps, 5/fps, 10/fps,
-                    1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600
-                ]
-                let step = stepCandidates.last { visibleSecs / $0 >= 3 } ?? stepCandidates.last!
-
-                let winStartSec  = vStart * total / sr
-                let winEndSec    = (vStart + vWindow) * total / sr
-                let firstTickSec = ceil(winStartSec / step) * step
-                var tickSec      = firstTickSec
-                while tickSec <= winEndSec + step * 0.001 {
-                    let frac = tickSec / (total / sr)
-                    let x    = CGFloat((frac - vStart) / vWindow) * size.width
-                    guard x >= -2 && x <= size.width + 2 else { tickSec += step; continue }
-                    ctx.fill(Path(CGRect(x: x, y: 0, width: 0.5, height: 5)),
-                             with: .color(.secondary.opacity(0.5)))
-                    let anchor: UnitPoint = x < 20 ? .topLeading : (x > size.width - 20 ? .topTrailing : .top)
-                    ctx.draw(
-                        Text(formatTC(tickSec, fps: fps))
-                            .font(.system(size: 9).monospacedDigit()),
-                        at: CGPoint(x: x, y: 6),
-                        anchor: anchor
-                    )
-                    tickSec += step
-                }
-
-                // ── Memory location markers — bottom zone (y 18…30) ───────────
-                if showMarkers {
-                    var prevLabelX: CGFloat = -100
-                    for loc in memoryLocations where loc.samplePosition > 0 {
-                        let frac = Double(loc.samplePosition) / total
-                        let x    = CGFloat((frac - vStart) / vWindow) * size.width
-                        guard x >= -1, x <= size.width + 1 else { continue }
-                        // Short tick in the bottom strip only — keeps TC labels clean.
-                        ctx.fill(Path(CGRect(x: x - 0.5, y: 18, width: 1, height: size.height - 18)),
-                                 with: .color(.orange.opacity(0.7)))
-                        // Marker name in the bottom strip — skip if too close to previous
-                        if x - prevLabelX > 34 {
-                            let anchor: UnitPoint = x < 20 ? .bottomLeading
-                                : x > size.width - 20 ? .bottomTrailing : .bottomLeading
-                            ctx.draw(
-                                Text(loc.name)
-                                    .font(.system(size: 8).weight(.medium))
-                                    .foregroundColor(.orange),
-                                at: CGPoint(x: x + 3, y: size.height - 1),
-                                anchor: anchor
-                            )
-                            prevLabelX = x
-                        }
-                    }
-                }
+            // ── BWF metadata panel ────────────────────────────────────────────
+            if bwfPanelVisible {
+                BWFMetadataPanel(
+                    metadata:       bwfMetadata,
+                    selectedFields: bwfSelectedFields,
+                    sampleRate:     sr,
+                    frameRate:      frameRate
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
             }
-            .frame(height: Self.rulerH)
-            .overlay(
-                GeometryReader { geo in
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 0, coordinateSpace: .local)
-                                .onEnded { val in
-                                    let x    = val.location.x
-                                    let raw  = (tc.viewStart + Double(x / geo.size.width) * tc.window)
-                                        .clamped(to: 0...1)
-                                    // Snap to nearest visible marker within 12px
-                                    var dest = raw
-                                    for loc in memoryLocations where loc.samplePosition > 0 {
-                                        let mFrac = Double(loc.samplePosition) / total
-                                        let mx    = CGFloat((mFrac - tc.viewStart) / tc.window) * geo.size.width
-                                        if abs(mx - x) < 12 {
-                                            let d = abs(mFrac - raw)
-                                            if d < abs(dest - raw) || dest == raw { dest = mFrac }
-                                        }
-                                    }
-                                    tc.jumpTo(dest)
-                                    tc.isFocused = true
-                                }
-                        )
-                }
-            )
 
             // ── Scrollable lane area ──────────────────────────────────────────
             ScrollView(.vertical, showsIndicators: false) {
@@ -2076,14 +2046,10 @@ private struct SessionTimelineView: View {
                                                                      respectHideMuted: hideMuted)
 
                                         if let clip = clickedClip {
-                                            // Place cursor at clip in-point; SEL row derives from this
+                                            // Place cursor at clip in-point; SEL row derives from this.
+                                            // onChange(of: tc.selStart) handles autoplay uniformly.
                                             tc.selStart = Double(clip.startSample) / total
                                             tc.selEnd   = nil
-                                            // Autoplay: immediately play clip on click
-                                            if autoplay, let ap = audioPlayer, !clip.isGroup,
-                                               let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
-                                                ap.play(clip: clip, url: url, sampleRate: sr)
-                                            }
                                         } else {
                                             // Empty space → cursor only, no clip selected
                                             tc.selStart = frac
@@ -2103,6 +2069,95 @@ private struct SessionTimelineView: View {
                 }
               )
             } // ScrollView
+
+            // ── Ruler — pinned below tracks, always visible at any zoom ──────
+            Canvas { ctx, size in
+                let vStart      = tc.viewStart
+                let vWindow     = tc.window
+                let visibleSecs = vWindow * total / sr
+
+                // Top hairline
+                ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: 0.5)),
+                         with: .color(.secondary.opacity(0.35)))
+
+                // ── TC ticks (top zone y 0…18) ────────────────────────────────
+                let fps = frameRate
+                let stepCandidates: [Double] = [
+                    1/fps, 2/fps, 5/fps, 10/fps,
+                    1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600
+                ]
+                let step = stepCandidates.last { visibleSecs / $0 >= 3 } ?? stepCandidates.last!
+
+                let winStartSec  = vStart * total / sr
+                let winEndSec    = (vStart + vWindow) * total / sr
+                let firstTickSec = ceil(winStartSec / step) * step
+                var tickSec      = firstTickSec
+                while tickSec <= winEndSec + step * 0.001 {
+                    let frac = tickSec / (total / sr)
+                    let x    = CGFloat((frac - vStart) / vWindow) * size.width
+                    guard x >= -2 && x <= size.width + 2 else { tickSec += step; continue }
+                    ctx.fill(Path(CGRect(x: x, y: 0, width: 0.5, height: 5)),
+                             with: .color(.secondary.opacity(0.5)))
+                    let anchor: UnitPoint = x < 20 ? .topLeading : (x > size.width - 20 ? .topTrailing : .top)
+                    ctx.draw(
+                        Text(formatTC(tickSec, fps: fps))
+                            .font(.system(size: 9).monospacedDigit()),
+                        at: CGPoint(x: x, y: 6),
+                        anchor: anchor
+                    )
+                    tickSec += step
+                }
+
+                // ── Memory location markers (bottom zone y 18…30) ─────────────
+                if showMarkers {
+                    var prevLabelX: CGFloat = -100
+                    for loc in memoryLocations where loc.samplePosition > 0 {
+                        let frac = Double(loc.samplePosition) / total
+                        let x    = CGFloat((frac - vStart) / vWindow) * size.width
+                        guard x >= -1, x <= size.width + 1 else { continue }
+                        ctx.fill(Path(CGRect(x: x - 0.5, y: 18, width: 1, height: size.height - 18)),
+                                 with: .color(.orange.opacity(0.7)))
+                        if x - prevLabelX > 34 {
+                            let anchor: UnitPoint = x < 20 ? .bottomLeading
+                                : x > size.width - 20 ? .bottomTrailing : .bottomLeading
+                            ctx.draw(
+                                Text(loc.name)
+                                    .font(.system(size: 8).weight(.medium))
+                                    .foregroundColor(.orange),
+                                at: CGPoint(x: x + 3, y: size.height - 1),
+                                anchor: anchor
+                            )
+                            prevLabelX = x
+                        }
+                    }
+                }
+            }
+            .frame(height: Self.rulerH)
+            .overlay(
+                GeometryReader { geo in
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                                .onEnded { val in
+                                    let x    = val.location.x
+                                    let raw  = (tc.viewStart + Double(x / geo.size.width) * tc.window)
+                                        .clamped(to: 0...1)
+                                    var dest = raw
+                                    for loc in memoryLocations where loc.samplePosition > 0 {
+                                        let mFrac = Double(loc.samplePosition) / total
+                                        let mx    = CGFloat((mFrac - tc.viewStart) / tc.window) * geo.size.width
+                                        if abs(mx - x) < 12 {
+                                            let d = abs(mFrac - raw)
+                                            if d < abs(dest - raw) || dest == raw { dest = mFrac }
+                                        }
+                                    }
+                                    tc.jumpTo(dest)
+                                    tc.isFocused = true
+                                }
+                        )
+                }
+            )
         }
         .onAppear {
             tc.tracks       = tracks
@@ -2127,10 +2182,36 @@ private struct SessionTimelineView: View {
             if ap.isPlaying && ap.playingClip == clip { ap.stop() }
             else { ap.play(clip: clip, url: url, sampleRate: sr) }
         }
+        .onChange(of: tc.selStart) { newSelStart in
+            // Autoplay on clip selection (click, tab, keyboard navigation).
+            // Compute the clip from the NEW selStart so we never act on a stale capture.
+            guard autoplay, tc.selEnd == nil, let newStart = newSelStart else { return }
+            let newSamp = Int64((newStart * total).rounded())
+            guard let clip = clipAt(trackIdx: tc.selTrack, sample: newSamp),
+                  !clip.isGroup,
+                  let ap = audioPlayer,
+                  let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+            else { return }
+            guard !(ap.isPlaying && ap.playingClip == clip) else { return }
+            ap.play(clip: clip, url: url, sampleRate: sr)
+        }
+        .onChange(of: selectedClip?.sourceFile) { sourceFile in
+            guard bwfPanelVisible else { return }
+            bwfMetadata = nil
+            guard let name = sourceFile,
+                  let url  = resolvedFiles.first(where: { $0.name == name })?.url else { return }
+            Task.detached(priority: .userInitiated) {
+                let m = BWFParser.parse(url: url)
+                await MainActor.run { bwfMetadata = m }
+            }
+        }
     }
 
     private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
-                             label: String, sr: Double, isSelected: Bool) -> some View {
+                             label: String, sr: Double, total: Double, isSelected: Bool,
+                             resolvedURL: URL? = nil,
+                             cursorAbsFrac: Double? = nil,
+                             cursorLane: Int? = nil) -> some View {
         let color = trackIdx.map { t in
             t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
         } ?? Color.secondary
@@ -2168,7 +2249,6 @@ private struct SessionTimelineView: View {
                         .foregroundStyle(isSelected ? color.opacity(0.75) : Color.secondary)
                         .lineLimit(1)
                         .frame(width: 90, alignment: .leading)
-                    if isSelected { clipCopyButton(trackName) }
                     Spacer().frame(width: 4)
                 }
 
@@ -2178,6 +2258,14 @@ private struct SessionTimelineView: View {
                     .fontWeight(isSelected ? .semibold : .regular)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .contextMenu {
+                        if let url = resolvedURL {
+                            Button("Reveal in Finder") {
+                                NSWorkspace.shared.selectFile(url.path,
+                                                             inFileViewerRootedAtPath: "")
+                            }
+                        }
+                    }
                 if isSelected { clipCopyButton(clip.name) }
 
                 if clip.isMuted {
@@ -2206,21 +2294,51 @@ private struct SessionTimelineView: View {
                         + Text(inTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
-                    if isSelected { clipCopyButton(inTC) }
+                    if isSelected { clipCopyButton(tcForPT(inTC)) }
                     Group {
                         Text("  out ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(outTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: isSelected ? 108 : 118, alignment: .trailing)
-                    if isSelected { clipCopyButton(outTC) }
+                    if isSelected { clipCopyButton(tcForPT(outTC)) }
                     Group {
                         Text("  len ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
                         + Text(durTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
                     }
                     .frame(width: 106, alignment: .trailing)
-                    if isSelected { clipCopyButton(durTC) }
+                    if isSelected { clipCopyButton(tcForPT(durTC)) }
                 }
 
+            } else if let absFrac = cursorAbsFrac {
+                // No clip hovered — show lane name (if any) and cursor TC in the IN position
+                let laneIdx = cursorLane
+                if let idx = laneIdx, idx < tracks.count {
+                    let track  = tracks[idx]
+                    let tcolor = trackColor(track, index: idx)
+                    let fmt: String = track.type == .video
+                        ? (tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)")
+                        : track.channelFormat
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(tcolor.opacity(0.5))
+                        .frame(width: 3, height: 14)
+                        .padding(.trailing, 6)
+                    Text(track.name).foregroundStyle(tcolor.opacity(0.75)).lineLimit(1)
+                        .frame(width: 90, alignment: .leading)
+                    Spacer().frame(width: 4)
+                    Text("[\(fmt)]").foregroundStyle(.secondary).lineLimit(1)
+                } else {
+                    Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
+                }
+                Spacer(minLength: 8)
+                // Cursor TC in the IN column position, styled to match
+                HStack(spacing: 0) {
+                    Group {
+                        Text("pos ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                        + Text(formatTC(absFrac * total / sr, fps: frameRate))
+                            .foregroundColor(Color(nsColor: .secondaryLabelColor))
+                    }
+                    .frame(width: 106, alignment: .trailing)
+                }
             } else {
                 Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
                 Spacer()
@@ -2232,6 +2350,15 @@ private struct SessionTimelineView: View {
         .background(isSelected && clip != nil
                     ? color.opacity(0.07)
                     : Color(nsColor: .separatorColor).opacity(0.05))
+    }
+
+    /// Zero-pad hours so PT gets a full HH:MM:SS:FF string it can accept via paste.
+    private func tcForPT(_ tc: String) -> String {
+        let parts = tc.split(separator: ":", omittingEmptySubsequences: false)
+        guard parts.count == 4 else { return tc }
+        return parts.enumerated()
+            .map { i, p in String(format: "%02d", Int(p) ?? 0) }
+            .joined(separator: ":")
     }
 
     private func clipCopyButton(_ value: String) -> some View {
@@ -2552,6 +2679,220 @@ private extension PTXTrackType {
     }
 }
 
+// MARK: - BWF Metadata Panel
+
+private struct BWFMetadataPanel: View {
+    let metadata:       BWFMetadata?
+    let selectedFields: [BWFFieldKey]
+    let sampleRate:     Double
+    let frameRate:      Double
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let meta = metadata {
+                VStack(spacing: 1) {
+                    ForEach(selectedFields) { key in
+                        let value = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate)
+                        HStack(alignment: .top, spacing: 6) {
+                            Text(key.label.uppercased())
+                                .font(.system(size: 8).weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                                .frame(width: 88, alignment: .trailing)
+                                .padding(.top, 1)
+                            Text(value ?? "—")
+                                .font(.system(size: 10).monospacedDigit())
+                                .foregroundStyle(value != nil ? Color(nsColor: .labelColor) : Color.secondary)
+                                .lineLimit(key == .bextCodingHistory ? 4 : 1)
+                                .truncationMode(.tail)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 6)
+                        .background(Color(nsColor: .separatorColor).opacity(0.04))
+                    }
+                }
+                .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.03)))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5))
+            } else {
+                HStack {
+                    Spacer()
+                    Text("No BWF metadata")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.03)))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5))
+            }
+        }
+    }
+}
+
+// MARK: - BWF Settings Popover
+
+private struct BWFSettingsPopover: View {
+    @Binding var selectedRaw: String
+
+    private var selected: [BWFFieldKey] {
+        selectedRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
+    }
+    private func toggle(_ key: BWFFieldKey) {
+        var current = selected
+        if let idx = current.firstIndex(of: key) {
+            current.remove(at: idx)
+        } else {
+            current.append(key)
+        }
+        selectedRaw = current.map(\.rawValue).joined(separator: ",")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("BWF Fields")
+                    .font(.system(size: 11).weight(.semibold))
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
+
+            Divider()
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(BWFFieldKey.allCases) { key in
+                        let isOn = selected.contains(key)
+                        Button {
+                            toggle(key)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(isOn ? Color.accentColor : Color.secondary.opacity(0.7))
+                                    .font(.system(size: 12))
+                                Text(key.label)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Color(nsColor: .labelColor))
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .frame(maxHeight: 320)
+        }
+        .frame(width: 200)
+        .padding(.bottom, 8)
+    }
+}
+
+// MARK: - Volume Fader
+
+private struct VolumeFaderView: View {
+    @Binding var volume: Float
+
+    private let minDB: Double = -60
+    private let maxDB: Double = +12
+    private let knobW: CGFloat = 8
+
+    private var dB: Double {
+        volume > 0 ? 20 * log10(Double(volume)) : minDB
+    }
+    private func posFromDB(_ db: Double) -> Double {
+        (db.clamped(to: minDB...maxDB) - minDB) / (maxDB - minDB)
+    }
+    private var faderPos: Double { posFromDB(dB) }
+    private var unityPos: Double { posFromDB(0) }
+
+    @State private var dragOriginPos: Double? = nil
+    @State private var isHovering: Bool = false
+
+    var body: some View {
+        GeometryReader { geo in
+            let trackW = geo.size.width - knobW
+            let knobX  = CGFloat(faderPos) * trackW
+            let unityX = CGFloat(unityPos) * trackW
+
+            ZStack(alignment: .leading) {
+                // Track background
+                Capsule()
+                    .fill(Color(nsColor: .separatorColor).opacity(0.4))
+                    .frame(height: 2)
+                    .padding(.horizontal, knobW / 2)
+
+                // Fill left of knob
+                Capsule()
+                    .fill(dB > 0.1
+                          ? Color.orange.opacity(0.7)
+                          : Color(nsColor: .secondaryLabelColor).opacity(0.5))
+                    .frame(width: max(0, knobX), height: 2)
+                    .padding(.leading, knobW / 2)
+
+                // Unity notch
+                Rectangle()
+                    .fill(Color(nsColor: .tertiaryLabelColor))
+                    .frame(width: 1, height: 5)
+                    .offset(x: unityX + knobW / 2 - 0.5,
+                            y: -1.5)
+
+                // Knob
+                Circle()
+                    .fill(Color(nsColor: .controlColor))
+                    .overlay(Circle().strokeBorder(
+                        Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 0.5))
+                    .frame(width: knobW, height: knobW)
+                    .offset(x: knobX)
+                    .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { val in
+                        if dragOriginPos == nil { dragOriginPos = faderPos }
+                        let delta = Double(val.translation.width / trackW)
+                        let newPos = ((dragOriginPos ?? faderPos) + delta).clamped(to: 0...1)
+                        let newDB = minDB + newPos * (maxDB - minDB)
+                        volume = newDB <= minDB ? 0 : Float(pow(10, newDB / 20))
+                    }
+                    .onEnded { _ in dragOriginPos = nil }
+            )
+            .simultaneousGesture(TapGesture(count: 2).onEnded { volume = 1.0 })
+        }
+        .help(String(format: "%.1f dB  —  double-click to reset", dB))
+    }
+}
+
+// MARK: - Multi-mono companion lookup
+
+/// Returns the companion file name for a Pro Tools multi-mono stereo pair, or nil if not applicable.
+/// PT naming: BaseName_L-TrackInfo[.L]  ↔  BaseName_R-TrackInfo[.R]
+/// Must swap BOTH the _L-/_R- stem marker AND the optional trailing .L/.R suffix.
+private func multiMonoCompanion(_ src: String) -> String? {
+    func swapSuffix(_ s: String, from: String, to: String) -> String {
+        s.hasSuffix(from) ? String(s.dropLast(from.count)) + to : s
+    }
+    if let range = src.range(of: "_L-") {
+        var c = src; c.replaceSubrange(range, with: "_R-")
+        c = swapSuffix(c, from: ".L", to: ".R")
+        return c
+    }
+    if let range = src.range(of: "_R-") {
+        var c = src; c.replaceSubrange(range, with: "_L-")
+        c = swapSuffix(c, from: ".R", to: ".L")
+        return c
+    }
+    // Fallback: bare trailing .L / .R with no stem marker
+    if src.hasSuffix(".L") { return String(src.dropLast(2)) + ".R" }
+    if src.hasSuffix(".R") { return String(src.dropLast(2)) + ".L" }
+    return nil
+}
+
 // MARK: - Clip Waveform View
 
 private func waveformChannelLabels(_ count: Int) -> [String] {
@@ -2658,6 +2999,7 @@ private struct ClipWaveformView: View {
         }
         .task(id: loadID) {
             peaks = []
+            let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name)
             if let companion = urlCompanion {
                 // Split-stereo: load primary and companion in parallel, combine as [L, R]
                 async let primary   = AudioPlayer.loadWaveform(url: url,      startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
@@ -2669,7 +3011,8 @@ private struct ClipWaveformView: View {
                     url: url,
                     startSample: clip.sourceOffset,
                     lengthSamples: clip.lengthSamples,
-                    sampleRate: sampleRate
+                    sampleRate: sampleRate,
+                    channelIndex: chIdx
                 )
             }
         }

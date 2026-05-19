@@ -151,10 +151,11 @@ private struct SettingsView: View {
 
 struct TabState: Identifiable {
     let id: UUID
-    var sessionURL: URL?
-    var session:    PTXSession?
-    var isLoading:  Bool
-    var errorText:  String?
+    var sessionURL:       URL?
+    var session:          PTXSession?
+    var isLoading:        Bool
+    var isResolvingFiles: Bool = false
+    var errorText:        String?
 
     var displayName: String {
         sessionURL?.deletingPathExtension().lastPathComponent ?? "New Session"
@@ -377,30 +378,30 @@ final class AppState: ObservableObject {
             return
         }
 
-        PTXParser.resolveAudioFiles(session: &parsed, sessionURL: url)
-
-        // Publish initial result so UI appears immediately
-        updateTab(id: tabID) { $0.session = parsed; $0.isLoading = false }
+        // Publish immediately so the UI appears without waiting for file resolution
+        updateTab(id: tabID) { $0.session = parsed; $0.isLoading = false; $0.isResolvingFiles = true }
         addRecent(url)
         updateWindowTitle()
-
         mainWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
-        // Augment with PTSL in background (no-op if PT not connected)
-        await PTSLSessionInfo.shared.augment(session: &parsed)
-        print("[AppState] _open() PTSL done")
-
-        guard !Task.isCancelled,
-              tabs.contains(where: { $0.id == tabID }) else {
-            print("[AppState] _open() discarding PTSL result (tab closed or superseded)")
-            return
-        }
-
-        updateTab(id: tabID) { $0.session = parsed }
-        print("[AppState] _open() complete ✓")
-
         PTXParser.writeClipLog(session: parsed, sessionURL: url)
+
+        // Resolve audio files off the main thread — can be slow for large sessions
+        let resolveURL = url
+        let resolveTabID = tabID
+        Task.detached(priority: .utility) { [weak self] in
+            var copy = parsed
+            PTXParser.resolveAudioFiles(session: &copy, sessionURL: resolveURL)
+            let resolved = copy.resolvedAudioFiles
+            await MainActor.run { [weak self] in
+                self?.updateTab(id: resolveTabID) {
+                    $0.session?.resolvedAudioFiles = resolved
+                    $0.isResolvingFiles = false
+                }
+            }
+        }
+        print("[AppState] _open() complete ✓")
     }
 
     func openInProTools(url: URL) {
@@ -458,11 +459,12 @@ struct AppContentView: View {
     private func tabContent(_ tab: TabState) -> some View {
         if let session = tab.session, let url = tab.sessionURL {
             SessionInspectorView(
-                session:          session,
-                sessionURL:       url,
-                onOpenInProTools: { appState.openInProTools(url: url) },
-                onRescan:         { appState.rescan(tabID: tab.id, url: url) },
-                onClose:          { appState.closeTab(id: tab.id) }
+                session:             session,
+                sessionURL:          url,
+                isResolvingFiles:    tab.isResolvingFiles,
+                onOpenInProTools:    { appState.openInProTools(url: url) },
+                onRescan:            { appState.rescan(tabID: tab.id, url: url) },
+                onClose:             { appState.closeTab(id: tab.id) }
             )
         } else if tab.isLoading {
             PeepingView()

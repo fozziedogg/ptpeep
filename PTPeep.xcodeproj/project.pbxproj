@@ -19,6 +19,12 @@
 		BB00CC11DD22EE33FF445516 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445503 /* AudioPlayer.swift */; };
 		BB00CC11DD22EE33FF445517 /* WaveformCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445504 /* WaveformCache.swift */; };
 		BB00CC11DD22EE33FF445518 /* WaveformCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445504 /* WaveformCache.swift */; };
+		PTSL0001PTSL0001PTSL0001 /* PTSL_minimal.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = PTSL0010PTSL0010PTSL0010 /* PTSL_minimal.pb.swift */; };
+		PTSL0002PTSL0002PTSL0002 /* PTSL_minimal.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = PTSL0020PTSL0020PTSL0020 /* PTSL_minimal.grpc.swift */; };
+		GRPC0001GRPC0001GRPC0001 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0011GRPC0011GRPC0011 /* SwiftProtobuf */; };
+		GRPC0002GRPC0002GRPC0002 /* GRPC in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0012GRPC0012GRPC0012 /* GRPC */; };
+		GRPC0003GRPC0003GRPC0003 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0013GRPC0013GRPC0013 /* NIOCore */; };
+		GRPC0004GRPC0004GRPC0004 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0014GRPC0014GRPC0014 /* NIOPosix */; };
 		CC11DD22EE33FF44AA556615 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */; };
 		CC11DD22EE33FF44AA556616 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */; };
 		DD11EE22FF33AA44BB556601 /* PTPeepQL.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 927280E6749AFAE80FE9ABE2 /* PTPeepQL.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -31,6 +37,8 @@
 		A39C68A5798602DFA83D8328 /* PTXParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B29D7A6E14B870EF3F9366B /* PTXParser.swift */; };
 		B1C2D3E4F5A6B7C8D9E0F1A2 /* PTXBlockDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */; };
 		C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */; };
+		BF000001BF000001BF000001 /* BWFParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF000000BF000000BF000000 /* BWFParser.swift */; };
+		BF000002BF000002BF000002 /* BWFParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF000000BF000000BF000000 /* BWFParser.swift */; };
 		B02452675BFE6D1BA8A2228C /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
 		F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */; };
 		AA01BB11CC22DD33EE44FF56 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA01BB11CC22DD33EE44FF55 /* Assets.xcassets */; };
@@ -56,8 +64,11 @@
 /* Begin PBXFileReference section */
 		1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXSession.swift; sourceTree = "<group>"; };
 		252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTSLSessionInfo.swift; sourceTree = "<group>"; };
+		PTSL0010PTSL0010PTSL0010 /* PTSL_minimal.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTSL_minimal.pb.swift; sourceTree = "<group>"; };
+		PTSL0020PTSL0020PTSL0020 /* PTSL_minimal.grpc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTSL_minimal.grpc.swift; sourceTree = "<group>"; };
 		46BF2988BB03A6D06142C1AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4B29D7A6E14B870EF3F9366B /* PTXParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXParser.swift; sourceTree = "<group>"; };
+		BF000000BF000000BF000000 /* BWFParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BWFParser.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXBlockDecoder.swift; sourceTree = "<group>"; };
 		61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeepQLExtension.swift; sourceTree = "<group>"; };
 		DD22EE33FF44AA55BB666601 /* PTPeepQL.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PTPeepQL.entitlements; sourceTree = "<group>"; };
@@ -117,6 +128,7 @@
 				4B29D7A6E14B870EF3F9366B /* PTXParser.swift */,
 				1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */,
+				BF000000BF000000BF000000 /* BWFParser.swift */,
 			);
 			name = Parser;
 			path = PTPeep/Parser;
@@ -164,6 +176,8 @@
 			isa = PBXGroup;
 			children = (
 				252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */,
+				PTSL0010PTSL0010PTSL0010 /* PTSL_minimal.pb.swift */,
+				PTSL0020PTSL0020PTSL0020 /* PTSL_minimal.grpc.swift */,
 			);
 			name = ProTools;
 			path = PTPeep/ProTools;
@@ -190,6 +204,7 @@
 			buildPhases = (
 				AA01BB11CC22DD33EE44FF57 /* Resources */,
 				8C67127B5C772605C570F0E8 /* Sources */,
+				GRPC0030GRPC0030GRPC0030 /* Frameworks */,
 				DD11EE22FF33AA44BB556602 /* Embed App Extensions */,
 			);
 			buildRules = (
@@ -199,6 +214,10 @@
 			);
 			name = PTPeep;
 			packageProductDependencies = (
+				GRPC0011GRPC0011GRPC0011 /* SwiftProtobuf */,
+				GRPC0012GRPC0012GRPC0012 /* GRPC */,
+				GRPC0013GRPC0013GRPC0013 /* NIOCore */,
+				GRPC0014GRPC0014GRPC0014 /* NIOPosix */,
 			);
 			productName = PTPeep;
 			productReference = B5C2EE3C4A771CD8663C679D /* PTPeep.app */;
@@ -249,6 +268,10 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3FE17D1C9F579184EB565FF3 /* Products */;
+			packageReferences = (
+				GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */,
+				GRPC0021GRPC0021GRPC0021 /* XCRemoteSwiftPackageReference "swift-protobuf" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -294,12 +317,15 @@
 				F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */,
 				3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* PTXBlockDecoder.swift in Sources */,
+				BF000001BF000001BF000001 /* BWFParser.swift in Sources */,
 				AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */,
 				BB00CC11DD22EE33FF445511 /* AppLog.swift in Sources */,
 				BB00CC11DD22EE33FF445513 /* PluginScanner.swift in Sources */,
 				BB00CC11DD22EE33FF445515 /* AudioPlayer.swift in Sources */,
 				BB00CC11DD22EE33FF445517 /* WaveformCache.swift in Sources */,
 				CC11DD22EE33FF44AA556615 /* QuickLookPreviewView.swift in Sources */,
+				PTSL0001PTSL0001PTSL0001 /* PTSL_minimal.pb.swift in Sources */,
+				PTSL0002PTSL0002PTSL0002 /* PTSL_minimal.grpc.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -314,6 +340,7 @@
 				444F7D5A52DE9378417AB54D /* PreviewViewController.swift in Sources */,
 				39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */,
 				C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */,
+				BF000002BF000002BF000002 /* BWFParser.swift in Sources */,
 				AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */,
 				BB00CC11DD22EE33FF445512 /* AppLog.swift in Sources */,
 				BB00CC11DD22EE33FF445514 /* PluginScanner.swift in Sources */,
@@ -324,6 +351,62 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		GRPC0030GRPC0030GRPC0030 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				GRPC0001GRPC0001GRPC0001 /* SwiftProtobuf in Frameworks */,
+				GRPC0002GRPC0002GRPC0002 /* GRPC in Frameworks */,
+				GRPC0003GRPC0003GRPC0003 /* NIOCore in Frameworks */,
+				GRPC0004GRPC0004GRPC0004 /* NIOPosix in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/grpc/grpc-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		GRPC0021GRPC0021GRPC0021 /* XCRemoteSwiftPackageReference "swift-protobuf" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-protobuf";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.36.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		GRPC0011GRPC0011GRPC0011 /* SwiftProtobuf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = GRPC0021GRPC0021GRPC0021 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobuf;
+		};
+		GRPC0012GRPC0012GRPC0012 /* GRPC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = GRPC;
+		};
+		GRPC0013GRPC0013GRPC0013 /* NIOCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = NIOCore;
+		};
+		GRPC0014GRPC0014GRPC0014 /* NIOPosix */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = NIOPosix;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin PBXTargetDependency section */
 		7365D1472085240781F9CFDF /* PBXTargetDependency */ = {
@@ -417,6 +500,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.fozzie.ptpeep;
 				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) PTSL_ENABLED";
 				SWIFT_STRICT_CONCURRENCY = minimal;
 			};
 			name = Release;
@@ -510,6 +594,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.fozzie.ptpeep;
 				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) PTSL_ENABLED";
 				SWIFT_STRICT_CONCURRENCY = minimal;
 			};
 			name = Debug;

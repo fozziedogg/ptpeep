@@ -931,7 +931,7 @@ final class PTXBlockDecoder {
         // that were not claimed by any named section, preserving mixer order.
         var namelessSections: [PTXBlock] = []
 
-        for (sectionIdx, section) in trackSections.enumerated() {
+        for (_, section) in trackSections.enumerated() {
             // Read track name: [u32 nameLen][nameBytes].
             let name: String
             if let nameLen = safeU32(data, at: section.dataOffset, be: false),

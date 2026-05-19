@@ -31,9 +31,10 @@ final class WaveformCache: @unchecked Sendable {
     // MARK: - Public API
 
     func get(audioURL: URL, startSample: Int64, lengthSamples: Int64,
-             resolution: Int) -> [[Float]]? {
+             resolution: Int, channelIndex: Int? = nil) -> [[Float]]? {
         guard let url = cacheFileURL(audioURL: audioURL, startSample: startSample,
-                                     lengthSamples: lengthSamples, resolution: resolution),
+                                     lengthSamples: lengthSamples, resolution: resolution,
+                                     channelIndex: channelIndex),
               FileManager.default.fileExists(atPath: url.path),
               let data = try? Data(contentsOf: url, options: .mappedIfSafe)
         else { return nil }
@@ -41,9 +42,10 @@ final class WaveformCache: @unchecked Sendable {
     }
 
     func set(peaks: [[Float]], audioURL: URL, startSample: Int64, lengthSamples: Int64,
-             resolution: Int) {
+             resolution: Int, channelIndex: Int? = nil) {
         guard let url = cacheFileURL(audioURL: audioURL, startSample: startSample,
-                                     lengthSamples: lengthSamples, resolution: resolution)
+                                     lengthSamples: lengthSamples, resolution: resolution,
+                                     channelIndex: channelIndex)
         else { return }
         let data = encode(peaks)
         queue.async { try? data.write(to: url, options: .atomic) }
@@ -52,10 +54,11 @@ final class WaveformCache: @unchecked Sendable {
     // MARK: - Cache file URL
 
     private func cacheFileURL(audioURL: URL, startSample: Int64, lengthSamples: Int64,
-                               resolution: Int) -> URL? {
+                               resolution: Int, channelIndex: Int? = nil) -> URL? {
         guard let dir = cacheDir else { return nil }
         let mt   = mtime(for: audioURL)
-        let key  = fnv1a("\(audioURL.path)|\(startSample)|\(lengthSamples)|\(resolution)")
+        let chSuffix = channelIndex.map { "|\($0)" } ?? ""
+        let key  = fnv1a("\(audioURL.path)|\(startSample)|\(lengthSamples)|\(resolution)\(chSuffix)")
         let mtMs = Int64(mt * 1000)
         return dir.appendingPathComponent("\(key)_\(mtMs).wc2")
     }
