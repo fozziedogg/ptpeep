@@ -19,6 +19,8 @@
 		BB00CC11DD22EE33FF445516 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445503 /* AudioPlayer.swift */; };
 		BB00CC11DD22EE33FF445517 /* WaveformCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445504 /* WaveformCache.swift */; };
 		BB00CC11DD22EE33FF445518 /* WaveformCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445504 /* WaveformCache.swift */; };
+		PTSL0001PTSL0001PTSL0001 /* PTSL_minimal.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = PTSL0010PTSL0010PTSL0010 /* PTSL_minimal.pb.swift */; };
+		PTSL0002PTSL0002PTSL0002 /* PTSL_minimal.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = PTSL0020PTSL0020PTSL0020 /* PTSL_minimal.grpc.swift */; };
 		CC11DD22EE33FF44AA556615 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */; };
 		CC11DD22EE33FF44AA556616 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */; };
 		DD11EE22FF33AA44BB556601 /* PTPeepQL.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 927280E6749AFAE80FE9ABE2 /* PTPeepQL.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -56,6 +58,8 @@
 /* Begin PBXFileReference section */
 		1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXSession.swift; sourceTree = "<group>"; };
 		252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTSLSessionInfo.swift; sourceTree = "<group>"; };
+		PTSL0010PTSL0010PTSL0010 /* PTSL_minimal.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTSL_minimal.pb.swift; sourceTree = "<group>"; };
+		PTSL0020PTSL0020PTSL0020 /* PTSL_minimal.grpc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTSL_minimal.grpc.swift; sourceTree = "<group>"; };
 		46BF2988BB03A6D06142C1AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4B29D7A6E14B870EF3F9366B /* PTXParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXParser.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXBlockDecoder.swift; sourceTree = "<group>"; };
@@ -164,6 +168,8 @@
 			isa = PBXGroup;
 			children = (
 				252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */,
+				PTSL0010PTSL0010PTSL0010 /* PTSL_minimal.pb.swift */,
+				PTSL0020PTSL0020PTSL0020 /* PTSL_minimal.grpc.swift */,
 			);
 			name = ProTools;
 			path = PTPeep/ProTools;
@@ -300,6 +306,8 @@
 				BB00CC11DD22EE33FF445515 /* AudioPlayer.swift in Sources */,
 				BB00CC11DD22EE33FF445517 /* WaveformCache.swift in Sources */,
 				CC11DD22EE33FF44AA556615 /* QuickLookPreviewView.swift in Sources */,
+				PTSL0001PTSL0001PTSL0001 /* PTSL_minimal.pb.swift in Sources */,
+				PTSL0002PTSL0002PTSL0002 /* PTSL_minimal.grpc.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

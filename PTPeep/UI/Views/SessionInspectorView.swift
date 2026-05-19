@@ -1806,8 +1806,7 @@ private struct SessionTimelineView: View {
                     Button {
                         Task {
                             try? await PTSLSessionInfo.shared.spotClip(
-                                clip: clip, sourceURL: url,
-                                sampleRate: sampleRate, frameRate: frameRate)
+                                clip: clip, sourceURL: url)
                         }
                     } label: {
                         Label("Spot to PT", systemImage: "pin.fill")
