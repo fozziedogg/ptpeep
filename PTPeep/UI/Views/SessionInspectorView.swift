@@ -1990,16 +1990,16 @@ private struct SessionTimelineView: View {
                 guard let clip = selectedClip, !clip.isGroup else { return nil }
                 return resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
             }()
-            // Split-stereo companion: Pro Tools stores stereo as separate .L/.R mono files.
-            // If the primary sourceFile ends with ".L" or ".R", look up the other half.
+            // Split-stereo companion: Pro Tools multi-mono stores L/R as separate files.
+            // Naming convention: BaseName_L-TrackInfo[.L] / BaseName_R-TrackInfo[.R]
+            // Must swap both the _L-/_R- stem marker AND the trailing .L/.R suffix.
             let resolvedWaveURLR: URL? = {
                 guard let clip = selectedClip, !clip.isGroup else { return nil }
                 let src = clip.sourceFile
-                let companionName: String
-                if src.hasSuffix(".L")      { companionName = src.dropLast(2) + ".R" }
-                else if src.hasSuffix(".R") { companionName = src.dropLast(2) + ".L" }
-                else { return nil }
-                return resolvedFiles.first(where: { $0.name == companionName })?.url
+                if let companion = multiMonoCompanion(src) {
+                    return resolvedFiles.first(where: { $0.name == companion })?.url
+                }
+                return nil
             }()
             let waveColor: Color = selectedClipTrackIdx.map { t in
                 t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
@@ -2868,6 +2868,31 @@ private struct VolumeFaderView: View {
         }
         .help(String(format: "%.1f dB  —  double-click to reset", dB))
     }
+}
+
+// MARK: - Multi-mono companion lookup
+
+/// Returns the companion file name for a Pro Tools multi-mono stereo pair, or nil if not applicable.
+/// PT naming: BaseName_L-TrackInfo[.L]  ↔  BaseName_R-TrackInfo[.R]
+/// Must swap BOTH the _L-/_R- stem marker AND the optional trailing .L/.R suffix.
+private func multiMonoCompanion(_ src: String) -> String? {
+    func swapSuffix(_ s: String, from: String, to: String) -> String {
+        s.hasSuffix(from) ? String(s.dropLast(from.count)) + to : s
+    }
+    if let range = src.range(of: "_L-") {
+        var c = src; c.replaceSubrange(range, with: "_R-")
+        c = swapSuffix(c, from: ".L", to: ".R")
+        return c
+    }
+    if let range = src.range(of: "_R-") {
+        var c = src; c.replaceSubrange(range, with: "_L-")
+        c = swapSuffix(c, from: ".R", to: ".L")
+        return c
+    }
+    // Fallback: bare trailing .L / .R with no stem marker
+    if src.hasSuffix(".L") { return String(src.dropLast(2)) + ".R" }
+    if src.hasSuffix(".R") { return String(src.dropLast(2)) + ".L" }
+    return nil
 }
 
 // MARK: - Clip Waveform View
