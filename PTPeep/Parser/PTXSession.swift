@@ -147,6 +147,27 @@ struct PTXClip: Equatable {
     var isGroup:     Bool   = false
 }
 
+// MARK: - Play Region
+
+/// A resolved set of clips ready for multi-clip playback.
+/// Covers a time range and one or more tracks; each TrackSegment contains
+/// the clips (with resolved URLs) for a single track, sorted by startSample.
+struct PlayRegion {
+    struct TrackSegment {
+        let trackIdx: Int
+        let clips: [(clip: PTXClip, url: URL)]   // sorted by startSample
+    }
+    let startSample: Int64          // region start (absolute samples)
+    let endSample:   Int64          // region end (absolute samples)
+    let segments:    [TrackSegment] // one per track that has clips in range
+    let sampleRate:  Double
+
+    var totalClipCount: Int { segments.reduce(0) { $0 + $1.clips.count } }
+    var trackCount: Int { segments.count }
+}
+
+// MARK: - Resolved Audio File
+
 struct ResolvedAudioFile: Identifiable {
     var id = UUID()
     var name:    String          // display name (without extension)

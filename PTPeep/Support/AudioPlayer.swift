@@ -87,10 +87,11 @@ enum AudioDeviceManager {
 // MARK: - AudioPlayer
 
 final class AudioPlayer: ObservableObject, @unchecked Sendable {
-    @Published var isPlaying: Bool = false
-    @Published var playingClip: PTXClip? = nil
-    @Published var playbackFraction: Double = 0   // 0…1 within the clip's duration
-    @Published var volume: Float = 1.0 {          // linear gain; 1.0 = unity, >1.0 = over-unity
+    @Published var isPlaying:       Bool      = false
+    @Published var playingClip:     PTXClip?  = nil
+    @Published var isPlayingRegion: Bool      = false   // true when playRegion() is active
+    @Published var playbackFraction: Double   = 0       // 0…1 within the clip's duration
+    @Published var volume: Float = 1.0 {                // linear gain; 1.0 = unity, >1.0 = over-unity
         didSet { gainNode.volume = volume }
     }
 
@@ -102,6 +103,10 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     private var clipDurSec:   Double = 1   // remaining scheduled duration (for stop timer)
     private var fullDurSec:   Double = 1   // full clip duration (for playbackFraction math)
     private var seekFraction: Double = 0   // 0..1 within clip where playback started
+
+    // Extra player nodes created for multi-track region playback.
+    // Cleaned up in stop() so the engine doesn't accumulate nodes.
+    private var regionNodes: [AVAudioPlayerNode] = []
 
     init() {
         engine.attach(playerNode)
@@ -217,9 +222,121 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         ticker?.invalidate()
         ticker           = nil
         playerNode.stop()
+        // Tear down any extra nodes created by playRegion()
+        for node in regionNodes {
+            node.stop()
+            engine.detach(node)
+        }
+        regionNodes      = []
         isPlaying        = false
+        isPlayingRegion  = false
         playingClip      = nil
         playbackFraction = 0
+    }
+
+    // MARK: - Region playback
+
+    /// Plays a multi-clip region: one stitched buffer per track, all started simultaneously.
+    /// Clips within each track are separated by silence to preserve their timeline spacing.
+    /// Safe to call from any thread; all AVAudioEngine work is dispatched to the main queue.
+    func playRegion(_ region: PlayRegion) {
+        stop()
+
+        guard !region.segments.isEmpty else { return }
+
+        // Apply stored output device preference
+        let prefUID = UserDefaults.standard.string(forKey: "audioOutputDeviceUID") ?? ""
+        if !prefUID.isEmpty, let deviceID = AudioDeviceManager.deviceID(forUID: prefUID) {
+            if engine.isRunning { engine.stop() }
+            AudioDeviceManager.setEngineOutputDevice(engine, deviceID: deviceID)
+        }
+
+        // Common format: 48 kHz mono float32 non-interleaved (lowest common denominator).
+        // All clip buffers are read via AVAudioFile.processingFormat (always float32),
+        // so channel extraction and format bridging is handled per-clip below.
+        let sr = region.sampleRate > 0 ? region.sampleRate : 48000
+        guard let monoFmt = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1) else { return }
+
+        let regionFrames = AVAudioFrameCount(region.endSample - region.startSample)
+        guard regionFrames > 0 else { return }
+
+        // Build one stitched mono buffer per track segment.
+        var readyNodes: [AVAudioPlayerNode] = []
+
+        for segment in region.segments {
+            guard let stitched = AVAudioPCMBuffer(pcmFormat: monoFmt,
+                                                  frameCapacity: regionFrames) else { continue }
+            stitched.frameLength = regionFrames
+            // Zero-fill (silence)
+            if let ptr = stitched.floatChannelData?[0] {
+                ptr.initialize(repeating: 0, count: Int(regionFrames))
+            }
+
+            var wroteAny = false
+            for (clip, url) in segment.clips {
+                guard let file = try? AVAudioFile(forReading: url) else { continue }
+
+                let clipStart  = max(clip.startSample, region.startSample)
+                let clipEnd    = min(clip.startSample + clip.lengthSamples, region.endSample)
+                guard clipEnd > clipStart else { continue }
+
+                let clipFrames = AVAudioFrameCount(clipEnd - clipStart)
+                // Offset into the stitched buffer where this clip starts
+                let bufOffset  = Int(clipStart - region.startSample)
+                // Offset into the source file (sourceOffset + trim into region)
+                let fileStart  = AVAudioFramePosition(clip.sourceOffset + (clipStart - clip.startSample))
+
+                guard let srcBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                                     frameCapacity: clipFrames) else { continue }
+                file.framePosition = fileStart
+                guard (try? file.read(into: srcBuf, frameCount: clipFrames)) != nil,
+                      srcBuf.frameLength > 0,
+                      let channelData = srcBuf.floatChannelData else { continue }
+
+                // Pick the right channel: .AN suffix → 0-based index; fallback to ch 0
+                let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name) ?? 0
+                let srcCh = min(chIdx, Int(srcBuf.format.channelCount) - 1)
+
+                if let dst = stitched.floatChannelData?[0] {
+                    let count = Int(min(srcBuf.frameLength, regionFrames - AVAudioFrameCount(bufOffset)))
+                    memcpy(dst + bufOffset, channelData[srcCh], count * MemoryLayout<Float>.size)
+                    wroteAny = true
+                }
+            }
+
+            guard wroteAny else { continue }
+
+            let node = AVAudioPlayerNode()
+            engine.attach(node)
+            engine.connect(node, to: gainNode, format: monoFmt)
+            node.scheduleBuffer(stitched, at: nil)
+            readyNodes.append(node)
+        }
+
+        guard !readyNodes.isEmpty else { return }
+
+        if !engine.isRunning { try? engine.start() }
+
+        // Synchronise all nodes to the same host time anchor (~10 ms from now)
+        let startTime = AVAudioTime(hostTime: mach_absolute_time() + msToHostTicks(20))
+        for node in readyNodes { node.play(at: startTime) }
+
+        regionNodes     = readyNodes
+        isPlaying       = true
+        isPlayingRegion = true
+
+        let durSec = Double(regionFrames) / sr
+        let work = DispatchWorkItem { [weak self] in self?.stop() }
+        stopWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + durSec, execute: work)
+    }
+
+    // Convert milliseconds to Mach absolute time ticks (used for AVAudioTime sync).
+    private func msToHostTicks(_ ms: Double) -> UInt64 {
+        var info = mach_timebase_info_data_t()
+        mach_timebase_info(&info)
+        let nanos = ms * 1_000_000
+        return UInt64(nanos * Double(info.denom) / Double(info.numer))
     }
 
     // MARK: - Waveform loading

@@ -1639,6 +1639,59 @@ private struct SessionTimelineView: View {
         }
         let selectedClipTrackIdx: Int? = selectedClip != nil ? tc.selTrack : nil
 
+        // Build a PlayRegion when the user has drawn a time selection (selEnd != nil),
+        // or when the cursor is on a group clip (isGroup == true).
+        // Group clips expand by position: all non-group clips across all tracks that
+        // fall within the group's time range are treated as the group's contents.
+        let selectedRegion: PlayRegion? = {
+            let startSamp: Int64
+            let endSamp:   Int64
+            let trackLo:   Int
+            let trackHi:   Int
+
+            if let clip = selectedClip, clip.isGroup {
+                // Group clip: expand across all tracks over the group's duration
+                startSamp = clip.startSample
+                endSamp   = clip.startSample + clip.lengthSamples
+                trackLo   = 0
+                trackHi   = tracks.count - 1
+            } else if let s = tc.selStart, let e = tc.selEnd, e > s {
+                // User-drawn time selection
+                startSamp = Int64((s * total).rounded())
+                endSamp   = Int64((e * total).rounded())
+                trackLo   = tc.selTrack ?? 0
+                trackHi   = tc.selTrackEnd ?? trackLo
+            } else {
+                return nil
+            }
+
+            guard endSamp > startSamp else { return nil }
+
+            var segments: [PlayRegion.TrackSegment] = []
+            for idx in trackLo...max(trackLo, min(trackHi, tracks.count - 1)) {
+                let track = tracks[idx]
+                guard track.type == .audio else { continue }
+                let clipsInRange = track.clips.filter { clip in
+                    !clip.isGroup &&
+                    (!hideMuted || !clip.isMuted) &&
+                    clip.startSample < endSamp &&
+                    clip.startSample + clip.lengthSamples > startSamp
+                }.sorted { $0.startSample < $1.startSample }
+
+                let resolved = clipsInRange.compactMap { clip -> (PTXClip, URL)? in
+                    guard let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+                    else { return nil }
+                    return (clip, url)
+                }
+                if !resolved.isEmpty {
+                    segments.append(PlayRegion.TrackSegment(trackIdx: idx, clips: resolved))
+                }
+            }
+            guard !segments.isEmpty else { return nil }
+            return PlayRegion(startSample: startSamp, endSample: endSamp,
+                              segments: segments, sampleRate: sr)
+        }()
+
         VStack(spacing: 0) {
             // ── Toolbar: zoom | filters ─────────────────────────────────────
             HStack(spacing: 8) {
@@ -1876,8 +1929,15 @@ private struct SessionTimelineView: View {
                 // Faint placeholder track so the area is visually defined even when empty
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.primary.opacity(0.04))
-                if let clip = selectedClip, !clip.isGroup,
-                   let url = resolvedWaveURL, let ap = audioPlayer {
+                if let region = selectedRegion {
+                    // Multi-clip region selected — hide waveform, show summary
+                    let clipWord = region.totalClipCount == 1 ? "clip" : "clips"
+                    let trackWord = region.trackCount == 1 ? "track" : "tracks"
+                    Text("\(region.totalClipCount) \(clipWord) across \(region.trackCount) \(trackWord)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                } else if let clip = selectedClip, !clip.isGroup,
+                          let url = resolvedWaveURL, let ap = audioPlayer {
                     ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
                                      sampleRate: sr, color: waveColor, audioPlayer: ap)
                 } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
@@ -2176,7 +2236,15 @@ private struct SessionTimelineView: View {
             showTCEntry = true
         }
         .onChange(of: tc.spacebarTapped) { _ in
-            guard let ap = audioPlayer, let clip = selectedClip, !clip.isGroup,
+            guard let ap = audioPlayer else { return }
+            // Region selected → toggle region playback
+            if let region = selectedRegion {
+                if ap.isPlaying { ap.stop() }
+                else { ap.playRegion(region) }
+                return
+            }
+            // Single clip → existing behaviour
+            guard let clip = selectedClip, !clip.isGroup,
                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
             else { return }
             if ap.isPlaying && ap.playingClip == clip { ap.stop() }
@@ -2194,6 +2262,12 @@ private struct SessionTimelineView: View {
             else { return }
             guard !(ap.isPlaying && ap.playingClip == clip) else { return }
             ap.play(clip: clip, url: url, sampleRate: sr)
+        }
+        .onChange(of: tc.selEnd) { newSelEnd in
+            // Autoplay when a region selection is completed (selEnd becomes non-nil)
+            guard autoplay, newSelEnd != nil, let ap = audioPlayer,
+                  let region = selectedRegion else { return }
+            ap.playRegion(region)
         }
         .onChange(of: selectedClip?.sourceFile) { sourceFile in
             guard bwfPanelVisible else { return }
