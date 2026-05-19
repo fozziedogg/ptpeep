@@ -2315,8 +2315,19 @@ private struct SessionTimelineView: View {
             ap.play(clip: clip, url: url, sampleRate: sr)
         }
         .onChange(of: tc.selEnd) { newSelEnd in
-            // Autoplay when a region selection is completed (selEnd becomes non-nil)
-            guard autoplay, newSelEnd != nil, let ap = audioPlayer,
+            guard newSelEnd != nil else { return }
+
+            // Snap selection edges to actual clip bounds, trimming leading/trailing silence.
+            // selectedRegion already has cropped startSample/endSample; reflect that in tc.
+            if let region = selectedRegion {
+                let snappedStart = Double(region.startSample) / total
+                let snappedEnd   = Double(region.endSample)   / total
+                if tc.selStart != snappedStart { tc.selStart = snappedStart }
+                if tc.selEnd   != snappedEnd   { tc.selEnd   = snappedEnd }
+            }
+
+            // Autoplay when a region selection is completed
+            guard autoplay, let ap = audioPlayer,
                   let region = selectedRegion else { return }
             ap.playRegion(region)
         }
