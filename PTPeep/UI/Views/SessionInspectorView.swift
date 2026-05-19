@@ -1778,7 +1778,7 @@ private struct SessionTimelineView: View {
                             .foregroundStyle(.secondary)
                             .padding(.bottom, 2)
                         if hasMarkers   { Toggle("Show Markers",         isOn: $showMarkers).toggleStyle(.checkbox) }
-                                          Toggle("Show Video Track",     isOn: $showVideo).toggleStyle(.checkbox)
+                        if hasVideo     { Toggle("Show Video Track",     isOn: $showVideo).toggleStyle(.checkbox) }
                         if hasHidden    { Toggle("Show Hidden Tracks",   isOn: $showHidden).toggleStyle(.checkbox) }
                         if hasInactive  { Toggle("Show Inactive Tracks", isOn: $showInactive).toggleStyle(.checkbox) }
                                           Toggle("Show Empty Tracks",    isOn: $showEmpty).toggleStyle(.checkbox)
