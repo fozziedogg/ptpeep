@@ -1916,19 +1916,9 @@ private struct SessionTimelineView: View {
                         .frame(width: 72)
                 }
 
-                // Spot to PT: only when clip is selected and online
-                if let clip = selectedClip, !clip.isGroup,
-                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
-                    Button {
-                        Task { try? await PTSLSessionInfo.shared.spotClip(clip: clip, sourceURL: url) }
-                    } label: {
-                        Label("Spot to PT", systemImage: "pin.fill")
-                            .font(.system(size: 10))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.accentColor)
-                    .help("Import and spot this clip to its Pro Tools timeline position")
-                }
+                // Spot to PT
+                spotButton(region: selectedRegion, clip: selectedClip,
+                           resolvedFiles: resolvedFiles)
 
                 Divider().frame(height: 12)
 
@@ -2436,6 +2426,33 @@ private struct SessionTimelineView: View {
         }
         .font(.system(size: 11).monospacedDigit())
         .padding(.leading, 12)
+    }
+
+    @ViewBuilder
+    private func spotButton(region: PlayRegion?, clip: PTXClip?,
+                            resolvedFiles: [ResolvedAudioFile]) -> some View {
+        if let region {
+            Button {
+                Task { try? await PTSLSessionInfo.shared.spotRegion(region) }
+            } label: {
+                Label("Spot \(region.totalClipCount) to PT", systemImage: "pin.fill")
+                    .font(.system(size: 10))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.accentColor)
+            .help("Spot all selected clips to their original Pro Tools timeline positions, with full source handles")
+        } else if let clip, !clip.isGroup,
+                  let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+            Button {
+                Task { try? await PTSLSessionInfo.shared.spotClip(clip: clip, sourceURL: url) }
+            } label: {
+                Label("Spot to PT", systemImage: "pin.fill")
+                    .font(.system(size: 10))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.accentColor)
+            .help("Import and spot this clip to its Pro Tools timeline position")
+        }
     }
 
     private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,

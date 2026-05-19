@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 #if PTSL_ENABLED
 import GRPC
@@ -44,6 +45,7 @@ actor PTSLSessionInfo {
                 fileId:        fileId,
                 srcStart:      clip.sourceOffset,
                 srcEnd:        clip.sourceOffset + clip.lengthSamples,
+                syncPoint:     clip.sourceOffset,
                 timelineStart: clip.startSample,
                 timelineEnd:   clip.startSample + clip.lengthSamples
             )
@@ -54,6 +56,28 @@ actor PTSLSessionInfo {
             // Offset by sourceOffset so that the clip's in-point lands at the playhead.
             let spotAt = max(0, playhead - clip.sourceOffset)
             try await importLegacy(path: sourceURL.path, spotSamples: spotAt)
+        }
+#else
+        throw PTSLError.notConnected
+#endif
+    }
+
+    // MARK: - Region spot (spot each clip at its original timeline position with handles)
+
+    /// Spots every resolved clip in `region` back to its original timeline position.
+    /// Full source-file handles are exposed: srcStart=0, srcEnd=fileLength, syncPoint=sourceOffset.
+    /// Clips are spotted one at a time; errors on individual clips are logged and skipped.
+    func spotRegion(_ region: PlayRegion) async throws {
+#if PTSL_ENABLED
+        do { _ = try await registerConnection() } catch { throw error }
+        for segment in region.segments {
+            for (clip, url) in segment.clips {
+                do {
+                    try await spotClipAtOriginalPosition(clip: clip, sourceURL: url)
+                } catch {
+                    AppLog.shared.log("[Spot] Skipping clip \(clip.name): \(error)")
+                }
+            }
         }
 #else
         throw PTSLError.notConnected
@@ -230,13 +254,14 @@ actor PTSLSessionInfo {
 
     private func createAudioClip(fileId: String,
                                   srcStart: Int64, srcEnd: Int64,
+                                  syncPoint: Int64,
                                   timelineStart: Int64, timelineEnd: Int64) async throws -> String {
         let body = """
         {"clip_list":[{"clip_info":[{\
         "file_id":"\(fileId)",\
         "src_start_point":{"position":\(srcStart),"time_type":"BTType_Samples"},\
         "src_end_point":{"position":\(srcEnd),"time_type":"BTType_Samples"},\
-        "src_sync_point":{"position":\(srcStart),"time_type":"BTType_Samples"},\
+        "src_sync_point":{"position":\(syncPoint),"time_type":"BTType_Samples"},\
         "start_point":{"position":\(timelineStart),"time_type":"BTType_Samples"},\
         "end_point":{"position":\(timelineEnd),"time_type":"BTType_Samples"}\
         }]}]}
@@ -260,6 +285,35 @@ actor PTSLSessionInfo {
         """
         let resp = try await sendRequest(commandId: 124, body: body)
         AppLog.shared.log("[Spot] SpotClipsByID: \(resp)")
+    }
+
+    /// Spots a single clip at its original `startSample` position with full handles.
+    private func spotClipAtOriginalPosition(clip: PTXClip, sourceURL: URL) async throws {
+        // Read actual file length so post-roll handle is fully accessible in PT.
+        // Falls back to the clip's out-point if the file can't be opened.
+        let fileLength: Int64 = (try? AVAudioFile(forReading: sourceURL))
+            .map { Int64($0.length) } ?? (clip.sourceOffset + clip.lengthSamples)
+
+        AppLog.shared.log("[Spot] Region clip \(clip.name) srcOffset=\(clip.sourceOffset) fileLen=\(fileLength) start=\(clip.startSample)")
+
+        if isPTSL2025_06orLater {
+            let fileId = try await importAudioToClipList(path: sourceURL.path)
+            let clipId = try await createAudioClip(
+                fileId:        fileId,
+                srcStart:      0,                    // full file — pre-roll handle accessible
+                srcEnd:        fileLength,            // full file — post-roll handle accessible
+                syncPoint:     clip.sourceOffset,    // in-point within the source file
+                timelineStart: clip.startSample,
+                timelineEnd:   clip.startSample + clip.lengthSamples
+            )
+            // SLType_SyncPoint: places syncPoint (sourceOffset in file) at clip.startSample on timeline
+            try await spotClipByID(clipId: clipId, atSample: clip.startSample)
+        } else {
+            // Legacy cmd 2: imports whole file, places file-sample-0 at spotAt,
+            // so sourceOffset lands at startSample. Handles are accessible by trimming in PT.
+            let spotAt = max(0, clip.startSample - clip.sourceOffset)
+            try await importLegacy(path: sourceURL.path, spotSamples: spotAt)
+        }
     }
 
     // MARK: - JSON helper
