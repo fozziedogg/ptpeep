@@ -81,7 +81,9 @@ actor PTSLSessionInfo {
                 AppLog.shared.log("[Spot] clip_id: \(clipId)")
                 try await spotClipByID(clipId: clipId, atSample: clip.startSample)
             } else {
-                try await importLegacy(path: sourceURL.path, spotSamples: clip.startSample)
+                let playhead = (try? await fetchPlayheadSamples()) ?? 0
+                AppLog.shared.log("[Spot] Playhead: \(playhead)")
+                try await importLegacy(path: sourceURL.path, spotSamples: playhead)
             }
             AppLog.shared.log("[Spot] Done")
         } catch {
@@ -234,6 +236,18 @@ actor PTSLSessionInfo {
         guard let json = parseJSON(resp),
               let len  = json["session_length"] as? String else { return "" }
         return len
+    }
+
+    /// Returns the PT edit cursor position in samples (in_time from GetTimelineSelection, cmd 82).
+    private func fetchPlayheadSamples() async throws -> Int64 {
+        let body = isPTSL2025_06orLater
+            ? #"{"location_type":"TLType_Samples"}"#
+            : #"{"time_scale":"Samples"}"#
+        let resp = try await sendRequest(commandId: 82, body: body)
+        guard let json    = parseJSON(resp),
+              let inStr   = json["in_time"] as? String,
+              let samples = Int64(inStr) else { return 0 }
+        return samples
     }
 
     private func fetchTrackList() async throws -> [[String: Any]] {

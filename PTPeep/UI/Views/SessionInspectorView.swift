@@ -274,12 +274,11 @@ struct SessionInspectorView: View {
                         }
                         return overviewHeight
                     }()
-                    // Use session length from PTSL when available; fall back to last clip end.
-                    // This ensures the timeline extends to the full session end, not just the last clip.
+                    // Extend one hour past the last clip. Do NOT use PTSL session length —
+                    // PT may have a different session open than the file we're inspecting.
                     let clipMax = clippedTracks.flatMap(\.clips)
                         .map { $0.startSample + $0.lengthSamples }.max() ?? 0
-                    let sessionMax = session.sessionLengthSamples.map { Int64($0) } ?? 0
-                    let visibleMax = Double(max(max(clipMax, sessionMax), 1)) + sr * 3600
+                    let visibleMax = Double(max(clipMax, 1)) + sr * 3600
                     SessionTimelineView(tc: tc,
                                         tracks: clippedTracks,
                                         allTracksSamples: visibleMax,
