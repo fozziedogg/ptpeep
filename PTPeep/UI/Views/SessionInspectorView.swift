@@ -1799,6 +1799,24 @@ private struct SessionTimelineView: View {
                 }
 
                 Spacer()
+
+                // Spot to PT: only when clip is selected and online
+                if let clip = selectedClip, !clip.isGroup,
+                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                    Button {
+                        Task {
+                            try? await PTSLSessionInfo.shared.spotClip(
+                                clip: clip, sourceURL: url,
+                                sampleRate: sampleRate, frameRate: frameRate)
+                        }
+                    } label: {
+                        Label("Spot to PT", systemImage: "pin.fill")
+                            .font(.system(size: 10))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                    .help("Import and spot this clip to its Pro Tools timeline position")
+                }
             }
             .padding(.horizontal, 12)
             .frame(height: 22)

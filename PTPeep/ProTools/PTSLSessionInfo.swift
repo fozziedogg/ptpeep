@@ -107,6 +107,45 @@ actor PTSLSessionInfo {
         return list
     }
 
+    // MARK: - Spot to Pro Tools
+
+    /// Imports `sourceURL` into the open PT session, spotted so the clip's audio
+    /// region (defined by `clip.sourceOffset` and `clip.startSample`) lands at the
+    /// correct timeline timecode position.
+    ///
+    /// Uses PTSL command 2 (CId_Import / importType=Audio / ML_Spot).
+    /// Fails silently if Pro Tools is not running.
+    func spotClip(clip: PTXClip, sourceURL: URL,
+                  sampleRate: Double, frameRate: Double) async throws {
+        guard let _ = try? await registerConnection() else { throw PTSLError.notConnected }
+
+        // The file's frame-0 must land at (startSample − sourceOffset) on the timeline
+        // so that the clip region [sourceOffset … sourceOffset+length] sits at startSample.
+        let spotSamples = max(Int64(0), clip.startSample - clip.sourceOffset)
+        let tc = samplesToTC(spotSamples, sampleRate: sampleRate, frameRate: frameRate)
+
+        let escapedPath = sourceURL.path
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+
+        let body = """
+        {"importType":"Audio","audioData":{"fileList":["\(escapedPath)"],"audioOperations":"AddAudio","audioDestination":"MD_NewTrack","audioLocation":"ML_Spot","locationData":{"locationType":"Start","locationOptions":"TimeCode","locationValue":"\(tc)"}}}
+        """
+        _ = try await sendPTSL(commandId: 2, body: body)
+    }
+
+    /// Convert an absolute sample position to an HH:MM:SS:FF timecode string.
+    private func samplesToTC(_ samples: Int64, sampleRate: Double, frameRate: Double) -> String {
+        let totalSecs = Double(samples) / max(sampleRate, 1)
+        let h = Int(totalSecs) / 3600
+        let m = (Int(totalSecs) % 3600) / 60
+        let s = Int(totalSecs) % 60
+        let f = Int((totalSecs - Double(Int(totalSecs))) * frameRate)
+        return String(format: "%02d:%02d:%02d:%02d", h, m, s, f)
+    }
+
+    // MARK: - Track list merge
+
     private func mergeTrackTypes(_ ptslTracks: [[String: Any]], into session: inout PTXSession) {
         let typeMap: [String: PTXTrackType] = [
             "TT_Audio":      .audio,
