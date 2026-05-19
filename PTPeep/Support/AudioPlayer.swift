@@ -124,6 +124,16 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
     // MARK: Playback
 
+    /// Parse a Pro Tools multi-mono channel suffix (".AN") from a clip name.
+    /// Returns the 0-based channel index, or nil if not a multi-mono clip.
+    /// e.g. "myFile.A3" → 2  (channel 3, 0-based = 2)
+    static func channelIndex(fromClipName name: String) -> Int? {
+        guard let range = name.range(of: #"\.A(\d+)$"#, options: .regularExpression) else { return nil }
+        let suffix = name[range]           // e.g. ".A3"
+        guard let n = Int(suffix.dropFirst(2)), n >= 1 else { return nil }
+        return n - 1                       // 1-indexed → 0-based
+    }
+
     /// Start (or restart) playback from `fromFraction` (0…1) within the clip.
     func play(clip: PTXClip, url: URL, sampleRate: Double, fromFraction: Double = 0) {
         stop()
@@ -150,8 +160,34 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         let startFrame = AVAudioFramePosition(clip.sourceOffset + seekSamples)
         let frameCount = AVAudioFrameCount(remainingSamples)
 
-        playerNode.scheduleSegment(file, startingFrame: startFrame,
-                                   frameCount: frameCount, at: nil)
+        // Single-channel extraction for multichannel interleaved files.
+        // If clip name has ".AN" suffix and the file has more than one channel,
+        // read the segment into a buffer and memcpy just that channel into a mono buffer.
+        var scheduled = false
+        let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name)
+        let fileCh = Int(file.processingFormat.channelCount)
+        if let ch = chIdx, fileCh > 1, ch < fileCh,
+           let srcBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                         frameCapacity: frameCount) {
+            file.framePosition = startFrame
+            if (try? file.read(into: srcBuf, frameCount: frameCount)) != nil,
+               srcBuf.frameLength > 0,
+               let channelData = srcBuf.floatChannelData,
+               let monoFmt = AVAudioFormat(standardFormatWithSampleRate: file.processingFormat.sampleRate,
+                                           channels: 1),
+               let monoBuf = AVAudioPCMBuffer(pcmFormat: monoFmt,
+                                              frameCapacity: srcBuf.frameLength) {
+                monoBuf.frameLength = srcBuf.frameLength
+                memcpy(monoBuf.floatChannelData![0], channelData[ch],
+                       Int(srcBuf.frameLength) * MemoryLayout<Float>.size)
+                playerNode.scheduleBuffer(monoBuf, at: nil)
+                scheduled = true
+            }
+        }
+        if !scheduled {
+            playerNode.scheduleSegment(file, startingFrame: startFrame,
+                                       frameCount: frameCount, at: nil)
+        }
         playerNode.play()
 
         isPlaying        = true
@@ -191,11 +227,14 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     /// Reads PCM peaks for the clip region, one `[Float]` per channel (normalised 0…1).
     /// Uses AVAudioFile whose `processingFormat` is always float32 deinterleaved —
     /// giving reliable per-channel data without AVAssetReader channel-count ambiguity.
+    /// Pass `channelIndex` (0-based) to return only that channel (e.g. for multichannel files).
     static func loadWaveform(url: URL, startSample: Int64, lengthSamples: Int64,
-                             sampleRate: Double, resolution: Int = 500) async -> [[Float]] {
+                             sampleRate: Double, resolution: Int = 500,
+                             channelIndex: Int? = nil) async -> [[Float]] {
         // Cache hit?
         if let cached = WaveformCache.shared.get(audioURL: url, startSample: startSample,
-                                                  lengthSamples: lengthSamples, resolution: resolution) {
+                                                  lengthSamples: lengthSamples, resolution: resolution,
+                                                  channelIndex: channelIndex) {
             return cached
         }
 
@@ -247,8 +286,17 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
                 }
             }
         }
-        WaveformCache.shared.set(peaks: peaks, audioURL: url, startSample: startSample,
-                                 lengthSamples: lengthSamples, resolution: resolution)
-        return peaks
+        // Filter to single channel if requested
+        let result: [[Float]]
+        if let ch = channelIndex, ch < peaks.count {
+            result = [peaks[ch]]
+        } else {
+            result = peaks
+        }
+
+        WaveformCache.shared.set(peaks: result, audioURL: url, startSample: startSample,
+                                 lengthSamples: lengthSamples, resolution: resolution,
+                                 channelIndex: channelIndex)
+        return result
     }
 }

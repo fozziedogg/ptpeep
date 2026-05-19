@@ -2046,14 +2046,10 @@ private struct SessionTimelineView: View {
                                                                      respectHideMuted: hideMuted)
 
                                         if let clip = clickedClip {
-                                            // Place cursor at clip in-point; SEL row derives from this
+                                            // Place cursor at clip in-point; SEL row derives from this.
+                                            // onChange(of: tc.selStart) handles autoplay uniformly.
                                             tc.selStart = Double(clip.startSample) / total
                                             tc.selEnd   = nil
-                                            // Autoplay: immediately play clip on click
-                                            if autoplay, let ap = audioPlayer, !clip.isGroup,
-                                               let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
-                                                ap.play(clip: clip, url: url, sampleRate: sr)
-                                            }
                                         } else {
                                             // Empty space → cursor only, no clip selected
                                             tc.selStart = frac
@@ -2186,11 +2182,13 @@ private struct SessionTimelineView: View {
             if ap.isPlaying && ap.playingClip == clip { ap.stop() }
             else { ap.play(clip: clip, url: url, sampleRate: sr) }
         }
-        .onChange(of: tc.selStart) { _ in
-            // Autoplay on tab/keyboard navigation (click already fires play directly).
-            // Skip if no clip is selected, selection is a range, or clip is already playing.
-            guard autoplay, tc.selEnd == nil else { return }
-            guard let clip = selectedClip, !clip.isGroup,
+        .onChange(of: tc.selStart) { newSelStart in
+            // Autoplay on clip selection (click, tab, keyboard navigation).
+            // Compute the clip from the NEW selStart so we never act on a stale capture.
+            guard autoplay, tc.selEnd == nil, let newStart = newSelStart else { return }
+            let newSamp = Int64((newStart * total).rounded())
+            guard let clip = clipAt(trackIdx: tc.selTrack, sample: newSamp),
+                  !clip.isGroup,
                   let ap = audioPlayer,
                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
             else { return }
@@ -3001,6 +2999,7 @@ private struct ClipWaveformView: View {
         }
         .task(id: loadID) {
             peaks = []
+            let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name)
             if let companion = urlCompanion {
                 // Split-stereo: load primary and companion in parallel, combine as [L, R]
                 async let primary   = AudioPlayer.loadWaveform(url: url,      startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
@@ -3012,7 +3011,8 @@ private struct ClipWaveformView: View {
                     url: url,
                     startSample: clip.sourceOffset,
                     lengthSamples: clip.lengthSamples,
-                    sampleRate: sampleRate
+                    sampleRate: sampleRate,
+                    channelIndex: chIdx
                 )
             }
         }
