@@ -2552,6 +2552,17 @@ private struct TimelineLaneCanvas: View, Equatable {
             let winStartSamp = Int64((vStart * total).rounded(.down))
             let winEndSamp   = Int64(((vStart + vWindow) * total).rounded(.up))
 
+            // Pre-compute laneY for each track so the selection box can span exactly
+            // the selected track rows rather than the full canvas height.
+            var trackLaneYs: [CGFloat] = []
+            do {
+                var y: CGFloat = 0
+                for (i, track) in tracks.enumerated() {
+                    trackLaneYs.append(y)
+                    y += scaledLaneH(track, index: i) + Self.laneGap
+                }
+            }
+
             var laneY: CGFloat = 0
             for (i, track) in tracks.enumerated() {
                 let thisLaneH  = scaledLaneH(track, index: i)
@@ -2601,41 +2612,51 @@ private struct TimelineLaneCanvas: View, Equatable {
                         }
                     }
 
-                    // Selected-clip highlight border
+                    // Selected-clip highlight: brighten by overlaying a white fill
                     let isClipSelected: Bool = {
                         if let ss = selEndSamp, trackInSelRange {
-                            // Region selection: clip overlaps [selStart, selEnd]
                             let selS = selStartSamp ?? 0
                             return clip.startSample < ss && clip.startSample + clip.lengthSamples > selS
                         } else if let ss = selStartSamp, i == (selTrack ?? -1), selEnd == nil {
-                            // Cursor-only: clip starts exactly at cursor
                             return clip.startSample == ss
                         }
                         return false
                     }()
                     if isClipSelected, w >= 1 {
-                        ctx.stroke(Path(clipRect), with: .color(.white.opacity(0.9)),
-                                   style: StrokeStyle(lineWidth: 2))
+                        ctx.fill(Path(clipRect), with: .color(.white.opacity(0.28)))
                     }
                 }
                 laneY += thisLaneH + Self.laneGap
             }
 
-            // Cursor / selection band (drawn over clips)
+            // Cursor / selection box (drawn over clips)
             if let sStart = selStart {
                 let sx = CGFloat((sStart - vStart) / vWindow) * size.width
                 if let sEnd = selEnd {
                     let ex = CGFloat((sEnd - vStart) / vWindow) * size.width
                     let x  = min(sx, ex)
                     let w  = max(1, abs(ex - sx))
+
+                    // Clamp the box to the vertical span of the selected tracks.
+                    let boxY: CGFloat
+                    let boxH: CGFloat
+                    if selLo >= 0, selLo < trackLaneYs.count {
+                        boxY = trackLaneYs[selLo]
+                        let hiIdx  = min(selHi, tracks.count - 1)
+                        let bottom = trackLaneYs[hiIdx] + scaledLaneH(tracks[hiIdx], index: hiIdx)
+                        boxH = max(1, bottom - boxY)
+                    } else {
+                        boxY = 0; boxH = availH
+                    }
+
                     ctx.fill(
-                        Path(CGRect(x: x, y: 0, width: w, height: availH)),
-                        with: .color(Color.accentColor.opacity(0.18))
+                        Path(CGRect(x: x, y: boxY, width: w, height: boxH)),
+                        with: .color(Color.accentColor.opacity(0.22))
                     )
-                    ctx.fill(Path(CGRect(x: x,         y: 0, width: 1, height: availH)),
-                             with: .color(Color.accentColor.opacity(0.7)))
-                    ctx.fill(Path(CGRect(x: x + w - 1, y: 0, width: 1, height: availH)),
-                             with: .color(Color.accentColor.opacity(0.7)))
+                    ctx.fill(Path(CGRect(x: x,         y: boxY, width: 1, height: boxH)),
+                             with: .color(Color.accentColor.opacity(0.8)))
+                    ctx.fill(Path(CGRect(x: x + w - 1, y: boxY, width: 1, height: boxH)),
+                             with: .color(Color.accentColor.opacity(0.8)))
                 } else if sx >= 0, sx <= size.width {
                     ctx.fill(
                         Path(CGRect(x: sx - 0.5, y: 0, width: 1, height: availH)),
