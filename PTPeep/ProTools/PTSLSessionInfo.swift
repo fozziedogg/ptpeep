@@ -68,25 +68,9 @@ actor PTSLSessionInfo {
     /// Full source-file handles are exposed: srcStart=0, srcEnd=fileLength, syncPoint=sourceOffset.
     /// Clips are spotted one at a time; errors on individual clips are logged and skipped.
     func spotRegion(_ region: PlayRegion) async throws {
-#if PTSL_ENABLED
-        do { _ = try await registerConnection() } catch { throw error }
-        // Fetch the PT edit cursor once; all clips are offset relative to it.
-        // Falls back to the region's own start if PT is unreachable.
-        let playhead = (try? await fetchPlayheadSamples()) ?? region.startSample
-        for segment in region.segments {
-            for (clip, url) in segment.clips {
-                do {
-                    try await spotClipAtOriginalPosition(clip: clip, sourceURL: url,
-                                                         regionStart: region.startSample,
-                                                         playhead: playhead)
-                } catch {
-                    AppLog.shared.log("[Spot] Skipping clip \(clip.name): \(error)")
-                }
-            }
-        }
-#else
-        throw PTSLError.notConnected
-#endif
+        // Use the Apple Event path — works with any PT version, no PTSL needed,
+        // spots to the selected track(s), and handles work naturally.
+        try await spotRegionViaAppleEvent(region)
     }
 
 #if PTSL_ENABLED
