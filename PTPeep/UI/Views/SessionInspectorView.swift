@@ -1721,7 +1721,7 @@ private struct SessionTimelineView: View {
 
             // ── HOVER / SELECT clip rows (aligned columns) ───────────────────
             clipInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
-                        label: "HOVER", sr: sr, isSelected: false,
+                        label: "HOVER", sr: sr, total: total, isSelected: false,
                         resolvedURL: resolvedFiles.first(where: { $0.name == hoverClip?.sourceFile })?.url,
                         cursorAbsFrac: hoverClip == nil ? hoverAbsFrac : nil,
                         cursorLane:    hoverClip == nil ? hoverLane    : nil)
@@ -1740,7 +1740,7 @@ private struct SessionTimelineView: View {
                     }
                 }
             clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
-                        label: "SELECT", sr: sr, isSelected: true,
+                        label: "SELECT", sr: sr, total: total, isSelected: true,
                         resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
 
             // ── Transport strip ───────────────────────────────────────────────
@@ -2199,7 +2199,7 @@ private struct SessionTimelineView: View {
     }
 
     private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
-                             label: String, sr: Double, isSelected: Bool,
+                             label: String, sr: Double, total: Double, isSelected: Bool,
                              resolvedURL: URL? = nil,
                              cursorAbsFrac: Double? = nil,
                              cursorLane: Int? = nil) -> some View {
