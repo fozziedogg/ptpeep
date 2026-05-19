@@ -1730,7 +1730,7 @@ private struct SessionTimelineView: View {
                 guard track.type == .audio else { continue }
                 let clipsInRange = track.clips.filter { clip in
                     !clip.isGroup &&
-                    (!hideMuted || !clip.isMuted) &&
+                    !clip.isMuted &&   // muted clips never play in a region
                     clip.startSample < endSamp &&
                     clip.startSample + clip.lengthSamples > startSamp
                 }.sorted { $0.startSample < $1.startSample }
