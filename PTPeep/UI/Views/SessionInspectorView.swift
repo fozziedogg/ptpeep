@@ -2186,6 +2186,17 @@ private struct SessionTimelineView: View {
             if ap.isPlaying && ap.playingClip == clip { ap.stop() }
             else { ap.play(clip: clip, url: url, sampleRate: sr) }
         }
+        .onChange(of: tc.selStart) { _ in
+            // Autoplay on tab/keyboard navigation (click already fires play directly).
+            // Skip if no clip is selected, selection is a range, or clip is already playing.
+            guard autoplay, tc.selEnd == nil else { return }
+            guard let clip = selectedClip, !clip.isGroup,
+                  let ap = audioPlayer,
+                  let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+            else { return }
+            guard !(ap.isPlaying && ap.playingClip == clip) else { return }
+            ap.play(clip: clip, url: url, sampleRate: sr)
+        }
         .onChange(of: selectedClip?.sourceFile) { sourceFile in
             guard bwfPanelVisible else { return }
             bwfMetadata = nil
