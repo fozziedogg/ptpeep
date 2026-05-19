@@ -1778,7 +1778,7 @@ private struct SessionTimelineView: View {
                             .foregroundStyle(.secondary)
                             .padding(.bottom, 2)
                         if hasMarkers   { Toggle("Show Markers",         isOn: $showMarkers).toggleStyle(.checkbox) }
-                        if hasVideo     { Toggle("Show Video Track",     isOn: $showVideo).toggleStyle(.checkbox) }
+                                          Toggle("Show Video Track",     isOn: $showVideo).toggleStyle(.checkbox)
                         if hasHidden    { Toggle("Show Hidden Tracks",   isOn: $showHidden).toggleStyle(.checkbox) }
                         if hasInactive  { Toggle("Show Inactive Tracks", isOn: $showInactive).toggleStyle(.checkbox) }
                                           Toggle("Show Empty Tracks",    isOn: $showEmpty).toggleStyle(.checkbox)
@@ -1801,7 +1801,8 @@ private struct SessionTimelineView: View {
             }
             .font(.system(size: 11).monospacedDigit())
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
+            .padding(.leading, 0)
+            .padding(.trailing, 8)
             .frame(height: 24)
 
             // ── SELECT clip row ───────────────────────────────────────────────
@@ -1942,13 +1943,14 @@ private struct SessionTimelineView: View {
                 // Faint placeholder track so the area is visually defined even when empty
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.primary.opacity(0.04))
-                if let region = selectedRegion {
-                    // Multi-clip region selected — hide waveform, show summary
-                    let clipWord = region.totalClipCount == 1 ? "clip" : "clips"
-                    let trackWord = region.trackCount == 1 ? "track" : "tracks"
-                    Text("\(region.totalClipCount) \(clipWord) across \(region.trackCount) \(trackWord)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                if let region = selectedRegion, let ap = audioPlayer {
+                    // Composite waveform for the selected region
+                    let segColors: [Color] = region.segments.map { seg in
+                        seg.trackIdx < tracks.count
+                            ? trackColor(tracks[seg.trackIdx], index: seg.trackIdx)
+                            : waveColor
+                    }
+                    RegionWaveformView(region: region, segColors: segColors, audioPlayer: ap)
                 } else if let clip = selectedClip, !clip.isGroup,
                           let url = resolvedWaveURL, let ap = audioPlayer {
                     ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
@@ -3114,6 +3116,124 @@ private func waveformChannelLabels(_ count: Int) -> [String] {
     case 6: return ["L", "R", "C", "LFE", "Ls", "Rs"]
     case 8: return ["L", "R", "C", "LFE", "Lss", "Rss", "Lrs", "Rrs"]
     default: return (1...max(count, 1)).map { "\($0)" }
+    }
+}
+
+// MARK: - Region waveform (composite: clips + silence, one row per track segment)
+
+private struct RegionWaveformView: View {
+    let region:    PlayRegion
+    let segColors: [Color]          // one Color per segment (in segment order)
+    @ObservedObject var audioPlayer: AudioPlayer
+
+    // trackIdx → assembled peak array (one Float per pixel)
+    @State private var trackPeaks: [Int: [Float]] = [:]
+    @State private var viewWidth:  CGFloat = 1
+    @State private var loadID:     UUID    = UUID()
+
+    var body: some View {
+        Canvas { ctx, size in
+            let w        = size.width
+            let h        = size.height
+            let segCount = CGFloat(region.segments.count)
+            let rowH     = h / segCount
+
+            for (rowIdx, segment) in region.segments.enumerated() {
+                let rowY  = CGFloat(rowIdx) * rowH
+                let midY  = rowY + rowH / 2
+                let color = rowIdx < segColors.count ? segColors[rowIdx] : Color.accentColor
+
+                // Silence baseline
+                ctx.fill(Path(CGRect(x: 0, y: midY - 0.5, width: w, height: 1)),
+                         with: .color(color.opacity(0.15)))
+
+                // Clip presence bands (faint background where audio exists)
+                let totalSamp = Double(region.endSample - region.startSample)
+                for (clip, _) in segment.clips {
+                    let x1 = CGFloat((Double(clip.startSample - region.startSample) / totalSamp) * Double(w))
+                    let x2 = CGFloat((Double(clip.startSample + clip.lengthSamples - region.startSample) / totalSamp) * Double(w))
+                    ctx.fill(Path(CGRect(x: x1, y: rowY, width: max(1, x2 - x1), height: rowH)),
+                             with: .color(color.opacity(0.07)))
+                }
+
+                // Waveform peaks
+                guard let peaks = trackPeaks[segment.trackIdx], !peaks.isEmpty else { continue }
+                let n    = CGFloat(peaks.count)
+                let step = w / n
+                let lineW = max(1, step * 0.7)
+                var path = Path()
+                for (i, peak) in peaks.enumerated() {
+                    let x   = (CGFloat(i) + 0.5) * step
+                    let amp = CGFloat(peak) * (rowH / 2) * 0.85
+                    path.move(to:    CGPoint(x: x, y: midY - amp))
+                    path.addLine(to: CGPoint(x: x, y: midY + amp))
+                }
+                ctx.stroke(path, with: .color(color.opacity(0.85)),
+                           style: StrokeStyle(lineWidth: lineW))
+
+                // Row divider for multi-track
+                if rowIdx > 0 {
+                    ctx.fill(Path(CGRect(x: 0, y: rowY, width: w, height: 0.5)),
+                             with: .color(.primary.opacity(0.1)))
+                }
+            }
+
+            // Playhead
+            if audioPlayer.isPlayingRegion || (audioPlayer.isPlaying && !audioPlayer.isPlayingRegion) {
+                let x = CGFloat(audioPlayer.playbackFraction) * w
+                ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: h)),
+                         with: .color(.white.opacity(0.9)))
+                ctx.fill(Path(CGRect(x: x - 2,   y: 0, width: 4, height: h)),
+                         with: .color(.white.opacity(0.12)))
+            }
+        }
+        .background(GeometryReader { geo in
+            Color.clear
+                .onAppear       { viewWidth = geo.size.width; loadID = UUID() }
+                .onChange(of: geo.size.width) { viewWidth = $0; loadID = UUID() }
+        })
+        .task(id: loadID) { await loadPeaks() }
+        .onChange(of: region.startSample) { _ in loadID = UUID() }
+        .onChange(of: region.endSample)   { _ in loadID = UUID() }
+    }
+
+    private func loadPeaks() async {
+        guard viewWidth > 1 else { return }
+        let totalSamples = Double(region.endSample - region.startSample)
+        let width        = Int(viewWidth)
+
+        var result: [Int: [Float]] = [:]
+
+        for segment in region.segments {
+            var assembled = [Float](repeating: 0, count: width)
+
+            for (clip, url) in segment.clips {
+                let clipStartFrac = Double(clip.startSample - region.startSample) / totalSamples
+                let clipEndFrac   = Double(clip.startSample + clip.lengthSamples - region.startSample) / totalSamples
+                let pxStart = Int((clipStartFrac * Double(width)).rounded())
+                let pxEnd   = Int((clipEndFrac   * Double(width)).rounded())
+                let pxCount = max(1, pxEnd - pxStart)
+
+                let chIdx     = AudioPlayer.channelIndex(fromClipName: clip.name)
+                let clipPeaks = await AudioPlayer.loadWaveform(
+                    url: url,
+                    startSample: clip.sourceOffset,
+                    lengthSamples: clip.lengthSamples,
+                    sampleRate: region.sampleRate,
+                    resolution: pxCount,
+                    channelIndex: chIdx
+                )
+                guard let ch0 = clipPeaks.first else { continue }
+
+                for (i, peak) in ch0.enumerated() {
+                    let idx = pxStart + i
+                    if idx < assembled.count { assembled[idx] = peak }
+                }
+            }
+            result[segment.trackIdx] = assembled
+        }
+
+        await MainActor.run { trackPeaks = result }
     }
 }
 

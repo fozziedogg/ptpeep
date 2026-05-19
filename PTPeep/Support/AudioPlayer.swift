@@ -329,6 +329,14 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         let work = DispatchWorkItem { [weak self] in self?.stop() }
         stopWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + durSec, execute: work)
+
+        // Ticker to animate playhead during region playback
+        let startDate = Date()
+        ticker = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            let elapsed = Date().timeIntervalSince(startDate)
+            self.playbackFraction = max(0, min(1, elapsed / durSec))
+        }
     }
 
     // Convert milliseconds to Mach absolute time ticks (used for AVAudioTime sync).
