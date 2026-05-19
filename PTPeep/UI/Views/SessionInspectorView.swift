@@ -2121,9 +2121,12 @@ private struct SessionTimelineView: View {
                                             isDragging = true
                                             let startFrac = (Double(val.startLocation.x / geo.size.width)
                                                 * tc.window + tc.viewStart).clamped(to: 0...1)
-                                            tc.selStart = startFrac
-                                            tc.selTrack = laneIndex(at: val.startLocation.y,
-                                                                     availH: geo.size.height)
+                                            // Clear any existing selection before starting fresh
+                                            tc.selEnd      = nil
+                                            tc.selTrackEnd = nil
+                                            tc.selStart    = startFrac
+                                            tc.selTrack    = laneIndex(at: val.startLocation.y,
+                                                                       availH: geo.size.height)
                                         }
                                         tc.selEnd = curFrac
                                         let curLane = laneIndex(at: val.location.y,
@@ -2315,9 +2318,10 @@ private struct SessionTimelineView: View {
             ap.play(clip: clip, url: url, sampleRate: sr)
         }
         .onChange(of: tc.selEnd) { newSelEnd in
-            guard newSelEnd != nil else { return }
+            guard newSelEnd != nil, !isDragging else { return }
 
             // Snap selection edges to actual clip bounds, trimming leading/trailing silence.
+            // Only do this when the drag is complete, not mid-drag.
             // selectedRegion already has cropped startSample/endSample; reflect that in tc.
             if let region = selectedRegion {
                 let snappedStart = Double(region.startSample) / total
