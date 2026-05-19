@@ -1636,6 +1636,37 @@ private struct SessionTimelineView: View {
         return nil
     }
 
+    /// Tightens tc.selStart / tc.selEnd to the actual earliest/latest clip edges
+    /// within the current selection, removing any leading/trailing silence.
+    private func snapSelectionToClipBounds(total: Double) {
+        guard let s = tc.selStart, let e = tc.selEnd, e > s else { return }
+        let startSamp = Int64((s * total).rounded())
+        let endSamp   = Int64((e * total).rounded())
+        let trackLo   = min(tc.selTrack ?? 0, tc.selTrackEnd ?? (tc.selTrack ?? 0))
+        let trackHi   = max(tc.selTrack ?? 0, tc.selTrackEnd ?? (tc.selTrack ?? 0))
+        let hiIdx     = min(trackHi, tracks.count - 1)
+        guard trackLo >= 0, trackLo <= hiIdx else { return }
+
+        var minStart = endSamp
+        var maxEnd   = startSamp
+        for idx in trackLo...hiIdx {
+            let track = tracks[idx]
+            guard track.type == .audio else { continue }
+            for clip in track.clips {
+                guard !clip.isGroup,
+                      clip.startSample < endSamp,
+                      clip.startSample + clip.lengthSamples > startSamp else { continue }
+                minStart = min(minStart, clip.startSample)
+                maxEnd   = max(maxEnd, clip.startSample + clip.lengthSamples)
+            }
+        }
+        guard minStart < maxEnd else { return }
+        let croppedStart = max(startSamp, minStart)
+        let croppedEnd   = min(endSamp, maxEnd)
+        if croppedStart != startSamp { tc.selStart = Double(croppedStart) / total }
+        if croppedEnd   != endSamp   { tc.selEnd   = Double(croppedEnd)   / total }
+    }
+
     var body: some View {
         // Use allTracksSamples if provided so ruler markers and the cursor always share
         // the same denominator, even when some tracks are hidden/filtered from the canvas.
@@ -2135,6 +2166,11 @@ private struct SessionTimelineView: View {
                                     }
                                 }
                                 .onEnded { val in
+                                    let wasDragging = isDragging
+                                    isDragging = false
+                                    isPanning  = false
+                                    panOrigin  = nil
+
                                     let dist = hypot(val.translation.width, val.translation.height)
                                     if dist < 3 {
                                         // Click: place cursor, or select clip if one is under the click
@@ -2149,35 +2185,29 @@ private struct SessionTimelineView: View {
                                                                      respectHideMuted: hideMuted)
 
                                         if shiftHeld, tc.selStart != nil {
-                                            // Shift-click: extend selection to span clicked clip
                                             applyShiftClick(clickedClip: clickedClip,
                                                             clickFrac: frac,
                                                             clickLane: clickLane,
                                                             total: total)
                                         } else if let clip = clickedClip {
-                                            // Normal click on a clip
                                             tc.selTrackEnd = nil
                                             tc.selTrack    = clickLane
-                                            // Place cursor at clip in-point; SEL row derives from this.
-                                            // onChange(of: tc.selStart) handles autoplay uniformly.
                                             tc.selStart = Double(clip.startSample) / total
                                             tc.selEnd   = nil
                                         } else {
-                                            // Empty space → cursor only, no clip selected
                                             tc.selTrackEnd = nil
                                             tc.selTrack    = clickLane
                                             tc.selStart = frac
                                             tc.selEnd   = nil
                                         }
-                                    } else if isDragging {
+                                    } else if wasDragging {
                                         // Normalize selection so start <= end
                                         if let s = tc.selStart, let e = tc.selEnd, e < s {
                                             let tmp = tc.selStart; tc.selStart = tc.selEnd; tc.selEnd = tmp
                                         }
+                                        // Snap edges to actual clip bounds (trim leading/trailing silence)
+                                        snapSelectionToClipBounds(total: total)
                                     }
-                                    isDragging = false
-                                    isPanning  = false
-                                    panOrigin  = nil
                                 }
                         )
                 }
@@ -2318,20 +2348,10 @@ private struct SessionTimelineView: View {
             ap.play(clip: clip, url: url, sampleRate: sr)
         }
         .onChange(of: tc.selEnd) { newSelEnd in
-            guard newSelEnd != nil, !isDragging else { return }
-
-            // Snap selection edges to actual clip bounds, trimming leading/trailing silence.
-            // Only do this when the drag is complete, not mid-drag.
-            // selectedRegion already has cropped startSample/endSample; reflect that in tc.
-            if let region = selectedRegion {
-                let snappedStart = Double(region.startSample) / total
-                let snappedEnd   = Double(region.endSample)   / total
-                if tc.selStart != snappedStart { tc.selStart = snappedStart }
-                if tc.selEnd   != snappedEnd   { tc.selEnd   = snappedEnd }
-            }
-
-            // Autoplay when a region selection is completed
-            guard autoplay, let ap = audioPlayer,
+            // Autoplay when a region selection is completed (selEnd becomes non-nil).
+            // Snap is handled in onEnded; this covers programmatic selEnd changes too.
+            guard newSelEnd != nil, !isDragging, autoplay,
+                  let ap = audioPlayer,
                   let region = selectedRegion else { return }
             ap.playRegion(region)
         }
