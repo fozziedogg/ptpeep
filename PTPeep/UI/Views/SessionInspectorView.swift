@@ -1682,8 +1682,19 @@ private struct SessionTimelineView: View {
 
             guard endSamp > startSamp else { return nil }
 
+            // Safety cap: don't build a region that would require reading
+            // hundreds of files or gigabytes of audio on the main thread.
+            let kMaxClips: Int    = 100
+            let kMaxSec:   Double = 120.0
+            let durationSec = Double(endSamp - startSamp) / sr
+            guard durationSec <= kMaxSec else { return nil }
+
+            let hiIdx = min(max(trackLo, trackHi), tracks.count - 1)
+            guard trackLo >= 0, trackLo <= hiIdx else { return nil }
+
             var segments: [PlayRegion.TrackSegment] = []
-            for idx in trackLo...max(trackLo, min(trackHi, tracks.count - 1)) {
+            var totalClips = 0
+            for idx in trackLo...hiIdx {
                 let track = tracks[idx]
                 guard track.type == .audio else { continue }
                 let clipsInRange = track.clips.filter { clip in
@@ -1699,8 +1710,10 @@ private struct SessionTimelineView: View {
                     return (clip, url)
                 }
                 if !resolved.isEmpty {
+                    totalClips += resolved.count
                     segments.append(PlayRegion.TrackSegment(trackIdx: idx, clips: resolved))
                 }
+                if totalClips > kMaxClips { return nil }  // bail early
             }
             guard !segments.isEmpty else { return nil }
             return PlayRegion(startSample: startSamp, endSample: endSamp,
@@ -1951,6 +1964,12 @@ private struct SessionTimelineView: View {
                             : waveColor
                     }
                     RegionWaveformView(region: region, segColors: segColors, audioPlayer: ap)
+                } else if tc.selEnd != nil {
+                    // Selection exists but exceeds the cap — don't try to play or preview it
+                    Label("Selection too large to play (> 100 clips or > 2 min)",
+                          systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
                 } else if let clip = selectedClip, !clip.isGroup,
                           let url = resolvedWaveURL, let ap = audioPlayer {
                     ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
