@@ -21,6 +21,10 @@
 		BB00CC11DD22EE33FF445518 /* WaveformCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445504 /* WaveformCache.swift */; };
 		PTSL0001PTSL0001PTSL0001 /* PTSL_minimal.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = PTSL0010PTSL0010PTSL0010 /* PTSL_minimal.pb.swift */; };
 		PTSL0002PTSL0002PTSL0002 /* PTSL_minimal.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = PTSL0020PTSL0020PTSL0020 /* PTSL_minimal.grpc.swift */; };
+		GRPC0001GRPC0001GRPC0001 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0011GRPC0011GRPC0011 /* SwiftProtobuf */; };
+		GRPC0002GRPC0002GRPC0002 /* GRPC in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0012GRPC0012GRPC0012 /* GRPC */; };
+		GRPC0003GRPC0003GRPC0003 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0013GRPC0013GRPC0013 /* NIOCore */; };
+		GRPC0004GRPC0004GRPC0004 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0014GRPC0014GRPC0014 /* NIOPosix */; };
 		CC11DD22EE33FF44AA556615 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */; };
 		CC11DD22EE33FF44AA556616 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */; };
 		DD11EE22FF33AA44BB556601 /* PTPeepQL.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 927280E6749AFAE80FE9ABE2 /* PTPeepQL.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -196,6 +200,7 @@
 			buildPhases = (
 				AA01BB11CC22DD33EE44FF57 /* Resources */,
 				8C67127B5C772605C570F0E8 /* Sources */,
+				GRPC0030GRPC0030GRPC0030 /* Frameworks */,
 				DD11EE22FF33AA44BB556602 /* Embed App Extensions */,
 			);
 			buildRules = (
@@ -205,6 +210,10 @@
 			);
 			name = PTPeep;
 			packageProductDependencies = (
+				GRPC0011GRPC0011GRPC0011 /* SwiftProtobuf */,
+				GRPC0012GRPC0012GRPC0012 /* GRPC */,
+				GRPC0013GRPC0013GRPC0013 /* NIOCore */,
+				GRPC0014GRPC0014GRPC0014 /* NIOPosix */,
 			);
 			productName = PTPeep;
 			productReference = B5C2EE3C4A771CD8663C679D /* PTPeep.app */;
@@ -255,6 +264,10 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3FE17D1C9F579184EB565FF3 /* Products */;
+			packageReferences = (
+				GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */,
+				GRPC0021GRPC0021GRPC0021 /* XCRemoteSwiftPackageReference "swift-protobuf" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -332,6 +345,62 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		GRPC0030GRPC0030GRPC0030 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				GRPC0001GRPC0001GRPC0001 /* SwiftProtobuf in Frameworks */,
+				GRPC0002GRPC0002GRPC0002 /* GRPC in Frameworks */,
+				GRPC0003GRPC0003GRPC0003 /* NIOCore in Frameworks */,
+				GRPC0004GRPC0004GRPC0004 /* NIOPosix in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/grpc/grpc-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		GRPC0021GRPC0021GRPC0021 /* XCRemoteSwiftPackageReference "swift-protobuf" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-protobuf";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.36.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		GRPC0011GRPC0011GRPC0011 /* SwiftProtobuf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = GRPC0021GRPC0021GRPC0021 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobuf;
+		};
+		GRPC0012GRPC0012GRPC0012 /* GRPC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = GRPC;
+		};
+		GRPC0013GRPC0013GRPC0013 /* NIOCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = NIOCore;
+		};
+		GRPC0014GRPC0014GRPC0014 /* NIOPosix */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = NIOPosix;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin PBXTargetDependency section */
 		7365D1472085240781F9CFDF /* PBXTargetDependency */ = {
