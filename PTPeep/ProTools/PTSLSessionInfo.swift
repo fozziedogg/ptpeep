@@ -57,38 +57,25 @@ actor PTSLSessionInfo {
     /// PT 2024 and earlier: command 2 streaming Import with ML_Spot (creates a new track).
     func spotClip(clip: PTXClip, sourceURL: URL) async throws {
 #if PTSL_ENABLED
-        AppLog.shared.log("[Spot] Starting — \(sourceURL.lastPathComponent)")
-
         do {
             _ = try await registerConnection()
-            AppLog.shared.log("[Spot] Connected (PT \(ptslMajor).\(ptslMinor))")
         } catch {
-            AppLog.shared.log("[Spot] Connection failed: \(error)")
             throw error
         }
 
-        do {
-            if isPTSL2025_06orLater {
-                let fileId = try await importAudioToClipList(path: sourceURL.path)
-                AppLog.shared.log("[Spot] file_id: \(fileId)")
-                let clipId = try await createAudioClip(
-                    fileId:        fileId,
-                    srcStart:      clip.sourceOffset,
-                    srcEnd:        clip.sourceOffset + clip.lengthSamples,
-                    timelineStart: clip.startSample,
-                    timelineEnd:   clip.startSample + clip.lengthSamples
-                )
-                AppLog.shared.log("[Spot] clip_id: \(clipId)")
-                try await spotClipByID(clipId: clipId, atSample: clip.startSample)
-            } else {
-                let playhead = (try? await fetchPlayheadSamples()) ?? 0
-                AppLog.shared.log("[Spot] Playhead: \(playhead)")
-                try await importLegacy(path: sourceURL.path, spotSamples: playhead)
-            }
-            AppLog.shared.log("[Spot] Done")
-        } catch {
-            AppLog.shared.log("[Spot] Failed: \(error)")
-            throw error
+        if isPTSL2025_06orLater {
+            let fileId = try await importAudioToClipList(path: sourceURL.path)
+            let clipId = try await createAudioClip(
+                fileId:        fileId,
+                srcStart:      clip.sourceOffset,
+                srcEnd:        clip.sourceOffset + clip.lengthSamples,
+                timelineStart: clip.startSample,
+                timelineEnd:   clip.startSample + clip.lengthSamples
+            )
+            try await spotClipByID(clipId: clipId, atSample: clip.startSample)
+        } else {
+            let playhead = (try? await fetchPlayheadSamples()) ?? 0
+            try await importLegacy(path: sourceURL.path, spotSamples: playhead)
         }
 #else
         throw PTSLError.notConnected
