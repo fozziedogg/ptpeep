@@ -270,7 +270,7 @@ struct SessionInspectorView: View {
                     // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                     let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                    + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                    // overhead = toolbar(24) + hover row(24) + sel row(24) + transport(22) + ruler(30) + waveform(64) + padding(4)
+                    // overhead = toolbar(24) + hover row(24) + sel row(24) + transport(22) + waveform(64) + ruler(30) + padding(4)
                     let overhead: CGFloat = 192
                     // Auto-init height on first render: fit all tracks at scale 1, capped at 300
                     let effectiveH: CGFloat = {
@@ -1893,98 +1893,6 @@ private struct SessionTimelineView: View {
             .padding(.horizontal, 12)
             .frame(height: 22)
 
-            // ── Ruler (adaptive tick spacing) ─────────────────────────────────
-            Canvas { ctx, size in
-                let vStart      = tc.viewStart
-                let vWindow     = tc.window
-                let visibleSecs = vWindow * total / sr
-
-                // Baseline rule
-                ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: 0.5)),
-                         with: .color(.secondary.opacity(0.35)))
-
-                // ── TC ticks — top zone (y 0…18) ──────────────────────────────
-                let fps = frameRate
-                let stepCandidates: [Double] = [
-                    1/fps, 2/fps, 5/fps, 10/fps,
-                    1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600
-                ]
-                let step = stepCandidates.last { visibleSecs / $0 >= 3 } ?? stepCandidates.last!
-
-                let winStartSec  = vStart * total / sr
-                let winEndSec    = (vStart + vWindow) * total / sr
-                let firstTickSec = ceil(winStartSec / step) * step
-                var tickSec      = firstTickSec
-                while tickSec <= winEndSec + step * 0.001 {
-                    let frac = tickSec / (total / sr)
-                    let x    = CGFloat((frac - vStart) / vWindow) * size.width
-                    guard x >= -2 && x <= size.width + 2 else { tickSec += step; continue }
-                    ctx.fill(Path(CGRect(x: x, y: 0, width: 0.5, height: 5)),
-                             with: .color(.secondary.opacity(0.5)))
-                    let anchor: UnitPoint = x < 20 ? .topLeading : (x > size.width - 20 ? .topTrailing : .top)
-                    ctx.draw(
-                        Text(formatTC(tickSec, fps: fps))
-                            .font(.system(size: 9).monospacedDigit()),
-                        at: CGPoint(x: x, y: 6),
-                        anchor: anchor
-                    )
-                    tickSec += step
-                }
-
-                // ── Memory location markers — bottom zone (y 18…30) ───────────
-                if showMarkers {
-                    var prevLabelX: CGFloat = -100
-                    for loc in memoryLocations where loc.samplePosition > 0 {
-                        let frac = Double(loc.samplePosition) / total
-                        let x    = CGFloat((frac - vStart) / vWindow) * size.width
-                        guard x >= -1, x <= size.width + 1 else { continue }
-                        // Short tick in the bottom strip only — keeps TC labels clean.
-                        ctx.fill(Path(CGRect(x: x - 0.5, y: 18, width: 1, height: size.height - 18)),
-                                 with: .color(.orange.opacity(0.7)))
-                        // Marker name in the bottom strip — skip if too close to previous
-                        if x - prevLabelX > 34 {
-                            let anchor: UnitPoint = x < 20 ? .bottomLeading
-                                : x > size.width - 20 ? .bottomTrailing : .bottomLeading
-                            ctx.draw(
-                                Text(loc.name)
-                                    .font(.system(size: 8).weight(.medium))
-                                    .foregroundColor(.orange),
-                                at: CGPoint(x: x + 3, y: size.height - 1),
-                                anchor: anchor
-                            )
-                            prevLabelX = x
-                        }
-                    }
-                }
-            }
-            .frame(height: Self.rulerH)
-            .overlay(
-                GeometryReader { geo in
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 0, coordinateSpace: .local)
-                                .onEnded { val in
-                                    let x    = val.location.x
-                                    let raw  = (tc.viewStart + Double(x / geo.size.width) * tc.window)
-                                        .clamped(to: 0...1)
-                                    // Snap to nearest visible marker within 12px
-                                    var dest = raw
-                                    for loc in memoryLocations where loc.samplePosition > 0 {
-                                        let mFrac = Double(loc.samplePosition) / total
-                                        let mx    = CGFloat((mFrac - tc.viewStart) / tc.window) * geo.size.width
-                                        if abs(mx - x) < 12 {
-                                            let d = abs(mFrac - raw)
-                                            if d < abs(dest - raw) || dest == raw { dest = mFrac }
-                                        }
-                                    }
-                                    tc.jumpTo(dest)
-                                    tc.isFocused = true
-                                }
-                        )
-                }
-            )
-
             // ── Clip waveform — always present to keep lane canvas height stable ─
             let resolvedWaveURL: URL? = {
                 guard let clip = selectedClip, !clip.isGroup else { return nil }
@@ -2205,6 +2113,95 @@ private struct SessionTimelineView: View {
                 }
               )
             } // ScrollView
+
+            // ── Ruler — pinned below tracks, always visible at any zoom ──────
+            Canvas { ctx, size in
+                let vStart      = tc.viewStart
+                let vWindow     = tc.window
+                let visibleSecs = vWindow * total / sr
+
+                // Top hairline
+                ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: 0.5)),
+                         with: .color(.secondary.opacity(0.35)))
+
+                // ── TC ticks (top zone y 0…18) ────────────────────────────────
+                let fps = frameRate
+                let stepCandidates: [Double] = [
+                    1/fps, 2/fps, 5/fps, 10/fps,
+                    1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600
+                ]
+                let step = stepCandidates.last { visibleSecs / $0 >= 3 } ?? stepCandidates.last!
+
+                let winStartSec  = vStart * total / sr
+                let winEndSec    = (vStart + vWindow) * total / sr
+                let firstTickSec = ceil(winStartSec / step) * step
+                var tickSec      = firstTickSec
+                while tickSec <= winEndSec + step * 0.001 {
+                    let frac = tickSec / (total / sr)
+                    let x    = CGFloat((frac - vStart) / vWindow) * size.width
+                    guard x >= -2 && x <= size.width + 2 else { tickSec += step; continue }
+                    ctx.fill(Path(CGRect(x: x, y: 0, width: 0.5, height: 5)),
+                             with: .color(.secondary.opacity(0.5)))
+                    let anchor: UnitPoint = x < 20 ? .topLeading : (x > size.width - 20 ? .topTrailing : .top)
+                    ctx.draw(
+                        Text(formatTC(tickSec, fps: fps))
+                            .font(.system(size: 9).monospacedDigit()),
+                        at: CGPoint(x: x, y: 6),
+                        anchor: anchor
+                    )
+                    tickSec += step
+                }
+
+                // ── Memory location markers (bottom zone y 18…30) ─────────────
+                if showMarkers {
+                    var prevLabelX: CGFloat = -100
+                    for loc in memoryLocations where loc.samplePosition > 0 {
+                        let frac = Double(loc.samplePosition) / total
+                        let x    = CGFloat((frac - vStart) / vWindow) * size.width
+                        guard x >= -1, x <= size.width + 1 else { continue }
+                        ctx.fill(Path(CGRect(x: x - 0.5, y: 18, width: 1, height: size.height - 18)),
+                                 with: .color(.orange.opacity(0.7)))
+                        if x - prevLabelX > 34 {
+                            let anchor: UnitPoint = x < 20 ? .bottomLeading
+                                : x > size.width - 20 ? .bottomTrailing : .bottomLeading
+                            ctx.draw(
+                                Text(loc.name)
+                                    .font(.system(size: 8).weight(.medium))
+                                    .foregroundColor(.orange),
+                                at: CGPoint(x: x + 3, y: size.height - 1),
+                                anchor: anchor
+                            )
+                            prevLabelX = x
+                        }
+                    }
+                }
+            }
+            .frame(height: Self.rulerH)
+            .overlay(
+                GeometryReader { geo in
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                                .onEnded { val in
+                                    let x    = val.location.x
+                                    let raw  = (tc.viewStart + Double(x / geo.size.width) * tc.window)
+                                        .clamped(to: 0...1)
+                                    var dest = raw
+                                    for loc in memoryLocations where loc.samplePosition > 0 {
+                                        let mFrac = Double(loc.samplePosition) / total
+                                        let mx    = CGFloat((mFrac - tc.viewStart) / tc.window) * geo.size.width
+                                        if abs(mx - x) < 12 {
+                                            let d = abs(mFrac - raw)
+                                            if d < abs(dest - raw) || dest == raw { dest = mFrac }
+                                        }
+                                    }
+                                    tc.jumpTo(dest)
+                                    tc.isFocused = true
+                                }
+                        )
+                }
+            )
         }
         .onAppear {
             tc.tracks       = tracks
