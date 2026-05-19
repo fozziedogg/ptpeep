@@ -1820,6 +1820,12 @@ private struct SessionTimelineView: View {
 
                 Spacer()
 
+                // Volume fader
+                if let ap = audioPlayer {
+                    VolumeFaderView(volume: Binding(get: { ap.volume }, set: { ap.volume = $0 }))
+                        .frame(width: 72)
+                }
+
                 // Spot to PT: only when clip is selected and online
                 if let clip = selectedClip, !clip.isGroup,
                    let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
@@ -1894,36 +1900,29 @@ private struct SessionTimelineView: View {
             let waveColor: Color = selectedClipTrackIdx.map { t in
                 t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
             } ?? Color.accentColor
-            HStack(spacing: 4) {
-                ZStack {
-                    // Faint placeholder track so the area is visually defined even when empty
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.primary.opacity(0.04))
-                    if let clip = selectedClip, !clip.isGroup,
-                       let url = resolvedWaveURL, let ap = audioPlayer {
-                        ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
-                                         sampleRate: sr, color: waveColor, audioPlayer: ap)
-                    } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
-                              resolvedWaveURL == nil {
-                        // Clip is selected but source file is not on disk
-                        Label("Audio file offline", systemImage: "exclamationmark.triangle")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.orange.opacity(0.7))
-                    } else {
-                        // Hairline centre rule — gives the empty zone a hint of purpose
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.12))
-                            .frame(height: 1)
-                    }
-                }
-                .frame(height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-
-                if let ap = audioPlayer {
-                    VolumeFaderView(volume: Binding(get: { ap.volume }, set: { ap.volume = $0 }))
-                        .frame(width: 20, height: 56)
+            ZStack {
+                // Faint placeholder track so the area is visually defined even when empty
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.primary.opacity(0.04))
+                if let clip = selectedClip, !clip.isGroup,
+                   let url = resolvedWaveURL, let ap = audioPlayer {
+                    ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
+                                     sampleRate: sr, color: waveColor, audioPlayer: ap)
+                } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
+                          resolvedWaveURL == nil {
+                    // Clip is selected but source file is not on disk
+                    Label("Audio file offline", systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange.opacity(0.7))
+                } else {
+                    // Hairline centre rule — gives the empty zone a hint of purpose
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.12))
+                        .frame(height: 1)
                 }
             }
+            .frame(height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
             .padding(.horizontal, 16)
             .padding(.vertical, 4)
 
@@ -2343,10 +2342,13 @@ private struct SessionTimelineView: View {
                     : Color(nsColor: .separatorColor).opacity(0.05))
     }
 
-    /// Strip colons and zero-pad to 8 digits so PT can accept a direct paste into any TC field.
+    /// Zero-pad hours so PT gets a full HH:MM:SS:FF string it can accept via paste.
     private func tcForPT(_ tc: String) -> String {
-        let digits = tc.replacingOccurrences(of: ":", with: "")
-        return digits.count < 8 ? String(repeating: "0", count: 8 - digits.count) + digits : digits
+        let parts = tc.split(separator: ":", omittingEmptySubsequences: false)
+        guard parts.count == 4 else { return tc }
+        return parts.enumerated()
+            .map { i, p in String(format: "%02d", Int(p) ?? 0) }
+            .joined(separator: ":")
     }
 
     private func clipCopyButton(_ value: String) -> some View {
@@ -2786,6 +2788,7 @@ private struct VolumeFaderView: View {
 
     private let minDB: Double = -60
     private let maxDB: Double = +12
+    private let knobW: CGFloat = 8
 
     private var dB: Double {
         volume > 0 ? 20 * log10(Double(volume)) : minDB
@@ -2794,70 +2797,64 @@ private struct VolumeFaderView: View {
         (db.clamped(to: minDB...maxDB) - minDB) / (maxDB - minDB)
     }
     private var faderPos: Double { posFromDB(dB) }
-    private var unityPos: Double { posFromDB(0) }  // ≈ 0.833
+    private var unityPos: Double { posFromDB(0) }
 
     @State private var dragOriginPos: Double? = nil
+    @State private var isHovering: Bool = false
 
     var body: some View {
         GeometryReader { geo in
-            let h = geo.size.height
-            let knobH: CGFloat = 5
-            let trackH = h - knobH
+            let trackW = geo.size.width - knobW
+            let knobX  = CGFloat(faderPos) * trackW
+            let unityX = CGFloat(unityPos) * trackW
 
-            ZStack(alignment: .bottom) {
-                // Track
+            ZStack(alignment: .leading) {
+                // Track background
                 Capsule()
-                    .fill(Color(nsColor: .separatorColor).opacity(0.5))
-                    .frame(width: 2)
-                    .frame(maxWidth: .infinity)
+                    .fill(Color(nsColor: .separatorColor).opacity(0.4))
+                    .frame(height: 2)
+                    .padding(.horizontal, knobW / 2)
 
-                // Over-unity zone (unity → top)
+                // Fill left of knob
                 Capsule()
-                    .fill(Color.orange.opacity(0.25))
-                    .frame(width: 2,
-                           height: CGFloat((1 - unityPos)) * trackH)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .offset(y: -CGFloat(unityPos) * trackH - knobH / 2)
+                    .fill(dB > 0.1
+                          ? Color.orange.opacity(0.7)
+                          : Color(nsColor: .secondaryLabelColor).opacity(0.5))
+                    .frame(width: max(0, knobX), height: 2)
+                    .padding(.leading, knobW / 2)
 
-                // Fill bar (bottom → knob)
-                Capsule()
-                    .fill(Color.accentColor.opacity(0.45))
-                    .frame(width: 2,
-                           height: max(0, CGFloat(faderPos) * trackH))
-                    .frame(maxWidth: .infinity, alignment: .center)
-
-                // Unity tick
+                // Unity notch
                 Rectangle()
-                    .fill(dB > -0.1 ? Color.orange.opacity(0.8) : Color.accentColor.opacity(0.6))
-                    .frame(width: 10, height: 1)
-                    .frame(maxWidth: .infinity)
-                    .offset(y: -CGFloat(unityPos) * trackH - knobH / 2)
+                    .fill(Color(nsColor: .tertiaryLabelColor))
+                    .frame(width: 1, height: 5)
+                    .offset(x: unityX + knobW / 2 - 0.5,
+                            y: -1.5)
 
                 // Knob
-                RoundedRectangle(cornerRadius: 2)
+                Circle()
                     .fill(Color(nsColor: .controlColor))
-                    .overlay(RoundedRectangle(cornerRadius: 2)
-                        .strokeBorder(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5))
-                    .frame(width: 16, height: knobH)
-                    .offset(y: -CGFloat(faderPos) * trackH)
+                    .overlay(Circle().strokeBorder(
+                        Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 0.5))
+                    .frame(width: knobW, height: knobW)
+                    .offset(x: knobX)
+                    .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
             }
+            .frame(maxHeight: .infinity)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { val in
                         if dragOriginPos == nil { dragOriginPos = faderPos }
-                        let delta = Double(-val.translation.height / trackH)
+                        let delta = Double(val.translation.width / trackW)
                         let newPos = ((dragOriginPos ?? faderPos) + delta).clamped(to: 0...1)
                         let newDB = minDB + newPos * (maxDB - minDB)
                         volume = newDB <= minDB ? 0 : Float(pow(10, newDB / 20))
                     }
                     .onEnded { _ in dragOriginPos = nil }
             )
-            .onTapGesture(count: 2) {
-                volume = 1.0  // double-click resets to unity
-            }
+            .onTapGesture(count: 2) { volume = 1.0 }
         }
-        .help(String(format: "%.1f dB — double-click to reset", dB))
+        .help(String(format: "%.1f dB  —  double-click to reset", dB))
     }
 }
 
