@@ -1599,6 +1599,32 @@ private struct SessionTimelineView: View {
         }
     }
 
+    /// Applies a shift-click to extend the current selection to include the clicked clip/position.
+    private func applyShiftClick(clickedClip: PTXClip?, clickFrac: Double, clickLane: Int?, total: Double) {
+        guard let existing = tc.selStart else { return }
+        let anchor = tc.selEnd == nil ? existing : min(existing, tc.selEnd!)
+        let targetStart: Double
+        let targetEnd: Double
+        if let clip = clickedClip {
+            targetStart = Double(clip.startSample) / total
+            let clipEndSamp = clip.startSample + clip.lengthSamples
+            targetEnd = Double(clipEndSamp) / total
+        } else {
+            targetStart = clickFrac
+            targetEnd   = clickFrac
+        }
+        let newStart = min(anchor, targetStart)
+        let newEnd   = max(tc.selEnd ?? existing, existing, targetEnd)
+        tc.selStart    = newStart
+        tc.selEnd      = newEnd > newStart ? newEnd : nil
+        if let lane = clickLane {
+            let loTrack    = min(tc.selTrack ?? lane, lane)
+            let hiTrack    = max(tc.selTrackEnd ?? tc.selTrack ?? lane, lane)
+            tc.selTrack    = loTrack
+            tc.selTrackEnd = hiTrack != loTrack ? hiTrack : nil
+        }
+    }
+
     /// Total pixel height of all track lanes at current scale (no ruler).
     private var totalLaneHeight: CGFloat {
         var h: CGFloat = 0
@@ -2094,24 +2120,34 @@ private struct SessionTimelineView: View {
                                     let dist = hypot(val.translation.width, val.translation.height)
                                     if dist < 3 {
                                         // Click: place cursor, or select clip if one is under the click
-                                        let frac     = (Double(val.location.x / geo.size.width)
+                                        let frac      = (Double(val.location.x / geo.size.width)
                                             * tc.window + tc.viewStart).clamped(to: 0...1)
                                         let clickLane = laneIndex(at: val.location.y, availH: geo.size.height)
-                                        tc.selTrackEnd = nil
-                                        tc.isFocused   = true
-                                        tc.selTrack    = clickLane
+                                        let shiftHeld = NSEvent.modifierFlags.contains(.shift)
+                                        tc.isFocused  = true
 
                                         let clickedClip = clipAt(trackIdx: clickLane,
                                                                      sample: Int64(frac * total),
                                                                      respectHideMuted: hideMuted)
 
-                                        if let clip = clickedClip {
+                                        if shiftHeld, tc.selStart != nil {
+                                            // Shift-click: extend selection to span clicked clip
+                                            applyShiftClick(clickedClip: clickedClip,
+                                                            clickFrac: frac,
+                                                            clickLane: clickLane,
+                                                            total: total)
+                                        } else if let clip = clickedClip {
+                                            // Normal click on a clip
+                                            tc.selTrackEnd = nil
+                                            tc.selTrack    = clickLane
                                             // Place cursor at clip in-point; SEL row derives from this.
                                             // onChange(of: tc.selStart) handles autoplay uniformly.
                                             tc.selStart = Double(clip.startSample) / total
                                             tc.selEnd   = nil
                                         } else {
                                             // Empty space → cursor only, no clip selected
+                                            tc.selTrackEnd = nil
+                                            tc.selTrack    = clickLane
                                             tc.selStart = frac
                                             tc.selEnd   = nil
                                         }
@@ -2528,6 +2564,11 @@ private struct TimelineLaneCanvas: View, Equatable {
                     with: .color(color.opacity(bgAlpha))
                 )
 
+                // Precompute selection state for this track's clips
+                let selStartSamp: Int64? = selStart.map { Int64(($0 * total).rounded()) }
+                let selEndSamp:   Int64? = selEnd.map   { Int64(($0 * total).rounded()) }
+                let trackInSelRange = isSelected   // track is within selTrack…selTrackEnd
+
                 for clip in track.clips {
                     guard clip.lengthSamples > 0 else { continue }
                     if clip.startSample >= winEndSamp { break }
@@ -2558,6 +2599,23 @@ private struct TimelineLaneCanvas: View, Equatable {
                                            width: w - 6, height: fontSize + 2)
                             )
                         }
+                    }
+
+                    // Selected-clip highlight border
+                    let isClipSelected: Bool = {
+                        if let ss = selEndSamp, trackInSelRange {
+                            // Region selection: clip overlaps [selStart, selEnd]
+                            let selS = selStartSamp ?? 0
+                            return clip.startSample < ss && clip.startSample + clip.lengthSamples > selS
+                        } else if let ss = selStartSamp, i == (selTrack ?? -1), selEnd == nil {
+                            // Cursor-only: clip starts exactly at cursor
+                            return clip.startSample == ss
+                        }
+                        return false
+                    }()
+                    if isClipSelected, w >= 1 {
+                        ctx.stroke(Path(clipRect), with: .color(.white.opacity(0.9)),
+                                   style: StrokeStyle(lineWidth: 2))
                     }
                 }
                 laneY += thisLaneH + Self.laneGap
