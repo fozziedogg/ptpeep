@@ -1716,7 +1716,14 @@ private struct SessionTimelineView: View {
                 if totalClips > kMaxClips { return nil }  // bail early
             }
             guard !segments.isEmpty else { return nil }
-            return PlayRegion(startSample: startSamp, endSample: endSamp,
+
+            // Crop to actual clip bounds — drop leading/trailing silence from the selection.
+            let allClips = segments.flatMap(\.clips).map(\.clip)
+            let croppedStart = allClips.map(\.startSample).min() ?? startSamp
+            let croppedEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
+
+            return PlayRegion(startSample: max(startSamp, croppedStart),
+                              endSample:   min(endSamp,   croppedEnd),
                               segments: segments, sampleRate: sr)
         }()
 
