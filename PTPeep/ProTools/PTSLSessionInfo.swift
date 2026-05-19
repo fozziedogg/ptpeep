@@ -117,12 +117,21 @@ actor PTSLSessionInfo {
     /// Fails silently if Pro Tools is not running.
     func spotClip(clip: PTXClip, sourceURL: URL,
                   sampleRate: Double, frameRate: Double) async throws {
-        guard let _ = try? await registerConnection() else { throw PTSLError.notConnected }
+        AppLog.shared.log("[Spot] Starting — file: \(sourceURL.lastPathComponent)")
+
+        do {
+            let sid = try await registerConnection()
+            AppLog.shared.log("[Spot] PTSL connected, session_id: \(sid)")
+        } catch {
+            AppLog.shared.log("[Spot] PTSL connection failed: \(error)")
+            throw PTSLError.notConnected
+        }
 
         // The file's frame-0 must land at (startSample − sourceOffset) on the timeline
         // so that the clip region [sourceOffset … sourceOffset+length] sits at startSample.
         let spotSamples = max(Int64(0), clip.startSample - clip.sourceOffset)
         let tc = samplesToTC(spotSamples, sampleRate: sampleRate, frameRate: frameRate)
+        AppLog.shared.log("[Spot] startSample=\(clip.startSample) sourceOffset=\(clip.sourceOffset) spotSamples=\(spotSamples) tc=\(tc)")
 
         let escapedPath = sourceURL.path
             .replacingOccurrences(of: "\\", with: "\\\\")
@@ -131,7 +140,15 @@ actor PTSLSessionInfo {
         let body = """
         {"importType":"Audio","audioData":{"fileList":["\(escapedPath)"],"audioOperations":"AddAudio","audioDestination":"MD_NewTrack","audioLocation":"ML_Spot","locationData":{"locationType":"Start","locationOptions":"TimeCode","locationValue":"\(tc)"}}}
         """
-        _ = try await sendPTSL(commandId: 2, body: body)
+        AppLog.shared.log("[Spot] Sending body: \(body)")
+
+        do {
+            let resp = try await sendPTSL(commandId: 2, body: body)
+            AppLog.shared.log("[Spot] Response: \(resp)")
+        } catch {
+            AppLog.shared.log("[Spot] sendPTSL failed: \(error)")
+            throw error
+        }
     }
 
     /// Convert an absolute sample position to an HH:MM:SS:FF timecode string.
