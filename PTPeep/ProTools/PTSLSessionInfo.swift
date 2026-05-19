@@ -36,6 +36,8 @@ actor PTSLSessionInfo {
             throw error
         }
 
+        let playhead = (try? await fetchPlayheadSamples()) ?? clip.startSample
+
         if isPTSL2025_06orLater {
             let fileId = try await importAudioToClipList(path: sourceURL.path)
             let clipId = try await createAudioClip(
@@ -45,10 +47,13 @@ actor PTSLSessionInfo {
                 timelineStart: clip.startSample,
                 timelineEnd:   clip.startSample + clip.lengthSamples
             )
-            try await spotClipByID(clipId: clipId, atSample: clip.startSample)
+            // Place the clip's sync point (= sourceOffset) at the PT playhead
+            try await spotClipByID(clipId: clipId, atSample: playhead)
         } else {
-            let playhead = (try? await fetchPlayheadSamples()) ?? 0
-            try await importLegacy(path: sourceURL.path, spotSamples: playhead)
+            // Legacy cmd 2 places the file's sample 0 at the given position.
+            // Offset by sourceOffset so that the clip's in-point lands at the playhead.
+            let spotAt = max(0, playhead - clip.sourceOffset)
+            try await importLegacy(path: sourceURL.path, spotSamples: spotAt)
         }
 #else
         throw PTSLError.notConnected
@@ -72,8 +77,7 @@ actor PTSLSessionInfo {
         let group   = PlatformSupport.makeEventLoopGroup(loopCount: 1, networkPreference: .best)
         let channel = ClientConnection.insecure(group: group)
             .connect(host: "localhost", port: 31416)
-        let client  = Ptsl_PTSLAsyncClient(channel: channel,
-                                            defaultCallOptions: CallOptions(timeLimit: .timeout(.seconds(15))))
+        let client  = Ptsl_PTSLAsyncClient(channel: channel)
         _grpcClient = client
         return client
     }

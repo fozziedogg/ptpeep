@@ -1746,9 +1746,11 @@ private struct SessionTimelineView: View {
 
             // ── HOVER / SELECT clip rows (aligned columns) ───────────────────
             clipInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
-                        label: "HOVER", sr: sr, isSelected: false)
+                        label: "HOVER", sr: sr, isSelected: false,
+                        resolvedURL: resolvedFiles.first(where: { $0.name == hoverClip?.sourceFile })?.url)
             clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
-                        label: "SELECT", sr: sr, isSelected: true)
+                        label: "SELECT", sr: sr, isSelected: true,
+                        resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
 
             // ── Transport strip ───────────────────────────────────────────────
             HStack(spacing: 8) {
@@ -2143,7 +2145,8 @@ private struct SessionTimelineView: View {
     }
 
     private func clipInfoRow(clip: PTXClip?, trackIdx: Int?,
-                             label: String, sr: Double, isSelected: Bool) -> some View {
+                             label: String, sr: Double, isSelected: Bool,
+                             resolvedURL: URL? = nil) -> some View {
         let color = trackIdx.map { t in
             t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
         } ?? Color.secondary
@@ -2181,7 +2184,6 @@ private struct SessionTimelineView: View {
                         .foregroundStyle(isSelected ? color.opacity(0.75) : Color.secondary)
                         .lineLimit(1)
                         .frame(width: 90, alignment: .leading)
-                    if isSelected { clipCopyButton(trackName) }
                     Spacer().frame(width: 4)
                 }
 
@@ -2191,6 +2193,14 @@ private struct SessionTimelineView: View {
                     .fontWeight(isSelected ? .semibold : .regular)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .contextMenu {
+                        if let url = resolvedURL {
+                            Button("Reveal in Finder") {
+                                NSWorkspace.shared.selectFile(url.path,
+                                                             inFileViewerRootedAtPath: "")
+                            }
+                        }
+                    }
                 if isSelected { clipCopyButton(clip.name) }
 
                 if clip.isMuted {
