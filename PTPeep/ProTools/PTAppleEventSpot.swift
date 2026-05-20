@@ -25,6 +25,8 @@ extension PTSLSessionInfo {
     func spotRegionViaAppleEvent(_ region: PlayRegion) async throws {
         let segments = region.segments
         let regStart = region.startSample
+        let totalClips = segments.reduce(0) { $0 + $1.clips.count }
+        AppLog.shared.log("[AESpot] BEGIN \(segments.count) segment(s), \(totalClips) clip(s), regStart=\(regStart)")
         // AESend is synchronous — run all sends off the main thread.
         try await Task.detached(priority: .userInitiated) {
             for (segIdx, segment) in segments.enumerated() {
@@ -32,7 +34,7 @@ extension PTSLSessionInfo {
                     let fileLen = PTSLSessionInfo.aeFileLength(url: url,
                                                                fallback: clip.sourceOffset + clip.lengthSamples)
                     let offset  = Int32(clamping: clip.startSample - regStart)
-                    AppLog.shared.log("[AESpot] \(clip.name) track+\(segIdx) offset=\(offset) fileLen=\(fileLen)")
+                    AppLog.shared.log("[AESpot] clip='\(clip.name)' track+\(segIdx) SMSt=\(offset) fileLen=\(fileLen) url=\(url.lastPathComponent)")
                     try PTSLSessionInfo.aeSendSpot(
                         url:          url,
                         srcStart:     0,                       // full pre-roll handle
@@ -45,6 +47,7 @@ extension PTSLSessionInfo {
                 }
             }
         }.value
+        AppLog.shared.log("[AESpot] END — all sends complete")
     }
 
     // MARK: - Private implementation
@@ -108,16 +111,21 @@ extension PTSLSessionInfo {
         rgn.setDescriptor(ae32(srcStart), forKeyword: aeCC("Star"))
         rgn.setDescriptor(ae32(srcStop),  forKeyword: aeCC("Stop"))
 
-        let nameBytes = Array(name.data(using: .macOSRoman) ?? Data(name.utf8))
-        let nameDesc  = nameBytes.withUnsafeBytes {
+        // Pascal string: first byte is length, up to 255 macOSRoman chars, 256-byte buffer total.
+        var nameEncoded = name.data(using: .macOSRoman) ?? Data(name.utf8)
+        if nameEncoded.count > 255 { nameEncoded = nameEncoded.prefix(255) }
+        var pascal = Data([UInt8(nameEncoded.count)]) + nameEncoded
+        pascal += Data(repeating: 0, count: max(0, 256 - pascal.count))
+        let nameDesc = pascal.withUnsafeBytes {
             NSAppleEventDescriptor(descriptorType: DescType(typeChar),
-                                   bytes: $0.baseAddress, length: nameBytes.count)
+                                   bytes: $0.baseAddress, length: pascal.count)
         } ?? NSAppleEventDescriptor(string: name)
         rgn.setDescriptor(nameDesc, forKeyword: aeCC("Name"))
 
         ae.setParam(rgn, forKeyword: aeCC("Rgn "))
 
         // ── Send — fire and forget ────────────────────────────────────────────
+        AppLog.shared.log("[AESpot] Sending Sd2a/SRgn → PTul  Trak=-99 TkOf=\(trackOffset) SMSt=\(sampleOffset) Star=\(srcStart) Stop=\(srcStop)")
         var reply = AEDesc()
         let err = AESend(ae.aeDesc,
                          &reply,
@@ -125,7 +133,10 @@ extension PTSLSessionInfo {
                          AESendPriority(kAENormalPriority),
                          Int32(kAEDefaultTimeout), nil, nil)
         AEDisposeDesc(&reply)
-        guard err == noErr else {
+        if err == noErr {
+            AppLog.shared.log("[AESpot] AESend OK")
+        } else {
+            AppLog.shared.log("[AESpot] AESend FAILED OSErr=\(err)")
             throw PTSLError.commandFailed("AESend returned OSErr \(err)")
         }
     }

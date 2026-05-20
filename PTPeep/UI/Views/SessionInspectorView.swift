@@ -2444,14 +2444,19 @@ private struct SessionTimelineView: View {
         } else if let clip, !clip.isGroup,
                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
             Button {
-                Task { try? await PTSLSessionInfo.shared.spotClip(clip: clip, sourceURL: url) }
+                let segment = PlayRegion.TrackSegment(trackIdx: 0, clips: [(clip: clip, url: url)])
+                let region  = PlayRegion(startSample: clip.startSample,
+                                         endSample:   clip.startSample + clip.lengthSamples,
+                                         segments:    [segment],
+                                         sampleRate:  max(sampleRate, 1))
+                Task { try? await PTSLSessionInfo.shared.spotRegion(region) }
             } label: {
                 Label("Spot to PT", systemImage: "pin.fill")
                     .font(.system(size: 10))
             }
             .buttonStyle(.plain)
             .foregroundStyle(Color.accentColor)
-            .help("Import and spot this clip to its Pro Tools timeline position")
+            .help("Spot this clip to the selected Pro Tools track with full source handles")
         }
     }
 
