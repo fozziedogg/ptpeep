@@ -32,18 +32,19 @@ extension PTSLSessionInfo {
         try await Task.detached(priority: .userInitiated) {
             for (segIdx, segment) in segments.enumerated() {
                 for (clip, url) in segment.clips {
-                    let fileLen = PTSLSessionInfo.aeFileLength(url: url,
-                                                               fallback: clip.sourceOffset + clip.lengthSamples)
-                    let offset  = Int32(clamping: clip.startSample - regStart)
-                    AppLog.shared.log("[AESpot] clip='\(clip.name)' track+\(segIdx) SMSt=\(offset) fileLen=\(fileLen) url=\(url.lastPathComponent)")
+                    let srcStart = Int32(clamping: clip.sourceOffset)
+                    let srcStop  = Int32(clamping: clip.sourceOffset + clip.lengthSamples)
+                    let offset   = Int32(clamping: clip.startSample - regStart)
+                    let stream   = PTSLSessionInfo.aeStreamIndex(sourceFile: clip.sourceFile)
+                    AppLog.shared.log("[AESpot] clip='\(clip.name)' track+\(segIdx) Strm=\(stream) SMSt=\(offset) Star=\(srcStart) Stop=\(srcStop) url=\(url.lastPathComponent)")
                     try PTSLSessionInfo.aeSendSpot(
                         url:          url,
-                        srcStart:     0,                       // full pre-roll handle
-                        srcStop:      Int32(clamping: fileLen), // full post-roll handle
+                        srcStart:     srcStart,
+                        srcStop:      srcStop,
                         name:         clip.name,
                         trackOffset:  Int16(segIdx),
                         sampleOffset: offset,
-                        stream:       1
+                        stream:       stream
                     )
                 }
             }
@@ -150,6 +151,15 @@ extension PTSLSessionInfo {
             AppLog.shared.log("[AESpot] AESend FAILED OSErr=\(err)")
             throw PTSLError.commandFailed("AESend returned OSErr \(err)")
         }
+    }
+
+    // MARK: - Helpers
+
+    /// Returns the PT stream index (1=L/mono, 2=R) for a source file name.
+    /// Multi-mono stereo files use `_L-` / `_R-` stem markers or `.L` / `.R` suffixes.
+    static func aeStreamIndex(sourceFile: String) -> Int16 {
+        if sourceFile.hasSuffix(".R") || sourceFile.contains("_R-") { return 2 }
+        return 1
     }
 
     // MARK: - FourCharCode helpers
