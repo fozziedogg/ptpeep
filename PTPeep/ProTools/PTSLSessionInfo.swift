@@ -1,4 +1,3 @@
-import AVFoundation
 import Foundation
 #if PTSL_ENABLED
 import GRPC
@@ -62,14 +61,10 @@ actor PTSLSessionInfo {
 #endif
     }
 
-    // MARK: - Region spot (spot each clip at its original timeline position with handles)
+    // MARK: - Region spot
 
-    /// Spots every resolved clip in `region` back to its original timeline position.
-    /// Full source-file handles are exposed: srcStart=0, srcEnd=fileLength, syncPoint=sourceOffset.
-    /// Clips are spotted one at a time; errors on individual clips are logged and skipped.
+    /// Spots every clip in `region` into the currently selected PT track(s) via Apple Events.
     func spotRegion(_ region: PlayRegion) async throws {
-        // Use the Apple Event path — works with any PT version, no PTSL needed,
-        // spots to the selected track(s), and handles work naturally.
         try await spotRegionViaAppleEvent(region)
     }
 
@@ -274,50 +269,6 @@ actor PTSLSessionInfo {
         """
         let resp = try await sendRequest(commandId: 124, body: body)
         AppLog.shared.log("[Spot] SpotClipsByID: \(resp)")
-    }
-
-    /// Spots a single clip relative to the PT playhead, with full source-file handles.
-    ///
-    /// Target timeline position = playhead + (clip.startSample - regionStart).
-    /// This preserves the relative spacing of all clips in the region while
-    /// placing the region's start point at the PT edit cursor.
-    ///
-    /// Handles: srcStart=0/srcEnd=fileLength exposes the full source file.
-    /// timelineStart/End span that same range so PT uses them as the initial
-    /// clip edges — the user can trim back into pre-/post-roll without limit.
-    private func spotClipAtOriginalPosition(clip: PTXClip, sourceURL: URL,
-                                             regionStart: Int64, playhead: Int64) async throws {
-        // Actual file length — needed for post-roll handle extent.
-        let fileLength: Int64 = (try? AVAudioFile(forReading: sourceURL))
-            .map { Int64($0.length) } ?? (clip.sourceOffset + clip.lengthSamples)
-
-        // Where the clip's in-point (syncPoint) lands on the PT timeline.
-        let targetSample = playhead + (clip.startSample - regionStart)
-
-        AppLog.shared.log("[Spot] \(clip.name) srcOffset=\(clip.sourceOffset) fileLen=\(fileLength) target=\(targetSample)")
-
-        if isPTSL2025_06orLater {
-            let fileId = try await importAudioToClipList(path: sourceURL.path)
-
-            // Compute where file-sample-0 lands so timelineStart/End span the full file.
-            // PT uses timelineStart/End as the initial clip edges (what's visible/trimmable).
-            let fileOriginOnTimeline = targetSample - clip.sourceOffset
-            let clipId = try await createAudioClip(
-                fileId:        fileId,
-                srcStart:      0,                          // expose full pre-roll
-                srcEnd:        fileLength,                  // expose full post-roll
-                syncPoint:     clip.sourceOffset,           // in-point within source file
-                timelineStart: max(0, fileOriginOnTimeline),
-                timelineEnd:   max(0, fileOriginOnTimeline) + fileLength
-            )
-            // SLType_SyncPoint places syncPoint at targetSample on the PT timeline.
-            try await spotClipByID(clipId: clipId, atSample: targetSample)
-        } else {
-            // Legacy cmd 2: file-sample-0 is placed at spotAt, so sourceOffset lands
-            // at spotAt+sourceOffset = targetSample. Full file is imported → handles available.
-            let spotAt = max(0, targetSample - clip.sourceOffset)
-            try await importLegacy(path: sourceURL.path, spotSamples: spotAt)
-        }
     }
 
     // MARK: - JSON helper
