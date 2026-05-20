@@ -75,13 +75,12 @@ extension PTSLSessionInfo {
         sampleOffset: Int32,
         stream:       Int16
     ) throws {
-        // ── Target: Pro Tools application signature 'PTul' ────────────────────
-        var ptSig: [UInt8] = [0x50, 0x54, 0x75, 0x6C]   // P T u l
-        guard let targetDesc = NSAppleEventDescriptor(
-            descriptorType: DescType(typeApplSignature),
-            bytes: &ptSig,
-            length: 4
-        ) else { throw PTSLError.commandFailed("AESpot: bad target descriptor") }
+        // ── Target: Pro Tools by bundle ID (modern; 'PTul' sig returns procNotFound) ──
+        guard let bundleData = "com.avid.ProTools".data(using: .utf8),
+              let targetDesc = NSAppleEventDescriptor(
+                descriptorType: DescType(typeApplicationBundleID),
+                data: bundleData
+              ) else { throw PTSLError.commandFailed("AESpot: bad target descriptor") }
 
         // ── Build the AppleEvent ──────────────────────────────────────────────
         let ae = NSAppleEventDescriptor(
