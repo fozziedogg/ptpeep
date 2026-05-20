@@ -194,12 +194,14 @@ extension PTSLSessionInfo {
                     seenStreams.insert(stream)
                 }
             }
-            if !found.isEmpty {
+            if found.count > 1 {
                 AppLog.shared.log("[AESpot] multiMono: suffix path returning \(found.count) channel(s)")
                 return found.sorted { $0.stream < $1.stream }
             }
-            // No companions found via suffix alone — fall through to stem-marker
-            // check in case this file also has a _L-/_R- marker in its base.
+            // Only the original file found — fall through to stem-marker check
+            // in case this file also carries a _L-/_R- marker (e.g.
+            // "Sound_L-Var.L.wav" paired with "Sound_R-Var.R.wav").
+            AppLog.shared.log("[AESpot] multiMono: suffix match found no companions, trying stem-marker")
             break
         }
 
