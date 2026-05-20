@@ -157,10 +157,22 @@ struct PlayRegion {
         let trackIdx: Int
         let clips: [(clip: PTXClip, url: URL)]   // sorted by startSample
     }
-    let startSample: Int64          // region start (absolute samples)
-    let endSample:   Int64          // region end (absolute samples)
-    let segments:    [TrackSegment] // one per track that has clips in range
-    let sampleRate:  Double
+    let startSample:  Int64          // region start (absolute samples)
+    let endSample:    Int64          // region end (absolute samples)
+    let segments:     [TrackSegment] // one per track that has clips in range
+    let sampleRate:   Double
+    /// All resolved audio file URLs from the session — used as a cross-directory
+    /// fallback when searching for multi-mono companion files.
+    let resolvedPool: [URL]
+
+    init(startSample: Int64, endSample: Int64, segments: [TrackSegment],
+         sampleRate: Double, resolvedPool: [URL] = []) {
+        self.startSample  = startSample
+        self.endSample    = endSample
+        self.segments     = segments
+        self.sampleRate   = sampleRate
+        self.resolvedPool = resolvedPool
+    }
 
     var totalClipCount: Int { segments.reduce(0) { $0 + $1.clips.count } }
     var trackCount: Int { segments.count }

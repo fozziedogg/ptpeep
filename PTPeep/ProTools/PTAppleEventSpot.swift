@@ -29,13 +29,14 @@ extension PTSLSessionInfo {
         let totalClips = segments.reduce(0) { $0 + $1.clips.count }
         AppLog.shared.log("[AESpot] BEGIN \(segments.count) segment(s), \(totalClips) clip(s), regStart=\(regStart)")
         // AESend is synchronous — run all sends off the main thread.
+        let pool = region.resolvedPool
         try await Task.detached(priority: .userInitiated) {
             for (segIdx, segment) in segments.enumerated() {
                 for (clip, url) in segment.clips {
                     let srcStart  = Int32(clamping: clip.sourceOffset)
                     let srcStop   = Int32(clamping: clip.sourceOffset + clip.lengthSamples)
                     let offset    = Int32(clamping: clip.startSample - regStart)
-                    let channels  = PTSLSessionInfo.multiMonoChannels(of: url)
+                    let channels  = PTSLSessionInfo.multiMonoChannels(of: url, pool: pool)
                     for (chURL, stream) in channels {
                         AppLog.shared.log("[AESpot] clip='\(clip.name)' track+\(segIdx) Strm=\(stream) SMSt=\(offset) Star=\(srcStart) Stop=\(srcStop) url=\(chURL.lastPathComponent)")
                         try PTSLSessionInfo.aeSendSpot(
@@ -171,13 +172,13 @@ extension PTSLSessionInfo {
 
     /// Returns (url, streamIndex) for every channel file of a multi-mono group found on disk,
     /// sorted by stream index.  For a mono or unrecognised file returns [(url, 1)].
-    static func multiMonoChannels(of url: URL) -> [(url: URL, stream: Int16)] {
+    static func multiMonoChannels(of url: URL, pool: [URL] = []) -> [(url: URL, stream: Int16)] {
         let stem = url.deletingPathExtension().lastPathComponent
         let ext  = url.pathExtension
         let dir  = url.deletingLastPathComponent()
         AppLog.shared.log("[AESpot] multiMono: stem='\(stem)' ext='\(ext)'")
 
-        // ── .Suffix style (.L, .R, .C, .LFE, .Ls, .Rs, …) ──────────────────
+        // ── 1. Same-directory suffix scan (.L, .R, .C, .LFE, .Ls, .Rs, …) ────
         for (suffix, _) in ptChannelSuffixes where stem.hasSuffix(suffix) {
             let base = String(stem.dropLast(suffix.count))
             AppLog.shared.log("[AESpot] multiMono: matched suffix '\(suffix)', base='\(base)'")
@@ -198,53 +199,74 @@ extension PTSLSessionInfo {
                 AppLog.shared.log("[AESpot] multiMono: suffix path returning \(found.count) channel(s)")
                 return found.sorted { $0.stream < $1.stream }
             }
-            // Only the original file found — fall through to stem-marker check
-            // in case this file also carries a _L-/_R- marker (e.g.
-            // "Sound_L-Var.L.wav" paired with "Sound_R-Var.R.wav").
-            AppLog.shared.log("[AESpot] multiMono: suffix match found no companions, trying stem-marker")
-            break
+            // Only the original found in same dir — try pool search.
+            AppLog.shared.log("[AESpot] multiMono: suffix match found no companions, trying pool")
+
+            // ── 2. Pool-based cross-directory search ─────────────────────────
+            // Covers companions in different subfolders AND files that pair a
+            // _L-/_R- stem marker with a .L/.R suffix (e.g. "Snd_L-Var.L.wav"
+            // paired with "Snd_L-Var.R.wav" or "Snd_R-Var.R.wav").
+            if !pool.isEmpty {
+                // Build base variants: current base plus _L-/_R- swapped versions.
+                var basesToMatch = Set([base])
+                for (from, to) in [("_L-", "_R-"), ("_R-", "_L-")] {
+                    if base.contains(from) {
+                        basesToMatch.insert(base.replacingOccurrences(of: from, with: to))
+                    }
+                }
+                AppLog.shared.log("[AESpot] multiMono: pool search bases=\(basesToMatch)")
+                for poolURL in pool {
+                    let poolStem = poolURL.deletingPathExtension().lastPathComponent
+                    for (poolSuffix, stream) in ptChannelSuffixes {
+                        guard !seenStreams.contains(stream),
+                              poolStem.hasSuffix(poolSuffix) else { continue }
+                        let poolBase = String(poolStem.dropLast(poolSuffix.count))
+                        if basesToMatch.contains(poolBase) {
+                            AppLog.shared.log("[AESpot] multiMono:   pool '\(poolURL.lastPathComponent)' Strm=\(stream)")
+                            found.append((poolURL, stream))
+                            seenStreams.insert(stream)
+                            break
+                        }
+                    }
+                }
+                if found.count > 1 {
+                    AppLog.shared.log("[AESpot] multiMono: pool search returning \(found.count) channel(s)")
+                    return found.sorted { $0.stream < $1.stream }
+                }
+            }
+            break // fall through to stem-marker disk scan
         }
 
-        // ── _L- / _R- stem-marker style (PT stereo multi-mono) ───────────────
-        // Also handles files that carry both a suffix (.L/.R) AND a stem marker
-        // (_L-/_R-), e.g. "Sound_L-Var.L.wav" paired with "Sound_R-Var.R.wav".
+        // ── 3. _L- / _R- stem-marker disk scan (last resort) ─────────────────
+        // Used when the file has a marker but no channel suffix, or pool was empty.
         let stemMarkers: [(from: String, stream: Int16, companions: [(String, Int16)])] = [
             ("_L-", 1, [("_R-", 2)]),
             ("_R-", 2, [("_L-", 1)]),
         ]
         for marker in stemMarkers {
-            // Search in the full stem (may include a .L/.R suffix still attached).
             guard let range = stem.range(of: marker.from) else { continue }
-            AppLog.shared.log("[AESpot] multiMono: matched stem-marker '\(marker.from)'")
+            AppLog.shared.log("[AESpot] multiMono: stem-marker '\(marker.from)' fallback")
             var result: [(url: URL, stream: Int16)] = [(url, marker.stream)]
             for (otherMarker, otherStream) in marker.companions {
-                // Try every channel suffix (or no suffix) for the companion.
                 let suffixesToTry: [String] = ptChannelSuffixes.map { $0.suffix } + [""]
-                var companionFound = false
                 for companionSuffix in suffixesToTry {
-                    // Build companion stem: swap marker, replace trailing channel suffix if present.
                     var s = stem
                     s.replaceSubrange(range, with: otherMarker)
-                    // If the current stem ends with a channel suffix, replace it with the companion's.
                     for (thisSuffix, _) in ptChannelSuffixes where s.hasSuffix(thisSuffix) {
                         s = String(s.dropLast(thisSuffix.count)) + companionSuffix
                         break
                     }
-                    let name = s + (ext.isEmpty ? "" : "." + ext)
+                    let name      = s + (ext.isEmpty ? "" : "." + ext)
                     let candidate = dir.appendingPathComponent(name)
-                    let exists = FileManager.default.fileExists(atPath: candidate.path)
-                    AppLog.shared.log("[AESpot] multiMono:   check companion '\(name)' → \(exists ? "FOUND" : "missing")")
+                    let exists    = FileManager.default.fileExists(atPath: candidate.path)
+                    AppLog.shared.log("[AESpot] multiMono:   disk check '\(name)' → \(exists ? "FOUND" : "missing")")
                     if exists {
                         result.append((candidate, otherStream))
-                        companionFound = true
                         break
                     }
                 }
-                if !companionFound {
-                    AppLog.shared.log("[AESpot] multiMono:   companion for '\(otherMarker)' not found on disk")
-                }
             }
-            AppLog.shared.log("[AESpot] multiMono: stem-marker path returning \(result.count) channel(s)")
+            AppLog.shared.log("[AESpot] multiMono: stem-marker returning \(result.count) channel(s)")
             return result.sorted { $0.stream < $1.stream }
         }
 

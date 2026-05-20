@@ -1755,7 +1755,8 @@ private struct SessionTimelineView: View {
 
             return PlayRegion(startSample: max(startSamp, croppedStart),
                               endSample:   min(endSamp,   croppedEnd),
-                              segments: segments, sampleRate: sr)
+                              segments: segments, sampleRate: sr,
+                              resolvedPool: resolvedFiles.compactMap(\.url))
         }()
 
         VStack(spacing: 0) {
@@ -2448,7 +2449,8 @@ private struct SessionTimelineView: View {
                 let region  = PlayRegion(startSample: clip.startSample,
                                          endSample:   clip.startSample + clip.lengthSamples,
                                          segments:    [segment],
-                                         sampleRate:  max(sampleRate, 1))
+                                         sampleRate:  max(sampleRate, 1),
+                                         resolvedPool: resolvedFiles.compactMap(\.url))
                 Task { try? await PTSLSessionInfo.shared.spotRegion(region) }
             } label: {
                 Label("Spot to PT", systemImage: "pin.fill")
