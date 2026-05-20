@@ -1,3 +1,4 @@
+import AppKit
 import AVFoundation
 import Carbon
 import Foundation
@@ -75,12 +76,16 @@ extension PTSLSessionInfo {
         sampleOffset: Int32,
         stream:       Int16
     ) throws {
-        // ── Target: Pro Tools by bundle ID (modern; 'PTul' sig returns procNotFound) ──
-        guard let bundleData = "com.avid.ProTools".data(using: .utf8),
-              let targetDesc = NSAppleEventDescriptor(
-                descriptorType: DescType(typeApplicationBundleID),
-                data: bundleData
-              ) else { throw PTSLError.commandFailed("AESpot: bad target descriptor") }
+        // ── Target: Pro Tools by kernel PID (most reliable across macOS versions) ──
+        guard let ptApp = NSRunningApplication
+                .runningApplications(withBundleIdentifier: "com.avid.ProTools").first
+        else { throw PTSLError.commandFailed("AESpot: Pro Tools is not running") }
+        var pid = ptApp.processIdentifier
+        guard let targetDesc = NSAppleEventDescriptor(
+            descriptorType: DescType(typeKernelProcessID),
+            bytes: &pid,
+            length: MemoryLayout<pid_t>.size
+        ) else { throw PTSLError.commandFailed("AESpot: bad target descriptor") }
 
         // ── Build the AppleEvent ──────────────────────────────────────────────
         let ae = NSAppleEventDescriptor(
