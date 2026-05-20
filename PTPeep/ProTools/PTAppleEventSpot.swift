@@ -133,10 +133,17 @@ extension PTSLSessionInfo {
         var reply = AEDesc()
         let err = AESend(ae.aeDesc,
                          &reply,
-                         AESendMode(kAENoReply | kAECanInteract),
+                         AESendMode(kAEWaitReply | kAECanInteract),
                          AESendPriority(kAENormalPriority),
                          Int32(kAEDefaultTimeout), nil, nil)
-        AEDisposeDesc(&reply)
+        // Log any error string PT put in the reply
+        let replyDesc = NSAppleEventDescriptor(aeDescNoCopy: &reply)
+        if let errStr = replyDesc.paramDescriptor(forKeyword: AEKeyword(keyErrorString))?.stringValue {
+            AppLog.shared.log("[AESpot] PT reply errorString: \(errStr)")
+        }
+        if let errNum = replyDesc.paramDescriptor(forKeyword: AEKeyword(keyErrorNumber))?.int32Value {
+            AppLog.shared.log("[AESpot] PT reply errorNumber: \(errNum)")
+        }
         if err == noErr {
             AppLog.shared.log("[AESpot] AESend OK")
         } else {
