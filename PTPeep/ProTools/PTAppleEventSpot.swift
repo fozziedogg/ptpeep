@@ -32,20 +32,22 @@ extension PTSLSessionInfo {
         try await Task.detached(priority: .userInitiated) {
             for (segIdx, segment) in segments.enumerated() {
                 for (clip, url) in segment.clips {
-                    let srcStart = Int32(clamping: clip.sourceOffset)
-                    let srcStop  = Int32(clamping: clip.sourceOffset + clip.lengthSamples)
-                    let offset   = Int32(clamping: clip.startSample - regStart)
-                    let stream   = PTSLSessionInfo.aeStreamIndex(sourceFile: clip.sourceFile)
-                    AppLog.shared.log("[AESpot] clip='\(clip.name)' track+\(segIdx) Strm=\(stream) SMSt=\(offset) Star=\(srcStart) Stop=\(srcStop) url=\(url.lastPathComponent)")
-                    try PTSLSessionInfo.aeSendSpot(
-                        url:          url,
-                        srcStart:     srcStart,
-                        srcStop:      srcStop,
-                        name:         clip.name,
-                        trackOffset:  Int16(segIdx),
-                        sampleOffset: offset,
-                        stream:       stream
-                    )
+                    let srcStart  = Int32(clamping: clip.sourceOffset)
+                    let srcStop   = Int32(clamping: clip.sourceOffset + clip.lengthSamples)
+                    let offset    = Int32(clamping: clip.startSample - regStart)
+                    let channels  = PTSLSessionInfo.multiMonoChannels(of: url)
+                    for (chURL, stream) in channels {
+                        AppLog.shared.log("[AESpot] clip='\(clip.name)' track+\(segIdx) Strm=\(stream) SMSt=\(offset) Star=\(srcStart) Stop=\(srcStop) url=\(chURL.lastPathComponent)")
+                        try PTSLSessionInfo.aeSendSpot(
+                            url:          chURL,
+                            srcStart:     srcStart,
+                            srcStop:      srcStop,
+                            name:         clip.name,
+                            trackOffset:  Int16(segIdx),
+                            sampleOffset: offset,
+                            stream:       stream
+                        )
+                    }
                 }
             }
         }.value
@@ -153,13 +155,65 @@ extension PTSLSessionInfo {
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Multichannel helpers
 
-    /// Returns the PT stream index (1=L/mono, 2=R) for a source file name.
-    /// Multi-mono stereo files use `_L-` / `_R-` stem markers or `.L` / `.R` suffixes.
-    static func aeStreamIndex(sourceFile: String) -> Int16 {
-        if sourceFile.hasSuffix(".R") || sourceFile.contains("_R-") { return 2 }
-        return 1
+    // PT multi-mono channel suffixes in stream order.
+    // Covers stereo, LCR, LCRS, quad, 5.1, 7.1 SDDS, 7.1 DTS variants.
+    private static let ptChannelSuffixes: [(suffix: String, stream: Int16)] = [
+        (".L",   1), (".R",    2), (".C",   3), (".LFE",  4),
+        (".Ls",  5), (".Rs",   6), (".Lss", 7), (".Rss",  8),
+        // Alternate spellings PT uses in different versions
+        (".Lfe", 4), (".Lsr",  7), (".Rsr", 8),
+        (".Lc",  2), (".Rc",   4),   // 7.1 SDDS centre pairs
+        (".S",   4),                  // LCRS surround
+        (".M",   1),                  // mono alias
+    ]
+
+    /// Returns (url, streamIndex) for every channel file of a multi-mono group found on disk,
+    /// sorted by stream index.  For a mono or unrecognised file returns [(url, 1)].
+    static func multiMonoChannels(of url: URL) -> [(url: URL, stream: Int16)] {
+        let stem = url.deletingPathExtension().lastPathComponent
+        let ext  = url.pathExtension
+        let dir  = url.deletingLastPathComponent()
+
+        // ── .Suffix style (.L, .R, .C, .LFE, .Ls, .Rs, …) ──────────────────
+        for (suffix, _) in ptChannelSuffixes where stem.hasSuffix(suffix) {
+            let base = String(stem.dropLast(suffix.count))
+            var found: [(url: URL, stream: Int16)] = []
+            var seenStreams = Set<Int16>()
+            for (otherSuffix, stream) in ptChannelSuffixes {
+                guard !seenStreams.contains(stream) else { continue }
+                let name      = base + otherSuffix + (ext.isEmpty ? "" : "." + ext)
+                let candidate = dir.appendingPathComponent(name)
+                if FileManager.default.fileExists(atPath: candidate.path) {
+                    found.append((candidate, stream))
+                    seenStreams.insert(stream)
+                }
+            }
+            if !found.isEmpty {
+                return found.sorted { $0.stream < $1.stream }
+            }
+        }
+
+        // ── _L- / _R- stem-marker style (PT stereo multi-mono) ───────────────
+        let stemMarkers: [(from: String, stream: Int16, companions: [(String, Int16)])] = [
+            ("_L-", 1, [("_R-", 2)]),
+            ("_R-", 2, [("_L-", 1)]),
+        ]
+        for marker in stemMarkers {
+            guard let range = stem.range(of: marker.from) else { continue }
+            var result: [(url: URL, stream: Int16)] = [(url, marker.stream)]
+            for (otherMarker, otherStream) in marker.companions {
+                var s = stem; s.replaceSubrange(range, with: otherMarker)
+                let candidate = dir.appendingPathComponent(s + (ext.isEmpty ? "" : "." + ext))
+                if FileManager.default.fileExists(atPath: candidate.path) {
+                    result.append((candidate, otherStream))
+                }
+            }
+            return result.sorted { $0.stream < $1.stream }
+        }
+
+        return [(url, 1)]
     }
 
     // MARK: - FourCharCode helpers
