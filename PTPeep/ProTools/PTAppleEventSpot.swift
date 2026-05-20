@@ -175,44 +175,78 @@ extension PTSLSessionInfo {
         let stem = url.deletingPathExtension().lastPathComponent
         let ext  = url.pathExtension
         let dir  = url.deletingLastPathComponent()
+        AppLog.shared.log("[AESpot] multiMono: stem='\(stem)' ext='\(ext)'")
 
         // ── .Suffix style (.L, .R, .C, .LFE, .Ls, .Rs, …) ──────────────────
         for (suffix, _) in ptChannelSuffixes where stem.hasSuffix(suffix) {
             let base = String(stem.dropLast(suffix.count))
+            AppLog.shared.log("[AESpot] multiMono: matched suffix '\(suffix)', base='\(base)'")
             var found: [(url: URL, stream: Int16)] = []
             var seenStreams = Set<Int16>()
             for (otherSuffix, stream) in ptChannelSuffixes {
                 guard !seenStreams.contains(stream) else { continue }
                 let name      = base + otherSuffix + (ext.isEmpty ? "" : "." + ext)
                 let candidate = dir.appendingPathComponent(name)
-                if FileManager.default.fileExists(atPath: candidate.path) {
+                let exists    = FileManager.default.fileExists(atPath: candidate.path)
+                AppLog.shared.log("[AESpot] multiMono:   check '\(name)' → \(exists ? "FOUND" : "missing")")
+                if exists {
                     found.append((candidate, stream))
                     seenStreams.insert(stream)
                 }
             }
             if !found.isEmpty {
+                AppLog.shared.log("[AESpot] multiMono: suffix path returning \(found.count) channel(s)")
                 return found.sorted { $0.stream < $1.stream }
             }
+            // No companions found via suffix alone — fall through to stem-marker
+            // check in case this file also has a _L-/_R- marker in its base.
+            break
         }
 
         // ── _L- / _R- stem-marker style (PT stereo multi-mono) ───────────────
+        // Also handles files that carry both a suffix (.L/.R) AND a stem marker
+        // (_L-/_R-), e.g. "Sound_L-Var.L.wav" paired with "Sound_R-Var.R.wav".
         let stemMarkers: [(from: String, stream: Int16, companions: [(String, Int16)])] = [
             ("_L-", 1, [("_R-", 2)]),
             ("_R-", 2, [("_L-", 1)]),
         ]
         for marker in stemMarkers {
+            // Search in the full stem (may include a .L/.R suffix still attached).
             guard let range = stem.range(of: marker.from) else { continue }
+            AppLog.shared.log("[AESpot] multiMono: matched stem-marker '\(marker.from)'")
             var result: [(url: URL, stream: Int16)] = [(url, marker.stream)]
             for (otherMarker, otherStream) in marker.companions {
-                var s = stem; s.replaceSubrange(range, with: otherMarker)
-                let candidate = dir.appendingPathComponent(s + (ext.isEmpty ? "" : "." + ext))
-                if FileManager.default.fileExists(atPath: candidate.path) {
-                    result.append((candidate, otherStream))
+                // Try every channel suffix (or no suffix) for the companion.
+                let suffixesToTry: [String] = ptChannelSuffixes.map { $0.suffix } + [""]
+                var companionFound = false
+                for companionSuffix in suffixesToTry {
+                    // Build companion stem: swap marker, replace trailing channel suffix if present.
+                    var s = stem
+                    s.replaceSubrange(range, with: otherMarker)
+                    // If the current stem ends with a channel suffix, replace it with the companion's.
+                    for (thisSuffix, _) in ptChannelSuffixes where s.hasSuffix(thisSuffix) {
+                        s = String(s.dropLast(thisSuffix.count)) + companionSuffix
+                        break
+                    }
+                    let name = s + (ext.isEmpty ? "" : "." + ext)
+                    let candidate = dir.appendingPathComponent(name)
+                    let exists = FileManager.default.fileExists(atPath: candidate.path)
+                    AppLog.shared.log("[AESpot] multiMono:   check companion '\(name)' → \(exists ? "FOUND" : "missing")")
+                    if exists {
+                        result.append((candidate, otherStream))
+                        companionFound = true
+                        break
+                    }
+                }
+                if !companionFound {
+                    AppLog.shared.log("[AESpot] multiMono:   companion for '\(otherMarker)' not found on disk")
                 }
             }
+            AppLog.shared.log("[AESpot] multiMono: stem-marker path returning \(result.count) channel(s)")
             return result.sorted { $0.stream < $1.stream }
         }
 
+        AppLog.shared.log("[AESpot] multiMono: no multi-mono pattern matched, returning mono")
         return [(url, 1)]
     }
 
