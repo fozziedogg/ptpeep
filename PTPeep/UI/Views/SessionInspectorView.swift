@@ -2445,12 +2445,22 @@ private struct SessionTimelineView: View {
         } else if let clip, !clip.isGroup,
                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
             Button {
+                // ── Companion diagnostic: compare waveform view vs spot logic ──
+                let waveL = url.lastPathComponent
+                let waveRName = multiMonoCompanion(clip.sourceFile)
+                let waveR = waveRName.flatMap { n in resolvedFiles.first { $0.name == n }?.url }?.lastPathComponent ?? "(none)"
+                AppLog.shared.log("[Spot] Waveform L: \(waveL)")
+                AppLog.shared.log("[Spot] Waveform R (multiMonoCompanion): \(waveR)")
+                let pool = resolvedFiles.compactMap(\.url)
+                let spotChannels = PTSLSessionInfo.multiMonoChannels(of: url, pool: pool)
+                AppLog.shared.log("[Spot] multiMonoChannels → \(spotChannels.map { "Strm\($0.stream):\($0.url.lastPathComponent)" })")
+                // ──────────────────────────────────────────────────────────────
                 let segment = PlayRegion.TrackSegment(trackIdx: 0, clips: [(clip: clip, url: url)])
                 let region  = PlayRegion(startSample: clip.startSample,
                                          endSample:   clip.startSample + clip.lengthSamples,
                                          segments:    [segment],
                                          sampleRate:  max(sampleRate, 1),
-                                         resolvedPool: resolvedFiles.compactMap(\.url))
+                                         resolvedPool: pool)
                 Task { try? await PTSLSessionInfo.shared.spotRegion(region) }
             } label: {
                 Label("Spot to PT", systemImage: "pin.fill")
