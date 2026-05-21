@@ -191,14 +191,23 @@ extension PTSLSessionInfo {
         AppLog.shared.log("[AESpot] multiMono: base='\(base)' suffix='\(matchedSuffix)' stream=\(selfStream)")
 
         // ── 1. Pool search (finds companions in any subdirectory) ─────────────
+        // Match against the exact base AND any _L-/_R- swapped variants, since
+        // some sessions name companions with a different stem marker
+        // (e.g. "Foo_L-Bar.L.wav" paired with "Foo_R-Bar.R.wav").
         if !pool.isEmpty {
+            var basesToMatch = Set([base])
+            for (from, to) in [("_L-", "_R-"), ("_R-", "_L-")] {
+                if base.contains(from) {
+                    basesToMatch.insert(base.replacingOccurrences(of: from, with: to))
+                }
+            }
             var found: [(url: URL, stream: Int16)] = []
             var seenStreams = Set<Int16>()
             for poolURL in pool {
                 let poolStem = poolURL.deletingPathExtension().lastPathComponent
                 for (s, str) in ptChannelSuffixes {
                     guard !seenStreams.contains(str), poolStem.hasSuffix(s) else { continue }
-                    if String(poolStem.dropLast(s.count)) == base {
+                    if basesToMatch.contains(String(poolStem.dropLast(s.count))) {
                         AppLog.shared.log("[AESpot] multiMono: pool '\(poolURL.lastPathComponent)' Strm=\(str)")
                         found.append((poolURL, str))
                         seenStreams.insert(str)
