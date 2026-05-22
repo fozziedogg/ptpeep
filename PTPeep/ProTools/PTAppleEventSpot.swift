@@ -37,8 +37,7 @@ extension PTSLSessionInfo {
                 let stem = u.deletingPathExtension().lastPathComponent
                 if poolByName[stem] == nil { poolByName[stem] = u }
             }
-            // Cache resolved channels per URL so a cue with hundreds of clips
-            // from the same file doesn't run (and log) the search hundreds of times.
+            // Cache per-clip channel lists so repeated clips (same source file) resolve once.
             var channelCache: [URL: [(url: URL, stream: Int16)]] = [:]
             for (segIdx, segment) in segments.enumerated() {
                 for (clip, url) in segment.clips {
@@ -49,26 +48,13 @@ extension PTSLSessionInfo {
                     if let cached = channelCache[url] {
                         channels = cached
                     } else {
-                        // Prefer per-channel file names stored directly in the PTX clip.
-                        // Fall back to suffix/marker heuristics only when that data is absent.
-                        var result: [(url: URL, stream: Int16)]
-                        if clip.channelFiles.count > 1 {
-                            let resolved: [(url: URL, stream: Int16)] = clip.channelFiles.enumerated().compactMap { i, name in
-                                guard let u = poolByName[name] else { return nil }
-                                return (u, Int16(i + 1))
-                            }
-                            if resolved.count == clip.channelFiles.count {
-                                AppLog.shared.log("[AESpot] multiMono: PTX-direct \(resolved.map { "Strm\($0.stream):\($0.url.lastPathComponent)" })")
-                                result = resolved
-                            } else {
-                                AppLog.shared.log("[AESpot] multiMono: PTX-direct partial (\(resolved.count)/\(clip.channelFiles.count)), falling back")
-                                result = PTSLSessionInfo.multiMonoChannels(of: url, pool: pool)
-                            }
-                        } else {
-                            result = PTSLSessionInfo.multiMonoChannels(of: url, pool: pool)
+                        let resolved: [(url: URL, stream: Int16)] = clip.channelFiles.enumerated().compactMap { i, name in
+                            guard let u = poolByName[name] else { return nil }
+                            return (u, Int16(i + 1))
                         }
-                        channelCache[url] = result
-                        channels = result
+                        AppLog.shared.log("[AESpot] channels: \(resolved.map { "Strm\($0.stream):\($0.url.lastPathComponent)" })")
+                        channelCache[url] = resolved
+                        channels = resolved
                     }
                     for (chURL, stream) in channels {
                         AppLog.shared.log("[AESpot] clip='\(clip.name)' track+\(segIdx) Strm=\(stream) SMSt=\(offset) Star=\(srcStart) Stop=\(srcStop) url=\(chURL.lastPathComponent)")
@@ -187,237 +173,6 @@ extension PTSLSessionInfo {
             AppLog.shared.log("[AESpot] AESend FAILED OSErr=\(err)")
             throw PTSLError.commandFailed("AESend returned OSErr \(err)")
         }
-    }
-
-    // MARK: - Multichannel helpers
-
-    // PT multi-mono channel suffixes in stream order.
-    // Covers stereo, LCR, LCRS, quad, 5.1, 7.1 SDDS, 7.1 DTS variants.
-    private static let ptChannelSuffixes: [(suffix: String, stream: Int16)] = [
-        (".L",   1), (".R",    2), (".C",   3), (".LFE",  4),
-        (".Ls",  5), (".Rs",   6), (".Lss", 7), (".Rss",  8),
-        // Alternate spellings PT uses in different versions
-        (".Lfe", 4), (".Lsr",  7), (".Rsr", 8),
-        (".Lc",  2), (".Rc",   4),   // 7.1 SDDS centre pairs
-        (".S",   4),                  // LCRS surround
-        (".M",   1),                  // mono alias
-    ]
-
-    /// Returns (url, streamIndex) for every channel file of a multi-mono group,
-    /// sorted by stream index.  For a mono or unrecognised file returns [(url, 1)].
-    ///
-    /// Strategy: strip the channel suffix from the file's stem to get a base name,
-    /// then find all files (in the pool or same directory) whose stem strips to the
-    /// same base.  This handles companions in any subdirectory without needing to
-    /// guess stem-marker conventions.
-    static func multiMonoChannels(of url: URL, pool: [URL] = []) -> [(url: URL, stream: Int16)] {
-        let stem = url.deletingPathExtension().lastPathComponent
-        let ext  = url.pathExtension
-        let dir  = url.deletingLastPathComponent()
-
-        // Identify this file's channel suffix and derive the shared base name.
-        guard let (matchedSuffix, selfStream) = ptChannelSuffixes.first(where: { stem.hasSuffix($0.suffix) }) else {
-            // No recognised channel suffix — check for a bare _L-/_R- stem marker
-            // (e.g. "Foo_L-15" paired with "Foo_R-15", no .L/.R suffix at all).
-            let bareMarkers: [(from: String, selfStr: Int16, to: String, otherStr: Int16)] = [
-                ("_L-", 1, "_R-", 2), ("_R-", 2, "_L-", 1)
-            ]
-            for mp in bareMarkers {
-                guard stem.contains(mp.from) else { continue }
-                let swappedStem = stem.replacingOccurrences(of: mp.from, with: mp.to)
-                // Pool search: exact stem match (no suffix stripping needed)
-                for poolURL in pool {
-                    if poolURL.deletingPathExtension().lastPathComponent == swappedStem {
-                        AppLog.shared.log("[AESpot] multiMono: bare-marker pool '\(poolURL.lastPathComponent)' Strm=\(mp.otherStr)")
-                        return [(url, mp.selfStr), (poolURL, mp.otherStr)].sorted { $0.stream < $1.stream }
-                    }
-                }
-                // Directory fallback
-                let name      = swappedStem + (ext.isEmpty ? "" : "." + ext)
-                let candidate = dir.appendingPathComponent(name)
-                if FileManager.default.fileExists(atPath: candidate.path) {
-                    AppLog.shared.log("[AESpot] multiMono: bare-marker dir '\(name)' Strm=\(mp.otherStr)")
-                    return [(url, mp.selfStr), (candidate, mp.otherStr)].sorted { $0.stream < $1.stream }
-                }
-                break
-            }
-            AppLog.shared.log("[AESpot] multiMono: no suffix or marker matched, returning mono for '\(stem)'")
-            return [(url, 1)]
-        }
-        let base = String(stem.dropLast(matchedSuffix.count))
-        AppLog.shared.log("[AESpot] multiMono: base='\(base)' suffix='\(matchedSuffix)' stream=\(selfStream)")
-
-        // ── 1. Pool search (finds companions in any subdirectory) ─────────────
-        // Two-pass when the stem has a _L-/_R- marker:
-        //   Pass A: seed with self + search for SWAPPED-base companions only.
-        //           (e.g. "Foo_L-Bar.L" → look for "Foo_R-Bar.*")
-        //           Correct for sessions where the R file has a different stem marker.
-        //   Pass B: search for SAME-base companions.
-        //           (e.g. "Foo_L-Bar.L" + "Foo_L-Bar.R")
-        //           Correct for sessions where both channels share the same stem.
-        // Without a _L-/_R- marker, only a single same-base pass is needed.
-        if !pool.isEmpty {
-            // Build swapped-base variants (empty if no marker present).
-            var swappedBases = Set<String>()
-            for (from, to) in [("_L-", "_R-"), ("_R-", "_L-")] {
-                if base.contains(from) {
-                    swappedBases.insert(base.replacingOccurrences(of: from, with: to))
-                }
-            }
-
-            func poolScan(bases: Set<String>, seed: [(url: URL, stream: Int16)]) -> [(url: URL, stream: Int16)] {
-                var found = seed
-                var seenStreams = Set(seed.map { $0.stream })
-                for poolURL in pool {
-                    let poolStem = poolURL.deletingPathExtension().lastPathComponent
-                    // Suffix match: companion has a recognised channel suffix
-                    var matched = false
-                    for (s, str) in ptChannelSuffixes {
-                        guard !seenStreams.contains(str), poolStem.hasSuffix(s) else { continue }
-                        if bases.contains(String(poolStem.dropLast(s.count))) {
-                            AppLog.shared.log("[AESpot] multiMono: pool '\(poolURL.lastPathComponent)' Strm=\(str)")
-                            found.append((poolURL, str))
-                            seenStreams.insert(str)
-                            matched = true
-                            break
-                        }
-                    }
-                    // Bare-stem match: companion has no recognised channel suffix but its
-                    // stem directly equals one of our bases (e.g. …_R-Symph3D_03.wav).
-                    if !matched, bases.contains(poolStem) {
-                        let str: Int16 = poolStem.contains("_R-") ? 2 : 1
-                        if !seenStreams.contains(str) {
-                            AppLog.shared.log("[AESpot] multiMono: pool (bare) '\(poolURL.lastPathComponent)' Strm=\(str)")
-                            found.append((poolURL, str))
-                            seenStreams.insert(str)
-                        }
-                    }
-                }
-                return found
-            }
-
-            // Pass A: swapped-base (only when marker present), seeded with self.
-            if !swappedBases.isEmpty {
-                let fromSwapped = poolScan(bases: swappedBases, seed: [(url, selfStream)])
-                if fromSwapped.count > 1 {
-                    return fromSwapped.sorted { $0.stream < $1.stream }
-                }
-            }
-
-            // Pass B: same-base (all stems).
-            let fromSame = poolScan(bases: Set([base]), seed: [])
-            if fromSame.count > 1 {
-                return fromSame.sorted { $0.stream < $1.stream }
-            }
-        }
-
-        // ── 2. Same-directory scan (pool empty or companion not in pool) ──────
-        var found: [(url: URL, stream: Int16)] = [(url, selfStream)]
-        var seenStreams: Set<Int16> = [selfStream]
-
-        // Pass A: same base + each recognised suffix (Pattern 1: Foo_L-Bar.L + Foo_L-Bar.R)
-        for (s, str) in ptChannelSuffixes {
-            guard !seenStreams.contains(str) else { continue }
-            let name      = base + s + (ext.isEmpty ? "" : "." + ext)
-            let candidate = dir.appendingPathComponent(name)
-            if FileManager.default.fileExists(atPath: candidate.path) {
-                AppLog.shared.log("[AESpot] multiMono: dir '\(name)' Strm=\(str)")
-                found.append((candidate, str))
-                seenStreams.insert(str)
-            }
-        }
-
-        // Pass B: swapped base — handles companions whose base differs by _L-/_R- marker
-        //   bare swapped base  → Pattern 4: Foo_L-Symph3D_03.L + Foo_R-Symph3D_03.wav
-        //   swapped + suffix   → Pattern 2: Foo_L-Spkrphn.L   + Foo_R-Spkrphn.R.wav (dir fallback)
-        for (from, to) in [("_L-", "_R-"), ("_R-", "_L-")] {
-            guard base.contains(from) else { continue }
-            let swappedBase  = base.replacingOccurrences(of: from, with: to)
-            let swappedStr: Int16 = swappedBase.contains("_R-") ? 2 : 1
-            // bare swapped base
-            if !seenStreams.contains(swappedStr) {
-                let name      = swappedBase + (ext.isEmpty ? "" : "." + ext)
-                let candidate = dir.appendingPathComponent(name)
-                if FileManager.default.fileExists(atPath: candidate.path) {
-                    AppLog.shared.log("[AESpot] multiMono: dir (bare-swap) '\(name)' Strm=\(swappedStr)")
-                    found.append((candidate, swappedStr))
-                    seenStreams.insert(swappedStr)
-                }
-            }
-            // swapped base + each recognised suffix
-            for (s, str) in ptChannelSuffixes {
-                guard !seenStreams.contains(str) else { continue }
-                let name      = swappedBase + s + (ext.isEmpty ? "" : "." + ext)
-                let candidate = dir.appendingPathComponent(name)
-                if FileManager.default.fileExists(atPath: candidate.path) {
-                    AppLog.shared.log("[AESpot] multiMono: dir (swap+sfx) '\(name)' Strm=\(str)")
-                    found.append((candidate, str))
-                    seenStreams.insert(str)
-                }
-            }
-            break   // only process one matching marker direction
-        }
-
-        if found.count > 1 {
-            return found.sorted { $0.stream < $1.stream }
-        }
-
-        // ── 3. Parent + sibling-subdirectory scan ─────────────────────────────
-        // Covers sessions where L and R files live in separate subfolders under
-        // the same Audio Files root (e.g. Audio Files/L/ and Audio Files/R/).
-        let parentDir = dir.deletingLastPathComponent()
-        if parentDir != dir {
-            let fm = FileManager.default
-            // Candidate directories: parent itself + all immediate subdirectories of parent
-            var searchDirs: [URL] = [parentDir]
-            if let contents = try? fm.contentsOfDirectory(at: parentDir,
-                                                           includingPropertiesForKeys: [.isDirectoryKey],
-                                                           options: .skipsHiddenFiles) {
-                for item in contents {
-                    if (try? item.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true,
-                       item != dir {
-                        searchDirs.append(item)
-                    }
-                }
-            }
-            for searchDir in searchDirs {
-                for (from, to) in [("_L-", "_R-"), ("_R-", "_L-")] {
-                    guard base.contains(from) else { continue }
-                    let swappedBase = base.replacingOccurrences(of: from, with: to)
-                    let swappedStr: Int16 = swappedBase.contains("_R-") ? 2 : 1
-                    guard !seenStreams.contains(swappedStr) else { continue }
-                    // bare swapped base
-                    let bareName = swappedBase + (ext.isEmpty ? "" : "." + ext)
-                    let bareCandidate = searchDir.appendingPathComponent(bareName)
-                    if fm.fileExists(atPath: bareCandidate.path) {
-                        AppLog.shared.log("[AESpot] multiMono: parent-scan (bare) '\(bareName)' Strm=\(swappedStr)")
-                        found.append((bareCandidate, swappedStr))
-                        seenStreams.insert(swappedStr)
-                        break
-                    }
-                    // swapped base + each recognised suffix
-                    for (s, str) in ptChannelSuffixes {
-                        guard !seenStreams.contains(str) else { continue }
-                        let name = swappedBase + s + (ext.isEmpty ? "" : "." + ext)
-                        let candidate = searchDir.appendingPathComponent(name)
-                        if fm.fileExists(atPath: candidate.path) {
-                            AppLog.shared.log("[AESpot] multiMono: parent-scan (sfx) '\(name)' Strm=\(str)")
-                            found.append((candidate, str))
-                            seenStreams.insert(str)
-                        }
-                    }
-                    break
-                }
-                if found.count > 1 { break }
-            }
-        }
-
-        if found.count > 1 {
-            return found.sorted { $0.stream < $1.stream }
-        }
-
-        AppLog.shared.log("[AESpot] multiMono: no companions found, returning Strm=\(selfStream)")
-        return [(url, selfStream)]
     }
 
     // MARK: - FourCharCode helpers

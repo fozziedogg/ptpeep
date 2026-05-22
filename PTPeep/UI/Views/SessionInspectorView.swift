@@ -2371,25 +2371,9 @@ private struct SessionTimelineView: View {
             ap.playRegion(region)
         }
         .onChange(of: selectedClip?.sourceFile) { sourceFile in
-            // Update cached waveform channel URLs (avoids calling multiMonoChannels on every 60fps render)
-            if let name = sourceFile,
-               let clip = selectedClip, !clip.isGroup,
-               let primary = resolvedFiles.first(where: { $0.name == name })?.url {
-                // Use per-channel file names from PTX when available (multi-mono tracks store
-                // each channel's audio file reference directly in the session).
-                if clip.channelFiles.count > 1 {
-                    let resolved = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
-                    if resolved.count == clip.channelFiles.count {
-                        waveChannelURLs = resolved
-                    } else {
-                        // Some channels not yet resolved — fall back to name search
-                        let pool = resolvedFiles.compactMap(\.url)
-                        waveChannelURLs = PTSLSessionInfo.multiMonoChannels(of: primary, pool: pool).map(\.url)
-                    }
-                } else {
-                    let pool = resolvedFiles.compactMap(\.url)
-                    waveChannelURLs = PTSLSessionInfo.multiMonoChannels(of: primary, pool: pool).map(\.url)
-                }
+            // Resolve per-channel audio file URLs from the PTX clip data.
+            if let clip = selectedClip, !clip.isGroup, clip.channelFiles.count >= 1 {
+                waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
             } else {
                 waveChannelURLs = []
             }
@@ -2492,16 +2476,7 @@ private struct SessionTimelineView: View {
         } else if let clip, !clip.isGroup,
                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
             Button {
-                // ── Companion diagnostic: compare waveform view vs spot logic ──
-                let waveL = url.lastPathComponent
-                let waveRName = multiMonoCompanion(clip.sourceFile)
-                let waveR = waveRName.flatMap { n in resolvedFiles.first { $0.name == n }?.url }?.lastPathComponent ?? "(none)"
-                AppLog.shared.log("[Spot] Waveform L: \(waveL)")
-                AppLog.shared.log("[Spot] Waveform R (multiMonoCompanion): \(waveR)")
                 let pool = resolvedFiles.compactMap(\.url)
-                let spotChannels = PTSLSessionInfo.multiMonoChannels(of: url, pool: pool)
-                AppLog.shared.log("[Spot] multiMonoChannels → \(spotChannels.map { "Strm\($0.stream):\($0.url.lastPathComponent)" })")
-                // ──────────────────────────────────────────────────────────────
                 let segment = PlayRegion.TrackSegment(trackIdx: 0, clips: [(clip: clip, url: url)])
                 let region  = PlayRegion(startSample: clip.startSample,
                                          endSample:   clip.startSample + clip.lengthSamples,
@@ -3221,31 +3196,6 @@ private struct VolumeFaderView: View {
         }
         .help(String(format: "%.1f dB  —  double-click to reset", dB))
     }
-}
-
-// MARK: - Multi-mono companion lookup
-
-/// Returns the companion file name for a Pro Tools multi-mono stereo pair, or nil if not applicable.
-/// PT naming: BaseName_L-TrackInfo[.L]  ↔  BaseName_R-TrackInfo[.R]
-/// Must swap BOTH the _L-/_R- stem marker AND the optional trailing .L/.R suffix.
-private func multiMonoCompanion(_ src: String) -> String? {
-    func swapSuffix(_ s: String, from: String, to: String) -> String {
-        s.hasSuffix(from) ? String(s.dropLast(from.count)) + to : s
-    }
-    if let range = src.range(of: "_L-") {
-        var c = src; c.replaceSubrange(range, with: "_R-")
-        c = swapSuffix(c, from: ".L", to: ".R")
-        return c
-    }
-    if let range = src.range(of: "_R-") {
-        var c = src; c.replaceSubrange(range, with: "_L-")
-        c = swapSuffix(c, from: ".R", to: ".L")
-        return c
-    }
-    // Fallback: bare trailing .L / .R with no stem marker
-    if src.hasSuffix(".L") { return String(src.dropLast(2)) + ".R" }
-    if src.hasSuffix(".R") { return String(src.dropLast(2)) + ".L" }
-    return nil
 }
 
 // MARK: - Clip Waveform View
