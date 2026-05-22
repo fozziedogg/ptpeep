@@ -2371,7 +2371,6 @@ private struct SessionTimelineView: View {
             ap.playRegion(region)
         }
         .onChange(of: selectedClip?.sourceFile) { sourceFile in
-            // Resolve per-channel audio file URLs from the PTX clip data.
             if let clip = selectedClip, !clip.isGroup, clip.channelFiles.count >= 1 {
                 waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
             } else {
@@ -2385,6 +2384,14 @@ private struct SessionTimelineView: View {
             Task.detached(priority: .userInitiated) {
                 let m = BWFParser.parse(url: url)
                 await MainActor.run { bwfMetadata = m }
+            }
+        }
+        .onChange(of: resolvedFiles.count) { _ in
+            // Re-run when file resolution finishes (resolvedFiles populates asynchronously
+            // after open). Without this, clicking a clip before resolution completes shows
+            // "audio offline" even when the file exists on disk.
+            if let clip = selectedClip, !clip.isGroup, clip.channelFiles.count >= 1 {
+                waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
             }
         }
     }
