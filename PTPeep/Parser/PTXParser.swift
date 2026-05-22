@@ -374,10 +374,21 @@ final class PTXParser {
                 let len = p.groupLength ?? clipEntry?.lengthSamples ?? 0
                 guard len > 0 else { continue }
                 let name = stripChannelSuffix(p.groupName ?? clipEntry?.name ?? "Clip \(p.clipIdx)")
+                let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
+                // Build per-channel file list from companion clip indices captured by the parser.
+                // companionClipIdxs[0] = channel 2 clipIdx, [1] = channel 3, etc.
+                var channelFiles: [String] = [ch1File]
+                for compIdx in p.companionClipIdxs {
+                    if let entry = compIdx < clips.count ? clips[compIdx] : nil,
+                       let fn = fileNameByIndex[entry.audioFileIndex] {
+                        channelFiles.append(fn)
+                    }
+                }
                 byPos[p.timelineSample] = PTXClip(
                     name: name, startSample: p.timelineSample, lengthSamples: len,
                     sourceOffset: clipEntry?.sourceOffset ?? 0,
-                    sourceFile: clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? "",
+                    sourceFile: ch1File,
+                    channelFiles: channelFiles,
                     isMuted: p.isMuted, isGroup: p.isGroup
                 )
             }

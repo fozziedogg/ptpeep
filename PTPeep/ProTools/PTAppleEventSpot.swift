@@ -31,7 +31,13 @@ extension PTSLSessionInfo {
         // AESend is synchronous — run all sends off the main thread.
         let pool = region.resolvedPool
         try await Task.detached(priority: .userInitiated) {
-            // Cache multiMonoChannels results per URL so a cue with hundreds of clips
+            // Build stem→URL lookup once so per-channel file resolution is O(1).
+            var poolByName: [String: URL] = [:]
+            for u in pool {
+                let stem = u.deletingPathExtension().lastPathComponent
+                if poolByName[stem] == nil { poolByName[stem] = u }
+            }
+            // Cache resolved channels per URL so a cue with hundreds of clips
             // from the same file doesn't run (and log) the search hundreds of times.
             var channelCache: [URL: [(url: URL, stream: Int16)]] = [:]
             for (segIdx, segment) in segments.enumerated() {
@@ -43,7 +49,24 @@ extension PTSLSessionInfo {
                     if let cached = channelCache[url] {
                         channels = cached
                     } else {
-                        let result = PTSLSessionInfo.multiMonoChannels(of: url, pool: pool)
+                        // Prefer per-channel file names stored directly in the PTX clip.
+                        // Fall back to suffix/marker heuristics only when that data is absent.
+                        var result: [(url: URL, stream: Int16)]
+                        if clip.channelFiles.count > 1 {
+                            let resolved: [(url: URL, stream: Int16)] = clip.channelFiles.enumerated().compactMap { i, name in
+                                guard let u = poolByName[name] else { return nil }
+                                return (u, Int16(i + 1))
+                            }
+                            if resolved.count == clip.channelFiles.count {
+                                AppLog.shared.log("[AESpot] multiMono: PTX-direct \(resolved.map { "Strm\($0.stream):\($0.url.lastPathComponent)" })")
+                                result = resolved
+                            } else {
+                                AppLog.shared.log("[AESpot] multiMono: PTX-direct partial (\(resolved.count)/\(clip.channelFiles.count)), falling back")
+                                result = PTSLSessionInfo.multiMonoChannels(of: url, pool: pool)
+                            }
+                        } else {
+                            result = PTSLSessionInfo.multiMonoChannels(of: url, pool: pool)
+                        }
                         channelCache[url] = result
                         channels = result
                     }

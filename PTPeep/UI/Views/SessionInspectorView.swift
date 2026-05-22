@@ -2375,8 +2375,21 @@ private struct SessionTimelineView: View {
             if let name = sourceFile,
                let clip = selectedClip, !clip.isGroup,
                let primary = resolvedFiles.first(where: { $0.name == name })?.url {
-                let pool = resolvedFiles.compactMap(\.url)
-                waveChannelURLs = PTSLSessionInfo.multiMonoChannels(of: primary, pool: pool).map(\.url)
+                // Use per-channel file names from PTX when available (multi-mono tracks store
+                // each channel's audio file reference directly in the session).
+                if clip.channelFiles.count > 1 {
+                    let resolved = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
+                    if resolved.count == clip.channelFiles.count {
+                        waveChannelURLs = resolved
+                    } else {
+                        // Some channels not yet resolved — fall back to name search
+                        let pool = resolvedFiles.compactMap(\.url)
+                        waveChannelURLs = PTSLSessionInfo.multiMonoChannels(of: primary, pool: pool).map(\.url)
+                    }
+                } else {
+                    let pool = resolvedFiles.compactMap(\.url)
+                    waveChannelURLs = PTSLSessionInfo.multiMonoChannels(of: primary, pool: pool).map(\.url)
+                }
             } else {
                 waveChannelURLs = []
             }

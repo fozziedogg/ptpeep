@@ -59,6 +59,9 @@ struct ClipPlacement {
     var isGroup: Bool = false    // true if byte[18]==0x01 (compound group; may or may not be muted)
     var groupName: String? = nil // compound clip name ("1 src.grp.L") when isGroup==true
     var groupLength: Int64? = nil // compound clip length in samples when isGroup==true
+    /// clipIdx values for channels 2, 3, … of a multi-mono track (empty for mono).
+    /// Each entry is the index into the ClipEntry list for that channel's audio file.
+    var companionClipIdxs: [Int] = []
 }
 
 struct TrackEntry {
@@ -989,16 +992,31 @@ final class PTXBlockDecoder {
                                      groupName: groupName, groupLength: groupLength)
             }
 
-            // Only the FIRST 0x1052 section for each track name is used for clip data.
+            // Only the FIRST 0x1052 section for each track name drives timeline positions.
             // For stereo/surround tracks the additional channel sections share the same
-            // timeline positions as the first, so we simply count them and skip the content.
+            // timeline positions as the first but reference different audio files.
+            // Capture their clipIdx values keyed by timeline position so PTXParser can
+            // resolve each channel's audio file name from the clip pool.
             if channelCounts[name] == nil {
                 nameOrder.append(name)
                 placementsByName[name] = placements
                 channelCounts[name] = 1
             } else {
                 channelCounts[name]! += 1
-                // Ignore subsequent sections — do not add novel positions from alternates.
+                // Build timeline→clipIdx map for this additional channel.
+                var companionByTimeline: [Int64: Int] = [:]
+                for p in placements where !p.isHidden {
+                    companionByTimeline[p.timelineSample] = p.clipIdx
+                }
+                // Attach companion clipIdx to each first-channel placement at the same position.
+                if var arr = placementsByName[name] {
+                    for i in arr.indices {
+                        if let idx = companionByTimeline[arr[i].timelineSample] {
+                            arr[i].companionClipIdxs.append(idx)
+                        }
+                    }
+                    placementsByName[name] = arr
+                }
             }
         }
 

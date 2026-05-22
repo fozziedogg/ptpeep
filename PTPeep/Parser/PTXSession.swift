@@ -142,7 +142,10 @@ struct PTXClip: Equatable {
     var startSample: Int64  = 0
     var lengthSamples: Int64 = 0
     var sourceOffset: Int64  = 0    // offset into source audio file (samples)
-    var sourceFile:  String = ""    // base filename (no extension)
+    var sourceFile:  String = ""    // base filename (no extension); channel 1 file
+    /// Base filenames (no extension) for every channel of a multi-mono clip, in stream order.
+    /// channelFiles[0] == sourceFile.  Empty for mono or when not parsed (fall back to name search).
+    var channelFiles: [String] = []
     var isMuted:     Bool   = false
     var isGroup:     Bool   = false
 }
