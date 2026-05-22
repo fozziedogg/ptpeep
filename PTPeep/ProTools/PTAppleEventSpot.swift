@@ -48,9 +48,16 @@ extension PTSLSessionInfo {
                     if let cached = channelCache[url] {
                         channels = cached
                     } else {
-                        let resolved: [(url: URL, stream: Int16)] = clip.channelFiles.enumerated().compactMap { i, name in
+                        var resolved: [(url: URL, stream: Int16)] = clip.channelFiles.enumerated().compactMap { i, name in
                             guard let u = poolByName[name] else { return nil }
                             return (u, Int16(i + 1))
+                        }
+                        // Interleaved multichannel: all channel entries point to the same file.
+                        // Send just one event (Strm=1) — PT reads all channels from the interleaved
+                        // file automatically. Sending N identical URLs with Strm=1…N only spots the
+                        // first channel into every stream.
+                        if Set(resolved.map(\.url)).count == 1, resolved.count > 1 {
+                            resolved = [(resolved[0].url, 1)]
                         }
                         AppLog.shared.log("[AESpot] channels: \(resolved.map { "Strm\($0.stream):\($0.url.lastPathComponent)" })")
                         channelCache[url] = resolved
