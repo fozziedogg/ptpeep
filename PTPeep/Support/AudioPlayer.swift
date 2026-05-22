@@ -159,47 +159,66 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
         guard let file = try? AVAudioFile(forReading: url) else { return }
 
-        if !engine.isRunning { try? engine.start() }
-
         let clampedFrac = max(0, min(0.9999, fromFraction))
         seekFraction  = clampedFrac
         fullDurSec    = max(Double(clip.lengthSamples) / max(sampleRate, 1), 0.001)
 
-        let seekSamples     = Int64(clampedFrac * Double(clip.lengthSamples))
+        let seekSamples      = Int64(clampedFrac * Double(clip.lengthSamples))
         let remainingSamples = max(clip.lengthSamples - seekSamples, 0)
         clipDurSec           = max(Double(remainingSamples) / max(sampleRate, 1), 0.001)
 
         let startFrame = AVAudioFramePosition(clip.sourceOffset + seekSamples)
         let frameCount = AVAudioFrameCount(remainingSamples)
 
-        // Single-channel extraction for multichannel interleaved files.
-        // If clip name has ".AN" suffix and the file has more than one channel,
-        // read the segment into a buffer and memcpy just that channel into a mono buffer.
-        var scheduled = false
-        let chIdx = channelIndex ?? AudioPlayer.channelIndex(fromClipName: clip.name)
+        let chIdx  = channelIndex ?? AudioPlayer.channelIndex(fromClipName: clip.name)
         let fileCh = Int(file.processingFormat.channelCount)
-        if let ch = chIdx, fileCh > 1, ch < fileCh,
-           let srcBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
-                                         frameCapacity: frameCount) {
-            file.framePosition = startFrame
-            if (try? file.read(into: srcBuf, frameCount: frameCount)) != nil,
-               srcBuf.frameLength > 0,
-               let channelData = srcBuf.floatChannelData,
-               let monoFmt = AVAudioFormat(standardFormatWithSampleRate: file.processingFormat.sampleRate,
-                                           channels: 1),
-               let monoBuf = AVAudioPCMBuffer(pcmFormat: monoFmt,
-                                              frameCapacity: srcBuf.frameLength) {
-                monoBuf.frameLength = srcBuf.frameLength
-                memcpy(monoBuf.floatChannelData![0], channelData[ch],
-                       Int(srcBuf.frameLength) * MemoryLayout<Float>.size)
-                playerNode.scheduleBuffer(monoBuf, at: nil)
-                scheduled = true
+        let fileSR = file.processingFormat.sampleRate
+
+        // Determine output channel count:
+        //   • Channel solo requested, or file is multichannel (>2) → mono
+        //   • Mono/stereo file, no solo → native channel count
+        // Reconnect the playerNode each call so the connection format always matches the
+        // buffer we are about to schedule (avoids _outputFormat.channelCount mismatch).
+        let outCh  = (chIdx != nil || fileCh > 2) ? 1 : fileCh
+        guard let outFmt = AVAudioFormat(standardFormatWithSampleRate: fileSR,
+                                         channels: AVAudioChannelCount(outCh)) else { return }
+        engine.disconnectNodeOutput(playerNode)
+        engine.connect(playerNode, to: gainNode, format: outFmt)
+
+        if !engine.isRunning { try? engine.start() }
+
+        // Build output buffer — always read into a source buffer so we can remap channels.
+        guard let srcBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                             frameCapacity: frameCount),
+              let outBuf = AVAudioPCMBuffer(pcmFormat: outFmt,
+                                             frameCapacity: frameCount) else { return }
+        file.framePosition = startFrame
+        guard (try? file.read(into: srcBuf, frameCount: frameCount)) != nil,
+              srcBuf.frameLength > 0,
+              let srcData = srcBuf.floatChannelData,
+              let dstData = outBuf.floatChannelData else { return }
+        outBuf.frameLength = srcBuf.frameLength
+        let n = Int(srcBuf.frameLength)
+
+        if let ch = chIdx, ch < fileCh {
+            // Extract one channel to mono
+            memcpy(dstData[0], srcData[ch], n * MemoryLayout<Float>.size)
+        } else if fileCh > 2 {
+            // Mix all channels down to mono (equal-weight sum)
+            let scale = Float(1.0 / Double(fileCh))
+            for f in 0..<n {
+                var sum: Float = 0
+                for c in 0..<fileCh { sum += srcData[c][f] }
+                dstData[0][f] = sum * scale
+            }
+        } else {
+            // Mono or stereo native: copy each channel
+            for c in 0..<outCh {
+                memcpy(dstData[c], srcData[c], n * MemoryLayout<Float>.size)
             }
         }
-        if !scheduled {
-            playerNode.scheduleSegment(file, startingFrame: startFrame,
-                                       frameCount: frameCount, at: nil)
-        }
+
+        playerNode.scheduleBuffer(outBuf, at: nil)
         playerNode.play()
 
         isPlaying        = true

@@ -31,12 +31,22 @@ extension PTSLSessionInfo {
         // AESend is synchronous — run all sends off the main thread.
         let pool = region.resolvedPool
         try await Task.detached(priority: .userInitiated) {
+            // Cache multiMonoChannels results per URL so a cue with hundreds of clips
+            // from the same file doesn't run (and log) the search hundreds of times.
+            var channelCache: [URL: [(url: URL, stream: Int16)]] = [:]
             for (segIdx, segment) in segments.enumerated() {
                 for (clip, url) in segment.clips {
                     let srcStart  = Int32(clamping: clip.sourceOffset)
                     let srcStop   = Int32(clamping: clip.sourceOffset + clip.lengthSamples)
                     let offset    = Int32(clamping: clip.startSample - regStart)
-                    let channels  = PTSLSessionInfo.multiMonoChannels(of: url, pool: pool)
+                    let channels: [(url: URL, stream: Int16)]
+                    if let cached = channelCache[url] {
+                        channels = cached
+                    } else {
+                        let result = PTSLSessionInfo.multiMonoChannels(of: url, pool: pool)
+                        channelCache[url] = result
+                        channels = result
+                    }
                     for (chURL, stream) in channels {
                         AppLog.shared.log("[AESpot] clip='\(clip.name)' track+\(segIdx) Strm=\(stream) SMSt=\(offset) Star=\(srcStart) Stop=\(srcStop) url=\(chURL.lastPathComponent)")
                         try PTSLSessionInfo.aeSendSpot(

@@ -2324,7 +2324,13 @@ private struct SessionTimelineView: View {
             tc.hideMuted    = hideMuted
             tc.startMonitoring()
         }
-        .onDisappear { tc.stopMonitoring() }
+        .onDisappear {
+            tc.stopMonitoring()
+            audioPlayer?.stop()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+            audioPlayer?.stop()
+        }
         .onChange(of: tracks)           { tc.tracks       = $0 }
         .onChange(of: allTracksSamples) { tc.totalSamples = $0 }
         .onChange(of: hideMuted)        { tc.hideMuted    = $0 }
