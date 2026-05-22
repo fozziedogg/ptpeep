@@ -184,7 +184,31 @@ extension PTSLSessionInfo {
 
         // Identify this file's channel suffix and derive the shared base name.
         guard let (matchedSuffix, selfStream) = ptChannelSuffixes.first(where: { stem.hasSuffix($0.suffix) }) else {
-            AppLog.shared.log("[AESpot] multiMono: no suffix matched, returning mono for '\(stem)'")
+            // No recognised channel suffix — check for a bare _L-/_R- stem marker
+            // (e.g. "Foo_L-15" paired with "Foo_R-15", no .L/.R suffix at all).
+            let bareMarkers: [(from: String, selfStr: Int16, to: String, otherStr: Int16)] = [
+                ("_L-", 1, "_R-", 2), ("_R-", 2, "_L-", 1)
+            ]
+            for mp in bareMarkers {
+                guard stem.contains(mp.from) else { continue }
+                let swappedStem = stem.replacingOccurrences(of: mp.from, with: mp.to)
+                // Pool search: exact stem match (no suffix stripping needed)
+                for poolURL in pool {
+                    if poolURL.deletingPathExtension().lastPathComponent == swappedStem {
+                        AppLog.shared.log("[AESpot] multiMono: bare-marker pool '\(poolURL.lastPathComponent)' Strm=\(mp.otherStr)")
+                        return [(url, mp.selfStr), (poolURL, mp.otherStr)].sorted { $0.stream < $1.stream }
+                    }
+                }
+                // Directory fallback
+                let name      = swappedStem + (ext.isEmpty ? "" : "." + ext)
+                let candidate = dir.appendingPathComponent(name)
+                if FileManager.default.fileExists(atPath: candidate.path) {
+                    AppLog.shared.log("[AESpot] multiMono: bare-marker dir '\(name)' Strm=\(mp.otherStr)")
+                    return [(url, mp.selfStr), (candidate, mp.otherStr)].sorted { $0.stream < $1.stream }
+                }
+                break
+            }
+            AppLog.shared.log("[AESpot] multiMono: no suffix or marker matched, returning mono for '\(stem)'")
             return [(url, 1)]
         }
         let base = String(stem.dropLast(matchedSuffix.count))
