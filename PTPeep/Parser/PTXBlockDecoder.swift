@@ -1002,7 +1002,14 @@ final class PTXBlockDecoder {
                 placementsByName[name] = placements
                 channelCounts[name] = 1
             } else {
+                let prevCount = channelCounts[name]!
                 channelCounts[name]! += 1
+                // Only capture companions for genuine additional audio channels.
+                // A track with N audio channels has N consecutive 0x1052 blocks;
+                // any further blocks with the same name are alternate playlists and must be skipped.
+                // Use the authoritative channel count from the 0x251a format byte when available.
+                let audioChannels = displayInfo.channelCounts[name] ?? (prevCount + 1)
+                guard prevCount < audioChannels else { continue }
                 // Build timeline→clipIdx map for this additional channel.
                 var companionByTimeline: [Int64: Int] = [:]
                 for p in placements where !p.isHidden {
