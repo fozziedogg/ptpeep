@@ -320,16 +320,29 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
                           srcBuf.frameLength > 0,
                           let channelData = srcBuf.floatChannelData else { continue }
 
-                    let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name) ?? 0
-                    let srcCh = min(chIdx, Int(srcBuf.format.channelCount) - 1)
+                    let chIdx  = AudioPlayer.channelIndex(fromClipName: clip.name)
+                    let fileCh = Int(srcBuf.format.channelCount)
 
                     if let dst = stitched.floatChannelData?[0] {
-                        // Guard against integer underflow if clip extends past region end
                         guard bufOffset < Int(regionFrames) else { continue }
                         let available = Int(regionFrames) - bufOffset
                         let count = min(Int(srcBuf.frameLength), available)
                         guard count > 0 else { continue }
-                        memcpy(dst + bufOffset, channelData[srcCh], count * MemoryLayout<Float>.size)
+                        if let ch = chIdx {
+                            // Multi-mono: extract the specific channel
+                            let srcCh = min(ch, fileCh - 1)
+                            memcpy(dst + bufOffset, channelData[srcCh], count * MemoryLayout<Float>.size)
+                        } else if fileCh > 1 {
+                            // Interleaved multichannel: equal-weight mix to mono
+                            let scale = Float(1.0 / Double(fileCh))
+                            for f in 0..<count {
+                                var sum: Float = 0
+                                for c in 0..<fileCh { sum += channelData[c][f] }
+                                (dst + bufOffset)[f] = sum * scale
+                            }
+                        } else {
+                            memcpy(dst + bufOffset, channelData[0], count * MemoryLayout<Float>.size)
+                        }
                         wroteAny = true
                     }
                 }
@@ -388,11 +401,11 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     /// Pass `channelIndex` (0-based) to return only that channel (e.g. for multichannel files).
     static func loadWaveform(url: URL, startSample: Int64, lengthSamples: Int64,
                              sampleRate: Double, resolution: Int = 500,
-                             channelIndex: Int? = nil) async -> [[Float]] {
+                             channelIndex: Int? = nil, normalized: Bool = true) async -> [[Float]] {
         // Cache hit?
         if let cached = WaveformCache.shared.get(audioURL: url, startSample: startSample,
                                                   lengthSamples: lengthSamples, resolution: resolution,
-                                                  channelIndex: channelIndex) {
+                                                  channelIndex: channelIndex, normalized: normalized) {
             return cached
         }
 
@@ -428,33 +441,42 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
             }
         }
 
-        // Normalise all channels against the global max so relative levels are preserved
-        // (e.g. a quiet rear channel stays visually quieter than the L/R mains).
-        // Use a noise-floor threshold (~-120 dBFS) so channels with only floating-point
-        // quantisation noise are treated as silent rather than blown up to full scale.
-        let kSilenceThreshold: Float = 1e-6
-        let globalMax = peaks.compactMap { $0.max() }.max() ?? 0
-        if globalMax > kSilenceThreshold {
-            for c in 0..<ch {
-                let chMax = peaks[c].max() ?? 0
-                if chMax > kSilenceThreshold {
-                    peaks[c] = peaks[c].map { $0 / globalMax }
-                } else {
-                    peaks[c] = [Float](repeating: 0, count: resolution)
-                }
-            }
-        }
-        // Filter to single channel if requested
+        // Filter to single channel if requested (before normalization so globalMax is per-clip).
         let result: [[Float]]
-        if let ch = channelIndex, ch < peaks.count {
-            result = [peaks[ch]]
+        if let chIdx = channelIndex, chIdx < peaks.count {
+            result = [peaks[chIdx]]
         } else {
             result = peaks
         }
 
-        WaveformCache.shared.set(peaks: result, audioURL: url, startSample: startSample,
-                                 lengthSamples: lengthSamples, resolution: resolution,
-                                 channelIndex: channelIndex)
-        return result
+        if normalized {
+            // Normalise all channels against the global max so relative levels are preserved
+            // (e.g. a quiet rear channel stays visually quieter than the L/R mains).
+            // Use a noise-floor threshold (~-120 dBFS) so channels with only floating-point
+            // quantisation noise are treated as silent rather than blown up to full scale.
+            let kSilenceThreshold: Float = 1e-6
+            let globalMax = result.compactMap { $0.max() }.max() ?? 0
+            var normResult = result
+            if globalMax > kSilenceThreshold {
+                for c in 0..<normResult.count {
+                    let chMax = normResult[c].max() ?? 0
+                    if chMax > kSilenceThreshold {
+                        normResult[c] = normResult[c].map { $0 / globalMax }
+                    } else {
+                        normResult[c] = [Float](repeating: 0, count: resolution)
+                    }
+                }
+            }
+            WaveformCache.shared.set(peaks: normResult, audioURL: url, startSample: startSample,
+                                     lengthSamples: lengthSamples, resolution: resolution,
+                                     channelIndex: channelIndex, normalized: true)
+            return normResult
+        } else {
+            // Return raw linear amplitudes — caller is responsible for cross-clip normalization.
+            WaveformCache.shared.set(peaks: result, audioURL: url, startSample: startSample,
+                                     lengthSamples: lengthSamples, resolution: resolution,
+                                     channelIndex: channelIndex, normalized: false)
+            return result
+        }
     }
 }

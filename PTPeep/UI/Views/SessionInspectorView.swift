@@ -3313,11 +3313,15 @@ private struct RegionWaveformView: View {
         let totalSamples = Double(region.endSample - region.startSample)
         let width        = Int(viewWidth)
 
-        var result: [Int: [Float]] = [:]
+        // ── Pass 1: load raw (un-normalised) peaks for every clip ────────────
+        struct ClipRaw {
+            let trackIdx: Int
+            let pxStart:  Int
+            let peaks:    [Float]   // raw linear amplitude, 0..1+
+        }
+        var rawClips: [ClipRaw] = []
 
         for segment in region.segments {
-            var assembled = [Float](repeating: 0, count: width)
-
             for (clip, url) in segment.clips {
                 let clipStartFrac = Double(clip.startSample - region.startSample) / totalSamples
                 let clipEndFrac   = Double(clip.startSample + clip.lengthSamples - region.startSample) / totalSamples
@@ -3332,16 +3336,36 @@ private struct RegionWaveformView: View {
                     lengthSamples: clip.lengthSamples,
                     sampleRate: region.sampleRate,
                     resolution: pxCount,
-                    channelIndex: chIdx
+                    channelIndex: chIdx,
+                    normalized: false
                 )
                 guard let ch0 = clipPeaks.first else { continue }
-
-                for (i, peak) in ch0.enumerated() {
-                    let idx = pxStart + i
-                    if idx >= 0 && idx < assembled.count { assembled[idx] = peak }
-                }
+                rawClips.append(ClipRaw(trackIdx: segment.trackIdx, pxStart: pxStart, peaks: ch0))
             }
-            result[segment.trackIdx] = assembled
+        }
+
+        // ── Pass 2: find global peak, apply silence gate, normalise ──────────
+        // Silence gate: if the loudest sample across the entire region is below
+        // -60 dBFS (~0.001 linear) render everything as silence.
+        let kSilenceGate: Float = 0.001
+        let globalMax = rawClips.compactMap { $0.peaks.max() }.max() ?? 0
+
+        var result: [Int: [Float]] = [:]
+        for segment in region.segments {
+            result[segment.trackIdx] = [Float](repeating: 0, count: width)
+        }
+
+        if globalMax > kSilenceGate {
+            for raw in rawClips {
+                guard var assembled = result[raw.trackIdx] else { continue }
+                for (i, peak) in raw.peaks.enumerated() {
+                    let idx = raw.pxStart + i
+                    if idx >= 0 && idx < assembled.count {
+                        assembled[idx] = peak / globalMax
+                    }
+                }
+                result[raw.trackIdx] = assembled
+            }
         }
 
         await MainActor.run { trackPeaks = result }
@@ -3384,7 +3408,9 @@ private struct ClipWaveformView: View {
     @State private var soloChannel: Int?      = nil  // nil = no solo
 
     private var primaryURL: URL { channelURLs.first! }
-    private var isMultiMono: Bool { channelURLs.count > 1 }
+    /// True only when there are genuinely distinct files (multi-mono).
+    /// A 5.1 interleaved file appears as 6 identical URLs — that is NOT multi-mono.
+    private var isMultiMono: Bool { Set(channelURLs).count > 1 }
 
     var body: some View {
         let chCount = peaks.count

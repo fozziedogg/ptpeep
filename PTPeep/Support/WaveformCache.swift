@@ -31,10 +31,10 @@ final class WaveformCache: @unchecked Sendable {
     // MARK: - Public API
 
     func get(audioURL: URL, startSample: Int64, lengthSamples: Int64,
-             resolution: Int, channelIndex: Int? = nil) -> [[Float]]? {
+             resolution: Int, channelIndex: Int? = nil, normalized: Bool = true) -> [[Float]]? {
         guard let url = cacheFileURL(audioURL: audioURL, startSample: startSample,
                                      lengthSamples: lengthSamples, resolution: resolution,
-                                     channelIndex: channelIndex),
+                                     channelIndex: channelIndex, normalized: normalized),
               FileManager.default.fileExists(atPath: url.path),
               let data = try? Data(contentsOf: url, options: .mappedIfSafe)
         else { return nil }
@@ -42,10 +42,10 @@ final class WaveformCache: @unchecked Sendable {
     }
 
     func set(peaks: [[Float]], audioURL: URL, startSample: Int64, lengthSamples: Int64,
-             resolution: Int, channelIndex: Int? = nil) {
+             resolution: Int, channelIndex: Int? = nil, normalized: Bool = true) {
         guard let url = cacheFileURL(audioURL: audioURL, startSample: startSample,
                                      lengthSamples: lengthSamples, resolution: resolution,
-                                     channelIndex: channelIndex)
+                                     channelIndex: channelIndex, normalized: normalized)
         else { return }
         let data = encode(peaks)
         queue.async { try? data.write(to: url, options: .atomic) }
@@ -54,11 +54,13 @@ final class WaveformCache: @unchecked Sendable {
     // MARK: - Cache file URL
 
     private func cacheFileURL(audioURL: URL, startSample: Int64, lengthSamples: Int64,
-                               resolution: Int, channelIndex: Int? = nil) -> URL? {
+                               resolution: Int, channelIndex: Int? = nil,
+                               normalized: Bool = true) -> URL? {
         guard let dir = cacheDir else { return nil }
-        let mt   = mtime(for: audioURL)
+        let mt       = mtime(for: audioURL)
         let chSuffix = channelIndex.map { "|\($0)" } ?? ""
-        let key  = fnv1a("\(audioURL.path)|\(startSample)|\(lengthSamples)|\(resolution)\(chSuffix)")
+        let normSuffix = normalized ? "" : "|raw"
+        let key  = fnv1a("\(audioURL.path)|\(startSample)|\(lengthSamples)|\(resolution)\(chSuffix)\(normSuffix)")
         let mtMs = Int64(mt * 1000)
         return dir.appendingPathComponent("\(key)_\(mtMs).wc2")
     }
