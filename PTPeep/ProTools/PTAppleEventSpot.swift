@@ -281,6 +281,8 @@ extension PTSLSessionInfo {
         // ── 2. Same-directory scan (pool empty or companion not in pool) ──────
         var found: [(url: URL, stream: Int16)] = [(url, selfStream)]
         var seenStreams: Set<Int16> = [selfStream]
+
+        // Pass A: same base + each recognised suffix (Pattern 1: Foo_L-Bar.L + Foo_L-Bar.R)
         for (s, str) in ptChannelSuffixes {
             guard !seenStreams.contains(str) else { continue }
             let name      = base + s + (ext.isEmpty ? "" : "." + ext)
@@ -291,6 +293,38 @@ extension PTSLSessionInfo {
                 seenStreams.insert(str)
             }
         }
+
+        // Pass B: swapped base — handles companions whose base differs by _L-/_R- marker
+        //   bare swapped base  → Pattern 4: Foo_L-Symph3D_03.L + Foo_R-Symph3D_03.wav
+        //   swapped + suffix   → Pattern 2: Foo_L-Spkrphn.L   + Foo_R-Spkrphn.R.wav (dir fallback)
+        for (from, to) in [("_L-", "_R-"), ("_R-", "_L-")] {
+            guard base.contains(from) else { continue }
+            let swappedBase  = base.replacingOccurrences(of: from, with: to)
+            let swappedStr: Int16 = swappedBase.contains("_R-") ? 2 : 1
+            // bare swapped base
+            if !seenStreams.contains(swappedStr) {
+                let name      = swappedBase + (ext.isEmpty ? "" : "." + ext)
+                let candidate = dir.appendingPathComponent(name)
+                if FileManager.default.fileExists(atPath: candidate.path) {
+                    AppLog.shared.log("[AESpot] multiMono: dir (bare-swap) '\(name)' Strm=\(swappedStr)")
+                    found.append((candidate, swappedStr))
+                    seenStreams.insert(swappedStr)
+                }
+            }
+            // swapped base + each recognised suffix
+            for (s, str) in ptChannelSuffixes {
+                guard !seenStreams.contains(str) else { continue }
+                let name      = swappedBase + s + (ext.isEmpty ? "" : "." + ext)
+                let candidate = dir.appendingPathComponent(name)
+                if FileManager.default.fileExists(atPath: candidate.path) {
+                    AppLog.shared.log("[AESpot] multiMono: dir (swap+sfx) '\(name)' Strm=\(str)")
+                    found.append((candidate, str))
+                    seenStreams.insert(str)
+                }
+            }
+            break   // only process one matching marker direction
+        }
+
         if found.count > 1 {
             return found.sorted { $0.stream < $1.stream }
         }

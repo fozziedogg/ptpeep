@@ -1772,15 +1772,6 @@ private struct SessionTimelineView: View {
                         tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
                         showTCEntry = true
                     }
-                    .popover(isPresented: $showTCEntry, arrowEdge: .bottom) {
-                        TCEntryPopover(text: $tcEntryText) { text in
-                            if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
-                                                                  totalSamples: total, sampleRate: sr) {
-                                tc.jumpTo(frac)
-                            }
-                            showTCEntry = false
-                        }
-                    }
 
                 Spacer(minLength: 8)
 
@@ -1933,6 +1924,20 @@ private struct SessionTimelineView: View {
                 .padding(.vertical, 2)
                 .background(RoundedRectangle(cornerRadius: 3)
                     .fill(Color(nsColor: .separatorColor).opacity(0.4)))
+                .onTapGesture {
+                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                    showTCEntry = true
+                }
+                .popover(isPresented: $showTCEntry, arrowEdge: .top) {
+                    TCEntryPopover(text: $tcEntryText) { text in
+                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
+                                                              totalSamples: total, sampleRate: sr) {
+                            tc.jumpTo(frac)
+                        }
+                        showTCEntry = false
+                    }
+                }
+                .help("Click to jump to timecode")
 
                 Divider().frame(height: 12).padding(.horizontal, 4)
 
