@@ -2371,16 +2371,16 @@ private struct SessionTimelineView: View {
             ap.playRegion(region)
         }
         .onChange(of: selectedClip?.sourceFile) { sourceFile in
-            if let clip = selectedClip, !clip.isGroup, clip.channelFiles.count >= 1 {
-                let urls = clip.channelFiles.compactMap { fn -> URL? in
-                    let match = resolvedFiles.first { $0.name == fn }
-                    AppLog.shared.log("[WaveURL] fn='\(fn)' match=\(match?.name ?? "nil") url=\(match?.url?.lastPathComponent ?? "nil")")
-                    return match?.url
-                }
-                AppLog.shared.log("[WaveURL] channelFiles=\(clip.channelFiles) resolvedFiles.count=\(resolvedFiles.count) → \(urls.count) URL(s)")
-                waveChannelURLs = urls
+            // selectedClip is a locally computed let — it's captured stale in SwiftUI closures.
+            // Recompute from tc (a reference type) so we always see the current selection.
+            let samp = tc.selEnd == nil ? tc.selStart.map { Int64(($0 * total).rounded()) } : nil
+            let clip = samp.flatMap { s -> PTXClip? in
+                guard let idx = tc.selTrack, idx < tracks.count else { return nil }
+                return tracks[idx].clips.first { $0.startSample == s }
+            }
+            if let clip = clip, !clip.isGroup, clip.channelFiles.count >= 1 {
+                waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
             } else {
-                AppLog.shared.log("[WaveURL] selectedClip=\(selectedClip?.name ?? "nil") isGroup=\(selectedClip?.isGroup ?? false) channelFiles.count=\(selectedClip?.channelFiles.count ?? -1)")
                 waveChannelURLs = []
             }
             // BWF metadata refresh
@@ -2397,7 +2397,12 @@ private struct SessionTimelineView: View {
             // Re-run when file resolution finishes (resolvedFiles populates asynchronously
             // after open). Without this, clicking a clip before resolution completes shows
             // "audio offline" even when the file exists on disk.
-            if let clip = selectedClip, !clip.isGroup, clip.channelFiles.count >= 1 {
+            let samp = tc.selEnd == nil ? tc.selStart.map { Int64(($0 * total).rounded()) } : nil
+            let clip = samp.flatMap { s -> PTXClip? in
+                guard let idx = tc.selTrack, idx < tracks.count else { return nil }
+                return tracks[idx].clips.first { $0.startSample == s }
+            }
+            if let clip = clip, !clip.isGroup, clip.channelFiles.count >= 1 {
                 waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
             }
         }
