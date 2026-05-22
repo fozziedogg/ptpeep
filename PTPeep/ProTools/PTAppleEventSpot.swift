@@ -339,6 +339,60 @@ extension PTSLSessionInfo {
             return found.sorted { $0.stream < $1.stream }
         }
 
+        // ── 3. Parent + sibling-subdirectory scan ─────────────────────────────
+        // Covers sessions where L and R files live in separate subfolders under
+        // the same Audio Files root (e.g. Audio Files/L/ and Audio Files/R/).
+        let parentDir = dir.deletingLastPathComponent()
+        if parentDir != dir {
+            let fm = FileManager.default
+            // Candidate directories: parent itself + all immediate subdirectories of parent
+            var searchDirs: [URL] = [parentDir]
+            if let contents = try? fm.contentsOfDirectory(at: parentDir,
+                                                           includingPropertiesForKeys: [.isDirectoryKey],
+                                                           options: .skipsHiddenFiles) {
+                for item in contents {
+                    if (try? item.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true,
+                       item != dir {
+                        searchDirs.append(item)
+                    }
+                }
+            }
+            for searchDir in searchDirs {
+                for (from, to) in [("_L-", "_R-"), ("_R-", "_L-")] {
+                    guard base.contains(from) else { continue }
+                    let swappedBase = base.replacingOccurrences(of: from, with: to)
+                    let swappedStr: Int16 = swappedBase.contains("_R-") ? 2 : 1
+                    guard !seenStreams.contains(swappedStr) else { continue }
+                    // bare swapped base
+                    let bareName = swappedBase + (ext.isEmpty ? "" : "." + ext)
+                    let bareCandidate = searchDir.appendingPathComponent(bareName)
+                    if fm.fileExists(atPath: bareCandidate.path) {
+                        AppLog.shared.log("[AESpot] multiMono: parent-scan (bare) '\(bareName)' Strm=\(swappedStr)")
+                        found.append((bareCandidate, swappedStr))
+                        seenStreams.insert(swappedStr)
+                        break
+                    }
+                    // swapped base + each recognised suffix
+                    for (s, str) in ptChannelSuffixes {
+                        guard !seenStreams.contains(str) else { continue }
+                        let name = swappedBase + s + (ext.isEmpty ? "" : "." + ext)
+                        let candidate = searchDir.appendingPathComponent(name)
+                        if fm.fileExists(atPath: candidate.path) {
+                            AppLog.shared.log("[AESpot] multiMono: parent-scan (sfx) '\(name)' Strm=\(str)")
+                            found.append((candidate, str))
+                            seenStreams.insert(str)
+                        }
+                    }
+                    break
+                }
+                if found.count > 1 { break }
+            }
+        }
+
+        if found.count > 1 {
+            return found.sorted { $0.stream < $1.stream }
+        }
+
         AppLog.shared.log("[AESpot] multiMono: no companions found, returning Strm=\(selfStream)")
         return [(url, selfStream)]
     }

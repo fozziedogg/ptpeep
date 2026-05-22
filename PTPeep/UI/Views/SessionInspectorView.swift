@@ -1537,6 +1537,9 @@ private struct SessionTimelineView: View {
     @State private var isPanning:   Bool   = false   // option+dragging to pan
     @State private var panOrigin:   (viewStart: Double, window: Double)? = nil
 
+    // Waveform channel URLs — cached so multiMonoChannels isn't called on every 60fps render
+    @State private var waveChannelURLs: [URL] = []
+
     // TC entry
     @State private var showTCEntry:      Bool   = false
     @State private var tcEntryText:      String = ""
@@ -1993,15 +1996,6 @@ private struct SessionTimelineView: View {
             .frame(height: 22)
 
             // ── Clip waveform — always present to keep lane canvas height stable ─
-            // Resolve all channel URLs for the selected clip using the same logic as spot.
-            // Multi-mono → one URL per channel file; interleaved/mono → single URL.
-            let waveChannelURLs: [URL] = {
-                guard let clip = selectedClip, !clip.isGroup,
-                      let primary = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
-                else { return [] }
-                let pool = resolvedFiles.compactMap(\.url)
-                return PTSLSessionInfo.multiMonoChannels(of: primary, pool: pool).map(\.url)
-            }()
             let waveColor: Color = selectedClipTrackIdx.map { t in
                 t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
             } ?? Color.accentColor
@@ -2377,6 +2371,16 @@ private struct SessionTimelineView: View {
             ap.playRegion(region)
         }
         .onChange(of: selectedClip?.sourceFile) { sourceFile in
+            // Update cached waveform channel URLs (avoids calling multiMonoChannels on every 60fps render)
+            if let name = sourceFile,
+               let clip = selectedClip, !clip.isGroup,
+               let primary = resolvedFiles.first(where: { $0.name == name })?.url {
+                let pool = resolvedFiles.compactMap(\.url)
+                waveChannelURLs = PTSLSessionInfo.multiMonoChannels(of: primary, pool: pool).map(\.url)
+            } else {
+                waveChannelURLs = []
+            }
+            // BWF metadata refresh
             guard bwfPanelVisible else { return }
             bwfMetadata = nil
             guard let name = sourceFile,
