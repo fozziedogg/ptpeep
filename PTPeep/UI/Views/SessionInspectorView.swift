@@ -1911,6 +1911,31 @@ private struct SessionTimelineView: View {
 
                 Spacer()
 
+                // TC counter — always visible; priority: playback > cursor > hover > dash
+                Group {
+                    if let ap = audioPlayer, ap.isPlaying, let clip = ap.playingClip {
+                        let samp = Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)
+                        Text(formatTC(samp / sr, fps: frameRate))
+                            .foregroundStyle(Color(nsColor: .labelColor))
+                    } else if let frac = tc.selStart {
+                        Text(formatTC(frac * total / sr, fps: frameRate))
+                            .foregroundStyle(Color(nsColor: .secondaryLabelColor))
+                    } else if let frac = hoverAbsFrac {
+                        Text(formatTC(frac * total / sr, fps: frameRate))
+                            .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+                    } else {
+                        Text("—")
+                            .foregroundStyle(.quaternary)
+                    }
+                }
+                .font(.system(size: 11).monospacedDigit())
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(nsColor: .separatorColor).opacity(0.4)))
+
+                Divider().frame(height: 12).padding(.horizontal, 4)
+
                 // Volume fader
                 if let ap = audioPlayer {
                     VolumeFaderView(volume: Binding(get: { ap.volume }, set: { ap.volume = $0 }))

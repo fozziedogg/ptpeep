@@ -237,13 +237,26 @@ extension PTSLSessionInfo {
                 var seenStreams = Set(seed.map { $0.stream })
                 for poolURL in pool {
                     let poolStem = poolURL.deletingPathExtension().lastPathComponent
+                    // Suffix match: companion has a recognised channel suffix
+                    var matched = false
                     for (s, str) in ptChannelSuffixes {
                         guard !seenStreams.contains(str), poolStem.hasSuffix(s) else { continue }
                         if bases.contains(String(poolStem.dropLast(s.count))) {
                             AppLog.shared.log("[AESpot] multiMono: pool '\(poolURL.lastPathComponent)' Strm=\(str)")
                             found.append((poolURL, str))
                             seenStreams.insert(str)
+                            matched = true
                             break
+                        }
+                    }
+                    // Bare-stem match: companion has no recognised channel suffix but its
+                    // stem directly equals one of our bases (e.g. …_R-Symph3D_03.wav).
+                    if !matched, bases.contains(poolStem) {
+                        let str: Int16 = poolStem.contains("_R-") ? 2 : 1
+                        if !seenStreams.contains(str) {
+                            AppLog.shared.log("[AESpot] multiMono: pool (bare) '\(poolURL.lastPathComponent)' Strm=\(str)")
+                            found.append((poolURL, str))
+                            seenStreams.insert(str)
                         }
                     }
                 }
