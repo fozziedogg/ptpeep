@@ -2372,8 +2372,15 @@ private struct SessionTimelineView: View {
         }
         .onChange(of: selectedClip?.sourceFile) { sourceFile in
             if let clip = selectedClip, !clip.isGroup, clip.channelFiles.count >= 1 {
-                waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
+                let urls = clip.channelFiles.compactMap { fn -> URL? in
+                    let match = resolvedFiles.first { $0.name == fn }
+                    AppLog.shared.log("[WaveURL] fn='\(fn)' match=\(match?.name ?? "nil") url=\(match?.url?.lastPathComponent ?? "nil")")
+                    return match?.url
+                }
+                AppLog.shared.log("[WaveURL] channelFiles=\(clip.channelFiles) resolvedFiles.count=\(resolvedFiles.count) → \(urls.count) URL(s)")
+                waveChannelURLs = urls
             } else {
+                AppLog.shared.log("[WaveURL] selectedClip=\(selectedClip?.name ?? "nil") isGroup=\(selectedClip?.isGroup ?? false) channelFiles.count=\(selectedClip?.channelFiles.count ?? -1)")
                 waveChannelURLs = []
             }
             // BWF metadata refresh
