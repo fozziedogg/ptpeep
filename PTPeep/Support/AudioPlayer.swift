@@ -143,7 +143,11 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     }
 
     /// Start (or restart) playback from `fromFraction` (0…1) within the clip.
-    func play(clip: PTXClip, url: URL, sampleRate: Double, fromFraction: Double = 0) {
+    /// - Parameter channelIndex: When non-nil, extracts that 0-based channel from an
+    ///   interleaved file and plays it as mono.  Overrides any channel index encoded in
+    ///   the clip name (`.AN` suffix convention).  Pass nil to play all channels.
+    func play(clip: PTXClip, url: URL, sampleRate: Double, fromFraction: Double = 0,
+              channelIndex: Int? = nil) {
         stop()
 
         // Apply the currently-stored device preference before starting
@@ -172,7 +176,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         // If clip name has ".AN" suffix and the file has more than one channel,
         // read the segment into a buffer and memcpy just that channel into a mono buffer.
         var scheduled = false
-        let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name)
+        let chIdx = channelIndex ?? AudioPlayer.channelIndex(fromClipName: clip.name)
         let fileCh = Int(file.processingFormat.channelCount)
         if let ch = chIdx, fileCh > 1, ch < fileCh,
            let srcBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat,

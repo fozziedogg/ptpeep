@@ -1963,20 +1963,14 @@ private struct SessionTimelineView: View {
             .frame(height: 22)
 
             // ── Clip waveform — always present to keep lane canvas height stable ─
-            let resolvedWaveURL: URL? = {
-                guard let clip = selectedClip, !clip.isGroup else { return nil }
-                return resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
-            }()
-            // Split-stereo companion: Pro Tools multi-mono stores L/R as separate files.
-            // Naming convention: BaseName_L-TrackInfo[.L] / BaseName_R-TrackInfo[.R]
-            // Must swap both the _L-/_R- stem marker AND the trailing .L/.R suffix.
-            let resolvedWaveURLR: URL? = {
-                guard let clip = selectedClip, !clip.isGroup else { return nil }
-                let src = clip.sourceFile
-                if let companion = multiMonoCompanion(src) {
-                    return resolvedFiles.first(where: { $0.name == companion })?.url
-                }
-                return nil
+            // Resolve all channel URLs for the selected clip using the same logic as spot.
+            // Multi-mono → one URL per channel file; interleaved/mono → single URL.
+            let waveChannelURLs: [URL] = {
+                guard let clip = selectedClip, !clip.isGroup,
+                      let primary = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+                else { return [] }
+                let pool = resolvedFiles.compactMap(\.url)
+                return PTSLSessionInfo.multiMonoChannels(of: primary, pool: pool).map(\.url)
             }()
             let waveColor: Color = selectedClipTrackIdx.map { t in
                 t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
@@ -2000,11 +1994,11 @@ private struct SessionTimelineView: View {
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                 } else if let clip = selectedClip, !clip.isGroup,
-                          let url = resolvedWaveURL, let ap = audioPlayer {
-                    ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
+                          !waveChannelURLs.isEmpty, let ap = audioPlayer {
+                    ClipWaveformView(clip: clip, channelURLs: waveChannelURLs,
                                      sampleRate: sr, color: waveColor, audioPlayer: ap)
                 } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
-                          resolvedWaveURL == nil {
+                          waveChannelURLs.isEmpty {
                     // Clip is selected but source file is not on disk
                     Label("Audio file offline", systemImage: "exclamationmark.triangle")
                         .font(.system(size: 10))
@@ -3332,85 +3326,115 @@ private struct RegionWaveformView: View {
     }
 }
 
+private struct ChannelLabelButton: View {
+    let label:    String
+    let isSoloed: Bool
+    let action:   () -> Void
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 7, weight: isSoloed ? .bold : .medium))
+                .foregroundColor(isSoloed ? .accentColor : .secondary.opacity(0.6))
+                .frame(width: 20)
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 /// Async waveform display for a resolved clip. Shows PCM peaks per channel,
-/// with a moving playhead, click-to-seek, and drag-out-to-export.
+/// with a moving playhead, click-to-seek, and per-channel solo (click label).
+///
+/// `channelURLs` drives the channel model:
+///  - count == 1 → interleaved or mono file; `loadWaveform` returns all channels naturally.
+///  - count  > 1 → multi-mono files; each URL is one channel (load as separate mono).
 private struct ClipWaveformView: View {
-    let clip:         PTXClip
-    let url:          URL
-    var urlCompanion: URL?   = nil   // split-stereo .R (or .L) companion
-    let sampleRate:   Double
-    let color:        Color
+    let clip:        PTXClip
+    let channelURLs: [URL]   // one per channel (multi-mono) or single URL (interleaved/mono)
+    let sampleRate:  Double
+    let color:       Color
     @ObservedObject var audioPlayer: AudioPlayer
 
-    @State private var peaks:     [[Float]] = []   // one [Float] per channel
-    @State private var loadID:    UUID      = UUID()
-    @State private var viewWidth: CGFloat   = 1
+    @State private var peaks:       [[Float]] = []
+    @State private var loadID:      UUID      = UUID()
+    @State private var viewWidth:   CGFloat   = 1
+    @State private var soloChannel: Int?      = nil  // nil = no solo
+
+    private var primaryURL: URL { channelURLs.first! }
+    private var isMultiMono: Bool { channelURLs.count > 1 }
 
     var body: some View {
-        Canvas { ctx, size in
-            let w   = size.width
-            let h   = size.height
-            let mid = h / 2
+        let chCount = peaks.count
+        let labels  = waveformChannelLabels(chCount)
+        let lw: CGFloat = chCount > 1 ? 20 : 0
 
-            if peaks.isEmpty {
-                ctx.fill(Path(CGRect(x: 0, y: mid - 0.5, width: w, height: 1)),
-                         with: .color(.secondary.opacity(0.2)))
-            } else {
-                // One equal-height band per channel, symmetric bars on each midline
-                // (matches sfxlibrary WaveformView rendering model)
-                let chCount    = peaks.count
-                let labels     = waveformChannelLabels(chCount)
-                let showLabels = chCount > 1
-                let labelW: CGFloat = showLabels ? 20 : 0
-                let drawW      = w - labelW
-                let n          = CGFloat(peaks[0].count)
-                let bandH      = h / CGFloat(chCount)
-                let step       = drawW / n
-                let lineW      = max(1, step * 0.6)
+        ZStack(alignment: .leading) {
+            // ── Waveform canvas ─────────────────────────────────────────────
+            Canvas { ctx, size in
+                let w   = size.width
+                let h   = size.height
+                let mid = h / 2
 
-                for (ch, channelPeaks) in peaks.enumerated() {
-                    let midY = bandH * CGFloat(ch) + bandH / 2
-                    var path = Path()
-                    for (i, peak) in channelPeaks.enumerated() {
-                        let x   = labelW + (CGFloat(i) + 0.5) * step
-                        let amp = CGFloat(peak) * (bandH / 2) * 0.9
-                        path.move(to:    CGPoint(x: x, y: midY - amp))
-                        path.addLine(to: CGPoint(x: x, y: midY + amp))
+                if peaks.isEmpty {
+                    ctx.fill(Path(CGRect(x: 0, y: mid - 0.5, width: w, height: 1)),
+                             with: .color(.secondary.opacity(0.2)))
+                } else {
+                    let drawW = w - lw
+                    let n     = CGFloat(peaks[0].count)
+                    let bandH = h / CGFloat(chCount)
+                    let step  = drawW / n
+                    let lineW = max(1, step * 0.6)
+
+                    for (ch, channelPeaks) in peaks.enumerated() {
+                        let midY    = bandH * CGFloat(ch) + bandH / 2
+                        let opacity = soloChannel == nil || soloChannel == ch ? 0.85 : 0.2
+                        var path = Path()
+                        for (i, peak) in channelPeaks.enumerated() {
+                            let x   = lw + (CGFloat(i) + 0.5) * step
+                            let amp = CGFloat(peak) * (bandH / 2) * 0.9
+                            path.move(to:    CGPoint(x: x, y: midY - amp))
+                            path.addLine(to: CGPoint(x: x, y: midY + amp))
+                        }
+                        ctx.stroke(path, with: .color(color.opacity(opacity)),
+                                   style: StrokeStyle(lineWidth: lineW))
                     }
-                    ctx.stroke(path, with: .color(color.opacity(0.85)),
-                               style: StrokeStyle(lineWidth: lineW))
 
-                    if showLabels {
-                        let label = ch < labels.count ? labels[ch] : "\(ch + 1)"
-                        ctx.draw(
-                            Text(label)
-                                .font(.system(size: 7, weight: .medium))
-                                .foregroundColor(.secondary),
-                            at: CGPoint(x: 3, y: midY), anchor: .leading
-                        )
+                    if chCount > 1 {
+                        var div = Path()
+                        for ch in 1..<chCount {
+                            let y = bandH * CGFloat(ch)
+                            div.move(to:    CGPoint(x: 0, y: y))
+                            div.addLine(to: CGPoint(x: w, y: y))
+                        }
+                        ctx.stroke(div, with: .color(Color.primary.opacity(0.15)),
+                                   style: StrokeStyle(lineWidth: 0.5))
                     }
                 }
 
-                // Divider between channels (only for multi-channel)
-                if chCount > 1 {
-                    var div = Path()
-                    for ch in 1..<chCount {
-                        let y = bandH * CGFloat(ch)
-                        div.move(to:    CGPoint(x: 0, y: y))
-                        div.addLine(to: CGPoint(x: w, y: y))
-                    }
-                    ctx.stroke(div, with: .color(Color.primary.opacity(0.15)),
-                               style: StrokeStyle(lineWidth: 0.5))
+                // Playhead
+                if audioPlayer.playingClip == clip {
+                    let x = CGFloat(audioPlayer.playbackFraction) * w
+                    ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: h)),
+                             with: .color(.white.opacity(0.9)))
+                    ctx.fill(Path(CGRect(x: x - 2,   y: 0, width: 4, height: h)),
+                             with: .color(.white.opacity(0.12)))
                 }
             }
 
-            // Playhead
-            if audioPlayer.playingClip == clip {
-                let x = CGFloat(audioPlayer.playbackFraction) * w
-                ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: h)),
-                         with: .color(.white.opacity(0.9)))
-                ctx.fill(Path(CGRect(x: x - 2,   y: 0, width: 4, height: h)),
-                         with: .color(.white.opacity(0.12)))
+            // ── Channel label buttons (multi-channel only) ───────────────────
+            if chCount > 1 {
+                VStack(spacing: 0) {
+                    ForEach(0..<chCount, id: \.self) { ch in
+                        ChannelLabelButton(
+                            label:    ch < labels.count ? labels[ch] : "\(ch + 1)",
+                            isSoloed: soloChannel == ch
+                        ) {
+                            soloChannel = soloChannel == ch ? nil : ch
+                        }
+                    }
+                }
+                .frame(width: 20)
             }
         }
         .background(GeometryReader { geo in
@@ -3418,32 +3442,45 @@ private struct ClipWaveformView: View {
                 .onAppear       { viewWidth = geo.size.width }
                 .onChange(of: geo.size.width) { viewWidth = $0 }
         })
-        // Tap to seek / start playback at that position
+        // Tap waveform area to seek / play (label column handled by buttons above)
         .onTapGesture { location in
-            let fraction = max(0, min(1, location.x / viewWidth))
-            audioPlayer.play(clip: clip, url: url, sampleRate: sampleRate, fromFraction: fraction)
+            guard location.x > lw else { return }
+            let fraction = max(0, min(1, (location.x - lw) / max(viewWidth - lw, 1)))
+            if isMultiMono {
+                // Multi-mono: play the specific channel file; default to first (L)
+                let idx     = min(soloChannel ?? 0, channelURLs.count - 1)
+                let playURL = channelURLs[idx]
+                audioPlayer.play(clip: clip, url: playURL, sampleRate: sampleRate,
+                                 fromFraction: fraction)
+            } else {
+                // Interleaved/mono: extract channel by index when soloed
+                let chIdx = soloChannel   // nil = all channels
+                audioPlayer.play(clip: clip, url: primaryURL, sampleRate: sampleRate,
+                                 fromFraction: fraction, channelIndex: chIdx)
+            }
         }
         .task(id: loadID) {
             peaks = []
-            let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name)
-            if let companion = urlCompanion {
-                // Split-stereo: load primary and companion in parallel, combine as [L, R]
-                async let primary   = AudioPlayer.loadWaveform(url: url,      startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
-                async let secondary = AudioPlayer.loadWaveform(url: companion, startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
-                let (p, s) = await (primary, secondary)
-                peaks = (p.first.map { [$0] } ?? []) + (s.first.map { [$0] } ?? [])
+            if isMultiMono {
+                // Load each channel file as a separate mono peak array
+                var result: [[Float]] = []
+                for chURL in channelURLs {
+                    let chPeaks = await AudioPlayer.loadWaveform(
+                        url: chURL, startSample: clip.sourceOffset,
+                        lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
+                    if let mono = chPeaks.first { result.append(mono) }
+                }
+                peaks = result
             } else {
+                // Single URL: interleaved (returns all channels) or mono
+                let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name)
                 peaks = await AudioPlayer.loadWaveform(
-                    url: url,
-                    startSample: clip.sourceOffset,
-                    lengthSamples: clip.lengthSamples,
-                    sampleRate: sampleRate,
-                    channelIndex: chIdx
-                )
+                    url: primaryURL, startSample: clip.sourceOffset,
+                    lengthSamples: clip.lengthSamples, sampleRate: sampleRate,
+                    channelIndex: chIdx)
             }
         }
-        .onChange(of: clip)         { _ in loadID = UUID() }
-        .onChange(of: url)          { _ in loadID = UUID() }
-        .onChange(of: urlCompanion) { _ in loadID = UUID() }
+        .onChange(of: clip)        { _ in loadID = UUID(); soloChannel = nil }
+        .onChange(of: channelURLs) { _ in loadID = UUID(); soloChannel = nil }
     }
 }
