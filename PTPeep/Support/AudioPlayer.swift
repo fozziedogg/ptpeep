@@ -422,11 +422,14 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
         var peaks = [[Float]](repeating: [Float](repeating: 0, count: resolution), count: ch)
 
-        if sparse {
-            // Sparse mode: read only the first few frames of each bucket then seek to the next.
-            // Dramatically reduces I/O for large files (e.g. long 5.1 stems) — acceptable for
-            // thumbnail waveforms where sub-bucket peak accuracy isn't needed.
-            let readPerBucket = AVAudioFrameCount(min(bucketFrames, 64))
+        // Sparse mode: only worthwhile when buckets are large enough that seeking saves
+        // significant I/O. For short clips (small bucketFrames) the contiguous path is
+        // faster because AVAudioFile prefetches on each seek, wasting more than it saves.
+        if sparse && bucketFrames > 4096 {
+            // Read up to 4096 frames at the start of each bucket, then seek to the next.
+            // 4096 frames ≈ one OS page worth of audio, keeping seeks page-aligned and
+            // reducing thrash on the disk cache used by concurrent playback reads.
+            let readPerBucket = AVAudioFrameCount(min(bucketFrames, 4096))
             guard let smallBuf = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: readPerBucket) else { return [] }
             for bucket in 0..<resolution {
                 file.framePosition = startSample + Int64(bucket * bucketFrames)

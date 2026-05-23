@@ -1751,13 +1751,14 @@ private struct SessionTimelineView: View {
             }
             guard !segments.isEmpty else { return nil }
 
-            // Crop to actual clip bounds — drop leading/trailing silence from the selection.
+            // Snap to clip bounds — expand to include full clips at the edges,
+            // tighten if the selection extends beyond all clips.
             let allClips = segments.flatMap(\.clips).map(\.clip)
             let croppedStart = allClips.map(\.startSample).min() ?? startSamp
             let croppedEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
 
-            return PlayRegion(startSample: max(startSamp, croppedStart),
-                              endSample:   min(endSamp,   croppedEnd),
+            return PlayRegion(startSample: min(startSamp, croppedStart),
+                              endSample:   max(endSamp,   croppedEnd),
                               segments: segments, sampleRate: sr,
                               resolvedPool: resolvedFiles.compactMap(\.url))
         }()
@@ -1812,8 +1813,8 @@ private struct SessionTimelineView: View {
             let allClips   = segments.flatMap(\.clips).map(\.clip)
             let croppedStart = allClips.map(\.startSample).min() ?? startSamp
             let croppedEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
-            return PlayRegion(startSample: max(startSamp, croppedStart),
-                              endSample:   min(endSamp,   croppedEnd),
+            return PlayRegion(startSample: min(startSamp, croppedStart),
+                              endSample:   max(endSamp,   croppedEnd),
                               segments: segments, sampleRate: sr,
                               resolvedPool: resolvedFiles.compactMap(\.url))
         }()
