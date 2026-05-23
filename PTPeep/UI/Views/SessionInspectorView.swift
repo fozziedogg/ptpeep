@@ -1733,7 +1733,7 @@ private struct SessionTimelineView: View {
                 guard track.type == .audio else { continue }
                 let clipsInRange = track.clips.filter { clip in
                     !clip.isGroup &&
-                    !clip.isMuted &&   // muted clips never play in a region
+                    !clip.isMuted &&   // muted clips excluded from playback
                     clip.startSample < endSamp &&
                     clip.startSample + clip.lengthSamples > startSamp
                 }.sorted { $0.startSample < $1.startSample }
@@ -1756,6 +1756,61 @@ private struct SessionTimelineView: View {
             let croppedStart = allClips.map(\.startSample).min() ?? startSamp
             let croppedEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
 
+            return PlayRegion(startSample: max(startSamp, croppedStart),
+                              endSample:   min(endSamp,   croppedEnd),
+                              segments: segments, sampleRate: sr,
+                              resolvedPool: resolvedFiles.compactMap(\.url))
+        }()
+
+        // spotRegion: same bounds as selectedRegion but includes muted clips.
+        // Used only for the Spot button — playback always uses selectedRegion.
+        let spotRegion: PlayRegion? = {
+            let startSamp: Int64
+            let endSamp:   Int64
+            let trackLo:   Int
+            let trackHi:   Int
+
+            if let clip = selectedClip, clip.isGroup {
+                startSamp = clip.startSample
+                endSamp   = clip.startSample + clip.lengthSamples
+                trackLo   = 0
+                trackHi   = tracks.count - 1
+            } else if let s = tc.selStart, let e = tc.selEnd, e > s {
+                startSamp = Int64((s * total).rounded())
+                endSamp   = Int64((e * total).rounded())
+                trackLo   = tc.selTrack ?? 0
+                trackHi   = tc.selTrackEnd ?? trackLo
+            } else {
+                return nil
+            }
+
+            guard endSamp > startSamp else { return nil }
+            let hiIdx = min(max(trackLo, trackHi), tracks.count - 1)
+            guard trackLo >= 0, trackLo <= hiIdx else { return nil }
+
+            var segments: [PlayRegion.TrackSegment] = []
+            for idx in trackLo...hiIdx {
+                let track = tracks[idx]
+                guard track.type == .audio else { continue }
+                let clipsInRange = track.clips.filter { clip in
+                    !clip.isGroup &&
+                    clip.startSample < endSamp &&
+                    clip.startSample + clip.lengthSamples > startSamp
+                }.sorted { $0.startSample < $1.startSample }
+                let resolved = clipsInRange.compactMap { clip -> (PTXClip, URL)? in
+                    guard let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+                    else { return nil }
+                    return (clip, url)
+                }
+                if !resolved.isEmpty {
+                    segments.append(PlayRegion.TrackSegment(trackIdx: idx, clips: resolved))
+                }
+            }
+            guard !segments.isEmpty else { return nil }
+
+            let allClips   = segments.flatMap(\.clips).map(\.clip)
+            let croppedStart = allClips.map(\.startSample).min() ?? startSamp
+            let croppedEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
             return PlayRegion(startSample: max(startSamp, croppedStart),
                               endSample:   min(endSamp,   croppedEnd),
                               segments: segments, sampleRate: sr,
@@ -1950,8 +2005,8 @@ private struct SessionTimelineView: View {
                         .frame(width: 72)
                 }
 
-                // Spot to PT
-                spotButton(region: selectedRegion, clip: selectedClip,
+                // Spot to PT (uses spotRegion which includes muted clips)
+                spotButton(region: spotRegion, clip: selectedClip,
                            resolvedFiles: resolvedFiles)
 
                 Divider().frame(height: 12)
