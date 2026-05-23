@@ -2063,9 +2063,12 @@ private struct SessionTimelineView: View {
             .frame(height: 22)
 
             // ── Clip waveform — always present to keep lane canvas height stable ─
-            let waveColor: Color = selectedClipTrackIdx.map { t in
-                t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
-            } ?? Color.accentColor
+            let waveColor: Color = {
+                if selectedClip?.isMuted == true { return Color(white: 0.45) }
+                return selectedClipTrackIdx.map { t in
+                    t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
+                } ?? Color.accentColor
+            }()
             ZStack {
                 // Faint placeholder track so the area is visually defined even when empty
                 RoundedRectangle(cornerRadius: 4)
