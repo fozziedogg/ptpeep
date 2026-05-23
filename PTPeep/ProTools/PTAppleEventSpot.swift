@@ -154,25 +154,15 @@ extension PTSLSessionInfo {
 
         ae.setParam(rgn, forKeyword: aeCC("Rgn "))
 
-        // ── Send — fire and forget ────────────────────────────────────────────
-        AppLog.shared.log("[AESpot] Sending Sd2a/SRgn → PTul  Trak=-99 TkOf=\(trackOffset) SMSt=\(sampleOffset) Star=\(srcStart) Stop=\(srcStop)")
+        // ── Send — fire and forget (kAENoReply: returns immediately, PT queues internally) ──
+        AppLog.shared.log("[AESpot] Sending Sd2a/SRgn → PT  Trak=-99 TkOf=\(trackOffset) SMSt=\(sampleOffset) Star=\(srcStart) Stop=\(srcStop)")
         var reply = AEDesc()
         let err = AESend(ae.aeDesc,
                          &reply,
-                         AESendMode(kAEWaitReply | kAECanInteract),
+                         AESendMode(kAENoReply),
                          AESendPriority(kAENormalPriority),
                          Int32(kAEDefaultTimeout), nil, nil)
-        // Log any error string PT put in the reply
-        let replyDesc = NSAppleEventDescriptor(aeDescNoCopy: &reply)
-        if let errStr = replyDesc.paramDescriptor(forKeyword: AEKeyword(keyErrorString))?.stringValue {
-            AppLog.shared.log("[AESpot] PT reply errorString: \(errStr)")
-        }
-        if let errNum = replyDesc.paramDescriptor(forKeyword: AEKeyword(keyErrorNumber))?.int32Value {
-            AppLog.shared.log("[AESpot] PT reply errorNumber: \(errNum)")
-        }
-        if err == noErr {
-            AppLog.shared.log("[AESpot] AESend OK")
-        } else {
+        if err != noErr {
             AppLog.shared.log("[AESpot] AESend FAILED OSErr=\(err)")
             throw PTSLError.commandFailed("AESend returned OSErr \(err)")
         }

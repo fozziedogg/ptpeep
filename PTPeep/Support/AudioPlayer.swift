@@ -401,11 +401,13 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     /// Pass `channelIndex` (0-based) to return only that channel (e.g. for multichannel files).
     static func loadWaveform(url: URL, startSample: Int64, lengthSamples: Int64,
                              resolution: Int = 500,
-                             channelIndex: Int? = nil, normalized: Bool = true) async -> [[Float]] {
+                             channelIndex: Int? = nil, normalized: Bool = true,
+                             sparse: Bool = false) async -> [[Float]] {
         // Cache hit?
         if let cached = WaveformCache.shared.get(audioURL: url, startSample: startSample,
                                                   lengthSamples: lengthSamples, resolution: resolution,
-                                                  channelIndex: channelIndex, normalized: normalized) {
+                                                  channelIndex: channelIndex, normalized: normalized,
+                                                  sparse: sparse) {
             return cached
         }
 
@@ -417,27 +419,45 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
 
         let totalFrames  = Int(lengthSamples)
         let bucketFrames = max(1, totalFrames / resolution)
-        let chunkSize    = AVAudioFrameCount(min(totalFrames, 65536))
 
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: chunkSize) else { return [] }
+        var peaks = [[Float]](repeating: [Float](repeating: 0, count: resolution), count: ch)
 
-        file.framePosition = startSample   // seek to clip start
-
-        var peaks    = [[Float]](repeating: [Float](repeating: 0, count: resolution), count: ch)
-        var frameIdx = 0
-
-        while frameIdx < totalFrames {
-            let toRead = AVAudioFrameCount(min(totalFrames - frameIdx, Int(chunkSize)))
-            buffer.frameLength = 0
-            do { try file.read(into: buffer, frameCount: toRead) } catch { break }
-            guard buffer.frameLength > 0, let channelData = buffer.floatChannelData else { break }
-            let n = Int(buffer.frameLength)
-            for f in 0..<n {
-                let bucket = min(frameIdx / bucketFrames, resolution - 1)
-                for c in 0..<ch {
-                    peaks[c][bucket] = max(peaks[c][bucket], abs(channelData[c][f]))
+        if sparse {
+            // Sparse mode: read only the first few frames of each bucket then seek to the next.
+            // Dramatically reduces I/O for large files (e.g. long 5.1 stems) — acceptable for
+            // thumbnail waveforms where sub-bucket peak accuracy isn't needed.
+            let readPerBucket = AVAudioFrameCount(min(bucketFrames, 64))
+            guard let smallBuf = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: readPerBucket) else { return [] }
+            for bucket in 0..<resolution {
+                file.framePosition = startSample + Int64(bucket * bucketFrames)
+                smallBuf.frameLength = 0
+                do { try file.read(into: smallBuf, frameCount: readPerBucket) } catch { break }
+                guard let channelData = smallBuf.floatChannelData else { continue }
+                let n = Int(smallBuf.frameLength)
+                for f in 0..<n {
+                    for c in 0..<ch {
+                        peaks[c][bucket] = max(peaks[c][bucket], abs(channelData[c][f]))
+                    }
                 }
-                frameIdx += 1
+            }
+        } else {
+            let chunkSize = AVAudioFrameCount(min(totalFrames, 65536))
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: chunkSize) else { return [] }
+            file.framePosition = startSample   // seek to clip start
+            var frameIdx = 0
+            while frameIdx < totalFrames {
+                let toRead = AVAudioFrameCount(min(totalFrames - frameIdx, Int(chunkSize)))
+                buffer.frameLength = 0
+                do { try file.read(into: buffer, frameCount: toRead) } catch { break }
+                guard buffer.frameLength > 0, let channelData = buffer.floatChannelData else { break }
+                let n = Int(buffer.frameLength)
+                for f in 0..<n {
+                    let bucket = min(frameIdx / bucketFrames, resolution - 1)
+                    for c in 0..<ch {
+                        peaks[c][bucket] = max(peaks[c][bucket], abs(channelData[c][f]))
+                    }
+                    frameIdx += 1
+                }
             }
         }
 
@@ -469,13 +489,13 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
             }
             WaveformCache.shared.set(peaks: normResult, audioURL: url, startSample: startSample,
                                      lengthSamples: lengthSamples, resolution: resolution,
-                                     channelIndex: channelIndex, normalized: true)
+                                     channelIndex: channelIndex, normalized: true, sparse: sparse)
             return normResult
         } else {
             // Return raw linear amplitudes — caller is responsible for cross-clip normalization.
             WaveformCache.shared.set(peaks: result, audioURL: url, startSample: startSample,
                                      lengthSamples: lengthSamples, resolution: resolution,
-                                     channelIndex: channelIndex, normalized: false)
+                                     channelIndex: channelIndex, normalized: false, sparse: sparse)
             return result
         }
     }

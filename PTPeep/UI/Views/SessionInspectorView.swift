@@ -1762,8 +1762,8 @@ private struct SessionTimelineView: View {
                               resolvedPool: resolvedFiles.compactMap(\.url))
         }()
 
-        // spotRegion: same bounds as selectedRegion but includes muted clips.
-        // Used only for the Spot button — playback always uses selectedRegion.
+        // spotRegion: same bounds as selectedRegion but includes muted clips,
+        // unless hideMutedClips is on — hidden clips are never spotted.
         let spotRegion: PlayRegion? = {
             let startSamp: Int64
             let endSamp:   Int64
@@ -1794,6 +1794,7 @@ private struct SessionTimelineView: View {
                 guard track.type == .audio else { continue }
                 let clipsInRange = track.clips.filter { clip in
                     !clip.isGroup &&
+                    (!hideMutedClips || !clip.isMuted) &&   // hidden muted clips are never spotted
                     clip.startSample < endSamp &&
                     clip.startSample + clip.lengthSamples > startSamp
                 }.sorted { $0.startSample < $1.startSample }
@@ -2005,7 +2006,7 @@ private struct SessionTimelineView: View {
                         .frame(width: 72)
                 }
 
-                // Spot to PT (uses spotRegion which includes muted clips)
+                // Spot to PT (uses spotRegion; includes muted clips unless hidden)
                 spotButton(region: spotRegion, clip: selectedClip,
                            resolvedFiles: resolvedFiles)
 
@@ -3382,7 +3383,9 @@ private struct RegionWaveformView: View {
                 let clipEndFrac   = Double(clip.startSample + clip.lengthSamples - region.startSample) / totalSamples
                 let pxStart = Int((clipStartFrac * Double(width)).rounded())
                 let pxEnd   = Int((clipEndFrac   * Double(width)).rounded())
-                let pxCount = max(1, pxEnd - pxStart)
+                // Cap at 200px — thumbnail accuracy; combined with sparse reading
+                // this dramatically reduces I/O for large multichannel files.
+                let pxCount = max(1, min(pxEnd - pxStart, 200))
 
                 let chIdx     = AudioPlayer.channelIndex(fromClipName: clip.name)
                 let clipPeaks = await AudioPlayer.loadWaveform(
@@ -3391,7 +3394,8 @@ private struct RegionWaveformView: View {
                     lengthSamples: clip.lengthSamples,
                     resolution: pxCount,
                     channelIndex: chIdx,
-                    normalized: false
+                    normalized: false,
+                    sparse: true
                 )
                 guard let ch0 = clipPeaks.first else { continue }
                 rawClips.append(ClipRaw(trackIdx: segment.trackIdx, pxStart: pxStart, peaks: ch0))
