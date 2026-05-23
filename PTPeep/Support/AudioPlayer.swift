@@ -516,7 +516,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
             // (e.g. a quiet rear channel stays visually quieter than the L/R mains).
             // Use a noise-floor threshold (~-120 dBFS) so channels with only floating-point
             // quantisation noise are treated as silent rather than blown up to full scale.
-            let kSilenceThreshold: Float = 1e-6
+            let kSilenceThreshold: Float = 0.001  // -60 dBFS; matches region-view silence gate
             let globalMax = result.compactMap { $0.max() }.max() ?? 0
             var normResult = result
             if globalMax > kSilenceThreshold {
