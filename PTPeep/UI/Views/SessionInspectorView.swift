@@ -1724,7 +1724,7 @@ private struct SessionTimelineView: View {
 
             // Safety cap: don't build a region that would require reading
             // hundreds of files or gigabytes of audio on the main thread.
-            let kMaxClips: Int    = 25
+            let kMaxClips: Int    = 200
             let kMaxSec:   Double = 120.0
             let durationSec = Double(endSamp - startSamp) / sr
             guard durationSec <= kMaxSec else { return nil }
