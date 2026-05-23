@@ -2837,7 +2837,52 @@ private struct TimelineLaneCanvas: View, Equatable {
                 let selEndSamp:   Int64? = selEnd.map   { Int64(($0 * total).rounded()) }
                 let trackInSelRange = isSelected   // track is within selTrack…selTrackEnd
 
-                for clip in track.clips {
+                // Pass 1: draw group-box clips as transparent bracket (behind regular clips)
+                for clip in track.clips where clip.isGroup {
+                    guard clip.lengthSamples > 0 else { continue }
+                    if clip.startSample >= winEndSamp { continue }
+                    if clip.startSample + clip.lengthSamples <= winStartSamp { continue }
+
+                    let clipFracStart = Double(clip.startSample) / total
+                    let clipFracLen   = Double(clip.lengthSamples) / total
+                    let x = CGFloat((clipFracStart - vStart) / vWindow) * size.width
+                    let w = max(2, CGFloat(clipFracLen / vWindow) * size.width)
+                    let clipRect = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
+
+                    // Faint tinted fill so the group extent is readable but clips show through
+                    ctx.fill(Path(clipRect), with: .color(color.opacity(0.12)))
+
+                    // Dashed border to distinguish from regular clips
+                    if w >= 4 {
+                        ctx.stroke(Path(clipRect), with: .color(color.opacity(0.75)),
+                                   style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                        if w > 48 {
+                            let fontSize: CGFloat = max(min(thisLaneH - 2, 9), 7)
+                            ctx.draw(
+                                Text(clip.name)
+                                    .font(.system(size: fontSize).italic())
+                                    .foregroundColor(color.opacity(0.85)),
+                                in: CGRect(x: x + 4, y: laneY + 1,
+                                           width: w - 8, height: fontSize + 2)
+                            )
+                        }
+                    }
+
+                    // Selection highlight for group clip
+                    let isGroupSelected: Bool = {
+                        if let ss = selStartSamp, i == (selTrack ?? -1), selEnd == nil {
+                            return clip.startSample == ss
+                        }
+                        return false
+                    }()
+                    if isGroupSelected {
+                        ctx.stroke(Path(clipRect), with: .color(.white.opacity(0.5)),
+                                   style: StrokeStyle(lineWidth: 2, dash: [4, 3]))
+                    }
+                }
+
+                // Pass 2: draw regular (non-group) clips on top
+                for clip in track.clips where !clip.isGroup {
                     guard clip.lengthSamples > 0 else { continue }
                     if clip.startSample >= winEndSamp { break }
                     if clip.startSample + clip.lengthSamples <= winStartSamp { continue }
@@ -2874,7 +2919,7 @@ private struct TimelineLaneCanvas: View, Equatable {
                     }
 
                     // Offline: orange overlay + dense diagonal hatch + warning prefix on label.
-                    if !clip.isGroup, offlineNames.contains(clip.sourceFile), w >= 2 {
+                    if offlineNames.contains(clip.sourceFile), w >= 2 {
                         // Orange tint so the clip reads as "problem" at a glance
                         ctx.fill(Path(clipRect), with: .color(Color.orange.opacity(0.35)))
                         var hatchCtx = ctx
