@@ -200,8 +200,12 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         }
 
         // ── First chunk: read synchronously → play starts immediately ────────
-        let kChunkFrames = Int64(fileSR * 5.0)   // 5-second chunks
-        let firstCount   = AVAudioFrameCount(min(Int64(remainingSamples), kChunkFrames))
+        // Keep the first chunk short (0.25 s) so the main thread isn't blocked
+        // reading a large multichannel file.  The streaming loop immediately
+        // pre-fills more buffers so there's no risk of underrun.
+        let kChunkFrames  = Int64(fileSR * 5.0)   // streaming chunks: 5 s
+        let kFirstFrames  = Int64(fileSR * 0.25)  // first sync chunk: 0.25 s
+        let firstCount   = AVAudioFrameCount(min(Int64(remainingSamples), kFirstFrames))
         guard let srcBuf = AVAudioPCMBuffer(pcmFormat: procFmt, frameCapacity: firstCount),
               let outBuf = AVAudioPCMBuffer(pcmFormat: outFmt,  frameCapacity: firstCount)
         else { return }
@@ -222,13 +226,18 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         stopWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + clipDurSec, execute: work)
 
-        // ~60 fps ticker for playhead position — wall-clock based so it starts
-        // counting immediately without waiting for lastRenderTime to become valid.
-        ticker = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
+        // ~60 fps ticker for playhead — wall-clock based, scheduled on .common
+        // so it keeps firing during scroll/drag interactions (.default gets starved).
+        // Subtract presentationLatency so the playhead matches what the ears hear,
+        // not what the engine has merely rendered into the hardware buffer.
+        let outputLatency = engine.outputNode.presentationLatency
+        let t = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
             guard let self, let startDate = self.clipPlayStart else { return }
-            let elapsed = Date().timeIntervalSince(startDate)
+            let elapsed = max(0, Date().timeIntervalSince(startDate) - outputLatency)
             self.playbackFraction = max(0, min(1, self.seekFraction + elapsed / self.fullDurSec))
         }
+        RunLoop.main.add(t, forMode: .common)
+        ticker = t
 
         // ── Stream remaining chunks in background ─────────────────────────────
         let framesScheduled = Int64(firstCount)
