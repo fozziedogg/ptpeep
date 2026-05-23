@@ -3530,5 +3530,19 @@ private struct ClipWaveformView: View {
         }
         .onChange(of: clip)        { _ in loadID = UUID(); soloChannel = nil }
         .onChange(of: channelURLs) { _ in loadID = UUID(); soloChannel = nil }
+        .onChange(of: soloChannel) { newSolo in
+            // If already playing, restart from the current position with the new channel.
+            guard audioPlayer.playingClip == clip else { return }
+            let fraction = audioPlayer.playbackFraction
+            if isMultiMono {
+                let idx = min(newSolo ?? 0, channelURLs.count - 1)
+                audioPlayer.play(clip: clip, url: channelURLs[idx],
+                                 sampleRate: sampleRate, fromFraction: fraction)
+            } else {
+                audioPlayer.play(clip: clip, url: primaryURL,
+                                 sampleRate: sampleRate, fromFraction: fraction,
+                                 channelIndex: newSolo)
+            }
+        }
     }
 }
