@@ -344,7 +344,7 @@ final class AppState: ObservableObject {
     }
 
     func open(url: URL) {
-        print("[AppState] open() \(url.lastPathComponent)")
+        AppLog.shared.log("[AppState] open() \(url.lastPathComponent)")
         let tab = TabState(sessionURL: url, isLoading: true)
         tabs.append(tab)
         selectedTabID = tab.id
@@ -353,22 +353,22 @@ final class AppState: ObservableObject {
     }
 
     func rescan(tabID: UUID, url: URL) {
-        print("[AppState] rescan() \(url.lastPathComponent)")
+        AppLog.shared.log("[AppState] rescan() \(url.lastPathComponent)")
         openTasks[tabID]?.cancel()
         updateTab(id: tabID) { $0.isLoading = true; $0.errorText = nil }
         openTasks[tabID] = Task { await _open(tabID: tabID, url: url) }
     }
 
     private func _open(tabID: UUID, url: URL) async {
-        print("[AppState] _open() start: \(url.lastPathComponent)")
+        AppLog.shared.log("[AppState] _open() start: \(url.lastPathComponent)")
 
         // Parse binary
         var parsed: PTXSession
         do {
             parsed = try PTXParser.parse(url: url)
-            print("[AppState] _open() parse done: \(parsed.tracks.count) tracks")
+            AppLog.shared.log("[AppState] _open() parse done: \(parsed.tracks.count) tracks")
         } catch {
-            print("[AppState] _open() parse error: \(error)")
+            AppLog.shared.log("[AppState] _open() parse error: \(error)")
             updateTab(id: tabID) { $0.isLoading = false; $0.errorText = error.localizedDescription }
             return
         }
@@ -401,7 +401,7 @@ final class AppState: ObservableObject {
                 }
             }
         }
-        print("[AppState] _open() complete ✓")
+        AppLog.shared.log("[AppState] _open() complete ✓")
     }
 
     func openInProTools(url: URL) {

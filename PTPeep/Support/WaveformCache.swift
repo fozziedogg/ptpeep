@@ -5,12 +5,12 @@ import Foundation
 // Stores per-clip PCM peak arrays at:
 //   ~/Library/Application Support/PTPeep/wavecache/<hash>_<mtime>.wc
 //
-// Cache key = FNV-1a hash of (audioFilePath | startSample | lengthSamples | resolution).
+// Cache key = FNV-1a hash of (audioFilePath | startSample | lengthSamples | resolution [| chIdx] [|raw]).
 // The audio file's mtime is baked into the filename so stale entries are ignored
 // automatically when the source file changes (old files are left on disk and cleaned
 // up by the periodic trim in init).
 //
-// Binary format per file:
+// Binary format per file (.wc2 extension):
 //   [Int32LE channelCount][Int32LE resolution]
 //   [Float32LE × resolution] × channelCount
 
@@ -118,7 +118,7 @@ final class WaveformCache: @unchecked Sendable {
                 at: dir, includingPropertiesForKeys: [.contentModificationDateKey],
                 options: .skipsHiddenFiles)
             else { return }
-            let wcFiles = items.filter { $0.pathExtension == "wc" }
+            let wcFiles = items.filter { $0.pathExtension == "wc2" }
             guard wcFiles.count > 500 else { return }
             let sorted = wcFiles.sorted {
                 let d0 = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast

@@ -107,7 +107,7 @@ final class PTXParser {
 
     private static func parseBlockContent(data: Data, session: inout PTXSession) {
         guard let decoded = PTXBlockDecoder.xorDecode(data) else {
-            print("[PTXParser] XOR decode failed — unrecognised format byte 0x\(String(data[0x12], radix: 16))")
+            AppLog.shared.log("[PTXParser] XOR decode failed — unrecognised format byte 0x\(String(data[0x12], radix: 16))")
             return
         }
         let bigEndian = PTXBlockDecoder.isBigEndian(decoded)
@@ -117,8 +117,8 @@ final class PTXParser {
         let typeCounts = Dictionary(grouping: blocks, by: \.contentType)
             .mapValues(\.count)
             .sorted { $0.key < $1.key }
-        print("[PTXParser] XOR decoded \(decoded.count) bytes, bigEndian=\(bigEndian)")
-        print("[PTXParser] Found \(blocks.count) blocks. Types: \(typeCounts.map { "0x\(String($0.key, radix:16))×\($0.value)" }.joined(separator: " "))")
+        AppLog.shared.log("[PTXParser] XOR decoded \(decoded.count) bytes, bigEndian=\(bigEndian)")
+        AppLog.shared.log("[PTXParser] Found \(blocks.count) blocks. Types: \(typeCounts.map { "0x\(String($0.key, radix:16))×\($0.value)" }.joined(separator: " "))")
 
         // Session parameters (sample rate, bit depth, TC format, session start)
         let params = PTXBlockDecoder.extractSessionParams(blocks: blocks, data: decoded, bigEndian: bigEndian)
@@ -137,11 +137,11 @@ final class PTXParser {
             session.sessionStart = String(format: "%d:%02d:%02d:%02d",
                 f / (fps * 3600), (f / (fps * 60)) % 60, (f / fps) % 60, f % fps)
         }
-        print("[PTXParser] Session params: sr=\(params.sampleRate) bd=\(params.bitDepth) fps=\(params.tcFrameRate) start=\(params.sessionStartFrames)")
+        AppLog.shared.log("[PTXParser] Session params: sr=\(params.sampleRate) bd=\(params.bitDepth) fps=\(params.tcFrameRate) start=\(params.sessionStartFrames)")
 
         // Audio file names from binary (may supplement or replace folder scan)
         let audioFiles = PTXBlockDecoder.extractAudioFiles(blocks: blocks, data: decoded, bigEndian: bigEndian)
-        print("[PTXParser] Audio files decoded: \(audioFiles.count)  (first 5: \(audioFiles.prefix(5).map(\.name)))")
+        AppLog.shared.log("[PTXParser] Audio files decoded: \(audioFiles.count)  (first 5: \(audioFiles.prefix(5).map(\.name)))")
         if !audioFiles.isEmpty {
             session.audioFileNames = audioFiles.map(\.name)
             session.audioFileMeta  = audioFiles.map { (fileName: $0.fileName, folderName: $0.folderName) }
@@ -149,25 +149,25 @@ final class PTXParser {
 
         // Plugins from 0x1017 blocks
         let (plugins, pluginSeconds) = PTXBlockDecoder.extractPlugins(blocks: blocks, data: decoded)
-        print("[PTXParser] Plugins: \(plugins)")
+        AppLog.shared.log("[PTXParser] Plugins: \(plugins)")
         session.plugins = plugins
         session.pluginSecondStrings = pluginSeconds
 
         // Per-track plugin assignments (0x102d → 0x2627 OSType matching)
         let trackPlugins = PTXBlockDecoder.extractTrackPlugins(blocks: blocks, data: decoded)
-        print("[PTXParser] Track plugins: \(trackPlugins.filter { !$0.value.isEmpty }.map { "\($0.key): \($0.value)" }.sorted())")
+        AppLog.shared.log("[PTXParser] Track plugins: \(trackPlugins.filter { !$0.value.isEmpty }.map { "\($0.key): \($0.value)" }.sorted())")
 
         // Memory locations from 0x2077 blocks (sample-accurate positions)
         let memLocs = PTXBlockDecoder.extractMemoryLocations(blocks: blocks, data: decoded)
         if !memLocs.isEmpty {
             session.memoryLocations = memLocs
-            print("[PTXParser] Memory locations: \(memLocs.map { "#\($0.number) \"\($0.name)\" @\($0.samplePosition)" })")
+            AppLog.shared.log("[PTXParser] Memory locations: \(memLocs.map { "#\($0.number) \"\($0.name)\" @\($0.samplePosition)" })")
         }
 
         // Clip pool: name + duration from the clip bin (0x2628 blocks)
         let clips = PTXBlockDecoder.extractClips(blocks: blocks, data: decoded, bigEndian: bigEndian)
         let validCount = clips.compactMap { $0 }.count
-        print("[PTXParser] Clip pool: \(clips.count) slots, \(validCount) valid (first 3: \(clips.prefix(3).compactMap { $0.map { "\($0.name) len=\($0.lengthSamples)" } }))")
+        AppLog.shared.log("[PTXParser] Clip pool: \(clips.count) slots, \(validCount) valid (first 3: \(clips.prefix(3).compactMap { $0.map { "\($0.name) len=\($0.lengthSamples)" } }))")
 
         // Track display info (hidden + folder membership) from the 0x2519 display list block
         let displayInfo = PTXBlockDecoder.extractTrackDisplayInfo(blocks: blocks, data: decoded, bigEndian: bigEndian)
@@ -180,7 +180,7 @@ final class PTXParser {
             if tp.isInactive { s += " [inactive]" }
             return s
         }
-        print("[PTXParser] Track playlists: \(playlistSummary)")
+        AppLog.shared.log("[PTXParser] Track playlists: \(playlistSummary)")
 
         // Build tracks from playlists (authoritative — includes channel count and clips).
         // Fall back to 0x1014-derived track names if playlists are empty.
@@ -320,7 +320,7 @@ final class PTXParser {
 
         // Track routing (input + output paths from 0x261b containers)
         let routing = PTXBlockDecoder.extractRouting(blocks: blocks, data: decoded, bigEndian: bigEndian)
-        print("[PTXParser] Routing: \(routing.map { "\($0.key): in=\($0.value.inputPath ?? "—") out=\($0.value.outputPath ?? "—")\($0.value.isAtmosObject ? " [OBJ]" : $0.value.isAtmosBed ? " [BED]" : "")" }.sorted())")
+        AppLog.shared.log("[PTXParser] Routing: \(routing.map { "\($0.key): in=\($0.value.inputPath ?? "—") out=\($0.value.outputPath ?? "—")\($0.value.isAtmosObject ? " [OBJ]" : $0.value.isAtmosBed ? " [BED]" : "")" }.sorted())")
 
         for i in session.tracks.indices {
             let name = session.tracks[i].name
@@ -403,7 +403,7 @@ final class PTXParser {
             sampleRate: params.sampleRate > 0 ? params.sampleRate : 48000,
             frameRate:  params.tcFrameRate > 0 ? params.tcFrameRate : 24
         )
-        print("[PTXParser] Video clips: \(videoClips.count)")
+        AppLog.shared.log("[PTXParser] Video clips: \(videoClips.count)")
         if !videoClips.isEmpty {
             for i in session.tracks.indices where session.tracks[i].type == .video && session.tracks[i].clips.isEmpty {
                 session.tracks[i].clips = videoClips
@@ -469,7 +469,7 @@ final class PTXParser {
         let text = lines.joined(separator: "\n")
         let logURL = sessionURL.deletingPathExtension().appendingPathExtension("log")
         try? text.write(to: logURL, atomically: true, encoding: .utf8)
-        print("[PTXParser] Clip log written to \(logURL.path)")
+        AppLog.shared.log("[PTXParser] Clip log written to \(logURL.path)")
     }
 
     /// Format a sample count as H:MM:SS:FF
@@ -641,7 +641,7 @@ final class PTXParser {
         let text = lines.joined(separator: "\n")
         let outURL = sessionURL.deletingPathExtension().appendingPathExtension("ptpeep.txt")
         try? text.write(to: outURL, atomically: true, encoding: .utf8)
-        print("[PTXParser] Text export written to \(outURL.path)")
+        AppLog.shared.log("[PTXParser] Text export written to \(outURL.path)")
     }
 
     // MARK: - EDL export (CMX 3600)
@@ -722,10 +722,10 @@ final class PTXParser {
         let outURL = sessionURL.deletingPathExtension().appendingPathExtension("\(suffix)edl")
         do {
             try text.write(to: outURL, atomically: true, encoding: .utf8)
-            print("[PTXParser] EDL written to \(outURL.path)  (\(eventNum - 1) events)")
+            AppLog.shared.log("[PTXParser] EDL written to \(outURL.path)  (\(eventNum - 1) events)")
             return outURL
         } catch {
-            print("[PTXParser] EDL write failed: \(error)")
+            AppLog.shared.log("[PTXParser] EDL write failed: \(error)")
             return nil
         }
     }
@@ -802,7 +802,7 @@ final class PTXParser {
 
         let found = resolved.filter(\.isOnline).count
         let total = resolved.count
-        print("[PTXParser] Audio file resolution: \(found)/\(total) found (scan pool: \(fallbackPaths.count))")
+        AppLog.shared.log("[PTXParser] Audio file resolution: \(found)/\(total) found (scan pool: \(fallbackPaths.count))")
     }
 
     /// Recursively scan the Audio Files folder next to the session.

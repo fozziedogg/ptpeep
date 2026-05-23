@@ -391,7 +391,7 @@ final class PTXBlockDecoder {
             videoPool.append(VideoPoolEntry(name: name, lengthSamples: lengthSamples))
         }
 
-        print("[PTXBlockDecoder] Video clip pool: \(videoPool.count) entries (first 5: \(videoPool.prefix(5).map(\.name)))")
+        AppLog.shared.log("[PTXBlockDecoder] Video clip pool: \(videoPool.count) entries (first 5: \(videoPool.prefix(5).map(\.name)))")
 
         // Find the 0x1055 video playlist container and collect 0x104f timeline refs within it.
         guard let container = blocks
@@ -731,9 +731,9 @@ final class PTXBlockDecoder {
         }
 
         let nonAudioTypes = info.types.filter { $0.value != 0 }.map { "\($0.key)=\($0.value)" }.sorted()
-        print("[PTXBlockDecoder] Non-audio types: \(nonAudioTypes)")
-        print("[PTXBlockDecoder] Hidden:   \(info.hidden.sorted())")
-        print("[PTXBlockDecoder] Inactive: \(info.inactive.sorted())")
+        AppLog.shared.log("[PTXBlockDecoder] Non-audio types: \(nonAudioTypes)")
+        AppLog.shared.log("[PTXBlockDecoder] Hidden:   \(info.hidden.sorted())")
+        AppLog.shared.log("[PTXBlockDecoder] Inactive: \(info.inactive.sorted())")
         return info
     }
 

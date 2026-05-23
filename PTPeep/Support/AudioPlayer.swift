@@ -400,7 +400,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     /// giving reliable per-channel data without AVAssetReader channel-count ambiguity.
     /// Pass `channelIndex` (0-based) to return only that channel (e.g. for multichannel files).
     static func loadWaveform(url: URL, startSample: Int64, lengthSamples: Int64,
-                             sampleRate: Double, resolution: Int = 500,
+                             resolution: Int = 500,
                              channelIndex: Int? = nil, normalized: Bool = true) async -> [[Float]] {
         // Cache hit?
         if let cached = WaveformCache.shared.get(audioURL: url, startSample: startSample,

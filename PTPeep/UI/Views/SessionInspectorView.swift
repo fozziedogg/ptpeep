@@ -3334,7 +3334,6 @@ private struct RegionWaveformView: View {
                     url: url,
                     startSample: clip.sourceOffset,
                     lengthSamples: clip.lengthSamples,
-                    sampleRate: region.sampleRate,
                     resolution: pxCount,
                     channelIndex: chIdx,
                     normalized: false
@@ -3515,7 +3514,7 @@ private struct ClipWaveformView: View {
                 for chURL in channelURLs {
                     let chPeaks = await AudioPlayer.loadWaveform(
                         url: chURL, startSample: clip.sourceOffset,
-                        lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
+                        lengthSamples: clip.lengthSamples)
                     if let mono = chPeaks.first { result.append(mono) }
                 }
                 peaks = result
@@ -3524,8 +3523,7 @@ private struct ClipWaveformView: View {
                 let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name)
                 peaks = await AudioPlayer.loadWaveform(
                     url: primaryURL, startSample: clip.sourceOffset,
-                    lengthSamples: clip.lengthSamples, sampleRate: sampleRate,
-                    channelIndex: chIdx)
+                    lengthSamples: clip.lengthSamples, channelIndex: chIdx)
             }
         }
         .onChange(of: clip)        { _ in loadID = UUID(); soloChannel = nil }

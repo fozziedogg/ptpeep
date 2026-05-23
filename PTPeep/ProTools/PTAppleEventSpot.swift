@@ -83,10 +83,6 @@ extension PTSLSessionInfo {
 
     // MARK: - Private implementation
 
-    private static func aeFileLength(url: URL, fallback: Int64) -> Int64 {
-        (try? AVAudioFile(forReading: url)).map { Int64($0.length) } ?? fallback
-    }
-
     /// Sends one 'Sd2a'/'SRgn' AppleEvent to Pro Tools.
     ///
     /// - Parameters:
