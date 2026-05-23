@@ -1794,7 +1794,7 @@ private struct SessionTimelineView: View {
                 guard track.type == .audio else { continue }
                 let clipsInRange = track.clips.filter { clip in
                     !clip.isGroup &&
-                    (!hideMutedClips || !clip.isMuted) &&   // hidden muted clips are never spotted
+                    (!hideMuted || !clip.isMuted) &&   // hidden muted clips are never spotted
                     clip.startSample < endSamp &&
                     clip.startSample + clip.lengthSamples > startSamp
                 }.sorted { $0.startSample < $1.startSample }
