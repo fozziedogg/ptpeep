@@ -49,6 +49,13 @@ struct ClipEntry {
     let audioFileIndex: Int     // index into the AudioFileEntry list
 }
 
+/// One constituent clip inside a compound/group clip.
+/// Decoded from the 0x2523 blocks embedded in the 0x262b→0x2628 compound pool entry.
+struct ConstituentClip {
+    let audioClipIdx: Int    // index into the ClipEntry audio pool
+    let timelineSample: Int64 // absolute timeline position of this constituent (samples)
+}
+
 /// A single clip placement on the session timeline (from a 0x104f playlist entry).
 struct ClipPlacement {
     let clipIdx: Int        // index into the ClipEntry list (u16 at 0x104f offset+2)
@@ -59,6 +66,9 @@ struct ClipPlacement {
     var isGroup: Bool = false    // true if byte[18]==0x01 (compound group; may or may not be muted)
     var groupName: String? = nil // compound clip name ("1 src.grp.L") when isGroup==true
     var groupLength: Int64? = nil // compound clip length in samples when isGroup==true
+    /// Constituent clips decoded from the compound pool entry (non-empty when isGroup==true
+    /// and the compound pool lookup succeeded).  Each element maps to an audio clip pool entry.
+    var groupConstituents: [ConstituentClip] = []
     /// clipIdx values for channels 2, 3, … of a multi-mono track (empty for mono).
     /// Each entry is the index into the ClipEntry list for that channel's audio file.
     var companionClipIdxs: [Int] = []
@@ -817,7 +827,21 @@ final class PTXBlockDecoder {
     /// 0x262b blocks are the compound/group clip pool parents (analogous to 0x2629 for audio).
     /// Each 0x2628 child uses the same encoding as audio clip entries.
     /// Returns sparse array indexed by file-order position of the 0x262b parent.
-    static func extractCompoundClips(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [(name: String, lengthSamples: Int64)?] {
+    /// Each entry also includes the constituent clips decoded from the embedded 0x2523 blocks.
+    ///
+    /// 0x2628 compound entry — extra bytes layout (after the three-point section, before last-2 fileIdx):
+    ///   [0..3]   startSample repeated (same value as three-point "start")
+    ///   [4..23]  padding / flags
+    ///   [24..27] u32 LE constituent count
+    ///   [28 + i*97 .. 28 + i*97 + 96]  i-th constituent: 9-byte 0x2523 header + 88-byte content
+    ///     Within 0x2523 content (at content offset 0):
+    ///       [0..8]   0x2526 block header (9 bytes)
+    ///       [9..22]  0x2526 content (14 bytes)
+    ///       [23..26] constituent absolute timeline position (u32 LE)
+    ///       [39..42] constituent audio clip pool index (u32 LE)
+    static func extractCompoundClips(blocks: [PTXBlock], data: Data, bigEndian: Bool)
+        -> [(name: String, lengthSamples: Int64, constituents: [ConstituentClip])?]
+    {
         let parentBlocks = blocks
             .filter { $0.contentType == 0x262b }
             .sorted { $0.dataOffset < $1.dataOffset }
@@ -834,7 +858,7 @@ final class PTXBlockDecoder {
             return idx
         }
 
-        var poolByIndex: [Int: (name: String, lengthSamples: Int64)] = [:]
+        var poolByIndex: [Int: (name: String, lengthSamples: Int64, constituents: [ConstituentClip])] = [:]
         for block in blocks where block.contentType == 0x2628 {
             guard let pIdx = parentIndex(of: block) else { continue }
             guard poolByIndex[pIdx] == nil else { continue }
@@ -859,7 +883,19 @@ final class PTXBlockDecoder {
             let lengthVal = readLE(data, at: vp, count: nLength)
             guard lengthVal > 0, lengthVal < 10_000_000_000 else { continue }
 
-            poolByIndex[pIdx] = (name: name, lengthSamples: Int64(bitPattern: lengthVal))
+            // ── Constituent clips: TODO ───────────────────────────────────────────
+            // The 0x2628 extra bytes contain a 0x2523 block per constituent, but
+            // the exact offsets for audioClipIdx and timeline within that block have
+            // not yet been confirmed against a known-good test session.
+            // The offsets (extra[60], extra[76]) that were inferred from an earlier
+            // (incorrectly XOR-decoded) dump produce garbage: audioClipIdx=0 for every
+            // entry and timeline=partial_bytes, which creates clips at wrong positions.
+            // Disabled until a test session with verifiable constituents is available.
+            // (See Tests/dump_constituent_parse.swift for diagnostic tooling.)
+            let constituents: [ConstituentClip] = []
+
+            poolByIndex[pIdx] = (name: name, lengthSamples: Int64(bitPattern: lengthVal),
+                                 constituents: constituents)
         }
 
         return (0..<parentBlocks.count).map { poolByIndex[$0] }
@@ -987,9 +1023,11 @@ final class PTXBlockDecoder {
                 let compoundEntry = isGroup && clipIdx < compoundPool.count ? compoundPool[clipIdx] : nil
                 let groupName   = compoundEntry?.name
                 let groupLength = compoundEntry?.lengthSamples
+                let groupConstituents = compoundEntry?.constituents ?? []
                 return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0,
                                      isHidden: isHidden, isMuted: isMuted, isGroup: isGroup,
-                                     groupName: groupName, groupLength: groupLength)
+                                     groupName: groupName, groupLength: groupLength,
+                                     groupConstituents: groupConstituents)
             }
 
             // Only the FIRST 0x1052 section for each track name drives timeline positions.
@@ -1060,7 +1098,8 @@ final class PTXBlockDecoder {
                     let compoundEntry = isGroup && clipIdx < compoundPool.count ? compoundPool[clipIdx] : nil
                     return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0,
                                          isHidden: isHidden, isMuted: isMuted, isGroup: isGroup,
-                                         groupName: compoundEntry?.name, groupLength: compoundEntry?.lengthSamples)
+                                         groupName: compoundEntry?.name, groupLength: compoundEntry?.lengthSamples,
+                                         groupConstituents: compoundEntry?.constituents ?? [])
                 }
                 if channelCounts[name] == nil {
                     nameOrder.append(name)

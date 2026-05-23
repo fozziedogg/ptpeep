@@ -370,27 +370,54 @@ final class PTXParser {
             var byPos: [Int64: PTXClip] = [:]
 
             for p in tp.placements where !p.isHidden {
-                let clipEntry = !p.isGroup && p.clipIdx < clips.count ? clips[p.clipIdx] : nil
-                let len = p.groupLength ?? clipEntry?.lengthSamples ?? 0
-                guard len > 0 else { continue }
-                let name = stripChannelSuffix(p.groupName ?? clipEntry?.name ?? "Clip \(p.clipIdx)")
-                let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
-                // Build per-channel file list from companion clip indices captured by the parser.
-                // companionClipIdxs[0] = channel 2 clipIdx, [1] = channel 3, etc.
-                var channelFiles: [String] = [ch1File]
-                for compIdx in p.companionClipIdxs {
-                    if let entry = compIdx < clips.count ? clips[compIdx] : nil,
-                       let fn = fileNameByIndex[entry.audioFileIndex] {
-                        channelFiles.append(fn)
+                if p.isGroup && !p.groupConstituents.isEmpty {
+                    // ── Group clip with decoded constituents: expand into individual clips ──
+                    // Each constituent references an audio pool entry with its own source file
+                    // and offset.  The constituent's timelineSample is the absolute timeline
+                    // position of that clip (same sample space as non-group placements).
+                    AppLog.shared.log("[PTXParser] Expanding group '\(p.groupName ?? "?")'  (\(p.groupConstituents.count) constituents) on track \(tp.name)")
+                    for c in p.groupConstituents {
+                        guard c.audioClipIdx < clips.count,
+                              let entry = clips[c.audioClipIdx] else { continue }
+                        guard entry.lengthSamples > 0 else { continue }
+                        let cFile = fileNameByIndex[entry.audioFileIndex] ?? ""
+                        let cName = stripChannelSuffix(entry.name)
+                        // Use constituent timeline if it looks valid (>0), else fall back to
+                        // the group's own placement timeline.
+                        let cTimeline = c.timelineSample > 0 ? c.timelineSample : p.timelineSample
+                        byPos[cTimeline] = PTXClip(
+                            name: cName, startSample: cTimeline,
+                            lengthSamples: entry.lengthSamples,
+                            sourceOffset: entry.sourceOffset,
+                            sourceFile: cFile,
+                            channelFiles: [cFile],
+                            isMuted: p.isMuted, isGroup: false
+                        )
                     }
+                } else {
+                    // ── Normal (non-group) clip or group with unknown constituent data ──
+                    let clipEntry = !p.isGroup && p.clipIdx < clips.count ? clips[p.clipIdx] : nil
+                    let len = p.groupLength ?? clipEntry?.lengthSamples ?? 0
+                    guard len > 0 else { continue }
+                    let name = stripChannelSuffix(p.groupName ?? clipEntry?.name ?? "Clip \(p.clipIdx)")
+                    let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
+                    // Build per-channel file list from companion clip indices captured by the parser.
+                    // companionClipIdxs[0] = channel 2 clipIdx, [1] = channel 3, etc.
+                    var channelFiles: [String] = [ch1File]
+                    for compIdx in p.companionClipIdxs {
+                        if let entry = compIdx < clips.count ? clips[compIdx] : nil,
+                           let fn = fileNameByIndex[entry.audioFileIndex] {
+                            channelFiles.append(fn)
+                        }
+                    }
+                    byPos[p.timelineSample] = PTXClip(
+                        name: name, startSample: p.timelineSample, lengthSamples: len,
+                        sourceOffset: clipEntry?.sourceOffset ?? 0,
+                        sourceFile: ch1File,
+                        channelFiles: channelFiles,
+                        isMuted: p.isMuted, isGroup: p.isGroup
+                    )
                 }
-                byPos[p.timelineSample] = PTXClip(
-                    name: name, startSample: p.timelineSample, lengthSamples: len,
-                    sourceOffset: clipEntry?.sourceOffset ?? 0,
-                    sourceFile: ch1File,
-                    channelFiles: channelFiles,
-                    isMuted: p.isMuted, isGroup: p.isGroup
-                )
             }
 
             session.tracks[i].clips = byPos.values.sorted { $0.startSample < $1.startSample }
