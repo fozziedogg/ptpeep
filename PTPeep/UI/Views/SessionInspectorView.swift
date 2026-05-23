@@ -2910,24 +2910,22 @@ private struct TimelineLaneCanvas: View, Equatable {
                     let x = CGFloat((clipFracStart - vStart) / vWindow) * size.width
                     let w = max(1, CGFloat(clipFracLen / vWindow) * size.width)
                     let clipRect  = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
-                    let fillAlpha: Double = clip.isMuted ? 0.28 : 0.88
-                    ctx.fill(Path(clipRect), with: .color(color.opacity(fillAlpha)))
+                    let clipColor: Color = clip.isMuted ? Color(white: 0.45) : color
+                    ctx.fill(Path(clipRect), with: .color(clipColor.opacity(clip.isMuted ? 0.55 : 0.88)))
 
                     if w >= 2 {
-                        let edgeAlpha: Double = clip.isMuted ? 0.45 : 1.0
-                        ctx.stroke(Path(clipRect), with: .color(color.opacity(edgeAlpha)),
+                        ctx.stroke(Path(clipRect), with: .color(clipColor.opacity(clip.isMuted ? 0.7 : 1.0)),
                                    style: StrokeStyle(lineWidth: 1))
                         if w > 32 {
                             let fontSize: CGFloat = max(min(thisLaneH - 2, 10), 7)
                             let isOffline = offlineNames.contains(clip.sourceFile)
-                            let labelAlpha: Double = clip.isMuted ? 0.5 : 1.0
                             let label = isOffline ? "⚠ \(clip.name)" : clip.name
                             ctx.draw(
                                 Text(label)
                                     .font(.system(size: fontSize).bold())
                                     .foregroundColor(isOffline
                                         ? Color.orange.opacity(1.0)
-                                        : .white.opacity(labelAlpha)),
+                                        : .white.opacity(clip.isMuted ? 0.5 : 1.0)),
                                 in: CGRect(x: x + 3,
                                            y: laneY + (thisLaneH - fontSize) / 2 - 1,
                                            width: w - 6, height: fontSize + 2)
