@@ -1639,8 +1639,9 @@ private struct SessionTimelineView: View {
         return nil
     }
 
-    /// Tightens tc.selStart / tc.selEnd to the actual earliest/latest clip edges
-    /// within the current selection, removing any leading/trailing silence.
+    /// Snaps tc.selStart / tc.selEnd to the actual clip edges within the selection:
+    /// expands inward selections to include full clips, tightens if selection
+    /// extends beyond all clips.
     private func snapSelectionToClipBounds(total: Double) {
         guard let s = tc.selStart, let e = tc.selEnd, e > s else { return }
         let startSamp = Int64((s * total).rounded())
@@ -1664,10 +1665,11 @@ private struct SessionTimelineView: View {
             }
         }
         guard minStart < maxEnd else { return }
-        let croppedStart = max(startSamp, minStart)
-        let croppedEnd   = min(endSamp, maxEnd)
-        if croppedStart != startSamp { tc.selStart = Double(croppedStart) / total }
-        if croppedEnd   != endSamp   { tc.selEnd   = Double(croppedEnd)   / total }
+        // Expand to include full clips at edges; tighten if beyond all clips.
+        let snappedStart = min(startSamp, minStart)
+        let snappedEnd   = max(endSamp,   maxEnd)
+        if snappedStart != startSamp { tc.selStart = Double(snappedStart) / total }
+        if snappedEnd   != endSamp   { tc.selEnd   = Double(snappedEnd)   / total }
     }
 
     var body: some View {
@@ -2816,6 +2818,9 @@ private struct TimelineLaneCanvas: View, Equatable {
                 }
             }
 
+            // Build offline set once per draw — used below to hatch unresolved clips.
+            let offlineNames = Set(resolvedFiles.filter { $0.url == nil }.map { $0.name })
+
             var laneY: CGFloat = 0
             for (i, track) in tracks.enumerated() {
                 let thisLaneH  = scaledLaneH(track, index: i)
@@ -2863,6 +2868,22 @@ private struct TimelineLaneCanvas: View, Equatable {
                                            width: w - 6, height: fontSize + 2)
                             )
                         }
+                    }
+
+                    // Offline hatch: diagonal white stripes over unresolved clips.
+                    if !clip.isGroup, offlineNames.contains(clip.sourceFile), w >= 2 {
+                        var hatchCtx = ctx   // value-type copy; clip state doesn't leak
+                        hatchCtx.clip(to: Path(clipRect))
+                        var hatchPath = Path()
+                        let step: CGFloat = 6
+                        var d: CGFloat = -thisLaneH
+                        while d <= w {
+                            hatchPath.move(to: CGPoint(x: x + d, y: laneY))
+                            hatchPath.addLine(to: CGPoint(x: x + d + thisLaneH, y: laneY + thisLaneH))
+                            d += step
+                        }
+                        hatchCtx.stroke(hatchPath, with: .color(.white.opacity(0.45)),
+                                        style: StrokeStyle(lineWidth: 1))
                     }
 
                     // Selected-clip highlight: brighten by overlaying a white fill
