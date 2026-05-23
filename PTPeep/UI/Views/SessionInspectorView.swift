@@ -3394,7 +3394,7 @@ private struct RegionWaveformView: View {
         let totalSamples = Double(region.endSample - region.startSample)
         let width        = Int(viewWidth)
 
-        // ── Pass 1: load raw (un-normalised) peaks for every clip ────────────
+        // ── Pass 1: load raw peaks for all clips concurrently ───────────────
         struct ClipRaw {
             let trackIdx: Int
             let pxStart:  Int
@@ -3402,30 +3402,34 @@ private struct RegionWaveformView: View {
         }
         var rawClips: [ClipRaw] = []
 
-        for segment in region.segments {
-            for (clip, url) in segment.clips {
-                let clipStartFrac = Double(clip.startSample - region.startSample) / totalSamples
-                let clipEndFrac   = Double(clip.startSample + clip.lengthSamples - region.startSample) / totalSamples
-                let pxStart = Int((clipStartFrac * Double(width)).rounded())
-                let pxEnd   = Int((clipEndFrac   * Double(width)).rounded())
-                // Load at the clip's actual pixel width so peaks fill the display 1:1.
-                // Sparse mode kicks in automatically for long clips (bucketFrames > 4096).
-                let pxCount = max(1, pxEnd - pxStart)
+        await withTaskGroup(of: ClipRaw?.self) { group in
+            for segment in region.segments {
+                for (clip, url) in segment.clips {
+                    let clipStartFrac = Double(clip.startSample - region.startSample) / totalSamples
+                    let clipEndFrac   = Double(clip.startSample + clip.lengthSamples - region.startSample) / totalSamples
+                    let pxStart  = Int((clipStartFrac * Double(width)).rounded())
+                    let pxEnd    = Int((clipEndFrac   * Double(width)).rounded())
+                    let pxCount  = max(1, pxEnd - pxStart)
+                    let chIdx    = AudioPlayer.channelIndex(fromClipName: clip.name)
+                    let trackIdx = segment.trackIdx
+                    let srcOff   = clip.sourceOffset
+                    let srcLen   = clip.lengthSamples
 
-                let chIdx     = AudioPlayer.channelIndex(fromClipName: clip.name)
-                let clipPeaks = await AudioPlayer.loadWaveform(
-                    url: url,
-                    startSample: clip.sourceOffset,
-                    lengthSamples: clip.lengthSamples,
-                    resolution: pxCount,
-                    channelIndex: chIdx,
-                    normalized: false,
-                    sparse: true
-                )
-                guard let ch0 = clipPeaks.first else { continue }
-                rawClips.append(ClipRaw(trackIdx: segment.trackIdx, pxStart: pxStart, peaks: ch0))
+                    group.addTask {
+                        let peaks = await AudioPlayer.loadWaveform(
+                            url: url, startSample: srcOff, lengthSamples: srcLen,
+                            resolution: pxCount, channelIndex: chIdx,
+                            normalized: false, sparse: true)
+                        guard let ch0 = peaks.first else { return nil }
+                        return ClipRaw(trackIdx: trackIdx, pxStart: pxStart, peaks: ch0)
+                    }
+                }
+            }
+            for await raw in group {
+                if let raw { rawClips.append(raw) }
             }
         }
+        guard !Task.isCancelled else { return }
 
         // ── Pass 2: find global peak, apply silence gate, normalise ──────────
         // Silence gate: if the loudest sample across the entire region is below

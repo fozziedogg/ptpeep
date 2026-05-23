@@ -107,9 +107,9 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     // Extra player nodes created for multi-track region playback.
     // Cleaned up in stop() so the engine doesn't accumulate nodes.
     private var regionNodes: [AVAudioPlayerNode] = []
-    // Incremented by stop() and each playRegion() call so a background
-    // build that finishes after stop() was called discards its results.
+    // Incremented by stop() / play() so background tasks can detect cancellation.
     private var regionGeneration: Int = 0
+    private var clipGeneration:   UInt64 = 0
 
     init() {
         engine.attach(playerNode)
@@ -168,55 +168,45 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         clipDurSec           = max(Double(remainingSamples) / max(sampleRate, 1), 0.001)
 
         let startFrame = AVAudioFramePosition(clip.sourceOffset + seekSamples)
-        let frameCount = AVAudioFrameCount(remainingSamples)
 
         let chIdx  = channelIndex ?? AudioPlayer.channelIndex(fromClipName: clip.name)
         let fileCh = Int(file.processingFormat.channelCount)
         let fileSR = file.processingFormat.sampleRate
 
-        // Determine output channel count:
-        //   • Channel solo requested, or file is multichannel (>2) → mono
-        //   • Mono/stereo file, no solo → native channel count
-        // Reconnect the playerNode each call so the connection format always matches the
-        // buffer we are about to schedule (avoids _outputFormat.channelCount mismatch).
+        // Reconnect playerNode so format always matches the buffer being scheduled.
         let outCh  = (chIdx != nil || fileCh > 2) ? 1 : fileCh
         guard let outFmt = AVAudioFormat(standardFormatWithSampleRate: fileSR,
                                          channels: AVAudioChannelCount(outCh)) else { return }
         engine.disconnectNodeOutput(playerNode)
         engine.connect(playerNode, to: gainNode, format: outFmt)
-
         if !engine.isRunning { try? engine.start() }
 
-        // Build output buffer — always read into a source buffer so we can remap channels.
-        guard let srcBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
-                                             frameCapacity: frameCount),
-              let outBuf = AVAudioPCMBuffer(pcmFormat: outFmt,
-                                             frameCapacity: frameCount) else { return }
-        file.framePosition = startFrame
-        guard (try? file.read(into: srcBuf, frameCount: frameCount)) != nil,
-              srcBuf.frameLength > 0,
-              let srcData = srcBuf.floatChannelData,
-              let dstData = outBuf.floatChannelData else { return }
-        outBuf.frameLength = srcBuf.frameLength
-        let n = Int(srcBuf.frameLength)
-
-        if let ch = chIdx, ch < fileCh {
-            // Extract one channel to mono
-            memcpy(dstData[0], srcData[ch], n * MemoryLayout<Float>.size)
-        } else if fileCh > 2 {
-            // Mix all channels down to mono (equal-weight sum)
-            let scale = Float(1.0 / Double(fileCh))
-            for f in 0..<n {
-                var sum: Float = 0
-                for c in 0..<fileCh { sum += srcData[c][f] }
-                dstData[0][f] = sum * scale
+        // Channel-remap helper: read srcBuf into outBuf applying chIdx / multichannel mix.
+        let procFmt = file.processingFormat
+        func remapInto(_ src: AVAudioPCMBuffer, _ out: AVAudioPCMBuffer) -> Bool {
+            guard let sd = src.floatChannelData, let dd = out.floatChannelData else { return false }
+            out.frameLength = src.frameLength
+            let n = Int(src.frameLength)
+            if let ch = chIdx, ch < fileCh {
+                memcpy(dd[0], sd[ch], n * MemoryLayout<Float>.size)
+            } else if fileCh > 2 {
+                let scale = Float(1.0 / Double(fileCh))
+                for f in 0..<n { var s: Float = 0; for c in 0..<fileCh { s += sd[c][f] }; dd[0][f] = s * scale }
+            } else {
+                for c in 0..<outCh { memcpy(dd[c], sd[c], n * MemoryLayout<Float>.size) }
             }
-        } else {
-            // Mono or stereo native: copy each channel
-            for c in 0..<outCh {
-                memcpy(dstData[c], srcData[c], n * MemoryLayout<Float>.size)
-            }
+            return true
         }
+
+        // ── First chunk: read synchronously → play starts immediately ────────
+        let kChunkFrames = Int64(fileSR * 5.0)   // 5-second chunks
+        let firstCount   = AVAudioFrameCount(min(Int64(remainingSamples), kChunkFrames))
+        guard let srcBuf = AVAudioPCMBuffer(pcmFormat: procFmt, frameCapacity: firstCount),
+              let outBuf = AVAudioPCMBuffer(pcmFormat: outFmt,  frameCapacity: firstCount)
+        else { return }
+        file.framePosition = startFrame
+        guard (try? file.read(into: srcBuf, frameCount: firstCount)) != nil,
+              srcBuf.frameLength > 0, remapInto(srcBuf, outBuf) else { return }
 
         playerNode.scheduleBuffer(outBuf, at: nil)
         playerNode.play()
@@ -230,20 +220,59 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         stopWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + clipDurSec, execute: work)
 
-        // ~60 fps ticker for playhead position (absolute fraction within full clip)
+        // ~60 fps ticker for playhead position
         ticker = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
             guard let self, let nodeTime = self.playerNode.lastRenderTime,
                   nodeTime.isSampleTimeValid,
                   let playerTime = self.playerNode.playerTime(forNodeTime: nodeTime),
-                  playerTime.isSampleTimeValid,
-                  frameCount > 0 else { return }
-            let elapsed = Double(playerTime.sampleTime) / file.processingFormat.sampleRate
+                  playerTime.isSampleTimeValid else { return }
+            let elapsed = Double(playerTime.sampleTime) / fileSR
             self.playbackFraction = max(0, min(1, self.seekFraction + elapsed / self.fullDurSec))
+        }
+
+        // ── Stream remaining chunks in background ─────────────────────────────
+        let framesScheduled = Int64(firstCount)
+        guard framesScheduled < remainingSamples else { return }
+
+        clipGeneration &+= 1
+        let myGen      = clipGeneration
+        let nextStart  = startFrame + framesScheduled
+        let framesLeft = remainingSamples - framesScheduled
+
+        Task.detached(priority: .userInitiated) { [weak self] in
+            guard let self else { return }
+            guard let streamFile = try? AVAudioFile(forReading: url) else { return }
+            streamFile.framePosition = nextStart
+            var offset: Int64 = 0
+            while offset < framesLeft {
+                guard self.clipGeneration == myGen else { return }
+                let count = AVAudioFrameCount(min(kChunkFrames, framesLeft - offset))
+                guard let src = AVAudioPCMBuffer(pcmFormat: procFmt, frameCapacity: count),
+                      let out = AVAudioPCMBuffer(pcmFormat: outFmt,  frameCapacity: count),
+                      (try? streamFile.read(into: src, frameCount: count)) != nil,
+                      src.frameLength > 0
+                else { break }
+                guard let sd = src.floatChannelData, let dd = out.floatChannelData else { break }
+                out.frameLength = src.frameLength
+                let n = Int(src.frameLength)
+                if let ch = chIdx, ch < fileCh {
+                    memcpy(dd[0], sd[ch], n * MemoryLayout<Float>.size)
+                } else if fileCh > 2 {
+                    let scale = Float(1.0 / Double(fileCh))
+                    for f in 0..<n { var s: Float = 0; for c in 0..<fileCh { s += sd[c][f] }; dd[0][f] = s * scale }
+                } else {
+                    for c in 0..<outCh { memcpy(dd[c], sd[c], n * MemoryLayout<Float>.size) }
+                }
+                guard self.clipGeneration == myGen else { return }
+                self.playerNode.scheduleBuffer(out, at: nil)
+                offset += Int64(count)
+            }
         }
     }
 
     func stop() {
         regionGeneration &+= 1   // cancel any in-flight async region build
+        clipGeneration   &+= 1   // cancel any in-flight clip streaming task
         stopWorkItem?.cancel()
         stopWorkItem = nil
         ticker?.invalidate()

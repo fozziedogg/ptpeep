@@ -79,6 +79,11 @@ extension PTSLSessionInfo {
             }
         }.value
         AppLog.shared.log("[AESpot] END — all sends complete")
+        // Return focus to Pro Tools so the user can interact with placed clips immediately.
+        if let ptApp = NSRunningApplication
+                .runningApplications(withBundleIdentifier: "com.avid.ProTools").first {
+            ptApp.activate(options: .activateIgnoringOtherApps)
+        }
     }
 
     // MARK: - Private implementation
