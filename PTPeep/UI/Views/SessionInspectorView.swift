@@ -2825,7 +2825,7 @@ private struct TimelineLaneCanvas: View, Equatable {
                 let thisLaneH  = scaledLaneH(track, index: i)
                 let color      = trackColor(track, index: i)
                 let isSelected = selLo >= 0 && i >= selLo && i <= selHi
-                let bgAlpha: Double = isSelected ? 0.18 : 0.03
+                let bgAlpha: Double = 0.03
 
                 ctx.fill(
                     Path(CGRect(x: 0, y: laneY, width: size.width, height: thisLaneH)),
@@ -2850,12 +2850,12 @@ private struct TimelineLaneCanvas: View, Equatable {
                     let clipRect = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
 
                     // Faint tinted fill so the group extent is readable but clips show through
-                    ctx.fill(Path(clipRect), with: .color(color.opacity(0.12)))
+                    ctx.fill(Path(clipRect), with: .color(color.opacity(0.07)))
 
                     // Dashed border to distinguish from regular clips
                     if w >= 4 {
-                        ctx.stroke(Path(clipRect), with: .color(color.opacity(0.75)),
-                                   style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                        ctx.stroke(Path(clipRect), with: .color(color.opacity(0.4)),
+                                   style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
                         if w > 48 {
                             let fontSize: CGFloat = max(min(thisLaneH - 2, 9), 7)
                             ctx.draw(
