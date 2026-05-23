@@ -29,6 +29,7 @@ struct SessionInspectorView: View {
     @AppStorage("ov.showInactiveTracks") private var showInactiveTracks: Bool = false
     @AppStorage("ov.showVideoTrack")     private var showVideoTrack:     Bool = true
     @AppStorage("ov.hideMutedClips")     private var hideMutedClips:     Bool = false
+    @AppStorage("ov.hideClipGroups")     private var hideClipGroups:     Bool = false
     @AppStorage("ov.showMarkers")        private var showMarkers:         Bool = false
     @AppStorage("ov.showEmptyTracks")    private var showEmptyTracks:     Bool = true
     // Track list toggles (separate from overview)
@@ -227,6 +228,7 @@ struct SessionInspectorView: View {
         let hasInactive = session.tracks.contains { $0.isInactive && !$0.clips.isEmpty }
         let hasVideo    = session.tracks.contains { $0.type == .video && !$0.clips.isEmpty }
         let hasMuted    = session.tracks.contains { $0.clips.contains { $0.isMuted } }
+        let hasGroups   = session.tracks.contains { $0.clips.contains { $0.isGroup } }
         let hasMarkers  = session.memoryLocations.contains { $0.samplePosition > 0 }
         let clippedTracks = session.tracks
             .filter {
@@ -289,11 +291,13 @@ struct SessionInspectorView: View {
                                         hasInactive: hasInactive,
                                         hasVideo:    hasVideo,
                                         hasMuted:    hasMuted,
+                                        hasGroups:   hasGroups,
                                         hasMarkers:  hasMarkers,
                                         showHidden:    $showHiddenTracks,
                                         showInactive:  $showInactiveTracks,
                                         showVideo:     $showVideoTrack,
                                         hideMuted:     $hideMutedClips,
+                                        hideGroups:    $hideClipGroups,
                                         showMarkers:   $showMarkers,
                                         showEmpty:     $showEmptyTracks,
                                         overviewHeight: $overviewHeight)
@@ -1517,11 +1521,13 @@ private struct SessionTimelineView: View {
     var hasInactive: Bool = false
     var hasVideo:    Bool = false
     var hasMuted:    Bool = false
+    var hasGroups:   Bool = false
     var hasMarkers:  Bool = false
     @Binding var showHidden:    Bool
     @Binding var showInactive:  Bool
     @Binding var showVideo:     Bool
     @Binding var hideMuted:     Bool
+    @Binding var hideGroups:    Bool
     @Binding var showMarkers:   Bool
     @Binding var showEmpty:     Bool
     @Binding var overviewHeight: CGFloat
@@ -1859,7 +1865,7 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14).padding(.horizontal, 6)
 
-                let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || showMarkers || !showEmpty
+                let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || hideGroups || showMarkers || !showEmpty
                 Button { showFiltersPopover.toggle() } label: {
                     Image(systemName: filtersActive ? "ellipsis.circle.fill" : "ellipsis.circle")
                         .foregroundStyle(filtersActive ? Color.accentColor : Color.secondary)
@@ -1886,6 +1892,11 @@ private struct SessionTimelineView: View {
                         if hasMuted {
                             Toggle("Show Muted Clips",
                                    isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 }))
+                            .toggleStyle(.checkbox)
+                        }
+                        if hasGroups {
+                            Toggle("Show Clip Groups",
+                                   isOn: Binding(get: { !hideGroups }, set: { hideGroups = !$0 }))
                             .toggleStyle(.checkbox)
                         }
                     }
@@ -2122,6 +2133,7 @@ private struct SessionTimelineView: View {
                     tracks:                  tracks,
                     total:                   total,
                     hideMuted:               hideMuted,
+                    hideGroups:              hideGroups,
                     verticalScale:           verticalScale,
                     grmMode:                 colorMode == .grm,
                     globalTrackHeightLevel:  tc.globalTrackHeightLevel,
@@ -2758,6 +2770,7 @@ private struct TimelineLaneCanvas: View, Equatable {
     let tracks:               [PTXTrack]
     let total:                Double
     let hideMuted:            Bool
+    let hideGroups:           Bool
     let verticalScale:        CGFloat
     let grmMode:              Bool
     let globalTrackHeightLevel: Int
@@ -2774,6 +2787,7 @@ private struct TimelineLaneCanvas: View, Equatable {
         lhs.tracks.count            == rhs.tracks.count            &&
         lhs.total                   == rhs.total                   &&
         lhs.hideMuted               == rhs.hideMuted               &&
+        lhs.hideGroups              == rhs.hideGroups              &&
         lhs.verticalScale           == rhs.verticalScale           &&
         lhs.grmMode                 == rhs.grmMode                 &&
         lhs.globalTrackHeightLevel  == rhs.globalTrackHeightLevel  &&
@@ -2840,6 +2854,8 @@ private struct TimelineLaneCanvas: View, Equatable {
                 // Pass 1: draw group-box clips as transparent bracket (behind regular clips)
                 for clip in track.clips where clip.isGroup {
                     guard clip.lengthSamples > 0 else { continue }
+                    if hideGroups { continue }
+                    if hideMuted && clip.isMuted { continue }
                     if clip.startSample >= winEndSamp { continue }
                     if clip.startSample + clip.lengthSamples <= winStartSamp { continue }
 
