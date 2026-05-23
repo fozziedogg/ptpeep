@@ -2857,11 +2857,15 @@ private struct TimelineLaneCanvas: View, Equatable {
                                    style: StrokeStyle(lineWidth: 1))
                         if w > 32 {
                             let fontSize: CGFloat = max(min(thisLaneH - 2, 10), 7)
+                            let isOffline = offlineNames.contains(clip.sourceFile)
                             let labelAlpha: Double = clip.isMuted ? 0.5 : 1.0
+                            let label = isOffline ? "⚠ \(clip.name)" : clip.name
                             ctx.draw(
-                                Text(clip.name)
+                                Text(label)
                                     .font(.system(size: fontSize).bold())
-                                    .foregroundColor(.white.opacity(labelAlpha)),
+                                    .foregroundColor(isOffline
+                                        ? Color.orange.opacity(1.0)
+                                        : .white.opacity(labelAlpha)),
                                 in: CGRect(x: x + 3,
                                            y: laneY + (thisLaneH - fontSize) / 2 - 1,
                                            width: w - 6, height: fontSize + 2)
@@ -2869,20 +2873,22 @@ private struct TimelineLaneCanvas: View, Equatable {
                         }
                     }
 
-                    // Offline hatch: diagonal white stripes over unresolved clips.
+                    // Offline: orange overlay + dense diagonal hatch + warning prefix on label.
                     if !clip.isGroup, offlineNames.contains(clip.sourceFile), w >= 2 {
-                        var hatchCtx = ctx   // value-type copy; clip state doesn't leak
+                        // Orange tint so the clip reads as "problem" at a glance
+                        ctx.fill(Path(clipRect), with: .color(Color.orange.opacity(0.35)))
+                        var hatchCtx = ctx
                         hatchCtx.clip(to: Path(clipRect))
                         var hatchPath = Path()
-                        let step: CGFloat = 6
+                        let step: CGFloat = 4
                         var d: CGFloat = -thisLaneH
                         while d <= w {
                             hatchPath.move(to: CGPoint(x: x + d, y: laneY))
                             hatchPath.addLine(to: CGPoint(x: x + d + thisLaneH, y: laneY + thisLaneH))
                             d += step
                         }
-                        hatchCtx.stroke(hatchPath, with: .color(.white.opacity(0.45)),
-                                        style: StrokeStyle(lineWidth: 1))
+                        hatchCtx.stroke(hatchPath, with: .color(Color.orange.opacity(0.8)),
+                                        style: StrokeStyle(lineWidth: 1.5))
                     }
 
                     // Selected-clip highlight: brighten by overlaying a white fill
@@ -3369,10 +3375,15 @@ private struct RegionWaveformView: View {
             // Playhead
             if audioPlayer.isPlayingRegion || (audioPlayer.isPlaying && !audioPlayer.isPlayingRegion) {
                 let x = CGFloat(audioPlayer.playbackFraction) * w
-                ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: h)),
-                         with: .color(.white.opacity(0.9)))
-                ctx.fill(Path(CGRect(x: x - 2,   y: 0, width: 4, height: h)),
-                         with: .color(.white.opacity(0.12)))
+                ctx.fill(Path(CGRect(x: x - 6, y: 0, width: 12, height: h)),
+                         with: .color(Color.accentColor.opacity(0.15)))
+                ctx.fill(Path(CGRect(x: x - 1, y: 0, width: 2,  height: h)),
+                         with: .color(Color.accentColor.opacity(1.0)))
+                // Downward-pointing triangle pointer at the top
+                var tri = Path(); tri.move(to: CGPoint(x: x - 5, y: 0))
+                tri.addLine(to: CGPoint(x: x + 5, y: 0))
+                tri.addLine(to: CGPoint(x: x, y: 6)); tri.closeSubpath()
+                ctx.fill(tri, with: .color(Color.accentColor))
             }
         }
         .background(GeometryReader { geo in
@@ -3402,6 +3413,12 @@ private struct RegionWaveformView: View {
         }
         var rawClips: [ClipRaw] = []
 
+        // Initialise empty result rows so progressive renders have a valid base.
+        var progressResult: [Int: [Float]] = [:]
+        for segment in region.segments {
+            progressResult[segment.trackIdx] = [Float](repeating: 0, count: width)
+        }
+
         await withTaskGroup(of: ClipRaw?.self) { group in
             for segment in region.segments {
                 for (clip, url) in segment.clips {
@@ -3425,8 +3442,21 @@ private struct RegionWaveformView: View {
                     }
                 }
             }
+            // Progressive: render each clip as it finishes (per-clip normalised)
+            // so something appears immediately for large files.
             for await raw in group {
-                if let raw { rawClips.append(raw) }
+                guard let raw else { continue }
+                rawClips.append(raw)
+                let clipMax = raw.peaks.max() ?? 0
+                if clipMax > 0.001, var row = progressResult[raw.trackIdx] {
+                    for (i, peak) in raw.peaks.enumerated() {
+                        let idx = raw.pxStart + i
+                        if idx >= 0 && idx < row.count { row[idx] = peak / clipMax }
+                    }
+                    progressResult[raw.trackIdx] = row
+                    let snapshot = progressResult
+                    await MainActor.run { trackPeaks = snapshot }
+                }
             }
         }
         guard !Task.isCancelled else { return }
