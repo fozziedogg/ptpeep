@@ -3321,9 +3321,10 @@ private struct RegionWaveformView: View {
     @ObservedObject var audioPlayer: AudioPlayer
 
     // trackIdx → assembled peak array (one Float per pixel)
-    @State private var trackPeaks: [Int: [Float]] = [:]
-    @State private var viewWidth:  CGFloat = 1
-    @State private var loadID:     UUID    = UUID()
+    @State private var trackPeaks:  [Int: [Float]] = [:]
+    @State private var peaksReady:  Bool    = false
+    @State private var viewWidth:   CGFloat = 1
+    @State private var loadID:      UUID    = UUID()
 
     var body: some View {
         Canvas { ctx, size in
@@ -3350,8 +3351,18 @@ private struct RegionWaveformView: View {
                              with: .color(color.opacity(0.07)))
                 }
 
-                // Waveform peaks
-                guard let peaks = trackPeaks[segment.trackIdx], !peaks.isEmpty else { continue }
+                // Waveform peaks — only once fully loaded
+                guard peaksReady,
+                      let peaks = trackPeaks[segment.trackIdx], !peaks.isEmpty else {
+                    if !peaksReady {
+                        ctx.draw(
+                            Text("Waveform Loading…")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.secondary.opacity(0.6)),
+                            at: CGPoint(x: w / 2, y: midY), anchor: .center)
+                    }
+                    continue
+                }
                 let n    = CGFloat(peaks.count)
                 let step = w / n
                 let lineW = max(1, step * 0.7)
@@ -3402,6 +3413,7 @@ private struct RegionWaveformView: View {
         try? await Task.sleep(for: .milliseconds(120))
         guard !Task.isCancelled else { return }
         guard viewWidth > 1 else { return }
+        await MainActor.run { peaksReady = false }
         let totalSamples = Double(region.endSample - region.startSample)
         let width        = Int(viewWidth)
 
@@ -3442,21 +3454,10 @@ private struct RegionWaveformView: View {
                     }
                 }
             }
-            // Progressive: render each clip as it finishes (per-clip normalised)
-            // so something appears immediately for large files.
+            // Collect all clip peaks concurrently; we'll render once at the end.
             for await raw in group {
                 guard let raw else { continue }
                 rawClips.append(raw)
-                let clipMax = raw.peaks.max() ?? 0
-                if clipMax > 0.001, var row = progressResult[raw.trackIdx] {
-                    for (i, peak) in raw.peaks.enumerated() {
-                        let idx = raw.pxStart + i
-                        if idx >= 0 && idx < row.count { row[idx] = peak / clipMax }
-                    }
-                    progressResult[raw.trackIdx] = row
-                    let snapshot = progressResult
-                    await MainActor.run { trackPeaks = snapshot }
-                }
             }
         }
         guard !Task.isCancelled else { return }
@@ -3485,7 +3486,7 @@ private struct RegionWaveformView: View {
             }
         }
 
-        await MainActor.run { trackPeaks = result }
+        await MainActor.run { trackPeaks = result; peaksReady = true }
     }
 }
 
@@ -3542,8 +3543,11 @@ private struct ClipWaveformView: View {
                 let mid = h / 2
 
                 if peaks.isEmpty {
-                    ctx.fill(Path(CGRect(x: 0, y: mid - 0.5, width: w, height: 1)),
-                             with: .color(.secondary.opacity(0.2)))
+                    ctx.draw(
+                        Text("Waveform Loading…")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.secondary.opacity(0.6)),
+                        at: CGPoint(x: w / 2, y: mid), anchor: .center)
                 } else {
                     let drawW = w - lw
                     let n     = CGFloat(peaks[0].count)
@@ -3577,13 +3581,17 @@ private struct ClipWaveformView: View {
                     }
                 }
 
-                // Playhead
+                // Playhead — shown regardless of whether waveform has loaded
                 if audioPlayer.playingClip == clip {
                     let x = CGFloat(audioPlayer.playbackFraction) * w
-                    ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: h)),
-                             with: .color(.white.opacity(0.9)))
-                    ctx.fill(Path(CGRect(x: x - 2,   y: 0, width: 4, height: h)),
-                             with: .color(.white.opacity(0.12)))
+                    ctx.fill(Path(CGRect(x: x - 6, y: 0, width: 12, height: h)),
+                             with: .color(Color.accentColor.opacity(0.15)))
+                    ctx.fill(Path(CGRect(x: x - 1, y: 0, width: 2,  height: h)),
+                             with: .color(Color.accentColor.opacity(1.0)))
+                    var tri = Path(); tri.move(to: CGPoint(x: x - 5, y: 0))
+                    tri.addLine(to: CGPoint(x: x + 5, y: 0))
+                    tri.addLine(to: CGPoint(x: x, y: 6)); tri.closeSubpath()
+                    ctx.fill(tri, with: .color(Color.accentColor))
                 }
             }
 
