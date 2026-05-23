@@ -3467,6 +3467,8 @@ private struct RegionWaveformView: View {
         // -60 dBFS (~0.001 linear) render everything as silence.
         let kSilenceGate: Float = 0.001
         let globalMax = rawClips.compactMap { $0.peaks.max() }.max() ?? 0
+        let globalMaxdB = globalMax > 0 ? 20 * log10(globalMax) : -Float.infinity
+        AppLog.shared.log("[Waveform] region globalMax=\(String(format:"%.6f", globalMax)) (\(String(format:"%.1f", globalMaxdB)) dBFS) clips=\(rawClips.count)")
 
         var result: [Int: [Float]] = [:]
         for segment in region.segments {

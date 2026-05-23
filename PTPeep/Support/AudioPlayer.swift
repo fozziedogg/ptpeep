@@ -518,6 +518,8 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
             // quantisation noise are treated as silent rather than blown up to full scale.
             let kSilenceThreshold: Float = 0.001  // -60 dBFS; matches region-view silence gate
             let globalMax = result.compactMap { $0.max() }.max() ?? 0
+            let globalMaxdB = globalMax > 0 ? 20 * log10(globalMax) : -Float.infinity
+            AppLog.shared.log("[Waveform] clip globalMax=\(String(format:"%.6f", globalMax)) (\(String(format:"%.1f", globalMaxdB)) dBFS) url=\(url.lastPathComponent)")
             var normResult = result
             if globalMax > kSilenceThreshold {
                 for c in 0..<normResult.count {

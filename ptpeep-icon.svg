@@ -6,35 +6,52 @@
       <rect width="1024" height="1024" rx="230"/>
     </clipPath>
 
-    <!-- Background: near-black, faint cool warmth at centre -->
-    <radialGradient id="bg" cx="50%" cy="50%" r="60%">
-      <stop offset="0%"   stop-color="#141418"/>
-      <stop offset="100%" stop-color="#090909"/>
+    <!-- Clip waveform to eye interior only -->
+    <clipPath id="eyeClip">
+      <path d="M 80,512 C 150,270 874,270 944,512 C 874,754 150,754 80,512 Z"/>
+    </clipPath>
+
+    <!-- Background: PT purple gradient -->
+    <radialGradient id="bg" cx="50%" cy="50%" r="65%">
+      <stop offset="0%"   stop-color="#4E22A8"/>
+      <stop offset="100%" stop-color="#180940"/>
     </radialGradient>
 
-    <!-- Waveform line: bright at the loud centre, fades at silent edges -->
-    <linearGradient id="waveLine" x1="70" y1="0" x2="954" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0%"   stop-color="#3EDB68" stop-opacity="0.15"/>
-      <stop offset="10%"  stop-color="#3EDB68" stop-opacity="0.75"/>
-      <stop offset="30%"  stop-color="#3EDB68" stop-opacity="1.0"/>
-      <stop offset="70%"  stop-color="#3EDB68" stop-opacity="1.0"/>
-      <stop offset="90%"  stop-color="#3EDB68" stop-opacity="0.75"/>
-      <stop offset="100%" stop-color="#3EDB68" stop-opacity="0.15"/>
+    <!-- Eye interior: very dark so waveform pops -->
+    <radialGradient id="eyeFill" cx="50%" cy="45%" r="60%">
+      <stop offset="0%"   stop-color="#130828"/>
+      <stop offset="100%" stop-color="#090416"/>
+    </radialGradient>
+
+    <!-- Waveform line: white, fading to invisible at the pointed eye corners -->
+    <linearGradient id="wave" x1="80" y1="0" x2="944" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.0"/>
+      <stop offset="10%"  stop-color="#FFFFFF" stop-opacity="1.0"/>
+      <stop offset="90%"  stop-color="#FFFFFF" stop-opacity="1.0"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.0"/>
     </linearGradient>
 
-    <!-- Glow gradient: same fade, used on the blurred backing pass -->
-    <linearGradient id="waveGlow" x1="70" y1="0" x2="954" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0%"   stop-color="#3EDB68" stop-opacity="0.0"/>
-      <stop offset="10%"  stop-color="#3EDB68" stop-opacity="0.3"/>
-      <stop offset="35%"  stop-color="#3EDB68" stop-opacity="0.55"/>
-      <stop offset="65%"  stop-color="#3EDB68" stop-opacity="0.55"/>
-      <stop offset="90%"  stop-color="#3EDB68" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#3EDB68" stop-opacity="0.0"/>
+    <!-- Glow behind waveform: soft lavender -->
+    <linearGradient id="waveGlow" x1="80" y1="0" x2="944" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#C8A0FF" stop-opacity="0.0"/>
+      <stop offset="10%"  stop-color="#C8A0FF" stop-opacity="0.7"/>
+      <stop offset="90%"  stop-color="#C8A0FF" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#C8A0FF" stop-opacity="0.0"/>
     </linearGradient>
 
-    <!-- Soft glow: Gaussian blur only — composited as a separate draw pass -->
-    <filter id="glow" x="-8%" y="-25%" width="116%" height="150%" color-interpolation-filters="sRGB">
+    <!-- Blur for waveform glow -->
+    <filter id="waveBlur" x="-15%" y="-60%" width="130%" height="220%">
       <feGaussianBlur stdDeviation="18"/>
+    </filter>
+
+    <!-- Blur for eye ambient halo -->
+    <filter id="eyeHalo" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="40"/>
+    </filter>
+
+    <!-- Blur for specular highlight -->
+    <filter id="shineBlur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="12"/>
     </filter>
 
   </defs>
@@ -45,78 +62,102 @@
     <rect width="1024" height="1024" fill="url(#bg)"/>
 
     <!--
-      ── Waveform path ──────────────────────────────────────────────
-      Single continuous S-curve from left (silence) through a swell
-      peaking near centre, then tapering back to silence.
-
-      Points (x, peak_y or trough_y; centre = 512):
-        70,512 → 125,490 → 170,534 → 215,462 → 265,565 → 310,412
-        → 365,625 → 418,288 → 478,748 → 536,272 → 594,740
-        → 650,318 → 705,700 → 756,388 → 802,638 → 846,450
-        → 886,575 → 922,492 → 954,512
-
-      Control points: midpoint-x of each consecutive pair, clamped to
-      the y of the source point then target point (horizontal tangents
-      at every peak/trough → smooth S-curve, no kinks).
+      ── Eye shape ─────────────────────────────────────────────────
+      Classic almond/lens eye centered at (512, 512).
+      Left corner:  (80,  512)
+      Right corner: (944, 512)
+      Top peak:     (512, 270)   — upper eyelid
+      Bottom nadir: (512, 754)   — lower eyelid
     -->
 
-    <!-- Glow pass (thick, blurred, gradient opacity) -->
-    <path d="M 70,512
-             C 97,512  97,490  125,490
-             C 147,490 147,534 170,534
-             C 192,534 192,462 215,462
-             C 240,462 240,565 265,565
-             C 287,565 287,412 310,412
-             C 337,412 337,625 365,625
-             C 391,625 391,288 418,288
-             C 448,288 448,748 478,748
-             C 507,748 507,272 536,272
-             C 565,272 565,740 594,740
-             C 622,740 622,318 650,318
-             C 677,318 677,700 705,700
-             C 730,700 730,388 756,388
-             C 779,388 779,638 802,638
-             C 824,638 824,450 846,450
-             C 866,450 866,575 886,575
-             C 904,575 904,492 922,492
-             C 938,492 938,512 954,512"
-          fill="none"
-          stroke="url(#waveGlow)"
-          stroke-width="42"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          filter="url(#glow)"/>
+    <!-- Ambient purple halo outside the eye -->
+    <path d="M 80,512 C 150,270 874,270 944,512 C 874,754 150,754 80,512 Z"
+          fill="rgba(110,50,220,0.4)" filter="url(#eyeHalo)"/>
 
-    <!-- Crisp foreground line -->
-    <path d="M 70,512
-             C 97,512  97,490  125,490
-             C 147,490 147,534 170,534
-             C 192,534 192,462 215,462
-             C 240,462 240,565 265,565
-             C 287,565 287,412 310,412
-             C 337,412 337,625 365,625
-             C 391,625 391,288 418,288
-             C 448,288 448,748 478,748
-             C 507,748 507,272 536,272
-             C 565,272 565,740 594,740
-             C 622,740 622,318 650,318
-             C 677,318 677,700 705,700
-             C 730,700 730,388 756,388
-             C 779,388 779,638 802,638
-             C 824,638 824,450 846,450
-             C 866,450 866,575 886,575
-             C 904,575 904,492 922,492
-             C 938,492 938,512 954,512"
+    <!-- Eye interior (very dark) -->
+    <path d="M 80,512 C 150,270 874,270 944,512 C 874,754 150,754 80,512 Z"
+          fill="url(#eyeFill)"/>
+
+    <!--
+      ── Waveform (clipped inside eye) ─────────────────────────────
+      10-point S-curve spanning eye width (x 80→944), center y=512.
+      Amplitude envelope matches the eye's own height at each x so
+      the wave naturally fits inside the lens shape.
+
+      Key points (x, y):
+        80,512  → 155,462 → 218,592 → 296,370 → 378,702
+        → 512,302 ← tallest peak
+        → 646,702 → 728,370 → 806,592 → 869,462 → 944,512
+
+      Control points: horizontal tangent at each peak/trough
+      (midpoint-x rule → smooth S-curve, no kinks).
+    -->
+    <g clip-path="url(#eyeClip)">
+
+      <!-- Glow pass (wide, blurred lavender) -->
+      <path d="M 80,512
+               C 117,512 117,462 155,462
+               C 186,462 186,592 218,592
+               C 257,592 257,370 296,370
+               C 337,370 337,702 378,702
+               C 445,702 445,302 512,302
+               C 579,302 579,702 646,702
+               C 687,702 687,370 728,370
+               C 767,370 767,592 806,592
+               C 837,592 837,462 869,462
+               C 906,462 906,512 944,512"
+            fill="none"
+            stroke="url(#waveGlow)"
+            stroke-width="48"
+            stroke-linecap="round"
+            filter="url(#waveBlur)"/>
+
+      <!-- Crisp white line -->
+      <path d="M 80,512
+               C 117,512 117,462 155,462
+               C 186,462 186,592 218,592
+               C 257,592 257,370 296,370
+               C 337,370 337,702 378,702
+               C 445,702 445,302 512,302
+               C 579,302 579,702 646,702
+               C 687,702 687,370 728,370
+               C 767,370 767,592 806,592
+               C 837,592 837,462 869,462
+               C 906,462 906,512 944,512"
+            fill="none"
+            stroke="url(#wave)"
+            stroke-width="15"
+            stroke-linecap="round"/>
+
+      <!-- Iris ring: subtle white circle suggesting the iris boundary -->
+      <circle cx="512" cy="512" r="195"
+              fill="none"
+              stroke="rgba(255,255,255,0.12)"
+              stroke-width="2"/>
+
+    </g>
+
+    <!-- Eye outline: white eyelid curves -->
+    <path d="M 80,512 C 150,270 874,270 944,512 C 874,754 150,754 80,512 Z"
           fill="none"
-          stroke="url(#waveLine)"
-          stroke-width="14"
-          stroke-linecap="round"
+          stroke="white"
+          stroke-width="22"
           stroke-linejoin="round"/>
 
-    <!-- Subtle rim light -->
+    <!-- Corner points: natural anatomy, tiny white dots at the eye corners -->
+    <circle cx="83"  cy="512" r="11" fill="white" opacity="0.7"/>
+    <circle cx="941" cy="512" r="11" fill="white" opacity="0.7"/>
+
+    <!-- Specular highlight: upper-left, simulates 3-D light source -->
+    <ellipse cx="310" cy="350" rx="110" ry="52"
+             transform="rotate(-25, 310, 350)"
+             fill="rgba(255,255,255,0.18)"
+             filter="url(#shineBlur)"/>
+
+    <!-- Rim light on the squircle -->
     <rect width="1024" height="1024" rx="230"
           fill="none"
-          stroke="rgba(255,255,255,0.06)"
+          stroke="rgba(255,255,255,0.08)"
           stroke-width="3"/>
 
   </g>

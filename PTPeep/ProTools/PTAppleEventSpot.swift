@@ -143,15 +143,13 @@ extension PTSLSessionInfo {
         ae.setParam(ae32(sampleOffset), forKeyword: aeCC("SMSt"))
         // Strm — playlist/stream index within multichannel track
         ae.setParam(ae16(stream),       forKeyword: aeCC("Strm"))
-        // Mute — clip mute state (optional; PT ignores if unsupported)
-        if muted {
-            ae.setParam(ae16(1), forKeyword: aeCC("Mute"))
-        }
 
-        // ── Rgn record: Star, Stop, Name ──────────────────────────────────────
+        // ── Rgn record: Star, Stop, Name, [Mute] ─────────────────────────────
         let rgn = NSAppleEventDescriptor.record()
         rgn.setDescriptor(ae32(srcStart), forKeyword: aeCC("Star"))
         rgn.setDescriptor(ae32(srcStop),  forKeyword: aeCC("Stop"))
+        // Mute inside the Rgn record — this is where the Avid SDK places it.
+        if muted { rgn.setDescriptor(ae16(1), forKeyword: aeCC("Mute")) }
 
         // Pascal string: first byte is length, up to 255 macOSRoman chars, 256-byte buffer total.
         var nameEncoded = name.data(using: .macOSRoman) ?? Data(name.utf8)
