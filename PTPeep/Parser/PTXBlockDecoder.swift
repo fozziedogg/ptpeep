@@ -891,58 +891,14 @@ final class PTXBlockDecoder {
         }
 
         // ── Constituent clips via sentinel 0x1052 sections ────────────────────────
-        // The second 0x1054 container holds one 0x1052 section per compound pool
-        // entry by ordinal.  Each section's 0x104f children have sentinel timeline
-        // values: tl = 1_000_000_000_000 + relativeOffset.
-        // absolutePosition = group.startSample + relativeOffset.
-        let all1054 = blocks.filter { $0.contentType == 0x1054 }.sorted { $0.dataOffset < $1.dataOffset }
-        if all1054.count >= 2 {
-            let sentinel1054 = all1054[1]
-            let sStart = sentinel1054.dataOffset
-            let sEnd   = sStart + sentinel1054.dataSize
-
-            // Inner 0x1054 blocks nested inside the sentinel container (skip their children)
-            let inner1054Ranges = blocks.filter {
-                $0.contentType == 0x1054 && $0.dataOffset > sStart && $0.dataOffset + $0.dataSize <= sEnd
-            }.map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
-
-            func inInner(_ b: PTXBlock) -> Bool {
-                inner1054Ranges.contains { $0.0 <= b.dataOffset && b.dataOffset + b.dataSize <= $0.1 }
-            }
-
-            let sentinel1052s = blocks.filter {
-                $0.contentType == 0x1052 &&
-                $0.dataOffset >= sStart && $0.dataOffset + $0.dataSize <= sEnd &&
-                !inInner($0)
-            }.sorted { $0.dataOffset < $1.dataOffset }
-
-            let SENTINEL: Int64 = 1_000_000_000_000
-
-            for (ordinal, section) in sentinel1052s.enumerated() {
-                guard var entry = poolByIndex[ordinal] else { continue }
-                let secEnd = section.dataOffset + section.dataSize
-
-                let placements = blocks.filter {
-                    $0.contentType == 0x104f &&
-                    $0.dataOffset >= section.dataOffset && $0.dataOffset + $0.dataSize <= secEnd
-                }.sorted { $0.dataOffset < $1.dataOffset }
-
-                var constituents: [ConstituentClip] = []
-                for pl in placements {
-                    guard pl.dataSize >= 15 else { continue }
-                    let clipIdx = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
-                    let tl = Int64(bitPattern: readLE(data, at: pl.dataOffset + 7, count: 8))
-                    guard tl > SENTINEL else { continue }
-                    let absPos = entry.startSample + (tl - SENTINEL)
-                    constituents.append(ConstituentClip(audioClipIdx: clipIdx, timelineSample: absPos))
-                }
-
-                if !constituents.isEmpty {
-                    entry.constituents = constituents
-                    poolByIndex[ordinal] = entry
-                }
-            }
-        }
+        // TODO: the sentinel 0x104f clipIdx field is not yet confirmed to reference
+        // the audio pool (0x2629).  It may reference the compound pool (0x262b) or
+        // a per-section index.  Additionally, using compound pool startSample as the
+        // timeline base produces wrong positions when a group has been moved since
+        // creation.  Constituent parsing is disabled until a test session with
+        // known clip identities and positions can verify the correct pool and formula.
+        // (See Tests/dump_sentinel_match.swift and dump_sentinel_boundary.swift for
+        // diagnostic tooling.)
 
         return (0..<parentBlocks.count).map { poolByIndex[$0] }
     }
