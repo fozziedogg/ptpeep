@@ -935,7 +935,7 @@ final class PTXBlockDecoder {
                     guard pl.dataSize >= 19 else { continue }
                     let clipIdx = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
                     let tl = Int64(bitPattern: readLE(data, at: pl.dataOffset + 7, count: 8))
-                    guard tl > SENTINEL else { continue }
+                    guard tl >= SENTINEL else { continue }
                     let relOff = baseOffset + (tl - SENTINEL)
                     if data[pl.dataOffset + 18] == 0x00 {
                         result.append(ConstituentClip(audioClipIdx: clipIdx, relativeOffset: relOff))

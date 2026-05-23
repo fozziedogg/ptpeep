@@ -373,63 +373,37 @@ final class PTXParser {
             // a regular clip that may start at the same position.
             var groupBoxes:[Int64: PTXClip] = [:]
 
-            // Pass 1 — regular (non-group) placements.  These are authoritative.
-            for p in tp.placements where !p.isHidden && !p.isGroup {
-                let clipEntry = p.clipIdx < clips.count ? clips[p.clipIdx] : nil
-                let len = clipEntry?.lengthSamples ?? 0
-                guard len > 0 else { continue }
-                let name = stripChannelSuffix(clipEntry?.name ?? "Clip \(p.clipIdx)")
-                let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
-                var channelFiles: [String] = [ch1File]
-                for compIdx in p.companionClipIdxs {
-                    if let entry = compIdx < clips.count ? clips[compIdx] : nil,
-                       let fn = fileNameByIndex[entry.audioFileIndex] {
-                        channelFiles.append(fn)
-                    }
-                }
-                byPos[p.timelineSample] = PTXClip(
-                    name: name, startSample: p.timelineSample, lengthSamples: len,
-                    sourceOffset: clipEntry?.sourceOffset ?? 0,
-                    sourceFile: ch1File, channelFiles: channelFiles,
-                    isMuted: p.isMuted, isGroup: false
-                )
-            }
-
-            // Pass 2 — group placements: bracket box + sentinel constituents.
-            // Sentinel expansion is only applied when the group's time range contains
-            // NO regular clips — this means the group fully replaced individual placements
-            // (as in explicit clip-group sessions) and sentinel data is needed to show them.
-            // In production sessions where regular clips already occupy the group's range,
-            // the individual clips are already in byPos and expansion would add phantoms.
-            for p in tp.placements where !p.isHidden && p.isGroup {
-                let len = p.groupLength ?? 0
-                if len > 0 {
+            for p in tp.placements where !p.isHidden {
+                if p.isGroup {
+                    // Group placement: visual bracket only.
+                    // Sentinel constituent data is stale in real-world sessions (clips inside
+                    // a group may have been moved after grouping), so we never expand it.
+                    // The bracket position and length from the compound pool are always correct.
+                    let len = p.groupLength ?? 0
+                    guard len > 0 else { continue }
                     groupBoxes[p.timelineSample] = PTXClip(
                         name: stripChannelSuffix(p.groupName ?? "Group \(p.clipIdx)"),
                         startSample: p.timelineSample, lengthSamples: len,
                         sourceOffset: 0, sourceFile: "", channelFiles: [],
                         isMuted: p.isMuted, isGroup: true
                     )
-                }
-                guard !p.groupConstituents.isEmpty else { continue }
-                let groupEnd = p.timelineSample + (p.groupLength ?? 0)
-                let hasRegularClipInRange = byPos.values.contains {
-                    $0.startSample >= p.timelineSample && $0.startSample < groupEnd
-                }
-                guard !hasRegularClipInRange else { continue }
-                for c in p.groupConstituents {
-                    guard c.audioClipIdx < clips.count,
-                          let entry = clips[c.audioClipIdx],
-                          entry.lengthSamples > 0 else { continue }
-                    let absPos = p.timelineSample + c.relativeOffset
-                    guard byPos[absPos] == nil else { continue }
-                    let cFile = fileNameByIndex[entry.audioFileIndex] ?? ""
-                    byPos[absPos] = PTXClip(
-                        name: stripChannelSuffix(entry.name),
-                        startSample: absPos,
-                        lengthSamples: entry.lengthSamples,
-                        sourceOffset: entry.sourceOffset,
-                        sourceFile: cFile, channelFiles: [cFile],
+                } else {
+                    let clipEntry = p.clipIdx < clips.count ? clips[p.clipIdx] : nil
+                    let len = clipEntry?.lengthSamples ?? 0
+                    guard len > 0 else { continue }
+                    let name = stripChannelSuffix(clipEntry?.name ?? "Clip \(p.clipIdx)")
+                    let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
+                    var channelFiles: [String] = [ch1File]
+                    for compIdx in p.companionClipIdxs {
+                        if let entry = compIdx < clips.count ? clips[compIdx] : nil,
+                           let fn = fileNameByIndex[entry.audioFileIndex] {
+                            channelFiles.append(fn)
+                        }
+                    }
+                    byPos[p.timelineSample] = PTXClip(
+                        name: name, startSample: p.timelineSample, lengthSamples: len,
+                        sourceOffset: clipEntry?.sourceOffset ?? 0,
+                        sourceFile: ch1File, channelFiles: channelFiles,
                         isMuted: p.isMuted, isGroup: false
                     )
                 }
