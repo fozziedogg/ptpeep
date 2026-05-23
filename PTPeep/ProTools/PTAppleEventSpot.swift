@@ -64,7 +64,8 @@ extension PTSLSessionInfo {
                         channels = resolved
                     }
                     for (chURL, stream) in channels {
-                        AppLog.shared.log("[AESpot] clip='\(clip.name)' track+\(segIdx) Strm=\(stream) SMSt=\(offset) Star=\(srcStart) Stop=\(srcStop) url=\(chURL.lastPathComponent)")
+                        let muteTag = clip.isMuted ? " MUTED" : ""
+                        AppLog.shared.log("[AESpot] clip='\(clip.name)'\(muteTag) track+\(segIdx) Strm=\(stream) SMSt=\(offset) Star=\(srcStart) Stop=\(srcStop) url=\(chURL.lastPathComponent)")
                         try PTSLSessionInfo.aeSendSpot(
                             url:          chURL,
                             srcStart:     srcStart,
@@ -72,7 +73,8 @@ extension PTSLSessionInfo {
                             name:         clip.name,
                             trackOffset:  Int16(segIdx),
                             sampleOffset: offset,
-                            stream:       stream
+                            stream:       stream,
+                            muted:        clip.isMuted
                         )
                     }
                 }
@@ -105,7 +107,8 @@ extension PTSLSessionInfo {
         name:         String,
         trackOffset:  Int16,
         sampleOffset: Int32,
-        stream:       Int16
+        stream:       Int16,
+        muted:        Bool = false
     ) throws {
         // ── Target: Pro Tools by kernel PID (most reliable across macOS versions) ──
         guard let ptApp = NSRunningApplication
@@ -140,6 +143,10 @@ extension PTSLSessionInfo {
         ae.setParam(ae32(sampleOffset), forKeyword: aeCC("SMSt"))
         // Strm — playlist/stream index within multichannel track
         ae.setParam(ae16(stream),       forKeyword: aeCC("Strm"))
+        // Mute — clip mute state (optional; PT ignores if unsupported)
+        if muted {
+            ae.setParam(ae16(1), forKeyword: aeCC("Mute"))
+        }
 
         // ── Rgn record: Star, Stop, Name ──────────────────────────────────────
         let rgn = NSAppleEventDescriptor.record()
