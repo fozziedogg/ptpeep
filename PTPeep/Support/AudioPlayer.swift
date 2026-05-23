@@ -110,6 +110,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     // Incremented by stop() / play() so background tasks can detect cancellation.
     private var regionGeneration: Int = 0
     private var clipGeneration:   UInt64 = 0
+    private var clipPlayStart:    Date?          // wall-clock time playback began (for playhead)
 
     init() {
         engine.attach(playerNode)
@@ -214,19 +215,18 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         isPlaying        = true
         playingClip      = clip
         playbackFraction = clampedFrac
+        clipPlayStart    = Date()
 
         // Timer to stop at clip end
         let work = DispatchWorkItem { [weak self] in self?.stop() }
         stopWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + clipDurSec, execute: work)
 
-        // ~60 fps ticker for playhead position
+        // ~60 fps ticker for playhead position — wall-clock based so it starts
+        // counting immediately without waiting for lastRenderTime to become valid.
         ticker = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
-            guard let self, let nodeTime = self.playerNode.lastRenderTime,
-                  nodeTime.isSampleTimeValid,
-                  let playerTime = self.playerNode.playerTime(forNodeTime: nodeTime),
-                  playerTime.isSampleTimeValid else { return }
-            let elapsed = Double(playerTime.sampleTime) / fileSR
+            guard let self, let startDate = self.clipPlayStart else { return }
+            let elapsed = Date().timeIntervalSince(startDate)
             self.playbackFraction = max(0, min(1, self.seekFraction + elapsed / self.fullDurSec))
         }
 
@@ -288,6 +288,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         isPlayingRegion  = false
         playingClip      = nil
         playbackFraction = 0
+        clipPlayStart    = nil
     }
 
     // MARK: - Region playback
