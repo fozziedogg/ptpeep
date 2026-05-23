@@ -896,9 +896,8 @@ final class PTXBlockDecoder {
         // constituent clips:
         //   byte[18]==0x00 → clipIdx references the audio pool (0x2629) — leaf clip
         //   byte[18]==0x01 → clipIdx references the compound pool (0x262b) — sub-group
-        // Sub-group constituents are skipped here; each sub-group has its own
-        // compound pool entry and sentinel section and will be drawn as its own box.
-        // relativeOffset = tl - SENTINEL; absolute position = group.timelineSample + relativeOffset.
+        // Sub-groups are expanded recursively so every top-level group ends up with
+        // a flat list of leaf audio clips and their offsets from the group start.
         let all1054 = blocks.filter { $0.contentType == 0x1054 }.sorted { $0.dataOffset < $1.dataOffset }
         if all1054.count >= 2 {
             let sentinel1054 = all1054[1]
@@ -920,25 +919,36 @@ final class PTXBlockDecoder {
 
             let SENTINEL: Int64 = 1_000_000_000_000
 
-            for (ordinal, section) in sentinel1052s.enumerated() {
-                guard var entry = poolByIndex[ordinal] else { continue }
+            // Recursively collect leaf audio clips from a sentinel section.
+            // baseOffset accumulates the relative offset from the top-level group start.
+            func expand(ordinal: Int, baseOffset: Int64, depth: Int) -> [ConstituentClip] {
+                guard depth < 8, ordinal < sentinel1052s.count else { return [] }
+                let section = sentinel1052s[ordinal]
                 let secEnd = section.dataOffset + section.dataSize
-
                 let placements = blocks.filter {
                     $0.contentType == 0x104f &&
                     $0.dataOffset >= section.dataOffset && $0.dataOffset + $0.dataSize <= secEnd
                 }.sorted { $0.dataOffset < $1.dataOffset }
 
-                var constituents: [ConstituentClip] = []
+                var result: [ConstituentClip] = []
                 for pl in placements {
                     guard pl.dataSize >= 19 else { continue }
-                    guard data[pl.dataOffset + 18] == 0x00 else { continue }  // skip sub-group refs
                     let clipIdx = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
                     let tl = Int64(bitPattern: readLE(data, at: pl.dataOffset + 7, count: 8))
                     guard tl > SENTINEL else { continue }
-                    constituents.append(ConstituentClip(audioClipIdx: clipIdx, relativeOffset: tl - SENTINEL))
+                    let relOff = baseOffset + (tl - SENTINEL)
+                    if data[pl.dataOffset + 18] == 0x00 {
+                        result.append(ConstituentClip(audioClipIdx: clipIdx, relativeOffset: relOff))
+                    } else {
+                        result += expand(ordinal: clipIdx, baseOffset: relOff, depth: depth + 1)
+                    }
                 }
+                return result
+            }
 
+            for (ordinal, _) in sentinel1052s.enumerated() {
+                guard var entry = poolByIndex[ordinal] else { continue }
+                let constituents = expand(ordinal: ordinal, baseOffset: 0, depth: 0)
                 if !constituents.isEmpty {
                     entry.constituents = constituents
                     poolByIndex[ordinal] = entry

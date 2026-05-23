@@ -1591,6 +1591,7 @@ private struct SessionTimelineView: View {
     private func clipAt(trackIdx: Int?, sample: Int64, respectHideMuted: Bool = false) -> PTXClip? {
         guard let idx = trackIdx, idx < tracks.count else { return nil }
         return tracks[idx].clips.first {
+            !$0.isGroup &&
             (!respectHideMuted || !$0.isMuted) &&
             sample >= $0.startSample &&
             sample < $0.startSample + $0.lengthSamples
