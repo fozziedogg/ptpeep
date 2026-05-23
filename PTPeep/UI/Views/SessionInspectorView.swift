@@ -1639,9 +1639,8 @@ private struct SessionTimelineView: View {
         return nil
     }
 
-    /// Snaps tc.selStart / tc.selEnd to the actual clip edges within the selection:
-    /// expands inward selections to include full clips, tightens if selection
-    /// extends beyond all clips.
+    /// Snaps tc.selStart / tc.selEnd to the exact boundaries of the clips touched
+    /// by the selection — always whole clips, never sub-clip or super-clip ranges.
     private func snapSelectionToClipBounds(total: Double) {
         guard let s = tc.selStart, let e = tc.selEnd, e > s else { return }
         let startSamp = Int64((s * total).rounded())
@@ -1651,8 +1650,8 @@ private struct SessionTimelineView: View {
         let hiIdx     = min(trackHi, tracks.count - 1)
         guard trackLo >= 0, trackLo <= hiIdx else { return }
 
-        var minStart = endSamp
-        var maxEnd   = startSamp
+        var minStart = Int64.max
+        var maxEnd   = Int64.min
         for idx in trackLo...hiIdx {
             let track = tracks[idx]
             guard track.type == .audio else { continue }
@@ -1664,12 +1663,10 @@ private struct SessionTimelineView: View {
                 maxEnd   = max(maxEnd, clip.startSample + clip.lengthSamples)
             }
         }
-        guard minStart < maxEnd else { return }
-        // Expand to include full clips at edges; tighten if beyond all clips.
-        let snappedStart = min(startSamp, minStart)
-        let snappedEnd   = max(endSamp,   maxEnd)
-        if snappedStart != startSamp { tc.selStart = Double(snappedStart) / total }
-        if snappedEnd   != endSamp   { tc.selEnd   = Double(snappedEnd)   / total }
+        guard minStart < maxEnd, minStart != .max else { return }
+        // Use clip bounds directly — selection = exactly the clips touched, no more, no less.
+        if minStart != startSamp { tc.selStart = Double(minStart) / total }
+        if maxEnd   != endSamp   { tc.selEnd   = Double(maxEnd)   / total }
     }
 
     var body: some View {
@@ -1753,14 +1750,13 @@ private struct SessionTimelineView: View {
             }
             guard !segments.isEmpty else { return nil }
 
-            // Snap to clip bounds — expand to include full clips at the edges,
-            // tighten if the selection extends beyond all clips.
+            // Use clip bounds directly — region = exactly the clips touched, no leading/trailing space.
             let allClips = segments.flatMap(\.clips).map(\.clip)
-            let croppedStart = allClips.map(\.startSample).min() ?? startSamp
-            let croppedEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
+            let clipStart = allClips.map(\.startSample).min() ?? startSamp
+            let clipEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
 
-            return PlayRegion(startSample: min(startSamp, croppedStart),
-                              endSample:   max(endSamp,   croppedEnd),
+            return PlayRegion(startSample: clipStart,
+                              endSample:   clipEnd,
                               segments: segments, sampleRate: sr,
                               resolvedPool: resolvedFiles.compactMap(\.url))
         }()
@@ -1812,11 +1808,11 @@ private struct SessionTimelineView: View {
             }
             guard !segments.isEmpty else { return nil }
 
-            let allClips   = segments.flatMap(\.clips).map(\.clip)
-            let croppedStart = allClips.map(\.startSample).min() ?? startSamp
-            let croppedEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
-            return PlayRegion(startSample: min(startSamp, croppedStart),
-                              endSample:   max(endSamp,   croppedEnd),
+            let allClips = segments.flatMap(\.clips).map(\.clip)
+            let clipStart = allClips.map(\.startSample).min() ?? startSamp
+            let clipEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
+            return PlayRegion(startSample: clipStart,
+                              endSample:   clipEnd,
                               segments: segments, sampleRate: sr,
                               resolvedPool: resolvedFiles.compactMap(\.url))
         }()
@@ -3390,6 +3386,10 @@ private struct RegionWaveformView: View {
     }
 
     private func loadPeaks() async {
+        // Debounce: cancel if region changes again within 120ms (e.g. while dragging).
+        // Avoids building waveforms for every intermediate drag position.
+        try? await Task.sleep(for: .milliseconds(120))
+        guard !Task.isCancelled else { return }
         guard viewWidth > 1 else { return }
         let totalSamples = Double(region.endSample - region.startSample)
         let width        = Int(viewWidth)
