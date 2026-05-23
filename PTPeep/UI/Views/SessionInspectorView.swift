@@ -3408,9 +3408,9 @@ private struct RegionWaveformView: View {
                 let clipEndFrac   = Double(clip.startSample + clip.lengthSamples - region.startSample) / totalSamples
                 let pxStart = Int((clipStartFrac * Double(width)).rounded())
                 let pxEnd   = Int((clipEndFrac   * Double(width)).rounded())
-                // Cap at 200px — thumbnail accuracy; combined with sparse reading
-                // this dramatically reduces I/O for large multichannel files.
-                let pxCount = max(1, min(pxEnd - pxStart, 200))
+                // Load at the clip's actual pixel width so peaks fill the display 1:1.
+                // Sparse mode kicks in automatically for long clips (bucketFrames > 4096).
+                let pxCount = max(1, pxEnd - pxStart)
 
                 let chIdx     = AudioPlayer.channelIndex(fromClipName: clip.name)
                 let clipPeaks = await AudioPlayer.loadWaveform(
