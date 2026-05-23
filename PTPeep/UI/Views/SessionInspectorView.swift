@@ -3581,9 +3581,10 @@ private struct ClipWaveformView: View {
                     }
                 }
 
-                // Playhead — shown regardless of whether waveform has loaded
+                // Playhead — shown regardless of whether waveform has loaded.
+                // Offset by lw so it tracks inside the waveform area, not over the channel labels.
                 if audioPlayer.playingClip == clip {
-                    let x = CGFloat(audioPlayer.playbackFraction) * w
+                    let x = lw + CGFloat(audioPlayer.playbackFraction) * (w - lw)
                     ctx.fill(Path(CGRect(x: x - 6, y: 0, width: 12, height: h)),
                              with: .color(Color.accentColor.opacity(0.15)))
                     ctx.fill(Path(CGRect(x: x - 1, y: 0, width: 2,  height: h)),
