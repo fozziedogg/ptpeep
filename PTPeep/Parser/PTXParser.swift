@@ -388,9 +388,10 @@ final class PTXParser {
                               let entry = clips[c.audioClipIdx],
                               entry.lengthSamples > 0 else { continue }
                         let cFile = fileNameByIndex[entry.audioFileIndex] ?? ""
-                        byPos[c.timelineSample] = PTXClip(
+                        let absPos = p.timelineSample + c.relativeOffset
+                        byPos[absPos] = PTXClip(
                             name: stripChannelSuffix(entry.name),
-                            startSample: c.timelineSample,
+                            startSample: absPos,
                             lengthSamples: entry.lengthSamples,
                             sourceOffset: entry.sourceOffset,
                             sourceFile: cFile, channelFiles: [cFile],
