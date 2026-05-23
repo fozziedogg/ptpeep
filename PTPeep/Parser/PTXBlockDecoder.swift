@@ -885,20 +885,63 @@ final class PTXBlockDecoder {
             vp += nLength
             let startVal = readLE(data, at: vp, count: nStart)  // group's absolute timeline position
 
-            // ── Constituent clips: TODO ───────────────────────────────────────────
-            // The 0x2628 extra bytes contain a 0x2523 block per constituent, but
-            // the exact offsets for audioClipIdx and timeline within that block have
-            // not yet been confirmed against a known-good test session.
-            // The offsets (extra[60], extra[76]) that were inferred from an earlier
-            // (incorrectly XOR-decoded) dump produce garbage: audioClipIdx=0 for every
-            // entry and timeline=partial_bytes, which creates clips at wrong positions.
-            // Disabled until a test session with verifiable constituents is available.
-            // (See Tests/dump_constituent_parse.swift for diagnostic tooling.)
-            let constituents: [ConstituentClip] = []
-
             poolByIndex[pIdx] = (name: name, startSample: Int64(bitPattern: startVal),
                                  lengthSamples: Int64(bitPattern: lengthVal),
-                                 constituents: constituents)
+                                 constituents: [])
+        }
+
+        // ── Constituent clips via sentinel 0x1052 sections ────────────────────────
+        // The second 0x1054 container holds one 0x1052 section per compound pool
+        // entry by ordinal.  Each section's 0x104f children have sentinel timeline
+        // values: tl = 1_000_000_000_000 + relativeOffset.
+        // absolutePosition = group.startSample + relativeOffset.
+        let all1054 = blocks.filter { $0.contentType == 0x1054 }.sorted { $0.dataOffset < $1.dataOffset }
+        if all1054.count >= 2 {
+            let sentinel1054 = all1054[1]
+            let sStart = sentinel1054.dataOffset
+            let sEnd   = sStart + sentinel1054.dataSize
+
+            // Inner 0x1054 blocks nested inside the sentinel container (skip their children)
+            let inner1054Ranges = blocks.filter {
+                $0.contentType == 0x1054 && $0.dataOffset > sStart && $0.dataOffset + $0.dataSize <= sEnd
+            }.map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
+
+            func inInner(_ b: PTXBlock) -> Bool {
+                inner1054Ranges.contains { $0.0 <= b.dataOffset && b.dataOffset + b.dataSize <= $0.1 }
+            }
+
+            let sentinel1052s = blocks.filter {
+                $0.contentType == 0x1052 &&
+                $0.dataOffset >= sStart && $0.dataOffset + $0.dataSize <= sEnd &&
+                !inInner($0)
+            }.sorted { $0.dataOffset < $1.dataOffset }
+
+            let SENTINEL: Int64 = 1_000_000_000_000
+
+            for (ordinal, section) in sentinel1052s.enumerated() {
+                guard var entry = poolByIndex[ordinal] else { continue }
+                let secEnd = section.dataOffset + section.dataSize
+
+                let placements = blocks.filter {
+                    $0.contentType == 0x104f &&
+                    $0.dataOffset >= section.dataOffset && $0.dataOffset + $0.dataSize <= secEnd
+                }.sorted { $0.dataOffset < $1.dataOffset }
+
+                var constituents: [ConstituentClip] = []
+                for pl in placements {
+                    guard pl.dataSize >= 15 else { continue }
+                    let clipIdx = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
+                    let tl = Int64(bitPattern: readLE(data, at: pl.dataOffset + 7, count: 8))
+                    guard tl > SENTINEL else { continue }
+                    let absPos = entry.startSample + (tl - SENTINEL)
+                    constituents.append(ConstituentClip(audioClipIdx: clipIdx, timelineSample: absPos))
+                }
+
+                if !constituents.isEmpty {
+                    entry.constituents = constituents
+                    poolByIndex[ordinal] = entry
+                }
+            }
         }
 
         return (0..<parentBlocks.count).map { poolByIndex[$0] }
