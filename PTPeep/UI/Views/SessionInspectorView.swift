@@ -2128,7 +2128,8 @@ private struct SessionTimelineView: View {
                     hideMuted:               hideMuted,
                     verticalScale:           verticalScale,
                     grmMode:                 colorMode == .grm,
-                    globalTrackHeightLevel:  tc.globalTrackHeightLevel
+                    globalTrackHeightLevel:  tc.globalTrackHeightLevel,
+                    resolvedFiles:           resolvedFiles
                 )
                 .equatable()
 
@@ -2764,6 +2765,7 @@ private struct TimelineLaneCanvas: View, Equatable {
     let verticalScale:        CGFloat
     let grmMode:              Bool
     let globalTrackHeightLevel: Int
+    let resolvedFiles:        [ResolvedAudioFile]
 
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.viewStart               == rhs.viewStart               &&
@@ -2778,7 +2780,8 @@ private struct TimelineLaneCanvas: View, Equatable {
         lhs.hideMuted               == rhs.hideMuted               &&
         lhs.verticalScale           == rhs.verticalScale           &&
         lhs.grmMode                 == rhs.grmMode                 &&
-        lhs.globalTrackHeightLevel  == rhs.globalTrackHeightLevel
+        lhs.globalTrackHeightLevel  == rhs.globalTrackHeightLevel  &&
+        lhs.resolvedFiles.count     == rhs.resolvedFiles.count
     }
 
     private static let audioLaneH: CGFloat = 8
