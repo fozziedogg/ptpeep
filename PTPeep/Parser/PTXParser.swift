@@ -423,6 +423,26 @@ final class PTXParser {
             session.tracks[i].clips = byPos.values.sorted { $0.startSample < $1.startSample }
         }
 
+        // Synthesize group-box clips from compound pool entries (0x262b) that have no
+        // explicit isGroup placement (byte18==0x01) on the track.  This covers sessions
+        // using PT's "Clip Group" feature, where the constituent clips are stored as
+        // regular audio placements and the group is implied by the compound pool record.
+        let compoundGroups = PTXBlockDecoder.extractCompoundClips(blocks: blocks, data: decoded, bigEndian: bigEndian)
+        for entry in compoundGroups.compactMap({ $0 }) where entry.startSample > 0 && entry.lengthSamples > 0 {
+            let gStart = entry.startSample, gEnd = entry.startSample + entry.lengthSamples
+            for i in session.tracks.indices {
+                // Skip if an explicit isGroup clip already covers this position (byte18==0x01 path)
+                guard !session.tracks[i].clips.contains(where: { $0.isGroup && $0.startSample == gStart }) else { continue }
+                // Only synthesize if audio clips on this track fall within the group's range
+                guard session.tracks[i].clips.contains(where: { !$0.isGroup && $0.startSample >= gStart && $0.startSample < gEnd }) else { continue }
+                let groupClip = PTXClip(
+                    name: entry.name, startSample: gStart, lengthSamples: entry.lengthSamples,
+                    sourceOffset: 0, sourceFile: "", channelFiles: [], isMuted: false, isGroup: true
+                )
+                session.tracks[i].clips = (session.tracks[i].clips + [groupClip]).sorted { $0.startSample < $1.startSample }
+            }
+        }
+
         // Video clips: extracted from 0x262d/0x2628 blocks with frame→sample conversion.
         // Assign to all video tracks (type == .video) that have no clips yet.
         let videoClips = PTXBlockDecoder.extractVideoClips(

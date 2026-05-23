@@ -840,7 +840,7 @@ final class PTXBlockDecoder {
     ///       [23..26] constituent absolute timeline position (u32 LE)
     ///       [39..42] constituent audio clip pool index (u32 LE)
     static func extractCompoundClips(blocks: [PTXBlock], data: Data, bigEndian: Bool)
-        -> [(name: String, lengthSamples: Int64, constituents: [ConstituentClip])?]
+        -> [(name: String, startSample: Int64, lengthSamples: Int64, constituents: [ConstituentClip])?]
     {
         let parentBlocks = blocks
             .filter { $0.contentType == 0x262b }
@@ -858,7 +858,7 @@ final class PTXBlockDecoder {
             return idx
         }
 
-        var poolByIndex: [Int: (name: String, lengthSamples: Int64, constituents: [ConstituentClip])] = [:]
+        var poolByIndex: [Int: (name: String, startSample: Int64, lengthSamples: Int64, constituents: [ConstituentClip])] = [:]
         for block in blocks where block.contentType == 0x2628 {
             guard let pIdx = parentIndex(of: block) else { continue }
             guard poolByIndex[pIdx] == nil else { continue }
@@ -882,6 +882,8 @@ final class PTXBlockDecoder {
             vp += nSrcOff  // skip sourceOffset
             let lengthVal = readLE(data, at: vp, count: nLength)
             guard lengthVal > 0, lengthVal < 10_000_000_000 else { continue }
+            vp += nLength
+            let startVal = readLE(data, at: vp, count: nStart)  // group's absolute timeline position
 
             // ── Constituent clips: TODO ───────────────────────────────────────────
             // The 0x2628 extra bytes contain a 0x2523 block per constituent, but
@@ -894,7 +896,8 @@ final class PTXBlockDecoder {
             // (See Tests/dump_constituent_parse.swift for diagnostic tooling.)
             let constituents: [ConstituentClip] = []
 
-            poolByIndex[pIdx] = (name: name, lengthSamples: Int64(bitPattern: lengthVal),
+            poolByIndex[pIdx] = (name: name, startSample: Int64(bitPattern: startVal),
+                                 lengthSamples: Int64(bitPattern: lengthVal),
                                  constituents: constituents)
         }
 
