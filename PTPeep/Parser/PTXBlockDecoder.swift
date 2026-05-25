@@ -1044,6 +1044,23 @@ final class PTXBlockDecoder {
             .filter { $0.contentType == 0x104f && $0.dataSize >= 11 }
             .sorted { $0.dataOffset < $1.dataOffset }
 
+        // Build the global set of clipIdx values used by original-def group placements
+        // (byte18=0x01) within the track container.  Used to detect compound copy placements
+        // (byte18=0x00, same clipIdx) without misidentifying audio clips that share the same
+        // index range (both compound and audio pools start at 0).
+        let groupClipIdxSet: Set<Int> = {
+            var s = Set<Int>()
+            for ref in sortedRefs {
+                guard ref.dataOffset >= cStart, ref.dataOffset + ref.dataSize <= cEnd,
+                      ref.dataSize >= 19, parent1050(of: ref) != nil else { continue }
+                var rawTL: UInt64 = 0
+                for k in 0..<min(8, ref.dataSize - 7) { rawTL |= UInt64(data[ref.dataOffset + 7 + k]) << (k * 8) }
+                guard rawTL < 1_000_000_000_000, rawTL > 0 else { continue }
+                if data[ref.dataOffset + 18] == 0x01 { s.insert(Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))) }
+            }
+            return s
+        }()
+
         // Nameless sections (nl=0): collect separately for a second pass.
         // These occur in some sessions (e.g. inactive tracks imported from AAF) where PT writes
         // the 0x1052 block without an inline name.  We match them to audio tracks in orderedNames
@@ -1088,19 +1105,19 @@ final class PTXBlockDecoder {
             }
             let placements: [ClipPlacement] = refs.compactMap { ref in
                 guard parent1050(of: ref) != nil else { return nil }  // reject false positives
-                // 0x104f byte[0]: 0x01 = muted clip (individual audio or compound group)
-                // 0x104f byte[18]: 0x01 = compound group, original definition placement
-                //                  0x00 = audio clip, OR compound copy placement
-                //         clipIdx < compoundPool.count → compound (group); else → audio
+                // 0x104f byte[0]: 0x01 = muted
+                // 0x104f byte[18]: 0x01 = compound group original-def placement
+                //                  0x00 = audio clip OR compound copy placement
+                //         Detect copy placements by matching clipIdx against known group set.
                 // 0x104f byte[35]: 0x00 = visible on timeline, 0x01 = hidden dialog/sync ref
-                let byte0   = ref.dataSize >= 1  ? data[ref.dataOffset]      : 0x00
+                let byte0    = ref.dataSize >= 1  ? data[ref.dataOffset]      : 0x00
+                let byte18   = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x01
                 let isMuted  = byte0 == 0x01
                 let isHidden = ref.dataSize >= 36 && data[ref.dataOffset + 35] == 0x01
                 let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
-                let isGroup  = clipIdx < compoundPool.count   // compound (original or copy)
-                // Timeline is a 5-byte sample position; read as u64 and reject sentinel
-                // (1_000_000_000_000 = 0xE8D4A51000) which marks constituent refs, not
-                // real timeline placements.  Reading only 4 bytes caused phantom placements.
+                let isGroup  = byte18 == 0x01 || (byte18 == 0x00 && groupClipIdxSet.contains(clipIdx))
+                // Timeline: 5-byte sample position stored as u64 LE; sentinel value
+                // (1_000_000_000_000 = 0xE8D4A51000) marks constituent refs, not real placements.
                 let rawTL = readLE(data, at: ref.dataOffset + 7, count: 8)
                 guard rawTL < 1_000_000_000_000 else { return nil }
                 let timeline = Int64(bitPattern: rawTL)
@@ -1108,12 +1125,12 @@ final class PTXBlockDecoder {
                 let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
                 let groupName   = compoundEntry?.name
                 let groupLength = compoundEntry?.lengthSamples
-                // Resolve constituents per-placement: byte18==0x00 compound placements carry
-                // the sentinel ordinal in data[33..34]; byte18==0x01 are original definitions
-                // whose constituent clips are already on the track timeline directly.
+                // Resolve constituents per-placement.
+                // byte18==0x01 original-def: sentinel ordinal == compound pool ordinal == clipIdx.
+                // byte18==0x00 copy placement: sentinel ordinal stored in data[33..34].
                 let groupConstituents: [ConstituentClip]
-                if isGroup && ref.dataSize >= 34 && data[ref.dataOffset + 18] == 0x00 {
-                    let sentOrd = Int(readLE(data, at: ref.dataOffset + 33, count: 2))
+                if isGroup {
+                    let sentOrd = byte18 == 0x01 ? clipIdx : Int(readLE(data, at: ref.dataOffset + 33, count: 2))
                     groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
                 } else {
                     groupConstituents = []
@@ -1183,16 +1200,17 @@ final class PTXBlockDecoder {
                 let placements: [ClipPlacement] = refs2.compactMap { ref in
                     guard parent1050(of: ref) != nil else { return nil }
                     let byte0  = ref.dataSize >= 1  ? data[ref.dataOffset]      : 0x00
+                    let byte18 = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x01
                     let isHidden = ref.dataSize >= 36 && data[ref.dataOffset + 35] == 0x01
                     let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
                     let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
                     guard timeline >= 0 else { return nil }
-                    let isMuted = byte0 == 0x01; let isGroup = clipIdx < compoundPool.count
+                    let isMuted = byte0 == 0x01
+                    let isGroup = byte18 == 0x01 || (byte18 == 0x00 && groupClipIdxSet.contains(clipIdx))
                     let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
-                    let byte18r = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x01
                     let groupConstituents: [ConstituentClip]
-                    if isGroup && ref.dataSize >= 34 && byte18r == 0x00 {
-                        let sentOrd = Int(readLE(data, at: ref.dataOffset + 33, count: 2))
+                    if isGroup {
+                        let sentOrd = byte18 == 0x01 ? clipIdx : Int(readLE(data, at: ref.dataOffset + 33, count: 2))
                         groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
                     } else {
                         groupConstituents = []

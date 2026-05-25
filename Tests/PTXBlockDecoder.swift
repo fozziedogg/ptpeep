@@ -684,19 +684,29 @@ final class PTXBlockDecoder {
                 if r.dataOffset + r.dataSize <= sEnd { refs.append(r) } else { break }
                 j += 1
             }
+            // Pass 1: collect clipIdx values used by original-def group placements (byte18=0x01).
+            var groupClipIdxSet = Set<Int>()
+            for ref in refs {
+                guard ref.dataSize >= 19, parent1050(of: ref) != nil else { continue }
+                let tl = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
+                guard tl > 0 else { continue }
+                if data[ref.dataOffset + 18] == 0x01 { groupClipIdxSet.insert(Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))) }
+            }
+
             let placements: [ClipPlacement] = refs.compactMap { ref in
                 guard parent1050(of: ref) != nil else { return nil }  // reject false positives
-                // 0x104f byte[0]: 0x01 = muted clip
-                // 0x104f byte[18]: 0x01 = original compound definition; 0x00 = audio OR compound copy
-                //   clipIdx < compoundPool.count → compound group (isGroup); else → audio clip
+                // 0x104f byte[18]: 0x01 = original-def compound group
+                //                  0x00 = audio clip OR compound copy placement
+                //         Copy placements share the same clipIdx as an original-def group.
                 // 0x104f byte[35]: 0x00 = visible on timeline, 0x01 = hidden dialog/sync ref
                 let byte0   = ref.dataSize >= 1  ? data[ref.dataOffset]      : 0x00
+                let byte18  = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x01
                 let isMuted  = byte0 == 0x01
                 let isHidden = ref.dataSize >= 36 && data[ref.dataOffset + 35] == 0x01
                 let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
                 let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
                 guard timeline > 0 else { return nil }
-                let isGroup  = clipIdx < compoundPool.count   // compound (original or copy placement)
+                let isGroup  = byte18 == 0x01 || (byte18 == 0x00 && groupClipIdxSet.contains(clipIdx))
                 let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
                 let groupName   = compoundEntry?.name
                 let groupLength = compoundEntry?.lengthSamples
