@@ -686,19 +686,18 @@ final class PTXBlockDecoder {
             }
             let placements: [ClipPlacement] = refs.compactMap { ref in
                 guard parent1050(of: ref) != nil else { return nil }  // reject false positives
-                // 0x104f byte[0]: 0x01 = muted clip (individual audio or compound group)
-                // 0x104f byte[18]: 0x01 = compound group (uses compound pool for name/length)
-                //                  0x00 = muted individual audio clip (uses audio pool)
+                // 0x104f byte[0]: 0x01 = muted clip
+                // 0x104f byte[18]: 0x01 = original compound definition; 0x00 = audio OR compound copy
+                //   clipIdx < compoundPool.count → compound group (isGroup); else → audio clip
                 // 0x104f byte[35]: 0x00 = visible on timeline, 0x01 = hidden dialog/sync ref
                 let byte0   = ref.dataSize >= 1  ? data[ref.dataOffset]      : 0x00
-                let byte18  = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x00
                 let isMuted  = byte0 == 0x01
-                let isGroup  = byte18 == 0x01              // compound group → compound pool (may be muted or unmuted)
                 let isHidden = ref.dataSize >= 36 && data[ref.dataOffset + 35] == 0x01
                 let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
                 let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
                 guard timeline > 0 else { return nil }
-                let compoundEntry = isGroup && clipIdx < compoundPool.count ? compoundPool[clipIdx] : nil
+                let isGroup  = clipIdx < compoundPool.count   // compound (original or copy placement)
+                let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
                 let groupName   = compoundEntry?.name
                 let groupLength = compoundEntry?.lengthSamples
                 return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0,

@@ -418,22 +418,36 @@ final class PTXParser {
                         if logTrack { AppLog.shared.log("[clips]   constituent audioIdx=\(c.audioClipIdx) relOff=\(c.relativeOffset) absPos=\(absPos) OUTSIDE bracket — discarded") }
                         continue
                     }
-                    guard byPos[absPos] == nil else {
-                        if logTrack { AppLog.shared.log("[clips]   constituent audioIdx=\(c.audioClipIdx) absPos=\(absPos) BLOCKED by regular clip '\(byPos[absPos]!.name)'") }
-                        continue
+                    if c.isSubGroup {
+                        // Compound sub-group: render as a nested group bracket.
+                        let sLen = c.subGroupLength
+                        guard sLen > 0 else { continue }
+                        let sName = stripChannelSuffix(c.subGroupName)
+                        guard groupBoxes[absPos] == nil else { continue }
+                        if logTrack { AppLog.shared.log("[clips]   sub-group '\(sName)' relOff=\(c.relativeOffset) absPos=\(absPos) ADDED") }
+                        groupBoxes[absPos] = PTXClip(
+                            name: sName, startSample: absPos, lengthSamples: sLen,
+                            sourceOffset: 0, sourceFile: "", channelFiles: [],
+                            isMuted: p.isMuted, isGroup: true
+                        )
+                    } else {
+                        guard byPos[absPos] == nil else {
+                            if logTrack { AppLog.shared.log("[clips]   constituent audioIdx=\(c.audioClipIdx) absPos=\(absPos) BLOCKED by regular clip '\(byPos[absPos]!.name)'") }
+                            continue
+                        }
+                        let clipEntry = c.audioClipIdx < clips.count ? clips[c.audioClipIdx] : nil
+                        let cLen = clipEntry?.lengthSamples ?? 0
+                        guard cLen > 0 else { continue }
+                        let cName = stripChannelSuffix(clipEntry?.name ?? "Clip \(c.audioClipIdx)")
+                        let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
+                        if logTrack { AppLog.shared.log("[clips]   constituent '\(cName)' relOff=\(c.relativeOffset) absPos=\(absPos) ADDED") }
+                        byPos[absPos] = PTXClip(
+                            name: cName, startSample: absPos, lengthSamples: cLen,
+                            sourceOffset: clipEntry?.sourceOffset ?? 0,
+                            sourceFile: ch1File, channelFiles: [ch1File],
+                            isMuted: p.isMuted, isGroup: false
+                        )
                     }
-                    let clipEntry = c.audioClipIdx < clips.count ? clips[c.audioClipIdx] : nil
-                    let cLen = clipEntry?.lengthSamples ?? 0
-                    guard cLen > 0 else { continue }
-                    let cName = stripChannelSuffix(clipEntry?.name ?? "Clip \(c.audioClipIdx)")
-                    let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
-                    if logTrack { AppLog.shared.log("[clips]   constituent '\(cName)' relOff=\(c.relativeOffset) absPos=\(absPos) ADDED") }
-                    byPos[absPos] = PTXClip(
-                        name: cName, startSample: absPos, lengthSamples: cLen,
-                        sourceOffset: clipEntry?.sourceOffset ?? 0,
-                        sourceFile: ch1File, channelFiles: [ch1File],
-                        isMuted: p.isMuted, isGroup: false
-                    )
                 }
             }
 
