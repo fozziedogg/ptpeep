@@ -412,7 +412,12 @@ final class PTXParser {
                     isMuted: p.isMuted, isGroup: true
                 )
                 // Add each audio constituent as a visible clip at its absolute timeline position.
+                // Skip constituents with stale sentinel positions (relOff > 2× group length).
+                // A clip may legitimately hang past the bracket end, but stale data from
+                // a session that was edited after the group was placed can put constituents
+                // multiple bracket-lengths away; those are not useful to display.
                 for constituent in p.groupConstituents where !constituent.isSubGroup {
+                    guard len == 0 || constituent.relativeOffset < len * 2 else { continue }
                     let absPos = gStart + constituent.relativeOffset
                     guard absPos >= 0 else { continue }
                     let clipEntry = constituent.audioClipIdx < clips.count ? clips[constituent.audioClipIdx] : nil
