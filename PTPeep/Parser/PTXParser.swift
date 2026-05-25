@@ -398,57 +398,22 @@ final class PTXParser {
                 )
             }
 
-            // Pass 2: group placements — bracket + bounds-checked sentinel expansion.
-            // Regular clips (pass 1) always take priority; constituents only fill empty slots.
+            // Pass 2: group placements — bracket only.
+            // Constituent clips from groupConstituents are stored on the placement for
+            // playback use but are NOT injected into the visible timeline (byPos/groupBoxes).
+            // Pro Tools does not show constituent clips as separate events on the timeline;
+            // they exist only inside the group bracket.
             for p in tp.placements where !p.isHidden && p.isGroup {
                 let len = p.groupLength ?? 0
                 guard len > 0 else { continue }
                 let gStart = p.timelineSample
-                let gEnd   = gStart + len
                 let gName  = stripChannelSuffix(p.groupName ?? "Group \(p.clipIdx)")
+                if logTrack { AppLog.shared.log("[clips] \(tp.name) group '\(gName)' tl=\(gStart) len=\(len) constituents=\(p.groupConstituents.count)") }
                 groupBoxes[gStart] = PTXClip(
                     name: gName, startSample: gStart, lengthSamples: len,
                     sourceOffset: 0, sourceFile: "", channelFiles: [],
                     isMuted: p.isMuted, isGroup: true
                 )
-                if logTrack { AppLog.shared.log("[clips] \(tp.name) group '\(gName)' tl=\(gStart) end=\(gEnd) constituents=\(p.groupConstituents.count)") }
-                for c in p.groupConstituents {
-                    let absPos = gStart + c.relativeOffset
-                    guard absPos >= gStart && absPos < gEnd else {
-                        if logTrack { AppLog.shared.log("[clips]   constituent audioIdx=\(c.audioClipIdx) relOff=\(c.relativeOffset) absPos=\(absPos) OUTSIDE bracket — discarded") }
-                        continue
-                    }
-                    if c.isSubGroup {
-                        // Compound sub-group: render as a nested group bracket.
-                        let sLen = c.subGroupLength
-                        guard sLen > 0 else { continue }
-                        let sName = stripChannelSuffix(c.subGroupName)
-                        guard groupBoxes[absPos] == nil else { continue }
-                        if logTrack { AppLog.shared.log("[clips]   sub-group '\(sName)' relOff=\(c.relativeOffset) absPos=\(absPos) ADDED") }
-                        groupBoxes[absPos] = PTXClip(
-                            name: sName, startSample: absPos, lengthSamples: sLen,
-                            sourceOffset: 0, sourceFile: "", channelFiles: [],
-                            isMuted: p.isMuted, isGroup: true
-                        )
-                    } else {
-                        guard byPos[absPos] == nil else {
-                            if logTrack { AppLog.shared.log("[clips]   constituent audioIdx=\(c.audioClipIdx) absPos=\(absPos) BLOCKED by regular clip '\(byPos[absPos]!.name)'") }
-                            continue
-                        }
-                        let clipEntry = c.audioClipIdx < clips.count ? clips[c.audioClipIdx] : nil
-                        let cLen = clipEntry?.lengthSamples ?? 0
-                        guard cLen > 0 else { continue }
-                        let cName = stripChannelSuffix(clipEntry?.name ?? "Clip \(c.audioClipIdx)")
-                        let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
-                        if logTrack { AppLog.shared.log("[clips]   constituent '\(cName)' relOff=\(c.relativeOffset) absPos=\(absPos) ADDED") }
-                        byPos[absPos] = PTXClip(
-                            name: cName, startSample: absPos, lengthSamples: cLen,
-                            sourceOffset: clipEntry?.sourceOffset ?? 0,
-                            sourceFile: ch1File, channelFiles: [ch1File],
-                            isMuted: p.isMuted, isGroup: false
-                        )
-                    }
-                }
             }
 
             session.tracks[i].clips = (Array(byPos.values) + Array(groupBoxes.values))
