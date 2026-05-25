@@ -398,11 +398,8 @@ final class PTXParser {
                 )
             }
 
-            // Pass 2: group placements — bracket only.
-            // Constituent clips from groupConstituents are stored on the placement for
-            // playback use but are NOT injected into the visible timeline (byPos/groupBoxes).
-            // Pro Tools does not show constituent clips as separate events on the timeline;
-            // they exist only inside the group bracket.
+            // Pass 2: group placements — bracket + constituent clips inside the bracket.
+            var constituentClips: [PTXClip] = []
             for p in tp.placements where !p.isHidden && p.isGroup {
                 let len = p.groupLength ?? 0
                 guard len > 0 else { continue }
@@ -414,9 +411,26 @@ final class PTXParser {
                     sourceOffset: 0, sourceFile: "", channelFiles: [],
                     isMuted: p.isMuted, isGroup: true
                 )
+                // Add each audio constituent as a visible clip at its absolute timeline position.
+                for constituent in p.groupConstituents where !constituent.isSubGroup {
+                    let absPos = gStart + constituent.relativeOffset
+                    guard absPos >= 0 else { continue }
+                    let clipEntry = constituent.audioClipIdx < clips.count ? clips[constituent.audioClipIdx] : nil
+                    let cLen = clipEntry?.lengthSamples ?? 0
+                    guard cLen > 0 else { continue }
+                    let cName = stripChannelSuffix(clipEntry?.name ?? "Clip \(constituent.audioClipIdx)")
+                    let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
+                    if logTrack { AppLog.shared.log("[clips] \(tp.name) constituent tl=\(absPos) '\(cName)' (in '\(gName)')") }
+                    constituentClips.append(PTXClip(
+                        name: cName, startSample: absPos, lengthSamples: cLen,
+                        sourceOffset: clipEntry?.sourceOffset ?? 0,
+                        sourceFile: ch1File, channelFiles: [ch1File],
+                        isMuted: p.isMuted, isGroup: false
+                    ))
+                }
             }
 
-            session.tracks[i].clips = (Array(byPos.values) + Array(groupBoxes.values))
+            session.tracks[i].clips = (Array(byPos.values) + Array(groupBoxes.values) + constituentClips)
                 .sorted { $0.startSample < $1.startSample }
         }
 

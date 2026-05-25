@@ -1126,12 +1126,18 @@ final class PTXBlockDecoder {
                 let groupName   = compoundEntry?.name
                 let groupLength = compoundEntry?.lengthSamples
                 // Resolve constituents per-placement.
-                // byte18==0x01 original-def: constituent clips are already directly on the track
-                //   timeline as regular audio placements — do NOT expand (would duplicate them).
-                // byte18==0x00 copy placement: sentinel ordinal in data[33..34] gives constituents.
+                // byte18==0x01 original-def: sentinel ordinal == clipIdx (compound pool index).
+                // byte18==0x00 copy placement: sentinel ordinal in data[33..34].
                 let groupConstituents: [ConstituentClip]
-                if isGroup && byte18 == 0x00 && ref.dataSize >= 35 {
-                    let sentOrd = Int(readLE(data, at: ref.dataOffset + 33, count: 2))
+                if isGroup {
+                    let sentOrd: Int
+                    if byte18 == 0x01 {
+                        sentOrd = clipIdx
+                    } else if ref.dataSize >= 35 {
+                        sentOrd = Int(readLE(data, at: ref.dataOffset + 33, count: 2))
+                    } else {
+                        sentOrd = clipIdx
+                    }
                     groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
                 } else {
                     groupConstituents = []
@@ -1221,8 +1227,15 @@ final class PTXBlockDecoder {
                     let isGroup = byte18 == 0x01 || (byte18 == 0x00 && namelessGroupIdxSet.contains(clipIdx))
                     let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
                     let groupConstituents: [ConstituentClip]
-                    if isGroup && byte18 == 0x00 && ref.dataSize >= 35 {
-                        let sentOrd = Int(readLE(data, at: ref.dataOffset + 33, count: 2))
+                    if isGroup {
+                        let sentOrd: Int
+                        if byte18 == 0x01 {
+                            sentOrd = clipIdx
+                        } else if ref.dataSize >= 35 {
+                            sentOrd = Int(readLE(data, at: ref.dataOffset + 33, count: 2))
+                        } else {
+                            sentOrd = clipIdx
+                        }
                         groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
                     } else {
                         groupConstituents = []
