@@ -918,21 +918,26 @@ final class PTXBlockDecoder {
 
         // ── Sentinel constituent expansion (per-placement) ────────────────────────
         // The second 0x1054 holds one 0x1052 sentinel section per clip group definition.
-        // Constituent clipIdx values in sentinel 0x104f blocks address the COMBINED pool
-        // (0x2629 audio + 0x262b compound sorted by file offset).
-        // For byte18==0x00 track placements, data[33..34] (u16le) is the sentinel ordinal
-        // for THAT SPECIFIC PLACEMENT.  The same compound block can appear in different
-        // clip groups (each referencing a different sentinel), so we resolve per-placement.
-        struct CombinedEntry { let isAudio: Bool; let poolIdx: Int }
-        var combinedMap: [Int: CombinedEntry] = [:]
+        // Sentinel sections are ordered by group creation counter (bytes[37..38] of each
+        // compound's 0x2523 block).  Constituent clipIdx values in sentinel 0x104f blocks
+        // with byte[18]==0x00 address the AUDIO pool (0x2629) directly; byte[18]==0x01
+        // means the constituent is itself a sub-group (ci = compound pool index).
         let audioParents = blocks.filter { $0.contentType == 0x2629 }.sorted { $0.dataOffset < $1.dataOffset }
         let cmpdParents  = blocks.filter { $0.contentType == 0x262b }.sorted { $0.dataOffset < $1.dataOffset }
-        do {
-            var allEntries: [(off: Int, isAudio: Bool, idx: Int)] = []
-            for (i, b) in audioParents.enumerated() { allEntries.append((b.dataOffset, true,  i)) }
-            for (i, b) in cmpdParents.enumerated()  { allEntries.append((b.dataOffset, false, i)) }
-            allEntries.sort { $0.off < $1.off }
-            for (ci, e) in allEntries.enumerated() { combinedMap[ci] = CombinedEntry(isAudio: e.isAudio, poolIdx: e.idx) }
+
+        // Build compound pool index → creation counter map.
+        // The creation counter (bytes[37..38] of the 0x2523 child block) equals the
+        // sentinel ordinal for that compound.  Compounds whose counter exceeds the
+        // sentinel section count have no sentinel (non-audio or deleted groups).
+        var compoundCreationCounters: [Int: Int] = [:]
+        for (ci, c) in cmpdParents.enumerated() {
+            for m in blocks where m.contentType == 0x2523
+                && m.dataOffset >= c.dataOffset
+                && m.dataOffset + m.dataSize <= c.dataOffset + c.dataSize
+                && m.dataSize >= 39 {
+                compoundCreationCounters[ci] = Int(readLE(data, at: m.dataOffset + 37, count: 2))
+                break
+            }
         }
 
         let all1054sorted = blocks.filter { $0.contentType == 0x1054 }.sorted { $0.dataOffset < $1.dataOffset }
@@ -951,8 +956,7 @@ final class PTXBlockDecoder {
         }
         let SENT_ORIGIN: UInt64 = 1_000_000_000_000
 
-        // Expand a sentinel ordinal into constituent clips.  Called per-placement so each
-        // instance of a compound gets the correct sentinel for that specific clip group.
+        // Expand a sentinel ordinal into constituent clips.
         func expandSentinel(_ ordinal: Int, baseOffset: Int64, depth: Int) -> [ConstituentClip] {
             guard depth < 8, ordinal < sentinelSections.count else { return [] }
             let section = sentinelSections[ordinal]
@@ -964,24 +968,19 @@ final class PTXBlockDecoder {
             var result: [ConstituentClip] = []
             for pl in pls {
                 guard pl.dataSize >= 19 else { continue }
-                let ci   = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
-                let tl   = readLE(data, at: pl.dataOffset + 7, count: 8)
+                let ci     = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
+                let tl     = readLE(data, at: pl.dataOffset + 7, count: 8)
                 guard tl >= SENT_ORIGIN else { continue }
                 let relOff = baseOffset + Int64(bitPattern: tl - SENT_ORIGIN)
                 if data[pl.dataOffset + 18] == 0x00 {
-                    if let ce = combinedMap[ci] {
-                        if ce.isAudio {
-                            result.append(ConstituentClip(audioClipIdx: ce.poolIdx, relativeOffset: relOff))
-                        } else if let comp = compoundPool[ce.poolIdx] {
-                            result.append(ConstituentClip(audioClipIdx: ce.poolIdx, relativeOffset: relOff,
-                                                          isSubGroup: true, subGroupName: comp.name,
-                                                          subGroupLength: comp.lengthSamples))
-                        }
+                    // Leaf audio constituent: ci directly indexes the audio pool (0x2629)
+                    if ci < audioParents.count {
+                        result.append(ConstituentClip(audioClipIdx: ci, relativeOffset: relOff))
                     }
                 } else {
-                    // Nested sub-group: translate combined index → compound pool index, then recurse
-                    let compOrdinal = combinedMap[ci].map { $0.isAudio ? ci : $0.poolIdx } ?? ci
-                    result += expandSentinel(compOrdinal, baseOffset: relOff, depth: depth + 1)
+                    // Nested sub-group: ci is compound pool index; look up its sentinel and recurse
+                    let subSentOrd = compoundCreationCounters[ci] ?? ci
+                    result += expandSentinel(subSentOrd, baseOffset: relOff, depth: depth + 1)
                 }
             }
             return result
@@ -1126,18 +1125,13 @@ final class PTXBlockDecoder {
                 let groupName   = compoundEntry?.name
                 let groupLength = compoundEntry?.lengthSamples
                 // Resolve constituents per-placement.
-                // byte18==0x01 original-def: sentinel ordinal == clipIdx (compound pool index).
-                // byte18==0x00 copy placement: sentinel ordinal in data[33..34].
+                // Sentinel ordinal = creation counter stored in bytes[37..38] of the
+                // compound's 0x2523 block.  This is the same for all placements of the
+                // same compound (both b18==0x01 original-def and b18==0x00 copies).
+                // Compounds whose counter exceeds the sentinel count have no sentinel.
                 let groupConstituents: [ConstituentClip]
                 if isGroup {
-                    let sentOrd: Int
-                    if byte18 == 0x01 {
-                        sentOrd = clipIdx
-                    } else if ref.dataSize >= 35 {
-                        sentOrd = Int(readLE(data, at: ref.dataOffset + 33, count: 2))
-                    } else {
-                        sentOrd = clipIdx
-                    }
+                    let sentOrd = compoundCreationCounters[clipIdx] ?? clipIdx
                     groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
                 } else {
                     groupConstituents = []
