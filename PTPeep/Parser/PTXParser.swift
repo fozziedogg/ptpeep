@@ -363,19 +363,38 @@ final class PTXParser {
             trackIndexByName[t.name] = i
         }
 
-        // Pre-compute per-slot start: the earliest timeline position across all group placements
-        // in the same slot.  When a multitrack group is split, each track's piece has a different
-        // gStart, but all sentinels store relOff relative to the *original* group start (= slot
-        // minimum across all tracks in the slot).  Using slotStart as the absPos base gives the
-        // correct constituent positions even for split groups.
-        var slotStart: [Int: Int64] = [:]
+        // Pre-compute per-slot "original start" — the creation-time group position used as the
+        // base for sentinel relOffsets.  When PT splits a group, it COPIES the sentinel data
+        // verbatim (byte-for-byte), preserving relOffsets relative to the ORIGINAL group start.
+        // The split pieces land at shifted positions, but their orphan companions (first-piece
+        // compounds with no valid sentinel) stay at the original position.
+        //
+        // Algorithm:
+        // 1. For each track, find the minimum position of ANY group placement (incl. orphans).
+        // 2. For each slot, collect the tracks that have non-orphan placements in that slot.
+        // 3. slotOriginalStart = min(sectionMin for all tracks in slot).
+        //    This anchors split slots at the orphan position even when one track (e.g. Cherry)
+        //    had its orphan removed in a later regroup operation.
+        var sectionMinGroupPos: [String: Int64] = [:]
         for tp in trackPlaylists {
-            for p in tp.placements where p.isGroup {
-                guard let si = p.slotIndex else { continue }
-                let cur = slotStart[si]
+            for p in tp.placements where p.isGroup && !p.isHidden {
+                let cur = sectionMinGroupPos[tp.name]
                 if cur == nil || p.timelineSample < cur! {
-                    slotStart[si] = p.timelineSample
+                    sectionMinGroupPos[tp.name] = p.timelineSample
                 }
+            }
+        }
+        var slotSections: [Int: Set<String>] = [:]
+        for tp in trackPlaylists {
+            for p in tp.placements where p.isGroup && !p.isHidden {
+                guard let si = p.slotIndex else { continue }
+                slotSections[si, default: []].insert(tp.name)
+            }
+        }
+        var slotOriginalStart: [Int: Int64] = [:]
+        for (si, sections) in slotSections {
+            if let minPos = sections.compactMap({ sectionMinGroupPos[$0] }).min() {
+                slotOriginalStart[si] = minPos
             }
         }
 
@@ -434,10 +453,12 @@ final class PTXParser {
                 // multiple bracket-lengths away; those are not useful to display.
                 for constituent in p.groupConstituents where !constituent.isSubGroup {
                     guard len == 0 || constituent.relativeOffset < len * 2 else { continue }
-                    // Use slot start (min position across all tracks in the multitrack group) as
-                    // the base for relativeOffset.  This corrects split groups where gStart ≠
-                    // original group start but relOffsets were written relative to the original.
-                    let base = p.slotIndex.flatMap { slotStart[$0] } ?? gStart
+                    // Use slot original start (creation-time group position) as base for relOff.
+                    // Sentinel relOffsets are always relative to the position at which the group
+                    // was first created; split/regroup operations copy the sentinel verbatim so
+                    // the relOffsets never change.  Orphan split-pieces on sibling tracks anchor
+                    // the original start even when not all tracks retained their orphan.
+                    let base = p.slotIndex.flatMap { slotOriginalStart[$0] } ?? gStart
                     let absPos = base + constituent.relativeOffset
                     guard absPos >= 0 else { continue }
                     let clipEntry = constituent.audioClipIdx < clips.count ? clips[constituent.audioClipIdx] : nil
