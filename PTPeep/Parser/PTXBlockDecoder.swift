@@ -925,21 +925,6 @@ final class PTXBlockDecoder {
         let audioParents = blocks.filter { $0.contentType == 0x2629 }.sorted { $0.dataOffset < $1.dataOffset }
         let cmpdParents  = blocks.filter { $0.contentType == 0x262b }.sorted { $0.dataOffset < $1.dataOffset }
 
-        // Build compound pool index → creation counter map.
-        // The creation counter (bytes[37..38] of the 0x2523 child block) equals the
-        // sentinel ordinal for that compound.  Compounds whose counter exceeds the
-        // sentinel section count have no sentinel (non-audio or deleted groups).
-        var compoundCreationCounters: [Int: Int] = [:]
-        for (ci, c) in cmpdParents.enumerated() {
-            for m in blocks where m.contentType == 0x2523
-                && m.dataOffset >= c.dataOffset
-                && m.dataOffset + m.dataSize <= c.dataOffset + c.dataSize
-                && m.dataSize >= 39 {
-                compoundCreationCounters[ci] = Int(readLE(data, at: m.dataOffset + 37, count: 2))
-                break
-            }
-        }
-
         let all1054sorted = blocks.filter { $0.contentType == 0x1054 }.sorted { $0.dataOffset < $1.dataOffset }
         var sentinelSections: [PTXBlock] = []
         if all1054sorted.count >= 2 {
@@ -954,11 +939,54 @@ final class PTXBlockDecoder {
                 !innerRanges.contains { r in r.0 <= blk.dataOffset && blk.dataOffset + blk.dataSize <= r.1 }
             }.sorted { $0.dataOffset < $1.dataOffset }
         }
+
+        // Build 0x2425 counterToSlot map.  Each 0x2425 block belongs to one group-edit slot and
+        // lists the sentinel ordinals (= 0x2523 creation counters) that belong to that slot.
+        // Structure: [count:u32LE] + count × [0x00 skip_byte + sentinel_ordinal:u32LE] + strings.
+        // Only counters present in this map are valid sentinel ordinals; all others are stale or
+        // refer to deleted/split groups that have no sentinel data in the file.
+        var counterToSlot: [Int: Int] = [:]
+        let b2425sorted = blocks.filter { $0.contentType == 0x2425 }.sorted { $0.dataOffset < $1.dataOffset }
+        for (si, b) in b2425sorted.enumerated() {
+            guard b.dataSize >= 4 else { continue }
+            let count = Int(readLE(data, at: b.dataOffset, count: 4))
+            var offset = 4
+            for _ in 0..<count {
+                guard offset + 5 <= b.dataSize else { break }
+                offset += 1  // skip 0x00 byte
+                let sentOrd = Int(readLE(data, at: b.dataOffset + offset, count: 4))
+                counterToSlot[sentOrd] = si
+                offset += 4
+            }
+        }
+
+        // Build compound pool index → sentinel ordinal map.
+        // Each compound may have multiple 0x2523 event blocks (one per group-edit operation).
+        // The correct sentinel ordinal is the FIRST counter (sorted by file offset) that appears
+        // in counterToSlot — meaning it has a live sentinel section.  Later counters from splits
+        // or regrouping are stale and must not be used.  Compounds with no valid counter are
+        // orphaned (split secondary pieces with no retained sentinel) and must stay unexpanded.
+        var compoundCreationCounters: [Int: Int] = [:]
+        for (ci, c) in cmpdParents.enumerated() {
+            let c2523s = blocks.filter { m in
+                m.contentType == 0x2523 &&
+                m.dataOffset >= c.dataOffset &&
+                m.dataOffset + m.dataSize <= c.dataOffset + c.dataSize &&
+                m.dataSize >= 39
+            }.sorted { $0.dataOffset < $1.dataOffset }
+            for m in c2523s {
+                let counter = Int(readLE(data, at: m.dataOffset + 37, count: 2))
+                if counterToSlot[counter] != nil {
+                    compoundCreationCounters[ci] = counter
+                    break
+                }
+            }
+        }
         let SENT_ORIGIN: UInt64 = 1_000_000_000_000
 
         // Expand a sentinel ordinal into constituent clips.
         func expandSentinel(_ ordinal: Int, baseOffset: Int64, depth: Int) -> [ConstituentClip] {
-            guard depth < 8, ordinal < sentinelSections.count else { return [] }
+            guard depth < 8, ordinal >= 0, ordinal < sentinelSections.count else { return [] }
             let section = sentinelSections[ordinal]
             let secEnd = section.dataOffset + section.dataSize
             let pls = blocks.filter {
@@ -978,8 +1006,9 @@ final class PTXBlockDecoder {
                         result.append(ConstituentClip(audioClipIdx: ci, relativeOffset: relOff))
                     }
                 } else {
-                    // Nested sub-group: ci is compound pool index; look up its sentinel and recurse
-                    let subSentOrd = compoundCreationCounters[ci] ?? ci
+                    // Nested sub-group: ci is compound pool index; look up its sentinel and recurse.
+                    // If no valid sentinel ordinal exists (orphaned split piece), skip silently.
+                    guard let subSentOrd = compoundCreationCounters[ci] else { continue }
                     result += expandSentinel(subSentOrd, baseOffset: relOff, depth: depth + 1)
                 }
             }
@@ -1130,8 +1159,7 @@ final class PTXBlockDecoder {
                 // same compound (both b18==0x01 original-def and b18==0x00 copies).
                 // Compounds whose counter exceeds the sentinel count have no sentinel.
                 let groupConstituents: [ConstituentClip]
-                if isGroup {
-                    let sentOrd = compoundCreationCounters[clipIdx] ?? clipIdx
+                if isGroup, let sentOrd = compoundCreationCounters[clipIdx] {
                     groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
                 } else {
                     groupConstituents = []
@@ -1221,15 +1249,7 @@ final class PTXBlockDecoder {
                     let isGroup = byte18 == 0x01 || (byte18 == 0x00 && namelessGroupIdxSet.contains(clipIdx))
                     let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
                     let groupConstituents: [ConstituentClip]
-                    if isGroup {
-                        let sentOrd: Int
-                        if byte18 == 0x01 {
-                            sentOrd = clipIdx
-                        } else if ref.dataSize >= 35 {
-                            sentOrd = Int(readLE(data, at: ref.dataOffset + 33, count: 2))
-                        } else {
-                            sentOrd = clipIdx
-                        }
+                    if isGroup, let sentOrd = compoundCreationCounters[clipIdx] {
                         groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
                     } else {
                         groupConstituents = []
