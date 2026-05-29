@@ -90,6 +90,10 @@ struct ClipPlacement {
     /// clipIdx values for channels 2, 3, … of a multi-mono track (empty for mono).
     /// Each entry is the index into the ClipEntry list for that channel's audio file.
     var companionClipIdxs: [Int] = []
+    /// Slot index from 0x2425 map (links tracks that belong to same multitrack group)
+    var slotIndex: Int? = nil
+    /// Slot name from 0x2423 (the multitrack group name, e.g. "ABC")
+    var slotName: String? = nil
 }
 
 struct TrackEntry {
@@ -960,6 +964,17 @@ final class PTXBlockDecoder {
             }
         }
 
+        // Build slot names from 0x2423 blocks (last name per slot index wins).
+        // Structure: [slotIndex:u32LE] + [nameLen:u32LE] + [name bytes].
+        var slotNames: [Int: String] = [:]
+        for b in blocks.filter({ $0.contentType == 0x2423 }).sorted(by: { $0.dataOffset < $1.dataOffset }) {
+            guard b.dataSize >= 8 else { continue }
+            let slotIdx = Int(readLE(data, at: b.dataOffset, count: 4))
+            let nl = Int(readLE(data, at: b.dataOffset + 4, count: 4))
+            guard nl > 0, nl < 512, b.dataOffset + 8 + nl <= data.count else { continue }
+            slotNames[slotIdx] = String(bytes: data[b.dataOffset + 8 ..< b.dataOffset + 8 + nl], encoding: .utf8) ?? "?"
+        }
+
         // Build compound pool index → sentinel ordinal map.
         // Each compound may have multiple 0x2523 event blocks (one per group-edit operation).
         // The correct sentinel ordinal is the FIRST counter (sorted by file offset) that appears
@@ -1159,15 +1174,22 @@ final class PTXBlockDecoder {
                 // same compound (both b18==0x01 original-def and b18==0x00 copies).
                 // Compounds whose counter exceeds the sentinel count have no sentinel.
                 let groupConstituents: [ConstituentClip]
+                let slotIdx: Int?
+                let slotNameVal: String?
                 if isGroup, let sentOrd = compoundCreationCounters[clipIdx] {
                     groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
+                    slotIdx = counterToSlot[sentOrd]
+                    slotNameVal = slotIdx.flatMap { slotNames[$0] }
                 } else {
                     groupConstituents = []
+                    slotIdx = nil
+                    slotNameVal = nil
                 }
                 return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0,
                                      isHidden: isHidden, isMuted: isMuted, isGroup: isGroup,
                                      groupName: groupName, groupLength: groupLength,
-                                     groupConstituents: groupConstituents)
+                                     groupConstituents: groupConstituents,
+                                     slotIndex: slotIdx, slotName: slotNameVal)
             }
 
             // Only the FIRST 0x1052 section for each track name drives timeline positions.
@@ -1249,15 +1271,22 @@ final class PTXBlockDecoder {
                     let isGroup = byte18 == 0x01 || (byte18 == 0x00 && namelessGroupIdxSet.contains(clipIdx))
                     let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
                     let groupConstituents: [ConstituentClip]
+                    let slotIdx2: Int?
+                    let slotNameVal2: String?
                     if isGroup, let sentOrd = compoundCreationCounters[clipIdx] {
                         groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
+                        slotIdx2 = counterToSlot[sentOrd]
+                        slotNameVal2 = slotIdx2.flatMap { slotNames[$0] }
                     } else {
                         groupConstituents = []
+                        slotIdx2 = nil
+                        slotNameVal2 = nil
                     }
                     return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0,
                                          isHidden: isHidden, isMuted: isMuted, isGroup: isGroup,
                                          groupName: compoundEntry?.name, groupLength: compoundEntry?.lengthSamples,
-                                         groupConstituents: groupConstituents)
+                                         groupConstituents: groupConstituents,
+                                         slotIndex: slotIdx2, slotName: slotNameVal2)
                 }
                 if channelCounts[name] == nil {
                     nameOrder.append(name)

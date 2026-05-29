@@ -363,6 +363,22 @@ final class PTXParser {
             trackIndexByName[t.name] = i
         }
 
+        // Pre-compute per-slot start: the earliest timeline position across all group placements
+        // in the same slot.  When a multitrack group is split, each track's piece has a different
+        // gStart, but all sentinels store relOff relative to the *original* group start (= slot
+        // minimum across all tracks in the slot).  Using slotStart as the absPos base gives the
+        // correct constituent positions even for split groups.
+        var slotStart: [Int: Int64] = [:]
+        for tp in trackPlaylists {
+            for p in tp.placements where p.isGroup {
+                guard let si = p.slotIndex else { continue }
+                let cur = slotStart[si]
+                if cur == nil || p.timelineSample < cur! {
+                    slotStart[si] = p.timelineSample
+                }
+            }
+        }
+
         for tp in trackPlaylists {
             // Match playlist to track by name; fall back to position if no name match exists.
             guard let i = trackIndexByName[tp.name] else { continue }
@@ -418,7 +434,11 @@ final class PTXParser {
                 // multiple bracket-lengths away; those are not useful to display.
                 for constituent in p.groupConstituents where !constituent.isSubGroup {
                     guard len == 0 || constituent.relativeOffset < len * 2 else { continue }
-                    let absPos = gStart + constituent.relativeOffset
+                    // Use slot start (min position across all tracks in the multitrack group) as
+                    // the base for relativeOffset.  This corrects split groups where gStart ≠
+                    // original group start but relOffsets were written relative to the original.
+                    let base = p.slotIndex.flatMap { slotStart[$0] } ?? gStart
+                    let absPos = base + constituent.relativeOffset
                     guard absPos >= 0 else { continue }
                     let clipEntry = constituent.audioClipIdx < clips.count ? clips[constituent.audioClipIdx] : nil
                     let cLen = clipEntry?.lengthSamples ?? 0

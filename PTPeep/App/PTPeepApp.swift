@@ -156,6 +156,8 @@ struct TabState: Identifiable {
     var isLoading:        Bool
     var isResolvingFiles: Bool = false
     var errorText:        String?
+    var zoomScale:        Double = 1.0
+    var zoomViewStart:    Double = 0.0
 
     var displayName: String {
         sessionURL?.deletingPathExtension().lastPathComponent ?? "New Session"
@@ -280,6 +282,10 @@ final class AppState: ObservableObject {
     private func updateTab(id: UUID, _ update: (inout TabState) -> Void) {
         guard let idx = tabs.firstIndex(where: { $0.id == id }) else { return }
         update(&tabs[idx])
+    }
+
+    func saveZoomState(tabID: UUID, scale: Double, viewStart: Double) {
+        updateTab(id: tabID) { $0.zoomScale = scale; $0.zoomViewStart = viewStart }
     }
 
     func updateWindowTitle() {
@@ -462,6 +468,9 @@ struct AppContentView: View {
                 session:             session,
                 sessionURL:          url,
                 isResolvingFiles:    tab.isResolvingFiles,
+                initialZoomScale:    tab.zoomScale,
+                initialZoomViewStart: tab.zoomViewStart,
+                onZoomChanged:       { s, vs in appState.saveZoomState(tabID: tab.id, scale: s, viewStart: vs) },
                 onOpenInProTools:    { appState.openInProTools(url: url) },
                 onRescan:            { appState.rescan(tabID: tab.id, url: url) },
                 onClose:             { appState.closeTab(id: tab.id) }

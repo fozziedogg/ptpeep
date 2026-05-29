@@ -20,6 +20,9 @@ struct SessionInspectorView: View {
     let session: PTXSession
     let sessionURL: URL
     var isResolvingFiles: Bool = false
+    var initialZoomScale:     Double = 1.0
+    var initialZoomViewStart: Double = 0.0
+    var onZoomChanged:        ((Double, Double) -> Void)? = nil
     var onOpenInProTools: (() -> Void)? = nil
     var onRescan:        (() -> Void)? = nil
     var onClose:         (() -> Void)? = nil
@@ -144,7 +147,16 @@ struct SessionInspectorView: View {
             }
         )
         .background(Color(nsColor: .windowBackgroundColor))
-        .onAppear { pluginScanner.startupCheck() }
+        .onAppear {
+            pluginScanner.startupCheck()
+            if initialZoomScale != 1.0 || initialZoomViewStart != 0.0 {
+                tc.scale     = initialZoomScale
+                tc.viewStart = initialZoomViewStart
+            }
+        }
+        .onDisappear {
+            onZoomChanged?(tc.scale, tc.viewStart)
+        }
     }
 
     // MARK: - Header
