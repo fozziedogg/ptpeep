@@ -433,7 +433,6 @@ final class PTXParser {
                 // a session that was edited after the group was placed can put constituents
                 // multiple bracket-lengths away; those are not useful to display.
                 for constituent in p.groupConstituents where !constituent.isSubGroup {
-                    guard len == 0 || constituent.relativeOffset < len * 2 else { continue }
                     // Use slot original start (creation-time group position) as base for relOff.
                     // Sentinel relOffsets are always relative to the position at which the group
                     // was first created; split/regroup operations copy the sentinel verbatim so
@@ -442,6 +441,10 @@ final class PTXParser {
                     let base = p.slotIndex.flatMap { slotStart[$0] } ?? gStart
                     let absPos = base + constituent.relativeOffset
                     guard absPos >= 0 else { continue }
+                    // Constituent must land within the group bracket on the timeline.
+                    // Wrong sentinel mappings (e.g. BEEP → unrelated section) produce
+                    // constituents far outside the bracket; filter them out.
+                    guard absPos >= gStart && absPos < gStart + len else { continue }
                     let clipEntry = constituent.audioClipIdx < clips.count ? clips[constituent.audioClipIdx] : nil
                     let cLen = clipEntry?.lengthSamples ?? 0
                     guard cLen > 0 else { continue }
