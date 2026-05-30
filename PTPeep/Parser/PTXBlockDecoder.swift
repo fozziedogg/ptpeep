@@ -1010,85 +1010,49 @@ final class PTXBlockDecoder {
                 b.contentType == 0x2628 &&
                 b.dataOffset >= c.dataOffset && b.dataOffset + b.dataSize <= c.dataOffset + c.dataSize
             }) else { continue }
+            guard nb.dataSize > 500 else { continue }
             // Collect all 0x2523 counters inside this compound that are in counterToSlot, grouped by slot
             let c2523s = blocks.filter { m in
                 m.contentType == 0x2523 &&
                 m.dataOffset >= c.dataOffset && m.dataOffset + m.dataSize <= c.dataOffset + c.dataSize &&
                 m.dataSize >= 39
             }
-            let validCounters = c2523s.compactMap { m -> Int? in
+            var slotCounterLists: [Int: [Int]] = [:]
+            for m in c2523s {
                 let counter = Int(readLE(data, at: m.dataOffset + 37, count: 2))
-                return counterToSlot[counter] != nil ? counter : nil
-            }.sorted()
-            guard validCounters.count >= 2 else { continue }
-
-            // Strategy 1: 95-byte stride search for large 0x2628 blocks.
-            // Ordinal array at stride offsets, CI array N×stride before it.
-            if nb.dataSize > 500 {
-                var slotCounterLists: [Int: [Int]] = [:]
-                for counter in validCounters {
-                    if let slot = counterToSlot[counter] {
-                        slotCounterLists[slot, default: []].append(counter)
-                    }
-                }
-                for (_, counters) in slotCounterLists where counters.count > 1 {
-                    let sortedCounters = counters.sorted()
-                    let N = sortedCounters.count
-                    let firstCounter = sortedCounters[0]
-                    var ordinalArrayStart: Int? = nil
-                    outerLoop: for off in 0 ... (nb.dataSize - recordStride * N) {
-                        guard Int(readLE(data, at: nb.dataOffset + off, count: 4)) == firstCounter else { continue }
-                        for k in 1..<N {
-                            if Int(readLE(data, at: nb.dataOffset + off + k * recordStride, count: 4)) != sortedCounters[k] {
-                                continue outerLoop
-                            }
-                        }
-                        ordinalArrayStart = off
-                        break
-                    }
-                    guard let oas = ordinalArrayStart else { continue }
-                    let ciArrayStart = oas - N * recordStride
-                    guard ciArrayStart >= 0 else { continue }
-                    for k in 0..<N {
-                        let ci = Int(readLE(data, at: nb.dataOffset + ciArrayStart + k * recordStride, count: 4))
-                        let ordinal = sortedCounters[k]
-                        guard ci > 0, ci < cmpdParents.count,
-                              ordinal >= 0, ordinal < sentinelSections.count else { continue }
-                        childCompoundSentinel[ci] = ordinal
-                    }
+                if let slot = counterToSlot[counter] {
+                    slotCounterLists[slot, default: []].append(counter)
                 }
             }
-
-            // Strategy 2: CI scan fallback for smaller 0x2628 blocks.
-            // Scan for child CI values (compound pool indices) at 95-byte strides.
-            // Pair each found CI with the corresponding sorted counter (sentinel ordinal).
-            let N = validCounters.count
-            // Last CI at startOff + (N-1)*stride needs 4 bytes to read
-            let minSize = (N - 1) * recordStride + 4
-            guard minSize <= nb.dataSize else { continue }
-            let maxStart = nb.dataSize - minSize
-            for startOff in 0 ... maxStart {
-                var foundCIs: [Int] = []
-                var allValid = true
-                for k in 0..<N {
-                    let v = Int(readLE(data, at: nb.dataOffset + startOff + k * recordStride, count: 4))
-                    if v > 0 && v < cmpdParents.count && compoundCreationCounters[v] == nil {
-                        foundCIs.append(v)
-                    } else {
-                        allValid = false
-                        break
+            // Only process slots with multiple tracks (multitrack groups have >1 counter per slot)
+            for (_, counters) in slotCounterLists where counters.count > 1 {
+                let sortedCounters = counters.sorted()
+                let N = sortedCounters.count
+                let firstCounter = sortedCounters[0]
+                // Search 0x2628 byte-by-byte for the first ordinal, then verify the rest
+                // at 95-byte strides. The array does NOT start at a multiple of 95.
+                var ordinalArrayStart: Int? = nil
+                outerLoop: for off in 0 ... (nb.dataSize - recordStride * N) {
+                    guard Int(readLE(data, at: nb.dataOffset + off, count: 4)) == firstCounter else { continue }
+                    for k in 1..<N {
+                        if Int(readLE(data, at: nb.dataOffset + off + k * recordStride, count: 4)) != sortedCounters[k] {
+                            continue outerLoop
+                        }
                     }
+                    ordinalArrayStart = off
+                    break
                 }
-                guard allValid && foundCIs.count == N else { continue }
-                // Verify these CIs are plausible children (their own counters are stale/missing)
-                let allOrphan = foundCIs.allSatisfy { childCompoundSentinel[$0] == nil }
-                guard allOrphan else { continue }
+                guard let oas = ordinalArrayStart else { continue }
+                // CI array sits immediately before the ordinal array (N records back)
+                let ciArrayStart = oas - N * recordStride
+                guard ciArrayStart >= 0 else { continue }
                 for k in 0..<N {
-                    let ordinal = validCounters[k]
-                    guard ordinal >= 0, ordinal < sentinelSections.count else { continue }
-                    childCompoundSentinel[foundCIs[k]] = ordinal
+                    let ci = Int(readLE(data, at: nb.dataOffset + ciArrayStart + k * recordStride, count: 4))
+                    let ordinal = sortedCounters[k]
+                    guard ci > 0, ci < cmpdParents.count,
+                          ordinal >= 0, ordinal < sentinelSections.count else { continue }
+                    childCompoundSentinel[ci] = ordinal
                 }
-                break  // first match wins
             }
         }
 
