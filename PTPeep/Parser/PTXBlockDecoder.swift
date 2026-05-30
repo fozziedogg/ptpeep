@@ -1207,6 +1207,15 @@ final class PTXBlockDecoder {
 
             let placements: [ClipPlacement] = refs.compactMap { ref in
                 guard parent1050(of: ref) != nil else { return nil }  // reject false positives
+                // Diagnostic: dump first 48 bytes of 0x104f blocks near 2-pop on "1 adr"
+                if name == "1 adr" {
+                    let tl = Int64(bitPattern: readLE(data, at: ref.dataOffset + 7, count: 8))
+                    if tl >= 172800000 && tl <= 173300000 {
+                        let n = min(48, ref.dataSize)
+                        let hex = (0..<n).map { String(format: "%02x", data[ref.dataOffset + $0]) }.joined(separator: " ")
+                        AppLog.shared.log("[diag] 1adr tl=\(tl) sz=\(ref.dataSize) \(hex)")
+                    }
+                }
                 // 0x104f byte[0]: 0x01 = muted
                 // 0x104f byte[18]: 0x01 = compound group original-def placement
                 //                  0x00 = audio clip OR compound copy placement
