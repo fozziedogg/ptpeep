@@ -389,7 +389,7 @@ final class PTXParser {
             // a regular clip that may start at the same position.
             var groupBoxes:[Int64: PTXClip] = [:]
 
-            let logTrack = ["1 split","2 split","3 split","4 split"].contains(tp.name)
+            let logTrack = false // ["1 dx"].contains(tp.name)
 
             // Pass 1: regular (non-group) placements — authoritative timeline positions.
             for p in tp.placements where !p.isHidden && !p.isGroup {

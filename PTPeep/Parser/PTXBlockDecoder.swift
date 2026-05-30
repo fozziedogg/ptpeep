@@ -1090,6 +1090,26 @@ final class PTXBlockDecoder {
             return result
         }
 
+        // Build sentinel content index: for each sentinel section, collect the set of audio
+        // clip indices (ci values from 0x104f blocks with byte[18]==0x00).  Used by the
+        // content-matching fallback to resolve orphan compounds (split/regroup) that have no
+        // direct sentinel ordinal mapping.
+        var sentinelContentIndex: [Int: Set<Int>] = [:]
+        for (ordinal, section) in sentinelSections.enumerated() {
+            let secEnd = section.dataOffset + section.dataSize
+            var ciSet = Set<Int>()
+            for blk in blocks where blk.contentType == 0x104f &&
+                blk.dataOffset >= section.dataOffset && blk.dataOffset + blk.dataSize <= secEnd &&
+                blk.dataSize >= 19 {
+                if data[blk.dataOffset + 18] == 0x00 {
+                    ciSet.insert(Int(readLE(data, at: blk.dataOffset + 2, count: 2)))
+                }
+            }
+            if !ciSet.isEmpty {
+                sentinelContentIndex[ordinal] = ciSet
+            }
+        }
+
         // Use the first non-empty 0x1054 (main active playlist set)
         guard let container = blocks
             .filter({ $0.contentType == 0x1054 })
@@ -1375,7 +1395,68 @@ final class PTXBlockDecoder {
             }
         }
 
-
+        // ── Content-matching fallback for orphan compounds ───────────────────────
+        // Orphan compounds (from split/regroup) have counters beyond the sentinel section
+        // count, so they get groupConstituents=[] above.  Resolve them by matching the
+        // track's non-group audio clip indices against sentinelContentIndex.
+        for name in nameOrder {
+            guard var placements = placementsByName[name] else { continue }
+            // Check if this track has any orphan groups worth resolving.
+            // True orphans have no sentinel mapping at all (both lookups nil).
+            // Groups that mapped to a sentinel but produced 0 constituents (empty groups)
+            // should keep their empty state — they are NOT orphans.
+            let hasOrphan = placements.contains { p in
+                p.isGroup && p.groupConstituents.isEmpty && p.groupLength != nil &&
+                childCompoundSentinel[p.clipIdx] == nil && compoundCreationCounters[p.clipIdx] == nil
+            }
+            guard hasOrphan else { continue }
+            // Collect audio clip indices known to be on this track:
+            //  1. Non-group placements (standalone audio clips)
+            //  2. Constituents from already-resolved groups (their audioClipIdx values)
+            var trackAudioCIs = Set<Int>()
+            for p in placements {
+                if !p.isGroup && !p.isHidden {
+                    trackAudioCIs.insert(p.clipIdx)
+                } else if p.isGroup && !p.groupConstituents.isEmpty {
+                    for c in p.groupConstituents {
+                        trackAudioCIs.insert(c.audioClipIdx)
+                    }
+                }
+            }
+            guard !trackAudioCIs.isEmpty else { continue }
+            var changed = false
+            for i in placements.indices {
+                let p = placements[i]
+                guard p.isGroup, p.groupConstituents.isEmpty, p.groupLength != nil,
+                      childCompoundSentinel[p.clipIdx] == nil,
+                      compoundCreationCounters[p.clipIdx] == nil else { continue }
+                // Find the sentinel section with the best overlap.
+                // Don't exclude sentinels used by sibling groups — split/regroup creates
+                // multiple group brackets that share the same underlying sentinel data.
+                // PTXParser's bracket guard filters constituents to each group's time range.
+                var bestOrdinal = -1
+                var bestOverlap = 0
+                for (ordinal, ciSet) in sentinelContentIndex {
+                    let overlap = trackAudioCIs.intersection(ciSet).count
+                    if overlap > bestOverlap {
+                        bestOverlap = overlap
+                        bestOrdinal = ordinal
+                    }
+                }
+                guard bestOrdinal >= 0 else { continue }
+                // Expand the matched sentinel and update the placement.
+                let constituents = expandSentinel(bestOrdinal, baseOffset: 0, depth: 0)
+                guard !constituents.isEmpty else { continue }
+                placements[i].groupConstituents = constituents
+                // Derive slot from counterToSlot if possible.
+                if placements[i].slotIndex == nil {
+                    placements[i].slotIndex = counterToSlot[bestOrdinal]
+                    placements[i].slotName = placements[i].slotIndex.flatMap { slotNames[$0] }
+                }
+                changed = true
+            }
+            if changed { placementsByName[name] = placements }
+        }
 
         return nameOrder.map { name in
             // Prefer the explicit format byte from 0x251a — it is authoritative for all
