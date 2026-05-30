@@ -19,6 +19,7 @@ struct PTXSession {
     var sessionStart: String = ""
     var sessionLength: String = ""
     var plugins:         [String] = []
+    /// Maps plugin display name → PTX second string (bundle ID or variant name).
     var pluginSecondStrings: [String: String] = [:]
 
     /// Exact frame rate for TC math. Pulldown rates use rational values so that
@@ -41,6 +42,35 @@ struct PTXSession {
         }
     }
 
+    /// Sample rate as a Double (defaults to 48000 if not yet populated from PTSL).
+    var sampleRateValue: Double { Double(sampleRate) ?? 48000.0 }
+
+    /// Session timeline length in samples, parsed from the PTSL `sessionLength` timecode string.
+    /// Returns nil when `sessionLength` is empty or unparseable.
+    /// Supports "HH:MM:SS:FF" (frames) and "HH:MM:SS.mmm" (milliseconds) formats.
+    var sessionLengthSamples: Int64? {
+        guard !sessionLength.isEmpty else { return nil }
+        let sr = sampleRateValue
+        let fps = frameRate
+        let s = sessionLength
+
+        // Try HH:MM:SS:FF
+        let colonParts = s.components(separatedBy: ":")
+        if colonParts.count == 4,
+           let hh = Int(colonParts[0]), let mm = Int(colonParts[1]),
+           let ss = Int(colonParts[2]), let ff = Int(colonParts[3]) {
+            let totalSeconds = Double(hh * 3600 + mm * 60 + ss)
+            return Int64((totalSeconds * sr + Double(ff) * sr / fps).rounded())
+        }
+        // Try HH:MM:SS (no frames)
+        if colonParts.count == 3,
+           let hh = Int(colonParts[0]), let mm = Int(colonParts[1]),
+           let ss = Double(colonParts[2]) {
+            return Int64(((Double(hh * 3600 + mm * 60) + ss) * sr).rounded())
+        }
+        return nil
+    }
+
     // Resolved audio file URLs (matched from Audio Files/ folder)
     var resolvedAudioFiles: [ResolvedAudioFile] = []
 }
@@ -56,14 +86,32 @@ struct PTXTrack: Equatable {
     var name:         String
     var type:         PTXTrackType = .audio
     var channelCount: Int = 1       // 1=mono, 2=stereo, 6=5.1, etc.
+    var channelLabel: String? = nil // exact PT format label ("7.1", "5.1", etc.) when known
     var isHidden:     Bool    = false
     var isInactive:   Bool    = false
     var folderName:   String? = nil   // non-nil when this track lives inside a folder
+    var indentDepth:  Int     = 0     // 0 = top-level, 1 = one folder deep, 2 = two folders deep, …
+    var colorIndex:   Int     = -1    // Pro Tools color index 0–55; -1 = no custom color
     var plugins:      [String] = []
     var clips:        [PTXClip] = []
+    var inputPath:    String?  = nil   // I/O input bus name, e.g. "FULL MIX"
+    var outputPath:   String?  = nil   // I/O output bus name, e.g. "STERO OUT"
+    var isAtmosObject: Bool    = false // true = Atmos Object send
+    var isAtmosBed:    Bool    = false // true = Atmos Bed send
+    var atmosRendererInput: Int = 0   // 1-indexed renderer input channel (0 = unknown)
+    var atmosBedChannelCount: Int = 0 // BED assignment width in channels; 0 = unknown
+    var sendPaths:     [String] = []  // aux send bus names (Send A, B, …)
 
     var channelFormat: String {
-        if type == .video { return "Video" }
+        switch type {
+        case .video:  return "Video"
+        case .vca: return ""
+        case .folder:
+            if inputPath == nil && outputPath == nil { return "" }  // Basic Folder — no routing
+        default: break
+        }
+        // Prefer the exact label decoded from the PT format byte; fall back to count.
+        if let label = channelLabel { return label }
         switch channelCount {
         case 1:  return "Mono"
         case 2:  return "Stereo"
@@ -94,16 +142,51 @@ struct PTXClip: Equatable {
     var startSample: Int64  = 0
     var lengthSamples: Int64 = 0
     var sourceOffset: Int64  = 0    // offset into source audio file (samples)
-    var sourceFile:  String = ""    // base filename (no extension)
+    var sourceFile:  String = ""    // base filename (no extension); channel 1 file
+    /// Base filenames (no extension) for every channel of a multi-mono clip, in stream order.
+    /// channelFiles[0] == sourceFile.  Empty for mono or when not parsed (fall back to name search).
+    var channelFiles: [String] = []
     var isMuted:     Bool   = false
     var isGroup:     Bool   = false
 }
+
+// MARK: - Play Region
+
+/// A resolved set of clips ready for multi-clip playback.
+/// Covers a time range and one or more tracks; each TrackSegment contains
+/// the clips (with resolved URLs) for a single track, sorted by startSample.
+struct PlayRegion {
+    struct TrackSegment {
+        let trackIdx: Int
+        let clips: [(clip: PTXClip, url: URL)]   // sorted by startSample
+    }
+    let startSample:  Int64          // region start (absolute samples)
+    let endSample:    Int64          // region end (absolute samples)
+    let segments:     [TrackSegment] // one per track that has clips in range
+    let sampleRate:   Double
+    /// All resolved audio file URLs from the session — used as a cross-directory
+    /// fallback when searching for multi-mono companion files.
+    let resolvedPool: [URL]
+
+    init(startSample: Int64, endSample: Int64, segments: [TrackSegment],
+         sampleRate: Double, resolvedPool: [URL] = []) {
+        self.startSample  = startSample
+        self.endSample    = endSample
+        self.segments     = segments
+        self.sampleRate   = sampleRate
+        self.resolvedPool = resolvedPool
+    }
+
+    var totalClipCount: Int { segments.reduce(0) { $0 + $1.clips.count } }
+    var trackCount: Int { segments.count }
+}
+
+// MARK: - Resolved Audio File
 
 struct ResolvedAudioFile: Identifiable {
     var id = UUID()
     var name:    String          // display name (without extension)
     var url:     URL?            // nil = file not found on disk
-    var nodeID:  UInt32? = nil   // HFS+ catalog node ID from binary path data
     var tracks:  [String] = []   // which track names use this file
 
     var isOnline: Bool { url != nil }

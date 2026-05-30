@@ -999,6 +999,63 @@ final class PTXBlockDecoder {
         }
         let SENT_ORIGIN: UInt64 = 1_000_000_000_000
 
+        // Build childCompoundSentinel: for parent compounds whose 0x2628 encodes a parallel
+        // CI-array / ordinal-array at 95-byte record strides, map child CI → correct sentinel ordinal.
+        // This corrects stale compoundCreationCounters for child compounds that were regrouped.
+        var childCompoundSentinel: [Int: Int] = [:]
+        let recordStride = 95
+        for c in cmpdParents {
+            // Find the 0x2628 name/metadata block inside this compound
+            guard let nb = blocks.first(where: { b in
+                b.contentType == 0x2628 &&
+                b.dataOffset >= c.dataOffset && b.dataOffset + b.dataSize <= c.dataOffset + c.dataSize
+            }) else { continue }
+            guard nb.dataSize > 500 else { continue }
+            // Collect all 0x2523 counters inside this compound that are in counterToSlot, grouped by slot
+            let c2523s = blocks.filter { m in
+                m.contentType == 0x2523 &&
+                m.dataOffset >= c.dataOffset && m.dataOffset + m.dataSize <= c.dataOffset + c.dataSize &&
+                m.dataSize >= 39
+            }
+            var slotCounterLists: [Int: [Int]] = [:]
+            for m in c2523s {
+                let counter = Int(readLE(data, at: m.dataOffset + 37, count: 2))
+                if let slot = counterToSlot[counter] {
+                    slotCounterLists[slot, default: []].append(counter)
+                }
+            }
+            // Only process slots with multiple tracks (multitrack groups have >1 counter per slot)
+            for (_, counters) in slotCounterLists where counters.count > 1 {
+                let sortedCounters = counters.sorted()
+                let N = sortedCounters.count
+                let firstCounter = sortedCounters[0]
+                // Search 0x2628 byte-by-byte for the first ordinal, then verify the rest
+                // at 95-byte strides. The array does NOT start at a multiple of 95.
+                var ordinalArrayStart: Int? = nil
+                outerLoop: for off in 0 ... (nb.dataSize - recordStride * N) {
+                    guard Int(readLE(data, at: nb.dataOffset + off, count: 4)) == firstCounter else { continue }
+                    for k in 1..<N {
+                        if Int(readLE(data, at: nb.dataOffset + off + k * recordStride, count: 4)) != sortedCounters[k] {
+                            continue outerLoop
+                        }
+                    }
+                    ordinalArrayStart = off
+                    break
+                }
+                guard let oas = ordinalArrayStart else { continue }
+                // CI array sits immediately before the ordinal array (N records back)
+                let ciArrayStart = oas - N * recordStride
+                guard ciArrayStart >= 0 else { continue }
+                for k in 0..<N {
+                    let ci = Int(readLE(data, at: nb.dataOffset + ciArrayStart + k * recordStride, count: 4))
+                    let ordinal = sortedCounters[k]
+                    guard ci > 0, ci < cmpdParents.count,
+                          ordinal >= 0, ordinal < sentinelSections.count else { continue }
+                    childCompoundSentinel[ci] = ordinal
+                }
+            }
+        }
+
         // Expand a sentinel ordinal into constituent clips.
         func expandSentinel(_ ordinal: Int, baseOffset: Int64, depth: Int) -> [ConstituentClip] {
             guard depth < 8, ordinal >= 0, ordinal < sentinelSections.count else { return [] }
@@ -1022,8 +1079,9 @@ final class PTXBlockDecoder {
                     }
                 } else {
                     // Nested sub-group: ci is compound pool index; look up its sentinel and recurse.
-                    // If no valid sentinel ordinal exists (orphaned split piece), skip silently.
-                    guard let subSentOrd = compoundCreationCounters[ci] else { continue }
+                    // Prefer childCompoundSentinel (from parent's 0x2628 CI/ordinal arrays) over
+                    // the compound's own stale counter, to handle regrouped split tracks.
+                    guard let subSentOrd = childCompoundSentinel[ci] ?? compoundCreationCounters[ci] else { continue }
                     result += expandSentinel(subSentOrd, baseOffset: relOff, depth: depth + 1)
                 }
             }
@@ -1176,10 +1234,19 @@ final class PTXBlockDecoder {
                 let groupConstituents: [ConstituentClip]
                 let slotIdx: Int?
                 let slotNameVal: String?
-                if isGroup, let sentOrd = compoundCreationCounters[clipIdx] {
-                    groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
-                    slotIdx = counterToSlot[sentOrd]
-                    slotNameVal = slotIdx.flatMap { slotNames[$0] }
+                if isGroup {
+                    let sentOrd = childCompoundSentinel[clipIdx] ?? compoundCreationCounters[clipIdx]
+                    if let sentOrd = sentOrd {
+                        groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
+                        // Use the compound's own counter for slot lookup (drives slotOriginalStart)
+                        let ownCounter = compoundCreationCounters[clipIdx]
+                        slotIdx = ownCounter.flatMap { counterToSlot[$0] } ?? counterToSlot[sentOrd]
+                        slotNameVal = slotIdx.flatMap { slotNames[$0] }
+                    } else {
+                        groupConstituents = []
+                        slotIdx = nil
+                        slotNameVal = nil
+                    }
                 } else {
                     groupConstituents = []
                     slotIdx = nil
@@ -1273,10 +1340,18 @@ final class PTXBlockDecoder {
                     let groupConstituents: [ConstituentClip]
                     let slotIdx2: Int?
                     let slotNameVal2: String?
-                    if isGroup, let sentOrd = compoundCreationCounters[clipIdx] {
-                        groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
-                        slotIdx2 = counterToSlot[sentOrd]
-                        slotNameVal2 = slotIdx2.flatMap { slotNames[$0] }
+                    if isGroup {
+                        let sentOrd = childCompoundSentinel[clipIdx] ?? compoundCreationCounters[clipIdx]
+                        if let sentOrd = sentOrd {
+                            groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
+                            let ownCounter = compoundCreationCounters[clipIdx]
+                            slotIdx2 = ownCounter.flatMap { counterToSlot[$0] } ?? counterToSlot[sentOrd]
+                            slotNameVal2 = slotIdx2.flatMap { slotNames[$0] }
+                        } else {
+                            groupConstituents = []
+                            slotIdx2 = nil
+                            slotNameVal2 = nil
+                        }
                     } else {
                         groupConstituents = []
                         slotIdx2 = nil

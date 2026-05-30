@@ -370,9 +370,9 @@ final class PTXParser {
         // compounds with no valid sentinel) stay at the original position.
         //
         // Algorithm:
-        // 1. For each track, find the minimum position of ANY group placement (incl. orphans).
-        // 2. For each slot, collect the tracks that have non-orphan placements in that slot.
-        // 3. slotOriginalStart = min(sectionMin for all tracks in slot).
+        // 1. For each track section, find the minimum position of ANY group placement (incl. orphans).
+        // 2. For each slot, collect the sections that have non-orphan placements in that slot.
+        // 3. slotOriginalStart = min(sectionMin for all sections in slot).
         //    This anchors split slots at the orphan position even when one track (e.g. Cherry)
         //    had its orphan removed in a later regroup operation.
         var sectionMinGroupPos: [String: Int64] = [:]
