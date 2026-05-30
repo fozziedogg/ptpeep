@@ -964,13 +964,6 @@ final class PTXBlockDecoder {
             }
         }
 
-        // Build reverse map: slot → sorted ordinals (for sibling-based fixup of split groups).
-        var slotOrdinals: [Int: [Int]] = [:]
-        for (counter, slot) in counterToSlot {
-            slotOrdinals[slot, default: []].append(counter)
-        }
-        for slot in slotOrdinals.keys { slotOrdinals[slot]!.sort() }
-
         // Build slot names from 0x2423 blocks (last name per slot index wins).
         // Structure: [slotIndex:u32LE] + [nameLen:u32LE] + [name bytes].
         var slotNames: [Int: String] = [:]
@@ -1010,9 +1003,6 @@ final class PTXBlockDecoder {
         // CI-array / ordinal-array at 95-byte record strides, map child CI → correct sentinel ordinal.
         // This corrects stale compoundCreationCounters for child compounds that were regrouped.
         var childCompoundSentinel: [Int: Int] = [:]
-        // slotChildMappings: for each slot, the full list of (childCI, ordinal) from the parent's 0x2628.
-        // Used by the sibling-based fixup to resolve split groups whose own counters are stale.
-        var slotChildMappings: [Int: [(childCI: Int, ordinal: Int)]] = [:]
         let recordStride = 95
         for c in cmpdParents {
             // Find the 0x2628 name/metadata block inside this compound
@@ -1062,15 +1052,8 @@ final class PTXBlockDecoder {
                     guard ci > 0, ci < cmpdParents.count,
                           ordinal >= 0, ordinal < sentinelSections.count else { continue }
                     childCompoundSentinel[ci] = ordinal
-                    if let slot = counterToSlot[ordinal] {
-                        slotChildMappings[slot, default: []].append((childCI: ci, ordinal: ordinal))
-                    }
                 }
             }
-        }
-        // Sort each slot's child mappings by ordinal for consistent ordering.
-        for slot in slotChildMappings.keys {
-            slotChildMappings[slot]!.sort { $0.ordinal < $1.ordinal }
         }
 
         // Expand a sentinel ordinal into constituent clips.
@@ -1169,11 +1152,7 @@ final class PTXBlockDecoder {
         // the 0x1052 block without an inline name.  We match them to audio tracks in orderedNames
         // that were not claimed by any named section, preserving mixer order.
         var namelessSections: [PTXBlock] = []
-        // Track the section index for each track name (first occurrence only).
-        // Used by the split-group fixup to determine track ordering within multitrack groups.
-        var trackSectionIndex: [String: Int] = [:]
-
-        for (sectionIdx, section) in trackSections.enumerated() {
+        for section in trackSections {
             // Read track name: [u32 nameLen][nameBytes].
             let name: String
             if let nameLen = safeU32(data, at: section.dataOffset, be: false),
@@ -1290,7 +1269,6 @@ final class PTXBlockDecoder {
                 nameOrder.append(name)
                 placementsByName[name] = placements
                 channelCounts[name] = 1
-                trackSectionIndex[name] = sectionIdx
             } else {
                 let prevCount = channelCounts[name]!
                 channelCounts[name]! += 1
@@ -1396,62 +1374,7 @@ final class PTXBlockDecoder {
             }
         }
 
-        // Split-group fixup: when a multitrack group is split, the new split compounds
-        // get stale counters (beyond the sentinel section count) and lose their constituent
-        // mapping.  Fix by finding sibling groups at the same timeline position that DO have
-        // resolved ordinals, then assigning the unclaimed ordinals from the same slot to the
-        // unresolved compounds in section order.
-        //
-        // IMPORTANT: only apply to unresolved groups whose compound CI appears in the same
-        // parent's child mapping as the resolved sibling.  Without this check, unrelated
-        // groups that happen to share a timeline position (e.g. 2-pop at 00:59:58:00) get
-        // incorrectly matched and assigned wrong constituents.
-        do {
-            // Collect all group placements at each timeline position across all tracks.
-            var groupsByPosition: [Int64: [(track: String, idx: Int, clipIdx: Int, ordinal: Int?)]] = [:]
-            for name in nameOrder {
-                guard let placements = placementsByName[name] else { continue }
-                for (i, p) in placements.enumerated() where p.isGroup {
-                    let ord: Int? = p.groupConstituents.isEmpty ? nil : (childCompoundSentinel[p.clipIdx] ?? compoundCreationCounters[p.clipIdx])
-                    groupsByPosition[p.timelineSample, default: []].append((name, i, p.clipIdx, ord))
-                }
-            }
-            // For each position with both resolved and unresolved groups, do the fixup.
-            for (_, entries) in groupsByPosition {
-                let resolved = entries.filter { $0.ordinal != nil }
-                let unresolved = entries.filter { $0.ordinal == nil }
-                guard !resolved.isEmpty, !unresolved.isEmpty else { continue }
-                // Find the slot from any resolved sibling.
-                guard let siblingOrd = resolved.first?.ordinal,
-                      let slot = counterToSlot[siblingOrd],
-                      slotOrdinals[slot] != nil,
-                      let childMappings = slotChildMappings[slot] else { continue }
-                // Build set of CIs that belong to this parent's child mapping.
-                let childCIs = Set(childMappings.map { $0.childCI })
-                // Build set of ordinals already used by resolved compounds at this position.
-                let usedOrdinals = Set(resolved.compactMap { $0.ordinal })
-                // Available ordinals: those in the parent's child mapping that aren't used here.
-                let availableOrdinals = childMappings
-                    .filter { !usedOrdinals.contains($0.ordinal) }
-                    .map { $0.ordinal }
-                // Only fix unresolved groups whose compound CI belongs to the same parent.
-                let validUnresolved = unresolved.filter { childCIs.contains($0.clipIdx) }
-                guard !validUnresolved.isEmpty else { continue }
-                // Sort by section index to match ordinal order.
-                let sortedUnresolved = validUnresolved.sorted { (trackSectionIndex[$0.track] ?? 0) < (trackSectionIndex[$1.track] ?? 0) }
-                // Assign available ordinals in order.
-                for (i, entry) in sortedUnresolved.enumerated() {
-                    guard i < availableOrdinals.count else { break }
-                    let ordinal = availableOrdinals[i]
-                    guard ordinal < sentinelSections.count else { continue }
-                    let constituents = expandSentinel(ordinal, baseOffset: 0, depth: 0)
-                    if var arr = placementsByName[entry.track] {
-                        arr[entry.idx].groupConstituents = constituents
-                        placementsByName[entry.track] = arr
-                    }
-                }
-            }
-        }
+
 
         return nameOrder.map { name in
             // Prefer the explicit format byte from 0x251a — it is authoritative for all
