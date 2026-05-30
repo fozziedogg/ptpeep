@@ -13,6 +13,30 @@ enum ColorMode: String {
     }
 }
 
+// MARK: - Per-tab view state (persists across tab switches)
+
+struct TabViewState {
+    var zoomScale:              Double             = 1.0
+    var zoomViewStart:          Double             = 0.0
+    var selStart:               Double?            = nil
+    var selEnd:                 Double?            = nil
+    var selTrack:               Int?               = nil
+    var selTrackEnd:            Int?               = nil
+    var globalTrackHeightLevel: Int                = 2
+    var trackHeightLevels:      [Int: Int]         = [:]
+    var trackSectionExpanded:   Bool               = false
+    var audioSectionExpanded:   Bool               = false
+    var pluginSectionExpanded:  Bool               = false
+    var memLocSectionExpanded:  Bool               = false
+    var markerSearch:           String             = ""
+    var hiddenTrackTypes:       Set<PTXTrackType>  = []
+    var showTrackPlugins:       Bool               = false
+    var showTrackSends:         Bool               = false
+    var showTrackOptions:       Bool               = false
+    var trackSortIndex:         Int                = 0
+    var trackSortAscending:     Bool               = true
+}
+
 // MARK: - Root inspector view
 // Displayed both in the Quick Look extension and the standalone app window.
 
@@ -20,9 +44,8 @@ struct SessionInspectorView: View {
     let session: PTXSession
     let sessionURL: URL
     var isResolvingFiles: Bool = false
-    var initialZoomScale:     Double = 1.0
-    var initialZoomViewStart: Double = 0.0
-    var onZoomChanged:        ((Double, Double) -> Void)? = nil
+    var initialViewState:     TabViewState = TabViewState()
+    var onViewStateChanged:   ((TabViewState) -> Void)? = nil
     var onOpenInProTools: (() -> Void)? = nil
     var onRescan:        (() -> Void)? = nil
     var onClose:         (() -> Void)? = nil
@@ -53,7 +76,15 @@ struct SessionInspectorView: View {
     @State private var trackSortColumn: TrackSortColumn = .none
     @State private var trackSortAscending: Bool = true
 
-    private enum TrackSortColumn { case none, name, format, input, output, atmos }
+    private enum TrackSortColumn {
+        case none, name, format, input, output, atmos
+        var index: Int {
+            switch self { case .none: 0; case .name: 1; case .format: 2; case .input: 3; case .output: 4; case .atmos: 5 }
+        }
+        init(index: Int) {
+            switch index { case 1: self = .name; case 2: self = .format; case 3: self = .input; case 4: self = .output; case 5: self = .atmos; default: self = .none }
+        }
+    }
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
     @StateObject private var audioPlayer = AudioPlayer()
@@ -149,13 +180,49 @@ struct SessionInspectorView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             pluginScanner.startupCheck()
-            if initialZoomScale != 1.0 || initialZoomViewStart != 0.0 {
-                tc.scale     = initialZoomScale
-                tc.viewStart = initialZoomViewStart
-            }
+            let s = initialViewState
+            tc.scale                 = s.zoomScale
+            tc.viewStart             = s.zoomViewStart
+            tc.selStart              = s.selStart
+            tc.selEnd                = s.selEnd
+            tc.selTrack              = s.selTrack
+            tc.selTrackEnd           = s.selTrackEnd
+            tc.globalTrackHeightLevel = s.globalTrackHeightLevel
+            tc.trackHeightLevels     = s.trackHeightLevels
+            trackSectionExpanded     = s.trackSectionExpanded
+            audioSectionExpanded     = s.audioSectionExpanded
+            pluginSectionExpanded    = s.pluginSectionExpanded
+            memLocSectionExpanded    = s.memLocSectionExpanded
+            markerSearch             = s.markerSearch
+            hiddenTrackTypes         = s.hiddenTrackTypes
+            showTrackPlugins         = s.showTrackPlugins
+            showTrackSends           = s.showTrackSends
+            showTrackOptions         = s.showTrackOptions
+            trackSortColumn          = TrackSortColumn(index: s.trackSortIndex)
+            trackSortAscending       = s.trackSortAscending
         }
         .onDisappear {
-            onZoomChanged?(tc.scale, tc.viewStart)
+            onViewStateChanged?(TabViewState(
+                zoomScale:              tc.scale,
+                zoomViewStart:          tc.viewStart,
+                selStart:               tc.selStart,
+                selEnd:                 tc.selEnd,
+                selTrack:               tc.selTrack,
+                selTrackEnd:            tc.selTrackEnd,
+                globalTrackHeightLevel: tc.globalTrackHeightLevel,
+                trackHeightLevels:      tc.trackHeightLevels,
+                trackSectionExpanded:   trackSectionExpanded,
+                audioSectionExpanded:   audioSectionExpanded,
+                pluginSectionExpanded:  pluginSectionExpanded,
+                memLocSectionExpanded:  memLocSectionExpanded,
+                markerSearch:           markerSearch,
+                hiddenTrackTypes:       hiddenTrackTypes,
+                showTrackPlugins:       showTrackPlugins,
+                showTrackSends:         showTrackSends,
+                showTrackOptions:       showTrackOptions,
+                trackSortIndex:         trackSortColumn.index,
+                trackSortAscending:     trackSortAscending
+            ))
         }
     }
 

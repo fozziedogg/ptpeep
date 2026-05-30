@@ -149,6 +149,7 @@ private struct SettingsView: View {
 
 // MARK: - Tab state
 
+
 struct TabState: Identifiable {
     let id: UUID
     var sessionURL:       URL?
@@ -156,8 +157,7 @@ struct TabState: Identifiable {
     var isLoading:        Bool
     var isResolvingFiles: Bool = false
     var errorText:        String?
-    var zoomScale:        Double = 1.0
-    var zoomViewStart:    Double = 0.0
+    var viewState:        TabViewState = TabViewState()
 
     var displayName: String {
         sessionURL?.deletingPathExtension().lastPathComponent ?? "New Session"
@@ -284,8 +284,8 @@ final class AppState: ObservableObject {
         update(&tabs[idx])
     }
 
-    func saveZoomState(tabID: UUID, scale: Double, viewStart: Double) {
-        updateTab(id: tabID) { $0.zoomScale = scale; $0.zoomViewStart = viewStart }
+    func saveTabViewState(tabID: UUID, state: TabViewState) {
+        updateTab(id: tabID) { $0.viewState = state }
     }
 
     func updateWindowTitle() {
@@ -465,15 +465,14 @@ struct AppContentView: View {
     private func tabContent(_ tab: TabState) -> some View {
         if let session = tab.session, let url = tab.sessionURL {
             SessionInspectorView(
-                session:             session,
-                sessionURL:          url,
-                isResolvingFiles:    tab.isResolvingFiles,
-                initialZoomScale:    tab.zoomScale,
-                initialZoomViewStart: tab.zoomViewStart,
-                onZoomChanged:       { s, vs in appState.saveZoomState(tabID: tab.id, scale: s, viewStart: vs) },
-                onOpenInProTools:    { appState.openInProTools(url: url) },
-                onRescan:            { appState.rescan(tabID: tab.id, url: url) },
-                onClose:             { appState.closeTab(id: tab.id) }
+                session:              session,
+                sessionURL:           url,
+                isResolvingFiles:     tab.isResolvingFiles,
+                initialViewState:     tab.viewState,
+                onViewStateChanged:   { state in appState.saveTabViewState(tabID: tab.id, state: state) },
+                onOpenInProTools:     { appState.openInProTools(url: url) },
+                onRescan:             { appState.rescan(tabID: tab.id, url: url) },
+                onClose:              { appState.closeTab(id: tab.id) }
             )
         } else if tab.isLoading {
             PeepingView()
