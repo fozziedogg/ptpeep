@@ -1401,9 +1401,13 @@ final class PTXBlockDecoder {
         // mapping.  Fix by finding sibling groups at the same timeline position that DO have
         // resolved ordinals, then assigning the unclaimed ordinals from the same slot to the
         // unresolved compounds in section order.
+        //
+        // IMPORTANT: only apply to unresolved groups whose compound CI appears in the same
+        // parent's child mapping as the resolved sibling.  Without this check, unrelated
+        // groups that happen to share a timeline position (e.g. 2-pop at 00:59:58:00) get
+        // incorrectly matched and assigned wrong constituents.
         do {
             // Collect all group placements at each timeline position across all tracks.
-            // Key: timeline position → [(trackName, placementIndex, clipIdx, ordinal?)]
             var groupsByPosition: [Int64: [(track: String, idx: Int, clipIdx: Int, ordinal: Int?)]] = [:]
             for name in nameOrder {
                 guard let placements = placementsByName[name] else { continue }
@@ -1422,14 +1426,19 @@ final class PTXBlockDecoder {
                       let slot = counterToSlot[siblingOrd],
                       slotOrdinals[slot] != nil,
                       let childMappings = slotChildMappings[slot] else { continue }
+                // Build set of CIs that belong to this parent's child mapping.
+                let childCIs = Set(childMappings.map { $0.childCI })
                 // Build set of ordinals already used by resolved compounds at this position.
                 let usedOrdinals = Set(resolved.compactMap { $0.ordinal })
                 // Available ordinals: those in the parent's child mapping that aren't used here.
                 let availableOrdinals = childMappings
                     .filter { !usedOrdinals.contains($0.ordinal) }
                     .map { $0.ordinal }
-                // Sort unresolved by section index to match ordinal order.
-                let sortedUnresolved = unresolved.sorted { (trackSectionIndex[$0.track] ?? 0) < (trackSectionIndex[$1.track] ?? 0) }
+                // Only fix unresolved groups whose compound CI belongs to the same parent.
+                let validUnresolved = unresolved.filter { childCIs.contains($0.clipIdx) }
+                guard !validUnresolved.isEmpty else { continue }
+                // Sort by section index to match ordinal order.
+                let sortedUnresolved = validUnresolved.sorted { (trackSectionIndex[$0.track] ?? 0) < (trackSectionIndex[$1.track] ?? 0) }
                 // Assign available ordinals in order.
                 for (i, entry) in sortedUnresolved.enumerated() {
                     guard i < availableOrdinals.count else { break }
