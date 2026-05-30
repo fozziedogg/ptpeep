@@ -1071,6 +1071,8 @@ final class PTXBlockDecoder {
                 let ci     = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
                 let tl     = readLE(data, at: pl.dataOffset + 7, count: 8)
                 guard tl >= SENT_ORIGIN else { continue }
+                // byte[35]==0x01 means hidden dialog reference — same filter as main timeline
+                guard pl.dataSize < 36 || data[pl.dataOffset + 35] == 0x00 else { continue }
                 let relOff = baseOffset + Int64(bitPattern: tl - SENT_ORIGIN)
                 if data[pl.dataOffset + 18] == 0x00 {
                     // Leaf audio constituent: ci directly indexes the audio pool (0x2629)
