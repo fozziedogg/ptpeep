@@ -363,38 +363,19 @@ final class PTXParser {
             trackIndexByName[t.name] = i
         }
 
-        // Pre-compute per-slot "original start" — the creation-time group position used as the
-        // base for sentinel relOffsets.  When PT splits a group, it COPIES the sentinel data
-        // verbatim (byte-for-byte), preserving relOffsets relative to the ORIGINAL group start.
-        // The split pieces land at shifted positions, but their orphan companions (first-piece
-        // compounds with no valid sentinel) stay at the original position.
-        //
-        // Algorithm:
-        // 1. For each track section, find the minimum position of ANY group placement (incl. orphans).
-        // 2. For each slot, collect the sections that have non-orphan placements in that slot.
-        // 3. slotOriginalStart = min(sectionMin for all sections in slot).
-        //    This anchors split slots at the orphan position even when one track (e.g. Cherry)
-        //    had its orphan removed in a later regroup operation.
-        var sectionMinGroupPos: [String: Int64] = [:]
+        // Pre-compute per-slot start: the earliest timeline position across all group placements
+        // in the same slot.  When a multitrack group is split, each track's piece has a different
+        // gStart, but all sentinels store relOff relative to the *original* group start (= slot
+        // minimum across all tracks in the slot).  Using slotStart as the absPos base gives the
+        // correct constituent positions even for split groups.
+        var slotStart: [Int: Int64] = [:]
         for tp in trackPlaylists {
-            for p in tp.placements where p.isGroup && !p.isHidden {
-                let cur = sectionMinGroupPos[tp.name]
-                if cur == nil || p.timelineSample < cur! {
-                    sectionMinGroupPos[tp.name] = p.timelineSample
-                }
-            }
-        }
-        var slotSections: [Int: Set<String>] = [:]
-        for tp in trackPlaylists {
-            for p in tp.placements where p.isGroup && !p.isHidden {
+            for p in tp.placements where p.isGroup {
                 guard let si = p.slotIndex else { continue }
-                slotSections[si, default: []].insert(tp.name)
-            }
-        }
-        var slotOriginalStart: [Int: Int64] = [:]
-        for (si, sections) in slotSections {
-            if let minPos = sections.compactMap({ sectionMinGroupPos[$0] }).min() {
-                slotOriginalStart[si] = minPos
+                let cur = slotStart[si]
+                if cur == nil || p.timelineSample < cur! {
+                    slotStart[si] = p.timelineSample
+                }
             }
         }
 
@@ -458,7 +439,7 @@ final class PTXParser {
                     // was first created; split/regroup operations copy the sentinel verbatim so
                     // the relOffsets never change.  Orphan split-pieces on sibling tracks anchor
                     // the original start even when not all tracks retained their orphan.
-                    let base = p.slotIndex.flatMap { slotOriginalStart[$0] } ?? gStart
+                    let base = p.slotIndex.flatMap { slotStart[$0] } ?? gStart
                     let absPos = base + constituent.relativeOffset
                     guard absPos >= 0 else { continue }
                     let clipEntry = constituent.audioClipIdx < clips.count ? clips[constituent.audioClipIdx] : nil
