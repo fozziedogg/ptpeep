@@ -1436,12 +1436,8 @@ final class PTXBlockDecoder {
                     let ordinal = availableOrdinals[i]
                     guard ordinal < sentinelSections.count else { continue }
                     let constituents = expandSentinel(ordinal, baseOffset: 0, depth: 0)
-                    let slotIdx = counterToSlot[ordinal]
-                    let slotNameVal = slotIdx.flatMap { slotNames[$0] }
                     if var arr = placementsByName[entry.track] {
                         arr[entry.idx].groupConstituents = constituents
-                        arr[entry.idx].slotIndex = slotIdx
-                        arr[entry.idx].slotName = slotNameVal
                         placementsByName[entry.track] = arr
                     }
                 }
