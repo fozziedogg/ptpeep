@@ -982,6 +982,16 @@ final class PTXBlockDecoder {
         // or regrouping are stale and must not be used.  Compounds with no valid counter are
         // orphaned (split secondary pieces with no retained sentinel) and must stay unexpanded.
         var compoundCreationCounters: [Int: Int] = [:]
+        var allCompoundCounters: [Int: [Int]] = [:]  // ci → ALL valid counters
+        // Cross-reference fields from 0x2523 blocks (3 bytes each):
+        //   selfID  = bytes[21..23]: group-edit identity, shared by all compounds in same edit
+        //   linkID  = bytes[65..67]: pointer to sibling compound's selfID (set after split/regroup)
+        typealias ID3 = (UInt8, UInt8, UInt8)
+        func id3Eq(_ a: ID3, _ b: ID3) -> Bool { a.0 == b.0 && a.1 == b.1 && a.2 == b.2 }
+        var compoundSelfID: [Int: ID3] = [:]   // ci → selfID
+        var compoundLinkID: [Int: ID3] = [:]   // ci → linkID
+        var selfIDToCompounds: [String: [Int]] = [:]  // selfID key → [ci]
+        func id3Key(_ id: ID3) -> String { "\(id.0),\(id.1),\(id.2)" }
         for (ci, c) in cmpdParents.enumerated() {
             let c2523s = blocks.filter { m in
                 m.contentType == 0x2523 &&
@@ -989,12 +999,25 @@ final class PTXBlockDecoder {
                 m.dataOffset + m.dataSize <= c.dataOffset + c.dataSize &&
                 m.dataSize >= 39
             }.sorted { $0.dataOffset < $1.dataOffset }
+            var allCounters: [Int] = []
             for m in c2523s {
                 let counter = Int(readLE(data, at: m.dataOffset + 37, count: 2))
+                allCounters.append(counter)
                 if counterToSlot[counter] != nil {
-                    compoundCreationCounters[ci] = counter
-                    break
+                    allCompoundCounters[ci, default: []].append(counter)
+                    if compoundCreationCounters[ci] == nil {
+                        compoundCreationCounters[ci] = counter
+                    }
                 }
+            }
+            // Extract selfID and linkID from the first 0x2523 block (need >= 68 bytes)
+            if let first2523 = c2523s.first, first2523.dataSize >= 68 {
+                let off = first2523.dataOffset
+                let sid: ID3 = (data[off + 21], data[off + 22], data[off + 23])
+                let lid: ID3 = (data[off + 65], data[off + 66], data[off + 67])
+                compoundSelfID[ci] = sid
+                compoundLinkID[ci] = lid
+                selfIDToCompounds[id3Key(sid), default: []].append(ci)
             }
         }
         let SENT_ORIGIN: UInt64 = 1_000_000_000_000
@@ -1109,6 +1132,79 @@ final class PTXBlockDecoder {
                 sentinelContentIndex[ordinal] = ciSet
             }
         }
+
+        // ── Deterministic cross-reference resolution for orphan compounds ────
+        // Split/regroup creates orphan compounds whose counters are not in 0x2425.
+        // Resolution uses two deterministic methods, then a bracket-fit fallback:
+        //
+        //   Step 1 — Cross-reference: orphan's linkID (bytes[65..67] of 0x2523) matches
+        //     the selfID (bytes[21..23]) of a sibling compound that HAS a valid sentinel.
+        //     Split -01 pieces link to -02 pieces this way. They share the same sentinel;
+        //     the bracket guard filters to the correct time range.
+        //
+        //   Step 2 — Process of elimination: after step 1, some sentinel ordinals may be
+        //     "unclaimed" (their counter was recycled by a split piece that resolved via
+        //     cross-ref). Remaining unresolved compounds are matched to unclaimed sentinels.
+
+        // Step 1: Cross-reference resolution.
+        var crossRefResolved: [Int: Int] = [:]  // ci → sentinel ordinal
+        var freedCounters = Set<Int>()  // counters freed by cross-ref override
+        for ci in 0..<cmpdParents.count {
+            guard childCompoundSentinel[ci] == nil,
+                  let linkID = compoundLinkID[ci] else { continue }
+            let key = id3Key(linkID)
+            guard let candidates = selfIDToCompounds[key] else { continue }
+            for candidateCI in candidates {
+                guard let targetCounter = compoundCreationCounters[candidateCI] else { continue }
+                let ownCounter = compoundCreationCounters[ci]
+                if ownCounter == targetCounter { break }
+                crossRefResolved[ci] = targetCounter
+                if let own = ownCounter { freedCounters.insert(own) }
+                break
+            }
+        }
+
+        // Step 2: Process of elimination for displaced compounds (e.g., F_solo).
+        var unclaimedSentinels: [Int] = []
+        for ordinal in 0..<sentinelSections.count {
+            let usedByPrimary = compoundCreationCounters.values.contains(ordinal) &&
+                !freedCounters.contains(ordinal)
+            let usedByChild = childCompoundSentinel.values.contains(ordinal)
+            let usedByCrossRef = crossRefResolved.values.contains(ordinal)
+            if !usedByPrimary && !usedByChild && !usedByCrossRef {
+                unclaimedSentinels.append(ordinal)
+            }
+        }
+        var eliminationResolved: [Int: Int] = [:]
+        var unresolvedOrphans: [Int] = []
+        for ci in 0..<cmpdParents.count {
+            let hasCounter = compoundCreationCounters[ci] != nil &&
+                !freedCounters.contains(compoundCreationCounters[ci]!)
+            guard !hasCounter,
+                  childCompoundSentinel[ci] == nil,
+                  crossRefResolved[ci] == nil else { continue }
+            unresolvedOrphans.append(ci)
+        }
+        if unresolvedOrphans.count == 1 && unclaimedSentinels.count == 1 {
+            eliminationResolved[unresolvedOrphans[0]] = unclaimedSentinels[0]
+        } else if unresolvedOrphans.count > 0 && unclaimedSentinels.count > 0 {
+            var usedOrdinals = Set<Int>()
+            for ci in unresolvedOrphans {
+                for ordinal in unclaimedSentinels where !usedOrdinals.contains(ordinal) {
+                    let candidates = expandSentinel(ordinal, baseOffset: 0, depth: 0)
+                    if !candidates.isEmpty {
+                        eliminationResolved[ci] = ordinal
+                        usedOrdinals.insert(ordinal)
+                        break
+                    }
+                }
+            }
+        }
+
+        // Override compoundCreationCounters so the primary expansion path uses correct sentinels.
+        for (ci, ord) in crossRefResolved { compoundCreationCounters[ci] = ord }
+        for (ci, ord) in eliminationResolved { compoundCreationCounters[ci] = ord }
+
 
         // Use the first non-empty 0x1054 (main active playlist set)
         guard let container = blocks
@@ -1395,64 +1491,58 @@ final class PTXBlockDecoder {
             }
         }
 
-        // ── Content-matching fallback for orphan compounds ───────────────────────
-        // Orphan compounds (from split/regroup) have counters beyond the sentinel section
-        // count, so they get groupConstituents=[] above.  Resolve them by matching the
-        // track's non-group audio clip indices against sentinelContentIndex.
+        // Step 3: Bracket-fit fallback for remaining unresolved orphans.
+        // Some orphans have no cross-ref match and no unclaimed sentinel (e.g., sessions
+        // with many split/regroup operations that left more orphans than sentinel sections).
+        // These can share an existing sentinel; the bracket guard filters to correct clips.
         for name in nameOrder {
             guard var placements = placementsByName[name] else { continue }
-            // Check if this track has any orphan groups worth resolving.
-            // True orphans have no sentinel mapping at all (both lookups nil).
-            // Groups that mapped to a sentinel but produced 0 constituents (empty groups)
-            // should keep their empty state — they are NOT orphans.
             let hasOrphan = placements.contains { p in
                 p.isGroup && p.groupConstituents.isEmpty && p.groupLength != nil &&
                 childCompoundSentinel[p.clipIdx] == nil && compoundCreationCounters[p.clipIdx] == nil
             }
             guard hasOrphan else { continue }
-            // Collect audio clip indices known to be on this track:
-            //  1. Non-group placements (standalone audio clips)
-            //  2. Constituents from already-resolved groups (their audioClipIdx values)
+            // Collect audio clip indices known to be on this track
             var trackAudioCIs = Set<Int>()
             for p in placements {
                 if !p.isGroup && !p.isHidden {
                     trackAudioCIs.insert(p.clipIdx)
                 } else if p.isGroup && !p.groupConstituents.isEmpty {
-                    for c in p.groupConstituents {
-                        trackAudioCIs.insert(c.audioClipIdx)
-                    }
+                    for c in p.groupConstituents { trackAudioCIs.insert(c.audioClipIdx) }
                 }
             }
-            guard !trackAudioCIs.isEmpty else { continue }
             var changed = false
             for i in placements.indices {
                 let p = placements[i]
                 guard p.isGroup, p.groupConstituents.isEmpty, p.groupLength != nil,
                       childCompoundSentinel[p.clipIdx] == nil,
                       compoundCreationCounters[p.clipIdx] == nil else { continue }
-                // Find the sentinel section with the best overlap.
-                // Don't exclude sentinels used by sibling groups — split/regroup creates
-                // multiple group brackets that share the same underlying sentinel data.
-                // PTXParser's bracket guard filters constituents to each group's time range.
+                let gStart = p.timelineSample
+                let gLen = p.groupLength!
+                guard gLen > 0 else { continue }
                 var bestOrdinal = -1
-                var bestOverlap = 0
-                for (ordinal, ciSet) in sentinelContentIndex {
-                    let overlap = trackAudioCIs.intersection(ciSet).count
-                    if overlap > bestOverlap {
-                        bestOverlap = overlap
-                        bestOrdinal = ordinal
+                var bestScore = 0
+                if !trackAudioCIs.isEmpty {
+                    // CI overlap: find sentinel with most shared clip indices
+                    for (ordinal, ciSet) in sentinelContentIndex {
+                        let overlap = trackAudioCIs.intersection(ciSet).count
+                        if overlap > bestScore { bestScore = overlap; bestOrdinal = ordinal }
+                    }
+                } else {
+                    // Bracket-fit: for tracks with ONLY orphan groups
+                    for ordinal in 0..<sentinelSections.count {
+                        let candidates = expandSentinel(ordinal, baseOffset: 0, depth: 0)
+                        let inBracket = candidates.filter { c in
+                            let absPos = gStart + c.relativeOffset
+                            return absPos >= gStart && absPos < gStart + gLen
+                        }.count
+                        if inBracket > bestScore { bestScore = inBracket; bestOrdinal = ordinal }
                     }
                 }
                 guard bestOrdinal >= 0 else { continue }
-                // Expand the matched sentinel and update the placement.
                 let constituents = expandSentinel(bestOrdinal, baseOffset: 0, depth: 0)
                 guard !constituents.isEmpty else { continue }
                 placements[i].groupConstituents = constituents
-                // Derive slot from counterToSlot if possible.
-                if placements[i].slotIndex == nil {
-                    placements[i].slotIndex = counterToSlot[bestOrdinal]
-                    placements[i].slotName = placements[i].slotIndex.flatMap { slotNames[$0] }
-                }
                 changed = true
             }
             if changed { placementsByName[name] = placements }
