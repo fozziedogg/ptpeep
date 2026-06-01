@@ -983,6 +983,7 @@ final class PTXBlockDecoder {
         // orphaned (split secondary pieces with no retained sentinel) and must stay unexpanded.
         var compoundCreationCounters: [Int: Int] = [:]
         var allCompoundCounters: [Int: [Int]] = [:]  // ci → ALL valid counters
+        var staleOrdinals: [Int: [Int]] = [:]  // ci → counters NOT in counterToSlot but valid sentinel indices
         // Cross-reference fields from 0x2523 blocks (3 bytes each):
         //   selfID  = bytes[21..23]: group-edit identity, shared by all compounds in same edit
         //   linkID  = bytes[65..67]: pointer to sibling compound's selfID (set after split/regroup)
@@ -999,15 +1000,15 @@ final class PTXBlockDecoder {
                 m.dataOffset + m.dataSize <= c.dataOffset + c.dataSize &&
                 m.dataSize >= 39
             }.sorted { $0.dataOffset < $1.dataOffset }
-            var allCounters: [Int] = []
             for m in c2523s {
                 let counter = Int(readLE(data, at: m.dataOffset + 37, count: 2))
-                allCounters.append(counter)
                 if counterToSlot[counter] != nil {
                     allCompoundCounters[ci, default: []].append(counter)
                     if compoundCreationCounters[ci] == nil {
                         compoundCreationCounters[ci] = counter
                     }
+                } else if counter >= 0 && counter < sentinelSections.count {
+                    staleOrdinals[ci, default: []].append(counter)
                 }
             }
             // Extract selfID and linkID from the first 0x2523 block (need >= 68 bytes)
@@ -1079,6 +1080,15 @@ final class PTXBlockDecoder {
             }
         }
 
+        // Forward-declare for use in expandSentinel; populated after cross-ref resolution.
+        var leafSentinelByBaseName: [String: Int] = [:]
+        func stripSplitSuffix(_ name: String) -> String {
+            if let r = name.range(of: #"-\d+$"#, options: .regularExpression) {
+                return String(name[name.startIndex..<r.lowerBound])
+            }
+            return name
+        }
+
         // Expand a sentinel ordinal into constituent clips.
         func expandSentinel(_ ordinal: Int, baseOffset: Int64, depth: Int) -> [ConstituentClip] {
             guard depth < 8, ordinal >= 0, ordinal < sentinelSections.count else { return [] }
@@ -1097,19 +1107,37 @@ final class PTXBlockDecoder {
                 // byte[35]==0x01 means hidden dialog reference — same filter as main timeline
                 guard pl.dataSize < 36 || data[pl.dataOffset + 35] == 0x00 else { continue }
                 let relOff = baseOffset + Int64(bitPattern: tl - SENT_ORIGIN)
-                if data[pl.dataOffset + 18] == 0x00 {
+                let nestByte = data[pl.dataOffset + 18]
+                if nestByte == 0x00 {
                     // Leaf audio constituent: ci directly indexes the audio pool (0x2629)
                     if ci < audioParents.count {
                         result.append(ConstituentClip(audioClipIdx: ci, relativeOffset: relOff))
                     }
                 } else {
                     // Nested sub-group: ci is compound pool index; look up its sentinel and recurse.
-                    // Prefer childCompoundSentinel (from parent's 0x2628 CI/ordinal arrays) over
-                    // the compound's own stale counter, to handle regrouped split tracks.
-                    guard let subSentOrd = childCompoundSentinel[ci] ?? compoundCreationCounters[ci] else { continue }
+                    // Fallback chain: childCompoundSentinel → active counter (if in range) →
+                    // cross-ref resolved counter → stale ordinals from earlier 0x2523 blocks.
+                    let subSentOrd: Int? = childCompoundSentinel[ci]
+                        ?? {
+                            if let c = compoundCreationCounters[ci], c < sentinelSections.count { return c }
+                            if let c = crossRefResolved[ci], c < sentinelSections.count { return c }
+                            if let s = staleOrdinals[ci]?.first { return s }
+                            // Last resort: find a sibling with the same base group name
+                            // that has a leaf-only sentinel (for nested/"russian doll" groups)
+                            if ci < cmpdParents.count, let name = compoundPool[ci]?.name {
+                                let base = stripSplitSuffix(name)
+                                return leafSentinelByBaseName[base]
+                            }
+                            return nil
+                        }()
+                    guard let subSentOrd else { continue }
                     result += expandSentinel(subSentOrd, baseOffset: relOff, depth: depth + 1)
                 }
             }
+            // Deduplicate by audioClipIdx: split pieces sharing a sentinel can
+            // produce the same leaf clip at different offsets.  Keep first occurrence.
+            var seen = Set<Int>()
+            result = result.filter { seen.insert($0.audioClipIdx).inserted }
             return result
         }
 
@@ -1133,6 +1161,19 @@ final class PTXBlockDecoder {
             }
         }
 
+        // Invalidate counter assignments where the sentinel has ZERO leaf entries.
+        // When "group-all" renumbers counters, inner compounds may collide with outer-group
+        // sentinels (all nesting, no leaves). These are wrong — the inner compound's sentinel
+        // should have leaf entries describing its audio clips. Clearing the counter lets the
+        // leaf-sentinel-by-base-name fallback find the correct leaf sentinel instead.
+        for (ci, counter) in compoundCreationCounters {
+            guard counter >= 0, counter < sentinelSections.count else { continue }
+            if sentinelContentIndex[counter] == nil {
+                // Sentinel has no leaf entries — it's an outer-group sentinel, not this compound's
+                compoundCreationCounters[ci] = nil
+            }
+        }
+
         // ── Deterministic cross-reference resolution for orphan compounds ────
         // Split/regroup creates orphan compounds whose counters are not in 0x2425.
         // Resolution uses two deterministic methods, then a bracket-fit fallback:
@@ -1146,21 +1187,42 @@ final class PTXBlockDecoder {
         //     "unclaimed" (their counter was recycled by a split piece that resolved via
         //     cross-ref). Remaining unresolved compounds are matched to unclaimed sentinels.
 
-        // Step 1: Cross-reference resolution.
+        // Step 1: Cross-reference resolution via positional matching.
+        // selfID identifies a group-edit batch; ALL compounds from the same operation share it.
+        // linkID points to the target batch's selfID.  To match source→target within a batch,
+        // we use positional ordering: the Nth source compound (sorted by ci) maps to the Nth
+        // target compound (sorted by ci).  When the source group is larger than the target
+        // (e.g., -01 and -03 pieces share a selfID but target -02 group has fewer members),
+        // use modular indexing so -03 pieces wrap around to the correct target.
         var crossRefResolved: [Int: Int] = [:]  // ci → sentinel ordinal
         var freedCounters = Set<Int>()  // counters freed by cross-ref override
+
+        // Group source compounds by linkID for positional matching.
+        var sourcesByLinkID: [String: [Int]] = [:]  // linkID key → [ci] sorted by ci
         for ci in 0..<cmpdParents.count {
             guard childCompoundSentinel[ci] == nil,
                   let linkID = compoundLinkID[ci] else { continue }
             let key = id3Key(linkID)
-            guard let candidates = selfIDToCompounds[key] else { continue }
-            for candidateCI in candidates {
-                guard let targetCounter = compoundCreationCounters[candidateCI] else { continue }
+            // Skip if linkID matches own selfID (self-referencing, no cross-ref needed)
+            if let selfID = compoundSelfID[ci], id3Eq(linkID, selfID) { continue }
+            sourcesByLinkID[key, default: []].append(ci)
+        }
+        for (linkKey, sourceCIs) in sourcesByLinkID {
+            guard let targetCIs = selfIDToCompounds[linkKey] else { continue }
+            // Filter targets to those with valid sentinel counters.
+            // Include childCompoundSentinel as fallback: after group-all, some targets
+            // have out-of-range 0x2523 counters but were assigned ordinals by their parent's 0x2628.
+            let validTargets = targetCIs.filter {
+                compoundCreationCounters[$0] != nil || childCompoundSentinel[$0] != nil
+            }
+            guard !validTargets.isEmpty else { continue }
+            for (i, ci) in sourceCIs.enumerated() {
+                let targetCI = validTargets[i % validTargets.count]
+                guard let targetCounter = compoundCreationCounters[targetCI] ?? childCompoundSentinel[targetCI] else { continue }
                 let ownCounter = compoundCreationCounters[ci]
-                if ownCounter == targetCounter { break }
+                if ownCounter == targetCounter { continue }
                 crossRefResolved[ci] = targetCounter
                 if let own = ownCounter { freedCounters.insert(own) }
-                break
             }
         }
 
@@ -1205,6 +1267,57 @@ final class PTXBlockDecoder {
         for (ci, ord) in crossRefResolved { compoundCreationCounters[ci] = ord }
         for (ci, ord) in eliminationResolved { compoundCreationCounters[ci] = ord }
 
+        // Reverse-link pass: split pieces whose cross-ref targets lost their counters
+        // (e.g., after group-all renumbering) can inherit from siblings that link TO them.
+        // Group orphans by selfID; find compounds whose linkID matches that selfID and have
+        // valid counters; match positionally (Nth orphan → Nth linker's counter).
+        var orphansBySelfID: [String: [Int]] = [:]
+        for ci in 0..<cmpdParents.count {
+            guard compoundCreationCounters[ci] == nil,
+                  childCompoundSentinel[ci] == nil,
+                  compoundSelfID[ci] != nil else { continue }
+            orphansBySelfID[id3Key(compoundSelfID[ci]!), default: []].append(ci)
+        }
+        for (selfKey, orphanCIs) in orphansBySelfID {
+            // Find compounds that link TO this selfID group and have valid counters.
+            var linkers: [(ci: Int, counter: Int)] = []
+            for (otherCI, linkID) in compoundLinkID {
+                guard id3Key(linkID) == selfKey,
+                      let c = compoundCreationCounters[otherCI] ?? childCompoundSentinel[otherCI] else { continue }
+                linkers.append((otherCI, c))
+            }
+            guard !linkers.isEmpty else { continue }
+            linkers.sort { $0.ci < $1.ci }
+            for (i, ci) in orphanCIs.enumerated() {
+                compoundCreationCounters[ci] = linkers[i % linkers.count].counter
+            }
+        }
+
+        // Build leaf-sentinel-by-base-name lookup for nested group resolution.
+        // When an inner compound (e.g., TEST.grp inside a MEGA group) has no valid sentinel
+        // ordinal (its 0x2523 counters exceed sentinelSections.count), we fall back to finding
+        // a sibling compound with the same base name (strip split suffix like -01) that DOES
+        // have a valid counter pointing to a leaf-only sentinel (all 0x104f entries byte[18]==0x00).
+        for (ci, _) in cmpdParents.enumerated() {
+            guard let counter = compoundCreationCounters[ci],
+                  counter >= 0, counter < sentinelSections.count else { continue }
+            // Check if this sentinel has ONLY leaf entries (no nesting)
+            guard let content = sentinelContentIndex[counter] else { continue }
+            let section = sentinelSections[counter]
+            let secEnd = section.dataOffset + section.dataSize
+            let hasNesting = blocks.contains { b in
+                b.contentType == 0x104f &&
+                b.dataOffset >= section.dataOffset && b.dataOffset + b.dataSize <= secEnd &&
+                b.dataSize >= 19 && data[b.dataOffset + 18] != 0x00
+            }
+            if !hasNesting && !content.isEmpty {
+                let name = compoundPool[ci]?.name ?? ""
+                let base = stripSplitSuffix(name)
+                if !base.isEmpty {
+                    leafSentinelByBaseName[base] = counter
+                }
+            }
+        }
 
         // Use the first non-empty 0x1054 (main active playlist set)
         guard let container = blocks
