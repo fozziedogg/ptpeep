@@ -1089,6 +1089,29 @@ final class PTXBlockDecoder {
             return name
         }
 
+        // Nesting-name lookup: maps base compound name → sentinel ordinals whose nesting
+        // entries reference compounds with that base name.  Used for multi-layer nesting
+        // resolution where 0x2523 counters are unreliable.
+        var nestingNameToOrdinals: [String: [Int]] = [:]
+        for (ord, section) in sentinelSections.enumerated() {
+            let secEnd = section.dataOffset + section.dataSize
+            let nestEntries = blocks.filter { b in
+                b.contentType == 0x104f &&
+                b.dataOffset >= section.dataOffset && b.dataOffset + b.dataSize <= secEnd &&
+                b.dataSize >= 19 && data[b.dataOffset + 18] != 0x00
+            }
+            for entry in nestEntries {
+                let nestedCI = Int(readLE(data, at: entry.dataOffset + 2, count: 2))
+                guard nestedCI < cmpdParents.count,
+                      let name = compoundPool[nestedCI]?.name else { continue }
+                let base = stripSplitSuffix(name)
+                guard !base.isEmpty else { continue }
+                if !(nestingNameToOrdinals[base]?.contains(ord) ?? false) {
+                    nestingNameToOrdinals[base, default: []].append(ord)
+                }
+            }
+        }
+
         // Expand a sentinel ordinal into constituent clips.
         func expandSentinel(_ ordinal: Int, baseOffset: Int64, depth: Int) -> [ConstituentClip] {
             guard depth < 8, ordinal >= 0, ordinal < sentinelSections.count else { return [] }
@@ -1116,14 +1139,13 @@ final class PTXBlockDecoder {
                 } else {
                     // Nested sub-group: ci is compound pool index; look up its sentinel and recurse.
                     // Fallback chain: childCompoundSentinel → active counter (if in range) →
-                    // cross-ref resolved counter → stale ordinals from earlier 0x2523 blocks.
+                    // cross-ref resolved counter → stale ordinals from earlier 0x2523 blocks →
+                    // leaf sentinel by base name (last resort for nested/"russian doll" groups).
                     let subSentOrd: Int? = childCompoundSentinel[ci]
                         ?? {
                             if let c = compoundCreationCounters[ci], c < sentinelSections.count { return c }
                             if let c = crossRefResolved[ci], c < sentinelSections.count { return c }
                             if let s = staleOrdinals[ci]?.first { return s }
-                            // Last resort: find a sibling with the same base group name
-                            // that has a leaf-only sentinel (for nested/"russian doll" groups)
                             if ci < cmpdParents.count, let name = compoundPool[ci]?.name {
                                 let base = stripSplitSuffix(name)
                                 return leafSentinelByBaseName[base]
@@ -1161,16 +1183,24 @@ final class PTXBlockDecoder {
             }
         }
 
-        // Invalidate counter assignments where the sentinel has ZERO leaf entries.
-        // When "group-all" renumbers counters, inner compounds may collide with outer-group
-        // sentinels (all nesting, no leaves). These are wrong — the inner compound's sentinel
-        // should have leaf entries describing its audio clips. Clearing the counter lets the
-        // leaf-sentinel-by-base-name fallback find the correct leaf sentinel instead.
+        // Invalidate counter assignments where the sentinel contains nesting entries
+        // (byte[18]!=0x00).  After "group-all", inner compounds may get counters that
+        // collide with outer-group sentinels — those sentinels have nesting entries pointing
+        // to inner compounds, not leaf audio clips.  Skip genuinely empty sentinels (zero
+        // 0x104f blocks, e.g., EmptySlot) — they should keep their counter assignment.
         for (ci, counter) in compoundCreationCounters {
             guard counter >= 0, counter < sentinelSections.count else { continue }
             if sentinelContentIndex[counter] == nil {
-                // Sentinel has no leaf entries — it's an outer-group sentinel, not this compound's
-                compoundCreationCounters[ci] = nil
+                let section = sentinelSections[counter]
+                let secEnd = section.dataOffset + section.dataSize
+                let hasNesting = blocks.contains { b in
+                    b.contentType == 0x104f &&
+                    b.dataOffset >= section.dataOffset && b.dataOffset + b.dataSize <= secEnd &&
+                    b.dataSize >= 19 && data[b.dataOffset + 18] != 0x00
+                }
+                if hasNesting {
+                    compoundCreationCounters[ci] = nil
+                }
             }
         }
 
@@ -1604,7 +1634,41 @@ final class PTXBlockDecoder {
             }
         }
 
-        // Step 3: Bracket-fit fallback for remaining unresolved orphans.
+        // Step 3a: Nesting-name resolution for orphan groups.
+        // Multi-layer nesting (group-all applied multiple times) produces compounds whose
+        // 0x2523 counters exceed the sentinel section count.  Match these compounds to
+        // sentinel ordinals whose nesting entries reference compounds with the same base name.
+        // Each ordinal is claimed by the first matching track (ordinals within a slot are
+        // ordered by track position, and nameOrder preserves track order).
+        var nestingNameClaimed = Set<Int>()
+        for name in nameOrder {
+            guard var placements = placementsByName[name] else { continue }
+            var changed = false
+            for i in placements.indices {
+                let p = placements[i]
+                guard p.isGroup, p.groupConstituents.isEmpty, p.groupLength != nil,
+                      childCompoundSentinel[p.clipIdx] == nil,
+                      compoundCreationCounters[p.clipIdx] == nil,
+                      p.clipIdx < cmpdParents.count,
+                      let cName = compoundPool[p.clipIdx]?.name else { continue }
+                let base = stripSplitSuffix(cName)
+                guard !base.isEmpty,
+                      let candidates = nestingNameToOrdinals[base] else { continue }
+                // Pick the highest unclaimed ordinal (latest group operation = outermost level)
+                guard let bestOrd = candidates.filter({ !nestingNameClaimed.contains($0) }).max() else { continue }
+                let constituents = expandSentinel(bestOrd, baseOffset: 0, depth: 0)
+                guard !constituents.isEmpty else { continue }
+                placements[i].groupConstituents = constituents
+                // Use this ordinal for slot lookup too
+                let ownCounter = compoundCreationCounters[p.clipIdx]
+                placements[i].slotIndex = ownCounter.flatMap { counterToSlot[$0] } ?? counterToSlot[bestOrd]
+                nestingNameClaimed.insert(bestOrd)
+                changed = true
+            }
+            if changed { placementsByName[name] = placements }
+        }
+
+        // Step 3b: Bracket-fit fallback for remaining unresolved orphans.
         // Some orphans have no cross-ref match and no unclaimed sentinel (e.g., sessions
         // with many split/regroup operations that left more orphans than sentinel sections).
         // These can share an existing sentinel; the bracket guard filters to correct clips.

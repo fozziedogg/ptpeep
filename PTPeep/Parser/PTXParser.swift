@@ -418,7 +418,7 @@ final class PTXParser {
             var constituentClips: [PTXClip] = []
             for p in tp.placements where !p.isHidden && p.isGroup {
                 let len = p.groupLength ?? 0
-                guard len > 0 else { continue }
+                guard len > 0, !p.groupConstituents.isEmpty else { continue }
                 let gStart = p.timelineSample
                 let gName  = stripChannelSuffix(p.groupName ?? "Group \(p.clipIdx)")
                 if logTrack { AppLog.shared.log("[clips] \(tp.name) group '\(gName)' tl=\(gStart) len=\(len) constituents=\(p.groupConstituents.count)") }
