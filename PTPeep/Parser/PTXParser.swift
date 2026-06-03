@@ -433,13 +433,9 @@ final class PTXParser {
                 // a session that was edited after the group was placed can put constituents
                 // multiple bracket-lengths away; those are not useful to display.
                 for constituent in p.groupConstituents where !constituent.isSubGroup {
-                    // Use slot original start (creation-time group position) as base for relOff.
-                    // Sentinel relOffsets are always relative to the position at which the group
-                    // was first created; split/regroup operations copy the sentinel verbatim so
-                    // the relOffsets never change.  Orphan split-pieces on sibling tracks anchor
-                    // the original start even when not all tracks retained their orphan.
-                    let base = p.slotIndex.flatMap { slotStart[$0] } ?? gStart
-                    let absPos = base + constituent.relativeOffset
+                    // relativeOffset now contains the absolute timeline position, computed
+                    // in expandSentinel using compoundBaseStart (= original group creation pos).
+                    let absPos = constituent.relativeOffset
                     guard absPos >= 0 else { continue }
                     // Constituent must land within the group bracket on the timeline.
                     // Wrong sentinel mappings (e.g. BEEP → unrelated section) produce

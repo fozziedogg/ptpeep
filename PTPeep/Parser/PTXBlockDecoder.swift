@@ -1042,6 +1042,29 @@ final class PTXBlockDecoder {
             }
         }
 
+        // Build compoundBaseStart: for each (gid, pos), the minimum CG start across all
+        // compounds sharing that pair.  This is the original group start before splits — sentinel
+        // deltas are always relative to this base, not to individual split variants' starts.
+        var gidPosBaseStart: [Int: Int64] = [:]  // key = (gid << 16) | pos
+        for (ci, trail) in cgTrail {
+            guard let gid = trailToGid[trail.trailIdx],
+                  let st = compoundPool[ci]?.startSample else { continue }
+            let key = (gid << 16) | trail.pos
+            if let cur = gidPosBaseStart[key] {
+                gidPosBaseStart[key] = min(cur, st)
+            } else {
+                gidPosBaseStart[key] = st
+            }
+        }
+        var compoundBaseStart: [Int: Int64] = [:]
+        for (ci, trail) in cgTrail {
+            guard let gid = trailToGid[trail.trailIdx] else { continue }
+            let key = (gid << 16) | trail.pos
+            if let bs = gidPosBaseStart[key] {
+                compoundBaseStart[ci] = bs
+            }
+        }
+
         // Build compound pool index → sentinel ordinal map.
         // Each compound may have multiple 0x2523 event blocks (one per group-edit operation).
         // The correct sentinel ordinal is the FIRST counter (sorted by file offset) that appears
@@ -1059,6 +1082,8 @@ final class PTXBlockDecoder {
         var compoundSelfID: [Int: ID3] = [:]   // ci → selfID
         var compoundLinkID: [Int: ID3] = [:]   // ci → linkID
         var selfIDToCompounds: [String: [Int]] = [:]  // selfID key → [ci]
+        var compoundXref: [Int: UInt32] = [:]    // ci → parent CG index (0xffffffff = root)
+        var compoundSeqIdx: [Int: Int] = [:]     // ci → sequence index within CG
         func id3Key(_ id: ID3) -> String { "\(id.0),\(id.1),\(id.2)" }
         for (ci, c) in cmpdParents.enumerated() {
             let c2523s = blocks.filter { m in
@@ -1087,6 +1112,23 @@ final class PTXBlockDecoder {
                 compoundLinkID[ci] = lid
                 selfIDToCompounds[id3Key(sid), default: []].append(ci)
             }
+            // Extract xref (parent CG ownership) and seq_idx from 0x2523 via its 0x2526 child.
+            // Offsets are relative to end of 0x2526 child block: seq_idx at +16, xref at +52.
+            if compoundXref[ci] == nil, let first2523 = c2523s.first {
+                if let sub2526 = blocks.first(where: { b in
+                    b.contentType == 0x2526 &&
+                    b.dataOffset >= first2523.dataOffset &&
+                    b.dataOffset + b.dataSize <= first2523.dataOffset + first2523.dataSize
+                }) {
+                    let after2526 = sub2526.dataOffset + sub2526.dataSize - 2
+                    let m2523End = first2523.dataOffset + first2523.dataSize - 2
+                    let remaining = m2523End - after2526
+                    if remaining >= 56 {
+                        compoundSeqIdx[ci] = Int(readLE(data, at: after2526 + 16, count: 2))
+                        compoundXref[ci] = UInt32(readLE(data, at: after2526 + 52, count: 4))
+                    }
+                }
+            }
             // TEMP: dump 0x2523 info
             if cmpdParents.count < 50 {
                 let name = compoundPool[ci]?.name ?? "?"
@@ -1094,6 +1136,11 @@ final class PTXBlockDecoder {
                     let ctr = Int(readLE(data, at: m.dataOffset + 37, count: 2))
                     let slot = counterToSlot[ctr]
                     print("[ARCH] CI=\(ci) '\(name)' blk[\(idx)] ctr=\(ctr) slot=\(slot.map{String($0)} ?? "nil") inCTS=\(counterToSlot[ctr] != nil)")
+                }
+                if let xref = compoundXref[ci] {
+                    let owner = xref == 0xFFFFFFFF ? "ROOT" : "CG[\(xref)]"
+                    let seq = compoundSeqIdx[ci] ?? -1
+                    print("[XREF] CI=\(ci) '\(name)' seq=\(seq) owner=\(owner)")
                 }
             }
         }
@@ -1189,7 +1236,9 @@ final class PTXBlockDecoder {
         }
 
         // Expand a sentinel ordinal into constituent clips.
-        func expandSentinel(_ ordinal: Int, baseOffset: Int64, depth: Int) -> [ConstituentClip] {
+        // ownerCI = compound pool index of the group that owns this sentinel section.
+        // Positions are computed as absolute timeline values using compoundBaseStart.
+        func expandSentinel(_ ordinal: Int, ownerCI: Int?, depth: Int) -> [ConstituentClip] {
             guard depth < 8, ordinal >= 0, ordinal < sentinelSections.count else { return [] }
             let section = sentinelSections[ordinal]
             let secEnd = section.dataOffset + section.dataSize
@@ -1198,6 +1247,7 @@ final class PTXBlockDecoder {
                 $0.dataOffset >= section.dataOffset && $0.dataOffset + $0.dataSize <= secEnd
             }.sorted { $0.dataOffset < $1.dataOffset }
             var result: [ConstituentClip] = []
+            var firstCGSeen = false  // ghost CG filtering: only follow first compound entry
             for pl in pls {
                 guard pl.dataSize >= 19 else { continue }
                 let ci     = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
@@ -1205,18 +1255,22 @@ final class PTXBlockDecoder {
                 guard tl >= SENT_ORIGIN else { continue }
                 // byte[35]==0x01 means hidden dialog reference — same filter as main timeline
                 guard pl.dataSize < 36 || data[pl.dataOffset + 35] == 0x00 else { continue }
-                let relOff = baseOffset + Int64(bitPattern: tl - SENT_ORIGIN)
+                let delta = Int64(bitPattern: tl - SENT_ORIGIN)
                 let nestByte = data[pl.dataOffset + 18]
                 if nestByte == 0x00 {
-                    // Leaf audio constituent: ci directly indexes the audio pool (0x2629)
+                    // Leaf audio constituent: absolute = owner's base_start + delta
+                    let baseStart = ownerCI.flatMap { compoundBaseStart[$0] ?? compoundPool[$0]?.startSample } ?? 0
+                    let absPos = baseStart + delta
                     if ci < audioParents.count {
-                        result.append(ConstituentClip(audioClipIdx: ci, relativeOffset: relOff))
+                        result.append(ConstituentClip(audioClipIdx: ci, relativeOffset: absPos))
                     }
                 } else {
+                    // Ghost CG filtering: skip subsequent compound entries (superseded)
+                    if firstCGSeen { continue }
+                    firstCGSeen = true
                     // Nested sub-group: ci is compound pool index; look up its sentinel and recurse.
-                    // Fallback chain: childCompoundSentinel → active counter (if in range) →
-                    // cross-ref resolved counter → stale ordinals from earlier 0x2523 blocks →
-                    // leaf sentinel by base name (last resort for nested/"russian doll" groups).
+                    // Fallback chain: childCompoundSentinel → trail-based → active counter →
+                    // cross-ref resolved counter → stale ordinals → leaf sentinel by base name.
                     let subSentOrd: Int? = childCompoundSentinel[ci]
                         ?? trailResolved[ci]
                         ?? {
@@ -1230,7 +1284,7 @@ final class PTXBlockDecoder {
                             return nil
                         }()
                     guard let subSentOrd else { continue }
-                    result += expandSentinel(subSentOrd, baseOffset: relOff, depth: depth + 1)
+                    result += expandSentinel(subSentOrd, ownerCI: ci, depth: depth + 1)
                 }
             }
             // Deduplicate by audioClipIdx: split pieces sharing a sentinel can
@@ -1372,7 +1426,7 @@ final class PTXBlockDecoder {
             var usedOrdinals = Set<Int>()
             for ci in unresolvedOrphans {
                 for ordinal in unclaimedSentinels where !usedOrdinals.contains(ordinal) {
-                    let candidates = expandSentinel(ordinal, baseOffset: 0, depth: 0)
+                    let candidates = expandSentinel(ordinal, ownerCI: ci, depth: 0)
                     if !candidates.isEmpty {
                         eliminationResolved[ci] = ordinal
                         usedOrdinals.insert(ordinal)
@@ -1587,7 +1641,7 @@ final class PTXBlockDecoder {
                 if isGroup {
                     let sentOrd = childCompoundSentinel[clipIdx] ?? trailResolved[clipIdx] ?? compoundCreationCounters[clipIdx]
                     if let sentOrd = sentOrd {
-                        groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
+                        groupConstituents = expandSentinel(sentOrd, ownerCI: clipIdx, depth: 0)
                         // Use the compound's own counter for slot lookup (drives slotOriginalStart)
                         let ownCounter = compoundCreationCounters[clipIdx]
                         slotIdx = ownCounter.flatMap { counterToSlot[$0] } ?? counterToSlot[sentOrd]
@@ -1693,7 +1747,7 @@ final class PTXBlockDecoder {
                     if isGroup {
                         let sentOrd = childCompoundSentinel[clipIdx] ?? trailResolved[clipIdx] ?? compoundCreationCounters[clipIdx]
                         if let sentOrd = sentOrd {
-                            groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
+                            groupConstituents = expandSentinel(sentOrd, ownerCI: clipIdx, depth: 0)
                             let ownCounter = compoundCreationCounters[clipIdx]
                             slotIdx2 = ownCounter.flatMap { counterToSlot[$0] } ?? counterToSlot[sentOrd]
                             slotNameVal2 = slotIdx2.flatMap { slotNames[$0] }
@@ -1745,7 +1799,7 @@ final class PTXBlockDecoder {
                       let candidates = nestingNameToOrdinals[base] else { continue }
                 // Pick the highest unclaimed ordinal (latest group operation = outermost level)
                 guard let bestOrd = candidates.filter({ !nestingNameClaimed.contains($0) }).max() else { continue }
-                let constituents = expandSentinel(bestOrd, baseOffset: 0, depth: 0)
+                let constituents = expandSentinel(bestOrd, ownerCI: p.clipIdx, depth: 0)
                 guard !constituents.isEmpty else { continue }
                 placements[i].groupConstituents = constituents
                 // Use this ordinal for slot lookup too
@@ -1797,16 +1851,16 @@ final class PTXBlockDecoder {
                 } else {
                     // Bracket-fit: for tracks with ONLY orphan groups
                     for ordinal in 0..<sentinelSections.count {
-                        let candidates = expandSentinel(ordinal, baseOffset: 0, depth: 0)
+                        let candidates = expandSentinel(ordinal, ownerCI: p.clipIdx, depth: 0)
                         let inBracket = candidates.filter { c in
-                            let absPos = gStart + c.relativeOffset
-                            return absPos >= gStart && absPos < gStart + gLen
+                            // relativeOffset is now absolute timeline position
+                            return c.relativeOffset >= gStart && c.relativeOffset < gStart + gLen
                         }.count
                         if inBracket > bestScore { bestScore = inBracket; bestOrdinal = ordinal }
                     }
                 }
                 guard bestOrdinal >= 0 else { continue }
-                let constituents = expandSentinel(bestOrdinal, baseOffset: 0, depth: 0)
+                let constituents = expandSentinel(bestOrdinal, ownerCI: p.clipIdx, depth: 0)
                 guard !constituents.isEmpty else { continue }
                 placements[i].groupConstituents = constituents
                 changed = true
