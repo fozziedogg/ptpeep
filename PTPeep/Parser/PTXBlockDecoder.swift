@@ -907,6 +907,19 @@ final class PTXBlockDecoder {
             vp += nLength
             let startVal = readLE(data, at: vp, count: nStart)  // group's absolute timeline position
 
+            // Cross-validate against Python's doubled-value pattern for CG start times
+            let afterName = pos + 4 + Int(nl)
+            for dOff in 10..<min(data.count - afterName - 8, 30) {
+                let v1 = readLE(data, at: afterName + dOff, count: 4)
+                let v2 = readLE(data, at: afterName + dOff + 4, count: 4)
+                if v1 == v2 && v1 > 100_000 && v1 < 500_000_000 {
+                    if Int64(bitPattern: v1) != Int64(bitPattern: startVal) {
+                        print("[WARN] CG start mismatch: nibble=\(startVal) doubled=\(v1) for '\(name)'")
+                    }
+                    break
+                }
+            }
+
             poolByIndex[pIdx] = (name: name, startSample: Int64(bitPattern: startVal),
                                  lengthSamples: Int64(bitPattern: lengthVal))
         }
