@@ -1327,20 +1327,26 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         }
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, self.isHovering || self.isFocused else { return event }
+            guard let self else { return event }
             guard !(event.window is NSPanel) else { return event }
+            // Global shortcuts — work from anywhere in the app
             // Numpad * (keyCode 67) → open TC entry popover (mirrors Pro Tools behaviour)
             if event.keyCode == 67 {
                 self.openTCEntry = true
                 return nil
             }
+            if event.charactersIgnoringModifiers == " " {
+                self.spacebarTapped += 1
+                return nil
+            }
+            // Timeline-specific shortcuts — only when waveform pane is hovered/focused
+            guard self.isHovering || self.isFocused else { return event }
             guard let ch = event.charactersIgnoringModifiers else { return event }
             let mods   = event.modifierFlags
             switch ch {
             case "t":      self.zoomIn();  return nil
             case "r":      self.zoomOut(); return nil
             case "e", "E": self.zoomToFitCursor(); return nil
-            case " ":      self.spacebarTapped += 1;      return nil  // Spacebar → play/stop
             case "\u{1b}": self.clearSelection();        return nil  // Escape
             case "\u{f729}":                                        // Home → go to start
                 self.selStart = 0.0; self.selEnd = nil; self.viewStart = 0.0
