@@ -955,12 +955,17 @@ final class PTXBlockDecoder {
             guard b.dataSize >= 4 else { continue }
             let count = Int(readLE(data, at: b.dataOffset, count: 4))
             var offset = 4
+            var slotOrds: [Int] = []
             for _ in 0..<count {
                 guard offset + 5 <= b.dataSize else { break }
                 offset += 1  // skip 0x00 byte
                 let sentOrd = Int(readLE(data, at: b.dataOffset + offset, count: 4))
                 counterToSlot[sentOrd] = si
+                slotOrds.append(sentOrd)
                 offset += 4
+            }
+            if cmpdParents.count < 50 || cmpdParents.isEmpty {
+                print("[2425] slot \(si): ordinals \(slotOrds)")
             }
         }
 
@@ -973,6 +978,68 @@ final class PTXBlockDecoder {
             let nl = Int(readLE(data, at: b.dataOffset + 4, count: 4))
             guard nl > 0, nl < 512, b.dataOffset + 8 + nl <= data.count else { continue }
             slotNames[slotIdx] = String(bytes: data[b.dataOffset + 8 ..< b.dataOffset + 8 + nl], encoding: .utf8) ?? "?"
+        }
+
+        // ── Trail-based sentinel resolution (from 0x262b trailing bytes) ─────────
+        // Each 0x262b parent contains a 0x2628 child block.  After the 0x2628 block,
+        // trailing bytes encode (trail_idx, pos) which map via 0x2423 gids to sentinel
+        // slot indices.  This mapping survives file rewrites (unlike 0x2523 counters).
+
+        // Step 1: Extract 2-byte GIDs from 0x2423 blocks (trail_idx = file-order index)
+        let b2423sorted = blocks.filter { $0.contentType == 0x2423 }.sorted { $0.dataOffset < $1.dataOffset }
+        var trailToGid: [Int: Int] = [:]
+        var seenGids: [Int] = []
+        for (idx, b) in b2423sorted.enumerated() {
+            guard b.dataSize >= 2 else { continue }
+            let gid = Int(readLE(data, at: b.dataOffset, count: 2))
+            trailToGid[idx] = gid
+            if !seenGids.contains(gid) { seenGids.append(gid) }
+        }
+
+        // Step 2: Extract trailing (trail_idx, pos) from 0x262b blocks
+        var cgTrail: [Int: (trailIdx: Int, pos: Int)] = [:]
+        var gidMaxPos: [Int: Int] = [:]
+        for (ci, parent) in cmpdParents.enumerated() {
+            guard let g2628 = blocks.first(where: { b in
+                b.contentType == 0x2628 &&
+                b.dataOffset >= parent.dataOffset &&
+                b.dataOffset + b.dataSize <= parent.dataOffset + parent.dataSize
+            }) else { continue }
+            // End of block in raw data = dataOffset + dataSize - 2
+            // (dataSize includes 2-byte ctype that precedes dataOffset)
+            let trailingStart = g2628.dataOffset + g2628.dataSize - 2
+            let trailingEnd = parent.dataOffset + parent.dataSize - 2
+            guard trailingEnd - trailingStart >= 6 else { continue }
+            let trailIdx = Int(data[trailingStart + 1])
+            let pos = Int(data[trailingStart + 5])
+            cgTrail[ci] = (trailIdx: trailIdx, pos: pos)
+            if let gid = trailToGid[trailIdx] {
+                gidMaxPos[gid] = max(gidMaxPos[gid] ?? 0, pos + 1)
+            }
+        }
+
+        // Step 3: Build (gid, pos) → slot index → trailResolved mapping
+        var gidPosToSlot: [Int: Int] = [:]
+        var trailSlotCounter = 0
+        for gid in seenGids {
+            let nPos = gidMaxPos[gid] ?? 1
+            for p in 0..<nPos {
+                gidPosToSlot[(gid << 16) | p] = trailSlotCounter
+                trailSlotCounter += 1
+            }
+        }
+        var trailResolved: [Int: Int] = [:]
+        for (ci, trail) in cgTrail {
+            guard let gid = trailToGid[trail.trailIdx],
+                  let slot = gidPosToSlot[(gid << 16) | trail.pos],
+                  slot >= 0, slot < sentinelSections.count else { continue }
+            trailResolved[ci] = slot
+        }
+        if cmpdParents.count < 50 {
+            for (ci, slot) in trailResolved.sorted(by: { $0.key < $1.key }) {
+                let name = compoundPool[ci]?.name ?? "?"
+                print("[TRAIL] CI=\(ci) '\(name)' -> sentinel=\(slot)")
+            }
         }
 
         // Build compound pool index → sentinel ordinal map.
@@ -1019,6 +1086,15 @@ final class PTXBlockDecoder {
                 compoundSelfID[ci] = sid
                 compoundLinkID[ci] = lid
                 selfIDToCompounds[id3Key(sid), default: []].append(ci)
+            }
+            // TEMP: dump 0x2523 info
+            if cmpdParents.count < 50 {
+                let name = compoundPool[ci]?.name ?? "?"
+                for (idx, m) in c2523s.enumerated() {
+                    let ctr = Int(readLE(data, at: m.dataOffset + 37, count: 2))
+                    let slot = counterToSlot[ctr]
+                    print("[ARCH] CI=\(ci) '\(name)' blk[\(idx)] ctr=\(ctr) slot=\(slot.map{String($0)} ?? "nil") inCTS=\(counterToSlot[ctr] != nil)")
+                }
             }
         }
         let SENT_ORIGIN: UInt64 = 1_000_000_000_000
@@ -1142,6 +1218,7 @@ final class PTXBlockDecoder {
                     // cross-ref resolved counter → stale ordinals from earlier 0x2523 blocks →
                     // leaf sentinel by base name (last resort for nested/"russian doll" groups).
                     let subSentOrd: Int? = childCompoundSentinel[ci]
+                        ?? trailResolved[ci]
                         ?? {
                             if let c = compoundCreationCounters[ci], c < sentinelSections.count { return c }
                             if let c = crossRefResolved[ci], c < sentinelSections.count { return c }
@@ -1171,15 +1248,27 @@ final class PTXBlockDecoder {
         for (ordinal, section) in sentinelSections.enumerated() {
             let secEnd = section.dataOffset + section.dataSize
             var ciSet = Set<Int>()
+            var nestCIs: [Int] = []
             for blk in blocks where blk.contentType == 0x104f &&
                 blk.dataOffset >= section.dataOffset && blk.dataOffset + blk.dataSize <= secEnd &&
                 blk.dataSize >= 19 {
                 if data[blk.dataOffset + 18] == 0x00 {
                     ciSet.insert(Int(readLE(data, at: blk.dataOffset + 2, count: 2)))
+                } else {
+                    nestCIs.append(Int(readLE(data, at: blk.dataOffset + 2, count: 2)))
                 }
             }
             if !ciSet.isEmpty {
                 sentinelContentIndex[ordinal] = ciSet
+            }
+            if cmpdParents.count < 50 {
+                let nestNames = nestCIs.map { $0 < cmpdParents.count ? (compoundPool[$0]?.name ?? "?") : "OOB" }
+                // Dump first 8 bytes of 0x1052 block to check for internal ordinal
+                var headerBytes = ""
+                for i in 0..<min(16, section.dataSize) {
+                    headerBytes += String(format: "%02x ", data[section.dataOffset + i])
+                }
+                print("[SENT] ord=\(ordinal) fileOff=\(section.dataOffset) audioCIs=\(ciSet.sorted()) nestCIs=\(nestCIs) nestNames=\(nestNames) header=\(headerBytes)")
             }
         }
 
@@ -1496,7 +1585,7 @@ final class PTXBlockDecoder {
                 let slotIdx: Int?
                 let slotNameVal: String?
                 if isGroup {
-                    let sentOrd = childCompoundSentinel[clipIdx] ?? compoundCreationCounters[clipIdx]
+                    let sentOrd = childCompoundSentinel[clipIdx] ?? trailResolved[clipIdx] ?? compoundCreationCounters[clipIdx]
                     if let sentOrd = sentOrd {
                         groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
                         // Use the compound's own counter for slot lookup (drives slotOriginalStart)
@@ -1602,7 +1691,7 @@ final class PTXBlockDecoder {
                     let slotIdx2: Int?
                     let slotNameVal2: String?
                     if isGroup {
-                        let sentOrd = childCompoundSentinel[clipIdx] ?? compoundCreationCounters[clipIdx]
+                        let sentOrd = childCompoundSentinel[clipIdx] ?? trailResolved[clipIdx] ?? compoundCreationCounters[clipIdx]
                         if let sentOrd = sentOrd {
                             groupConstituents = expandSentinel(sentOrd, baseOffset: 0, depth: 0)
                             let ownCounter = compoundCreationCounters[clipIdx]
