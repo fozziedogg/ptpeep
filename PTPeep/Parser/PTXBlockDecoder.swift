@@ -1022,9 +1022,9 @@ final class PTXBlockDecoder {
             // (dataSize includes 2-byte ctype that precedes dataOffset)
             let trailingStart = g2628.dataOffset + g2628.dataSize - 2
             let trailingEnd = parent.dataOffset + parent.dataSize - 2
-            guard trailingEnd - trailingStart >= 6 else { continue }
-            let trailIdx = Int(data[trailingStart + 1])
-            let pos = Int(data[trailingStart + 5])
+            guard trailingEnd - trailingStart >= 7 else { continue }
+            let trailIdx = Int(readLE(data, at: trailingStart + 1, count: 2))
+            let pos = Int(readLE(data, at: trailingStart + 5, count: 2))
             cgTrail[ci] = (trailIdx: trailIdx, pos: pos)
             if let gid = trailToGid[trailIdx] {
                 gidMaxPos[gid] = max(gidMaxPos[gid] ?? 0, pos + 1)
@@ -1069,12 +1069,51 @@ final class PTXBlockDecoder {
                 gidPosBaseStart[key] = st
             }
         }
-        var compoundBaseStart: [Int: Int64] = [:]
-        for (ci, trail) in cgTrail {
-            guard let gid = trailToGid[trail.trailIdx] else { continue }
+        // Moved-group detection: compare CG creation start against track-listing position.
+        // If they differ, the group was moved after creation and sentinel deltas are
+        // relative to the moved position (start4), not the creation position (robust).
+        var gidPosStart4: [Int: Int64] = [:]   // (gid << 16 | pos) → min(start4)
+        var gidReliable: [Int: Bool] = [:]     // gid → true if creation start matches track start
+
+        if all1054sorted.count >= 1 {
+            let first1054 = all1054sorted[0]
+            let f1Start = first1054.dataOffset
+            let f1End = f1Start + first1054.dataSize
+            for ref in blocks where ref.contentType == 0x104f && ref.dataSize >= 21 &&
+                ref.dataOffset >= f1Start && ref.dataOffset + ref.dataSize <= f1End {
+                let byte18 = data[ref.dataOffset + 18]
+                guard byte18 == 0x01 else { continue }
+                let ri = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
+                guard let trail = cgTrail[ri], let gid = trailToGid[trail.trailIdx] else { continue }
+                let start4 = Int64(bitPattern: readLE(data, at: ref.dataOffset + 7, count: 4))
+                let key = (gid << 16) | trail.pos
+                if let cur = gidPosStart4[key] {
+                    gidPosStart4[key] = min(cur, start4)
+                } else {
+                    gidPosStart4[key] = start4
+                }
+                if gidReliable[gid] == nil { gidReliable[gid] = true }
+                if let robust = compoundPool[ri]?.startSample, robust != start4 {
+                    gidReliable[gid] = false
+                }
+            }
+        }
+        if cmpdParents.count < 50 {
+            for (gid, reliable) in gidReliable.sorted(by: { $0.key < $1.key }) where !reliable {
+                print("[WARN] gid=\(gid) was moved after creation — using track-listing start")
+            }
+        }
+
+        // slotBase: returns the correct base start for a CG's sentinel deltas.
+        // Uses creation start (robust) if the group hasn't been moved, otherwise
+        // falls back to the track-listing start (start4).
+        func slotBase(_ ci: Int) -> Int64 {
+            guard let trail = cgTrail[ci], let gid = trailToGid[trail.trailIdx] else { return 0 }
             let key = (gid << 16) | trail.pos
-            if let bs = gidPosBaseStart[key] {
-                compoundBaseStart[ci] = bs
+            if gidReliable[gid] ?? true {
+                return gidPosBaseStart[key] ?? 0
+            } else {
+                return gidPosStart4[key] ?? gidPosBaseStart[key] ?? 0
             }
         }
 
@@ -1272,7 +1311,7 @@ final class PTXBlockDecoder {
                 let nestByte = data[pl.dataOffset + 18]
                 if nestByte == 0x00 {
                     // Leaf audio constituent: absolute = owner's base_start + delta
-                    let baseStart = ownerCI.flatMap { compoundBaseStart[$0] ?? compoundPool[$0]?.startSample } ?? 0
+                    let baseStart = ownerCI.flatMap { slotBase($0) } ?? 0
                     let absPos = baseStart + delta
                     if ci < audioParents.count {
                         result.append(ConstituentClip(audioClipIdx: ci, relativeOffset: absPos))
