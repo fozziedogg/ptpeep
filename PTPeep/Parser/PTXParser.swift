@@ -173,7 +173,7 @@ final class PTXParser {
         let displayInfo = PTXBlockDecoder.extractTrackDisplayInfo(blocks: blocks, data: decoded, bigEndian: bigEndian)
 
         // Build per-track playlists from 0x1052 blocks (track name + channel count + clip placements)
-        let trackPlaylists = PTXBlockDecoder.buildTrackPlaylists(blocks: blocks, data: decoded, bigEndian: bigEndian, displayInfo: displayInfo)
+        let trackPlaylists = PTXBlockDecoder.buildTrackPlaylists(blocks: blocks, data: decoded, bigEndian: bigEndian, displayInfo: displayInfo, clips: clips)
         let playlistSummary = trackPlaylists.map { tp -> String in
             var s = "\(tp.name) ×\(tp.channelCount)ch (\(tp.placements.count) clips) [type:\(tp.trackTypeCode)]"
             if tp.isHidden   { s += " [hidden]" }

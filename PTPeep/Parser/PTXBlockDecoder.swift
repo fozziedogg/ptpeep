@@ -928,17 +928,17 @@ final class PTXBlockDecoder {
     }
 
     static func buildTrackPlaylists(blocks: [PTXBlock], data: Data, bigEndian: Bool,
-                                    displayInfo: TrackDisplayInfo = TrackDisplayInfo()) -> [TrackPlaylist] {
+                                    displayInfo: TrackDisplayInfo = TrackDisplayInfo(),
+                                    clips: [ClipEntry?] = []) -> [TrackPlaylist] {
         // Build compound clip pool: poolIndex → (name, startSample, lengthSamples)
         // Used for group placements; pool is 0x262b→0x2628.
         let compoundPool = extractCompoundClips(blocks: blocks, data: data, bigEndian: bigEndian)
 
-        // ── Sentinel constituent expansion (per-placement) ────────────────────────
-        // The second 0x1054 holds one 0x1052 sentinel section per clip group definition.
-        // Sentinel sections are ordered by group creation counter (bytes[37..38] of each
-        // compound's 0x2523 block).  Constituent clipIdx values in sentinel 0x104f blocks
-        // with byte[18]==0x00 address the AUDIO pool (0x2629) directly; byte[18]==0x01
-        // means the constituent is itself a sub-group (ci = compound pool index).
+        // ── Clip Group Resolution (ported from clipgroupdecoder/test_positions_v2.py) ──
+        // Maps compound pool indices → sentinel sections → constituent audio clips.
+        // Algorithm: 0x2423 GIDs → 0x262b trailing (trail_idx, pos) → (gid, pos) → slot index.
+        // The 2nd 0x1054 holds one 0x1052 sentinel section per slot; each contains 0x104f
+        // entries where byte[18]==0x00 = audio leaf, byte[18]==0x01 = nested sub-group.
         let audioParents = blocks.filter { $0.contentType == 0x2629 }.sorted { $0.dataOffset < $1.dataOffset }
         let cmpdParents  = blocks.filter { $0.contentType == 0x262b }.sorted { $0.dataOffset < $1.dataOffset }
 
@@ -1047,6 +1047,26 @@ final class PTXBlockDecoder {
                 gidPosBaseStart[key] = st
             }
         }
+        // Content range from 0x2523 blocks: for split groups, each variant's 0x2523
+        // stores the delta range it "sees" within the shared sentinel section.
+        // Bytes 49-53 (from Swift dataOffset) = content start (5-byte LE) minus SENT_ORIGIN
+        // Bytes 57-61 = content end (5-byte LE) minus SENT_ORIGIN
+        let SENT_ORIGIN: UInt64 = 1_000_000_000_000
+        var cgContentRange: [Int: (start: Int64, end: Int64)] = [:]
+        for (ci, parent) in cmpdParents.enumerated() {
+            var b2523opt: PTXBlock? = nil
+            for blk in blocks where blk.contentType == 0x2523 &&
+                blk.dataOffset >= parent.dataOffset &&
+                blk.dataOffset + blk.dataSize <= parent.dataOffset + parent.dataSize &&
+                blk.dataSize >= 64 {
+                b2523opt = blk  // keep last match (matches Python behavior)
+            }
+            guard let b2523 = b2523opt else { continue }
+            let cs = Int64(bitPattern: readLE(data, at: b2523.dataOffset + 49, count: 5) &- SENT_ORIGIN)
+            let ce = Int64(bitPattern: readLE(data, at: b2523.dataOffset + 57, count: 5) &- SENT_ORIGIN)
+            if ce > cs { cgContentRange[ci] = (start: cs, end: ce) }
+        }
+
         // Moved-group detection: compare CG creation start against track-listing position.
         // If they differ, the group was moved after creation and sentinel deltas are
         // relative to the moved position (start4), not the creation position (robust).
@@ -1076,12 +1096,6 @@ final class PTXBlockDecoder {
                 }
             }
         }
-        if cmpdParents.count < 50 {
-            for (gid, reliable) in gidReliable.sorted(by: { $0.key < $1.key }) where !reliable {
-                print("[WARN] gid=\(gid) was moved after creation — using track-listing start")
-            }
-        }
-
         // slotBase: returns the correct base start for a CG's sentinel deltas.
         // Uses creation start (robust) if the group hasn't been moved, otherwise
         // falls back to the track-listing start (start4).
@@ -1095,46 +1109,65 @@ final class PTXBlockDecoder {
             }
         }
 
-        let SENT_ORIGIN: UInt64 = 1_000_000_000_000
-
-        // Expand a sentinel section into constituent clips.
-        // ownerCI = compound pool index of the group that owns this sentinel section.
-        // Positions are computed as absolute timeline values using slotBase.
-        func expandSentinel(_ ordinal: Int, ownerCI: Int?, depth: Int) -> [ConstituentClip] {
-            guard depth < 8, ordinal >= 0, ordinal < sentinelSections.count else { return [] }
-            let section = sentinelSections[ordinal]
+        // Resolve a compound group to its constituent clips.
+        // Ported from clipgroupdecoder/test_positions_v2.py resolve_cg().
+        // ci = compound pool index; absStart = absolute timeline position from 1st 0x1054.
+        // Content range filtering selects which sentinel entries belong to split-group variants.
+        func resolveCG(_ ci: Int, absStart: Int64?, depth: Int, visited: Set<Int> = []) -> [ConstituentClip] {
+            guard depth < 10, !visited.contains(ci) else { return [] }
+            guard let slot = trailResolved[ci], slot >= 0, slot < sentinelSections.count else { return [] }
+            let section = sentinelSections[slot]
             let secEnd = section.dataOffset + section.dataSize
             let pls = blocks.filter {
                 $0.contentType == 0x104f &&
                 $0.dataOffset >= section.dataOffset && $0.dataOffset + $0.dataSize <= secEnd
             }.sorted { $0.dataOffset < $1.dataOffset }
+
+            let base = absStart ?? slotBase(ci)
+            let cr = cgContentRange[ci] ?? (start: Int64(0), end: Int64.max)
+            var nextVisited = visited; nextVisited.insert(ci)
             var result: [ConstituentClip] = []
-            var firstCGSeen = false  // ghost CG filtering: only follow first compound entry
+
             for pl in pls {
                 guard pl.dataSize >= 19 else { continue }
-                let ci     = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
-                let tl     = readLE(data, at: pl.dataOffset + 7, count: 8)
+                let ri = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
+                let tl = readLE(data, at: pl.dataOffset + 7, count: 5)
                 guard tl >= SENT_ORIGIN else { continue }
                 guard pl.dataSize < 36 || data[pl.dataOffset + 35] == 0x00 else { continue }
                 let delta = Int64(bitPattern: tl - SENT_ORIGIN)
-                let nestByte = data[pl.dataOffset + 18]
-                if nestByte == 0x00 {
-                    let baseStart = ownerCI.flatMap { slotBase($0) } ?? 0
-                    let absPos = baseStart + delta
-                    if ci < audioParents.count {
-                        result.append(ConstituentClip(audioClipIdx: ci, relativeOffset: absPos))
+                let grp = data[pl.dataOffset + 18]
+
+                if grp == 0x00 {
+                    // Audio leaf — filter by content range
+                    if delta >= cr.start && delta < cr.end {
+                        let pos = base + (delta - cr.start)
+                        if ri < audioParents.count {
+                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: pos))
+                        }
+                    } else if delta < cr.start {
+                        let clipLen = ri < clips.count ? Int64(clips[ri]?.lengthSamples ?? 0) : 0
+                        if delta + clipLen > cr.start, ri < audioParents.count {
+                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: base))
+                        }
                     }
                 } else {
-                    if firstCGSeen { continue }
-                    firstCGSeen = true
-                    // Nested sub-group: look up via trail-based slot mapping
-                    guard let subSlot = trailResolved[ci] else { continue }
-                    result += expandSentinel(subSlot, ownerCI: ci, depth: depth + 1)
+                    // Nested sub-group
+                    if absStart != nil {
+                        if delta >= cr.start && delta < cr.end {
+                            let innerAbs = base + (delta - cr.start)
+                            result += resolveCG(ri, absStart: innerAbs, depth: depth + 1, visited: nextVisited)
+                        } else if delta < cr.start {
+                            result += resolveCG(ri, absStart: base, depth: depth + 1, visited: nextVisited)
+                        }
+                    } else {
+                        result += resolveCG(ri, absStart: nil, depth: depth + 1, visited: nextVisited)
+                        break
+                    }
                 }
             }
+
             var seen = Set<Int>()
-            result = result.filter { seen.insert($0.audioClipIdx).inserted }
-            return result
+            return result.filter { seen.insert($0.audioClipIdx).inserted }
         }
 
         // Use the first non-empty 0x1054 (main active playlist set)
@@ -1284,15 +1317,9 @@ final class PTXBlockDecoder {
                 let slotIdx: Int?
                 let slotNameVal: String?
                 if isGroup {
-                    if let slot = trailResolved[clipIdx] {
-                        groupConstituents = expandSentinel(slot, ownerCI: clipIdx, depth: 0)
-                        slotIdx = slot
-                        slotNameVal = slotNames[slot]
-                    } else {
-                        groupConstituents = []
-                        slotIdx = nil
-                        slotNameVal = nil
-                    }
+                    groupConstituents = resolveCG(clipIdx, absStart: timeline, depth: 0)
+                    slotIdx = trailResolved[clipIdx]
+                    slotNameVal = slotIdx.flatMap { slotNames[$0] }
                 } else {
                     groupConstituents = []
                     slotIdx = nil
@@ -1387,15 +1414,9 @@ final class PTXBlockDecoder {
                     let slotIdx2: Int?
                     let slotNameVal2: String?
                     if isGroup {
-                        if let slot = trailResolved[clipIdx] {
-                            groupConstituents = expandSentinel(slot, ownerCI: clipIdx, depth: 0)
-                            slotIdx2 = slot
-                            slotNameVal2 = slotNames[slot]
-                        } else {
-                            groupConstituents = []
-                            slotIdx2 = nil
-                            slotNameVal2 = nil
-                        }
+                        groupConstituents = resolveCG(clipIdx, absStart: timeline, depth: 0)
+                        slotIdx2 = trailResolved[clipIdx]
+                        slotNameVal2 = slotIdx2.flatMap { slotNames[$0] }
                     } else {
                         groupConstituents = []
                         slotIdx2 = nil
