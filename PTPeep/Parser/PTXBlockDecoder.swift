@@ -1006,11 +1006,21 @@ final class PTXBlockDecoder {
             }
         }
 
+        // Step 2b: Extract per-GID member counts from 0x2425 blocks.
+        // These include phantom slots from removed group members — critical for
+        // correct slot counting when compounds have been deleted from a group.
+        let b2425sorted = blocks.filter { $0.contentType == 0x2425 }.sorted { $0.dataOffset < $1.dataOffset }
+        var gidMemberCount: [Int: Int] = [:]
+        for (i, b) in b2425sorted.enumerated() {
+            guard b.dataSize >= 2 else { continue }
+            gidMemberCount[i] = Int(readLE(data, at: b.dataOffset, count: 2))
+        }
+
         // Step 3: Build (gid, pos) → slot index → trailResolved mapping
         var gidPosToSlot: [Int: Int] = [:]
         var trailSlotCounter = 0
         for gid in seenGids {
-            let nPos = gidMaxPos[gid] ?? 1
+            let nPos = gidMemberCount[gid] ?? gidMaxPos[gid] ?? 1
             for p in 0..<nPos {
                 gidPosToSlot[(gid << 16) | p] = trailSlotCounter
                 trailSlotCounter += 1
