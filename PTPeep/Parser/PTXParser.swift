@@ -420,7 +420,7 @@ final class PTXParser {
                 let len = p.groupLength ?? 0
                 guard len > 0, !p.groupConstituents.isEmpty else { continue }
                 let gStart = p.timelineSample
-                let gName  = stripChannelSuffix(p.groupName ?? "Group \(p.clipIdx)")
+                let gName  = p.slotName ?? stripChannelSuffix(p.groupName ?? "Group \(p.clipIdx)")
                 if logTrack { AppLog.shared.log("[clips] \(tp.name) group '\(gName)' tl=\(gStart) len=\(len) constituents=\(p.groupConstituents.count)") }
                 groupBoxes[gStart] = PTXClip(
                     name: gName, startSample: gStart, lengthSamples: len,

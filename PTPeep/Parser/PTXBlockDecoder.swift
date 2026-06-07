@@ -960,15 +960,15 @@ final class PTXBlockDecoder {
             }.sorted { $0.dataOffset < $1.dataOffset }
         }
 
-        // Build slot names from 0x2423 blocks (last name per slot index wins).
-        // Structure: [slotIndex:u32LE] + [nameLen:u32LE] + [name bytes].
-        var slotNames: [Int: String] = [:]
+        // Build group definition names from 0x2423 blocks, keyed by GID.
+        // Structure (from dataOffset): [GID:u16LE] + [pad:u16] + [nameLen:u32LE] + [name bytes].
+        var gidNames: [Int: String] = [:]
         for b in blocks.filter({ $0.contentType == 0x2423 }).sorted(by: { $0.dataOffset < $1.dataOffset }) {
             guard b.dataSize >= 8 else { continue }
-            let slotIdx = Int(readLE(data, at: b.dataOffset, count: 4))
+            let gid = Int(readLE(data, at: b.dataOffset, count: 2))
             let nl = Int(readLE(data, at: b.dataOffset + 4, count: 4))
             guard nl > 0, nl < 512, b.dataOffset + 8 + nl <= data.count else { continue }
-            slotNames[slotIdx] = String(bytes: data[b.dataOffset + 8 ..< b.dataOffset + 8 + nl], encoding: .utf8) ?? "?"
+            gidNames[gid] = String(bytes: data[b.dataOffset + 8 ..< b.dataOffset + 8 + nl], encoding: .utf8) ?? "?"
         }
 
         // ── Trail-based sentinel resolution (from 0x262b trailing bytes) ─────────
@@ -1386,7 +1386,7 @@ final class PTXBlockDecoder {
                 if isGroup {
                     groupConstituents = resolveCG(clipIdx, absStart: timeline, depth: 0)
                     slotIdx = trailResolved[clipIdx]
-                    slotNameVal = slotIdx.flatMap { slotNames[$0] }
+                    slotNameVal = cgTrail[clipIdx].flatMap { trailToGid[$0.trailIdx] }.flatMap { gidNames[$0] }
                 } else {
                     groupConstituents = []
                     slotIdx = nil
@@ -1483,7 +1483,7 @@ final class PTXBlockDecoder {
                     if isGroup {
                         groupConstituents = resolveCG(clipIdx, absStart: timeline, depth: 0)
                         slotIdx2 = trailResolved[clipIdx]
-                        slotNameVal2 = slotIdx2.flatMap { slotNames[$0] }
+                        slotNameVal2 = cgTrail[clipIdx].flatMap { trailToGid[$0.trailIdx] }.flatMap { gidNames[$0] }
                     } else {
                         groupConstituents = []
                         slotIdx2 = nil
