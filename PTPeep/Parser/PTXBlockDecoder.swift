@@ -1023,7 +1023,7 @@ final class PTXBlockDecoder {
         var gidPosToSlot: [Int: Int] = [:]
         var trailSlotCounter = 0
         for gid in seenGids {
-            let nPos = gidMemberCount[gid] ?? gidMaxPos[gid] ?? 1
+            let nPos = max(gidMemberCount[gid] ?? 0, gidMaxPos[gid] ?? 1)
             for p in 0..<nPos {
                 gidPosToSlot[(gid << 16) | p] = trailSlotCounter
                 trailSlotCounter += 1
@@ -1036,6 +1036,69 @@ final class PTXBlockDecoder {
                   slot >= 0, slot < sentinelSections.count else { continue }
             trailResolved[ci] = slot
         }
+
+        // ── Diagnostic: classify every compound pool entry by resolution chain step ──
+        do {
+            var failNoChild = 0, failTrailShort = 0, failNoGid = 0
+            var failNoSlot = 0, failSlotOOB = 0, resolved = 0
+            var examples: [String: [(Int, String?)]] = [
+                "noChild": [], "trailShort": [], "noGid": [], "noSlot": [], "slotOOB": []
+            ]
+            for ci in cmpdParents.indices {
+                let parent = cmpdParents[ci]
+                let name = compoundPool[ci]?.name
+                if trailResolved[ci] != nil {
+                    resolved += 1
+                    continue
+                }
+                // Check which step failed
+                let g2628 = blocks.first(where: { b in
+                    b.contentType == 0x2628 &&
+                    b.dataOffset >= parent.dataOffset &&
+                    b.dataOffset + b.dataSize <= parent.dataOffset + parent.dataSize
+                })
+                guard let g2628 = g2628 else {
+                    failNoChild += 1
+                    if (examples["noChild"]?.count ?? 0) < 5 { examples["noChild"]?.append((ci, name)) }
+                    continue
+                }
+                let trailingStart = g2628.dataOffset + g2628.dataSize - 2
+                let trailingEnd = parent.dataOffset + parent.dataSize - 2
+                guard trailingEnd - trailingStart >= 7 else {
+                    failTrailShort += 1
+                    if (examples["trailShort"]?.count ?? 0) < 5 { examples["trailShort"]?.append((ci, name)) }
+                    continue
+                }
+                let trailIdx = Int(readLE(data, at: trailingStart + 1, count: 2))
+                let pos = Int(readLE(data, at: trailingStart + 5, count: 2))
+                guard let gid = trailToGid[trailIdx] else {
+                    failNoGid += 1
+                    if (examples["noGid"]?.count ?? 0) < 5 { examples["noGid"]?.append((ci, name)) }
+                    continue
+                }
+                let slotKey = (gid << 16) | pos
+                guard let slot = gidPosToSlot[slotKey] else {
+                    failNoSlot += 1
+                    if (examples["noSlot"]?.count ?? 0) < 5 { examples["noSlot"]?.append((ci, name)) }
+                    continue
+                }
+                if slot < 0 || slot >= sentinelSections.count {
+                    failSlotOOB += 1
+                    if (examples["slotOOB"]?.count ?? 0) < 5 { examples["slotOOB"]?.append((ci, name)) }
+                } else {
+                    // Should have been resolved — shouldn't reach here
+                    resolved += 1
+                }
+            }
+            let total = cmpdParents.count
+            print("[CG-DIAG] compounds=\(total) cgTrail=\(cgTrail.count) trailResolved=\(trailResolved.count) sentinels=\(sentinelSections.count)")
+            print("[CG-DIAG] resolved=\(resolved) noChild=\(failNoChild) trailShort=\(failTrailShort) noGid=\(failNoGid) noSlot=\(failNoSlot) slotOOB=\(failSlotOOB)")
+            for (cat, exs) in examples.sorted(by: { $0.key < $1.key }) where !exs.isEmpty {
+                let items = exs.map { "ci=\($0.0) '\($0.1 ?? "?")'" }.joined(separator: ", ")
+                print("[CG-DIAG]   \(cat): \(items)")
+            }
+        }
+
         // Build compoundBaseStart: for each (gid, pos), the minimum CG start across all
         // compounds sharing that pair.  This is the original group start before splits — sentinel
         // deltas are always relative to this base, not to individual split variants' starts.
@@ -1141,21 +1204,17 @@ final class PTXBlockDecoder {
                 let grp = data[pl.dataOffset + 18]
 
                 if grp == 0x00 {
-                    // Audio leaf — filter by content range, compute effective length
+                    // Audio leaf — filter by content range (position only, no length trimming)
                     let clipLen = ri < clips.count ? Int64(clips[ri]?.lengthSamples ?? 0) : 0
                     if delta >= cr.start && delta < cr.end {
                         let pos = base + (delta - cr.start)
                         if ri < audioParents.count {
-                            // Trim length to content range end
-                            let effLen = clipLen > 0 && cr.end < Int64.max
-                                ? min(clipLen, cr.end - delta) : nil as Int64?
-                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: pos, effectiveLength: effLen))
+                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: pos))
                         }
                     } else if delta < cr.start {
                         if delta + clipLen > cr.start, ri < audioParents.count {
                             // Straddling clip: visible portion starts at cr.start
-                            let effLen = min(delta + clipLen, cr.end) - cr.start
-                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: base, effectiveLength: effLen))
+                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: base))
                         }
                     }
                 } else {
