@@ -442,7 +442,8 @@ final class PTXParser {
                     // constituents far outside the bracket; filter them out.
                     guard absPos >= gStart && absPos < gStart + len else { continue }
                     let clipEntry = constituent.audioClipIdx < clips.count ? clips[constituent.audioClipIdx] : nil
-                    let cLen = constituent.effectiveLength ?? clipEntry?.lengthSamples ?? 0
+                    let groupEnd = gStart + len
+                    let cLen = min(clipEntry?.lengthSamples ?? 0, groupEnd - absPos)
                     guard cLen > 0 else { continue }
                     let cName = stripChannelSuffix(clipEntry?.name ?? "Clip \(constituent.audioClipIdx)")
                     let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""

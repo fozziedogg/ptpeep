@@ -60,20 +60,16 @@ struct ConstituentClip {
     let isSubGroup: Bool      // true = compound sub-group bracket; false = leaf audio clip
     let subGroupName: String  // compound name (non-empty when isSubGroup==true)
     let subGroupLength: Int64 // compound duration in samples (>0 when isSubGroup==true)
-    let effectiveLength: Int64? // trimmed length for split-group clips (nil = use full clip length)
-
     /// Convenience init for audio leaf constituents (isSubGroup=false).
-    init(audioClipIdx: Int, relativeOffset: Int64, effectiveLength: Int64? = nil) {
+    init(audioClipIdx: Int, relativeOffset: Int64) {
         self.audioClipIdx = audioClipIdx; self.relativeOffset = relativeOffset
         self.isSubGroup = false; self.subGroupName = ""; self.subGroupLength = 0
-        self.effectiveLength = effectiveLength
     }
 
     /// Init for compound sub-group constituents (isSubGroup=true).
     init(audioClipIdx: Int, relativeOffset: Int64, isSubGroup: Bool, subGroupName: String, subGroupLength: Int64) {
         self.audioClipIdx = audioClipIdx; self.relativeOffset = relativeOffset
         self.isSubGroup = isSubGroup; self.subGroupName = subGroupName; self.subGroupLength = subGroupLength
-        self.effectiveLength = nil
     }
 }
 
