@@ -956,15 +956,16 @@ final class PTXBlockDecoder {
             }.sorted { $0.dataOffset < $1.dataOffset }
         }
 
-        // Build group definition names from 0x2423 blocks, keyed by GID.
+        // Build group definition names from 0x2423 blocks, keyed by trail index (ordinal).
         // Structure (from dataOffset): [GID:u16LE] + [pad:u16] + [nameLen:u32LE] + [name bytes].
-        var gidNames: [Int: String] = [:]
-        for b in blocks.filter({ $0.contentType == 0x2423 }).sorted(by: { $0.dataOffset < $1.dataOffset }) {
+        // Each 0x2423 entry has a unique name (e.g. "Joan Temp-35") even when multiple
+        // entries share the same GID (split groups).  Trail index → name is 1:1.
+        var trailNames: [Int: String] = [:]
+        for (idx, b) in blocks.filter({ $0.contentType == 0x2423 }).sorted(by: { $0.dataOffset < $1.dataOffset }).enumerated() {
             guard b.dataSize >= 8 else { continue }
-            let gid = Int(readLE(data, at: b.dataOffset, count: 2))
             let nl = Int(readLE(data, at: b.dataOffset + 4, count: 4))
             guard nl > 0, nl < 512, b.dataOffset + 8 + nl <= data.count else { continue }
-            gidNames[gid] = String(bytes: data[b.dataOffset + 8 ..< b.dataOffset + 8 + nl], encoding: .utf8) ?? "?"
+            trailNames[idx] = String(bytes: data[b.dataOffset + 8 ..< b.dataOffset + 8 + nl], encoding: .utf8)?.trimmingCharacters(in: .whitespaces) ?? "?"
         }
 
         // ── Trail-based sentinel resolution (from 0x262b trailing bytes) ─────────
@@ -1382,7 +1383,7 @@ final class PTXBlockDecoder {
                 if isGroup {
                     groupConstituents = resolveCG(clipIdx, absStart: timeline, depth: 0)
                     slotIdx = trailResolved[clipIdx]
-                    slotNameVal = cgTrail[clipIdx].flatMap { trailToGid[$0.trailIdx] }.flatMap { gidNames[$0] }
+                    slotNameVal = cgTrail[clipIdx].flatMap { trailNames[$0.trailIdx] }
                 } else {
                     groupConstituents = []
                     slotIdx = nil
@@ -1479,7 +1480,7 @@ final class PTXBlockDecoder {
                     if isGroup {
                         groupConstituents = resolveCG(clipIdx, absStart: timeline, depth: 0)
                         slotIdx2 = trailResolved[clipIdx]
-                        slotNameVal2 = cgTrail[clipIdx].flatMap { trailToGid[$0.trailIdx] }.flatMap { gidNames[$0] }
+                        slotNameVal2 = cgTrail[clipIdx].flatMap { trailNames[$0.trailIdx] }
                     } else {
                         groupConstituents = []
                         slotIdx2 = nil
