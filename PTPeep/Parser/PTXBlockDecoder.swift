@@ -60,17 +60,20 @@ struct ConstituentClip {
     let isSubGroup: Bool      // true = compound sub-group bracket; false = leaf audio clip
     let subGroupName: String  // compound name (non-empty when isSubGroup==true)
     let subGroupLength: Int64 // compound duration in samples (>0 when isSubGroup==true)
+    let effectiveLength: Int64? // trimmed length for split-group clips (nil = use full clip length)
 
     /// Convenience init for audio leaf constituents (isSubGroup=false).
-    init(audioClipIdx: Int, relativeOffset: Int64) {
+    init(audioClipIdx: Int, relativeOffset: Int64, effectiveLength: Int64? = nil) {
         self.audioClipIdx = audioClipIdx; self.relativeOffset = relativeOffset
         self.isSubGroup = false; self.subGroupName = ""; self.subGroupLength = 0
+        self.effectiveLength = effectiveLength
     }
 
     /// Init for compound sub-group constituents (isSubGroup=true).
     init(audioClipIdx: Int, relativeOffset: Int64, isSubGroup: Bool, subGroupName: String, subGroupLength: Int64) {
         self.audioClipIdx = audioClipIdx; self.relativeOffset = relativeOffset
         self.isSubGroup = isSubGroup; self.subGroupName = subGroupName; self.subGroupLength = subGroupLength
+        self.effectiveLength = nil
     }
 }
 
@@ -1138,16 +1141,21 @@ final class PTXBlockDecoder {
                 let grp = data[pl.dataOffset + 18]
 
                 if grp == 0x00 {
-                    // Audio leaf — filter by content range
+                    // Audio leaf — filter by content range, compute effective length
+                    let clipLen = ri < clips.count ? Int64(clips[ri]?.lengthSamples ?? 0) : 0
                     if delta >= cr.start && delta < cr.end {
                         let pos = base + (delta - cr.start)
                         if ri < audioParents.count {
-                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: pos))
+                            // Trim length to content range end
+                            let effLen = clipLen > 0 && cr.end < Int64.max
+                                ? min(clipLen, cr.end - delta) : nil as Int64?
+                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: pos, effectiveLength: effLen))
                         }
                     } else if delta < cr.start {
-                        let clipLen = ri < clips.count ? Int64(clips[ri]?.lengthSamples ?? 0) : 0
                         if delta + clipLen > cr.start, ri < audioParents.count {
-                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: base))
+                            // Straddling clip: visible portion starts at cr.start
+                            let effLen = min(delta + clipLen, cr.end) - cr.start
+                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: base, effectiveLength: effLen))
                         }
                     }
                 } else {
