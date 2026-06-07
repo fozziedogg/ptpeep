@@ -1775,7 +1775,9 @@ private struct SessionTimelineView: View {
         let selectedClipSamp: Int64? = (tc.selEnd == nil) ? tc.selStart.map { Int64(($0 * total).rounded()) } : nil
         let selectedClip: PTXClip? = selectedClipSamp.flatMap { samp in
             guard let idx = tc.selTrack, idx < tracks.count else { return nil }
-            return tracks[idx].clips.first { $0.startSample == samp }
+            // Prefer audio clips over group brackets (groups are purely visual)
+            return tracks[idx].clips.first { !$0.isGroup && $0.startSample == samp }
+                ?? tracks[idx].clips.first { $0.startSample == samp }
         }
         let selectedClipTrackIdx: Int? = selectedClip != nil ? tc.selTrack : nil
 
