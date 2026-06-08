@@ -1114,20 +1114,23 @@ final class PTXBlockDecoder {
         // stores the delta range it "sees" within the shared sentinel section.
         // Bytes 49-53 (from Swift dataOffset) = content start (5-byte LE) minus SENT_ORIGIN
         // Bytes 57-61 = content end (5-byte LE) minus SENT_ORIGIN
+        // For multi-element CGs (split history), use the WIDEST span.
         let SENT_ORIGIN: UInt64 = 1_000_000_000_000
         var cgContentRange: [Int: (start: Int64, end: Int64)] = [:]
         for (ci, parent) in cmpdParents.enumerated() {
-            var b2523opt: PTXBlock? = nil
+            var bestSpan: Int64 = -1
             for blk in blocks where blk.contentType == 0x2523 &&
                 blk.dataOffset >= parent.dataOffset &&
                 blk.dataOffset + blk.dataSize <= parent.dataOffset + parent.dataSize &&
                 blk.dataSize >= 64 {
-                b2523opt = blk  // keep last match (matches Python behavior)
+                let cs = Int64(bitPattern: readLE(data, at: blk.dataOffset + 49, count: 5) &- SENT_ORIGIN)
+                let ce = Int64(bitPattern: readLE(data, at: blk.dataOffset + 57, count: 5) &- SENT_ORIGIN)
+                let span = ce - cs
+                if span > bestSpan {
+                    bestSpan = span
+                    cgContentRange[ci] = (start: cs, end: ce)
+                }
             }
-            guard let b2523 = b2523opt else { continue }
-            let cs = Int64(bitPattern: readLE(data, at: b2523.dataOffset + 49, count: 5) &- SENT_ORIGIN)
-            let ce = Int64(bitPattern: readLE(data, at: b2523.dataOffset + 57, count: 5) &- SENT_ORIGIN)
-            if ce > cs { cgContentRange[ci] = (start: cs, end: ce) }
         }
 
         // Moved-group detection: compare CG creation start against track-listing position.
@@ -1176,7 +1179,7 @@ final class PTXBlockDecoder {
         // Ported from clipgroupdecoder/test_positions_v2.py resolve_cg().
         // ci = compound pool index; absStart = absolute timeline position from 1st 0x1054.
         // Content range filtering selects which sentinel entries belong to split-group variants.
-        func resolveCG(_ ci: Int, absStart: Int64?, depth: Int, visited: Set<Int> = []) -> [ConstituentClip] {
+        func resolveCG(_ ci: Int, absStart: Int64?, trackB17: UInt8? = nil, depth: Int, visited: Set<Int> = []) -> [ConstituentClip] {
             guard depth < 10, !visited.contains(ci) else { return [] }
             guard let slot = trailResolved[ci], slot >= 0, slot < sentinelSections.count else { return [] }
             let section = sentinelSections[slot]
@@ -1197,6 +1200,9 @@ final class PTXBlockDecoder {
                 let tl = readLE(data, at: pl.dataOffset + 7, count: 5)
                 guard tl >= SENT_ORIGIN else { continue }
                 guard pl.dataSize < 36 || data[pl.dataOffset + 35] == 0x00 else { continue }
+                // byte[17] (Python) = dataOffset+15 (Swift): track-within-group identifier
+                let b17 = pl.dataSize >= 16 ? data[pl.dataOffset + 15] : 0
+                if let tb17 = trackB17, b17 != tb17 { continue }
                 let delta = Int64(bitPattern: tl - SENT_ORIGIN)
                 let grp = data[pl.dataOffset + 18]
 
@@ -1219,12 +1225,12 @@ final class PTXBlockDecoder {
                     if absStart != nil {
                         if delta >= cr.start && delta < cr.end {
                             let innerAbs = base + (delta - cr.start)
-                            result += resolveCG(ri, absStart: innerAbs, depth: depth + 1, visited: nextVisited)
+                            result += resolveCG(ri, absStart: innerAbs, trackB17: trackB17, depth: depth + 1, visited: nextVisited)
                         } else if delta < cr.start {
-                            result += resolveCG(ri, absStart: base, depth: depth + 1, visited: nextVisited)
+                            result += resolveCG(ri, absStart: base, trackB17: trackB17, depth: depth + 1, visited: nextVisited)
                         }
                     } else {
-                        result += resolveCG(ri, absStart: nil, depth: depth + 1, visited: nextVisited)
+                        result += resolveCG(ri, absStart: nil, trackB17: trackB17, depth: depth + 1, visited: nextVisited)
                         break
                     }
                 }
@@ -1381,7 +1387,9 @@ final class PTXBlockDecoder {
                 let slotIdx: Int?
                 let slotNameVal: String?
                 if isGroup {
-                    groupConstituents = resolveCG(clipIdx, absStart: timeline, depth: 0)
+                    // byte[17] (Python) = dataOffset+15 (Swift): track-within-group ID
+                    let b17: UInt8 = ref.dataSize >= 16 ? data[ref.dataOffset + 15] : 0
+                    groupConstituents = resolveCG(clipIdx, absStart: timeline, trackB17: b17, depth: 0)
                     slotIdx = trailResolved[clipIdx]
                     slotNameVal = cgTrail[clipIdx].flatMap { trailNames[$0.trailIdx] }
                 } else {
@@ -1478,7 +1486,8 @@ final class PTXBlockDecoder {
                     let slotIdx2: Int?
                     let slotNameVal2: String?
                     if isGroup {
-                        groupConstituents = resolveCG(clipIdx, absStart: timeline, depth: 0)
+                        let b17: UInt8 = ref.dataSize >= 16 ? data[ref.dataOffset + 15] : 0
+                        groupConstituents = resolveCG(clipIdx, absStart: timeline, trackB17: b17, depth: 0)
                         slotIdx2 = trailResolved[clipIdx]
                         slotNameVal2 = cgTrail[clipIdx].flatMap { trailNames[$0.trailIdx] }
                     } else {
