@@ -5,12 +5,12 @@ import Foundation
 // Stores per-clip PCM peak arrays at:
 //   ~/Library/Application Support/PTPeep/wavecache/<hash>_<mtime>.wc
 //
-// Cache key = FNV-1a hash of (audioFilePath | startSample | lengthSamples | resolution).
+// Cache key = FNV-1a hash of (audioFilePath | startSample | lengthSamples | resolution [| chIdx] [|raw]).
 // The audio file's mtime is baked into the filename so stale entries are ignored
 // automatically when the source file changes (old files are left on disk and cleaned
 // up by the periodic trim in init).
 //
-// Binary format per file:
+// Binary format per file (.wc2 extension):
 //   [Int32LE channelCount][Int32LE resolution]
 //   [Float32LE × resolution] × channelCount
 
@@ -31,10 +31,12 @@ final class WaveformCache: @unchecked Sendable {
     // MARK: - Public API
 
     func get(audioURL: URL, startSample: Int64, lengthSamples: Int64,
-             resolution: Int, channelIndex: Int? = nil) -> [[Float]]? {
+             resolution: Int, channelIndex: Int? = nil, normalized: Bool = true,
+             sparse: Bool = false) -> [[Float]]? {
         guard let url = cacheFileURL(audioURL: audioURL, startSample: startSample,
                                      lengthSamples: lengthSamples, resolution: resolution,
-                                     channelIndex: channelIndex),
+                                     channelIndex: channelIndex, normalized: normalized,
+                                     sparse: sparse),
               FileManager.default.fileExists(atPath: url.path),
               let data = try? Data(contentsOf: url, options: .mappedIfSafe)
         else { return nil }
@@ -42,10 +44,12 @@ final class WaveformCache: @unchecked Sendable {
     }
 
     func set(peaks: [[Float]], audioURL: URL, startSample: Int64, lengthSamples: Int64,
-             resolution: Int, channelIndex: Int? = nil) {
+             resolution: Int, channelIndex: Int? = nil, normalized: Bool = true,
+             sparse: Bool = false) {
         guard let url = cacheFileURL(audioURL: audioURL, startSample: startSample,
                                      lengthSamples: lengthSamples, resolution: resolution,
-                                     channelIndex: channelIndex)
+                                     channelIndex: channelIndex, normalized: normalized,
+                                     sparse: sparse)
         else { return }
         let data = encode(peaks)
         queue.async { try? data.write(to: url, options: .atomic) }
@@ -54,11 +58,14 @@ final class WaveformCache: @unchecked Sendable {
     // MARK: - Cache file URL
 
     private func cacheFileURL(audioURL: URL, startSample: Int64, lengthSamples: Int64,
-                               resolution: Int, channelIndex: Int? = nil) -> URL? {
+                               resolution: Int, channelIndex: Int? = nil,
+                               normalized: Bool = true, sparse: Bool = false) -> URL? {
         guard let dir = cacheDir else { return nil }
-        let mt   = mtime(for: audioURL)
-        let chSuffix = channelIndex.map { "|\($0)" } ?? ""
-        let key  = fnv1a("\(audioURL.path)|\(startSample)|\(lengthSamples)|\(resolution)\(chSuffix)")
+        let mt         = mtime(for: audioURL)
+        let chSuffix   = channelIndex.map { "|\($0)" } ?? ""
+        let normSuffix = normalized ? "" : "|raw"
+        let sparseSuffix = sparse ? "|sparse" : ""
+        let key  = fnv1a("\(audioURL.path)|\(startSample)|\(lengthSamples)|\(resolution)\(chSuffix)\(normSuffix)\(sparseSuffix)")
         let mtMs = Int64(mt * 1000)
         return dir.appendingPathComponent("\(key)_\(mtMs).wc2")
     }
@@ -116,7 +123,7 @@ final class WaveformCache: @unchecked Sendable {
                 at: dir, includingPropertiesForKeys: [.contentModificationDateKey],
                 options: .skipsHiddenFiles)
             else { return }
-            let wcFiles = items.filter { $0.pathExtension == "wc" }
+            let wcFiles = items.filter { $0.pathExtension == "wc2" }
             guard wcFiles.count > 500 else { return }
             let sorted = wcFiles.sorted {
                 let d0 = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast

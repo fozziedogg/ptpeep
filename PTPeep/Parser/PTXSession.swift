@@ -142,10 +142,46 @@ struct PTXClip: Equatable {
     var startSample: Int64  = 0
     var lengthSamples: Int64 = 0
     var sourceOffset: Int64  = 0    // offset into source audio file (samples)
-    var sourceFile:  String = ""    // base filename (no extension)
+    var sourceFile:  String = ""    // base filename (no extension); channel 1 file
+    /// Base filenames (no extension) for every channel of a multi-mono clip, in stream order.
+    /// channelFiles[0] == sourceFile.  Empty for mono or when not parsed (fall back to name search).
+    var channelFiles: [String] = []
     var isMuted:     Bool   = false
     var isGroup:     Bool   = false
 }
+
+// MARK: - Play Region
+
+/// A resolved set of clips ready for multi-clip playback.
+/// Covers a time range and one or more tracks; each TrackSegment contains
+/// the clips (with resolved URLs) for a single track, sorted by startSample.
+struct PlayRegion {
+    struct TrackSegment {
+        let trackIdx: Int
+        let clips: [(clip: PTXClip, url: URL)]   // sorted by startSample
+    }
+    let startSample:  Int64          // region start (absolute samples)
+    let endSample:    Int64          // region end (absolute samples)
+    let segments:     [TrackSegment] // one per track that has clips in range
+    let sampleRate:   Double
+    /// All resolved audio file URLs from the session — used as a cross-directory
+    /// fallback when searching for multi-mono companion files.
+    let resolvedPool: [URL]
+
+    init(startSample: Int64, endSample: Int64, segments: [TrackSegment],
+         sampleRate: Double, resolvedPool: [URL] = []) {
+        self.startSample  = startSample
+        self.endSample    = endSample
+        self.segments     = segments
+        self.sampleRate   = sampleRate
+        self.resolvedPool = resolvedPool
+    }
+
+    var totalClipCount: Int { segments.reduce(0) { $0 + $1.clips.count } }
+    var trackCount: Int { segments.count }
+}
+
+// MARK: - Resolved Audio File
 
 struct ResolvedAudioFile: Identifiable {
     var id = UUID()

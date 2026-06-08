@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+
+    <!-- macOS squircle -->
+    <clipPath id="icon">
+      <rect width="1024" height="1024" rx="230"/>
+    </clipPath>
+
+    <!-- Clip waveform to eye interior only -->
+    <clipPath id="eyeClip">
+      <path d="M 80,512 C 150,270 874,270 944,512 C 874,754 150,754 80,512 Z"/>
+    </clipPath>
+
+    <!-- Background: PT purple gradient -->
+    <radialGradient id="bg" cx="50%" cy="50%" r="65%">
+      <stop offset="0%"   stop-color="#4E22A8"/>
+      <stop offset="100%" stop-color="#180940"/>
+    </radialGradient>
+
+    <!-- Eye interior: very dark so waveform pops -->
+    <radialGradient id="eyeFill" cx="50%" cy="45%" r="60%">
+      <stop offset="0%"   stop-color="#130828"/>
+      <stop offset="100%" stop-color="#090416"/>
+    </radialGradient>
+
+    <!-- Waveform line: white, fading to invisible at the pointed eye corners -->
+    <linearGradient id="wave" x1="80" y1="0" x2="944" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.0"/>
+      <stop offset="10%"  stop-color="#FFFFFF" stop-opacity="1.0"/>
+      <stop offset="90%"  stop-color="#FFFFFF" stop-opacity="1.0"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+    </linearGradient>
+
+    <!-- Glow behind waveform: soft lavender -->
+    <linearGradient id="waveGlow" x1="80" y1="0" x2="944" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#C8A0FF" stop-opacity="0.0"/>
+      <stop offset="10%"  stop-color="#C8A0FF" stop-opacity="0.7"/>
+      <stop offset="90%"  stop-color="#C8A0FF" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#C8A0FF" stop-opacity="0.0"/>
+    </linearGradient>
+
+    <!-- Blur for waveform glow -->
+    <filter id="waveBlur" x="-15%" y="-60%" width="130%" height="220%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+
+    <!-- Blur for eye ambient halo -->
+    <filter id="eyeHalo" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="40"/>
+    </filter>
+
+    <!-- Blur for specular highlight -->
+    <filter id="shineBlur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+
+  </defs>
+
+  <g clip-path="url(#icon)">
+
+    <!-- ── Background ─────────────────────────────────────────────── -->
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+
+    <!--
+      ── Eye shape ─────────────────────────────────────────────────
+      Classic almond/lens eye centered at (512, 512).
+      Left corner:  (80,  512)
+      Right corner: (944, 512)
+      Top peak:     (512, 270)   — upper eyelid
+      Bottom nadir: (512, 754)   — lower eyelid
+    -->
+
+    <!-- Ambient purple halo outside the eye -->
+    <path d="M 80,512 C 150,270 874,270 944,512 C 874,754 150,754 80,512 Z"
+          fill="rgba(110,50,220,0.4)" filter="url(#eyeHalo)"/>
+
+    <!-- Eye interior (very dark) -->
+    <path d="M 80,512 C 150,270 874,270 944,512 C 874,754 150,754 80,512 Z"
+          fill="url(#eyeFill)"/>
+
+    <!--
+      ── Waveform (clipped inside eye) ─────────────────────────────
+      10-point S-curve spanning eye width (x 80→944), center y=512.
+      Amplitude envelope matches the eye's own height at each x so
+      the wave naturally fits inside the lens shape.
+
+      Key points (x, y):
+        80,512  → 155,462 → 218,592 → 296,370 → 378,702
+        → 512,302 ← tallest peak
+        → 646,702 → 728,370 → 806,592 → 869,462 → 944,512
+
+      Control points: horizontal tangent at each peak/trough
+      (midpoint-x rule → smooth S-curve, no kinks).
+    -->
+    <g clip-path="url(#eyeClip)">
+
+      <!-- Glow pass (wide, blurred lavender) -->
+      <path d="M 80,512
+               C 117,512 117,462 155,462
+               C 186,462 186,592 218,592
+               C 257,592 257,370 296,370
+               C 337,370 337,702 378,702
+               C 445,702 445,302 512,302
+               C 579,302 579,702 646,702
+               C 687,702 687,370 728,370
+               C 767,370 767,592 806,592
+               C 837,592 837,462 869,462
+               C 906,462 906,512 944,512"
+            fill="none"
+            stroke="url(#waveGlow)"
+            stroke-width="48"
+            stroke-linecap="round"
+            filter="url(#waveBlur)"/>
+
+      <!-- Crisp white line -->
+      <path d="M 80,512
+               C 117,512 117,462 155,462
+               C 186,462 186,592 218,592
+               C 257,592 257,370 296,370
+               C 337,370 337,702 378,702
+               C 445,702 445,302 512,302
+               C 579,302 579,702 646,702
+               C 687,702 687,370 728,370
+               C 767,370 767,592 806,592
+               C 837,592 837,462 869,462
+               C 906,462 906,512 944,512"
+            fill="none"
+            stroke="url(#wave)"
+            stroke-width="15"
+            stroke-linecap="round"/>
+
+      <!-- Iris: coloured ring -->
+      <circle cx="512" cy="512" r="195"
+              fill="none"
+              stroke="rgba(255,255,255,0.22)"
+              stroke-width="2"/>
+
+      <!-- Iris body: deep purple with slight radial shading -->
+      <radialGradient id="iris" cx="44%" cy="38%" r="60%">
+        <stop offset="0%"   stop-color="#6B35D9"/>
+        <stop offset="100%" stop-color="#2E0F6E"/>
+      </radialGradient>
+      <circle cx="512" cy="512" r="130" fill="url(#iris)"/>
+
+      <!-- Pupil -->
+      <circle cx="512" cy="512" r="62" fill="#060210"/>
+
+      <!-- Specular dot on pupil -->
+      <circle cx="481" cy="481" r="22" fill="rgba(255,255,255,0.55)"/>
+      <circle cx="540" cy="468" r="9"  fill="rgba(255,255,255,0.25)"/>
+
+    </g>
+
+    <!-- Eye outline: white eyelid curves -->
+    <path d="M 80,512 C 150,270 874,270 944,512 C 874,754 150,754 80,512 Z"
+          fill="none"
+          stroke="white"
+          stroke-width="22"
+          stroke-linejoin="round"/>
+
+    <!-- Corner points: natural anatomy, tiny white dots at the eye corners -->
+    <circle cx="83"  cy="512" r="11" fill="white" opacity="0.7"/>
+    <circle cx="941" cy="512" r="11" fill="white" opacity="0.7"/>
+
+    <!-- Specular highlight: upper-left, simulates 3-D light source -->
+    <ellipse cx="310" cy="350" rx="110" ry="52"
+             transform="rotate(-25, 310, 350)"
+             fill="rgba(255,255,255,0.18)"
+             filter="url(#shineBlur)"/>
+
+    <!-- Rim light on the squircle -->
+    <rect width="1024" height="1024" rx="230"
+          fill="none"
+          stroke="rgba(255,255,255,0.08)"
+          stroke-width="3"/>
+
+  </g>
+</svg>

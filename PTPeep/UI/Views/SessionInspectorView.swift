@@ -13,6 +13,30 @@ enum ColorMode: String {
     }
 }
 
+// MARK: - Per-tab view state (persists across tab switches)
+
+struct TabViewState {
+    var zoomScale:              Double             = 1.0
+    var zoomViewStart:          Double             = 0.0
+    var selStart:               Double?            = nil
+    var selEnd:                 Double?            = nil
+    var selTrack:               Int?               = nil
+    var selTrackEnd:            Int?               = nil
+    var globalTrackHeightLevel: Int                = 2
+    var trackHeightLevels:      [Int: Int]         = [:]
+    var trackSectionExpanded:   Bool               = false
+    var audioSectionExpanded:   Bool               = false
+    var pluginSectionExpanded:  Bool               = false
+    var memLocSectionExpanded:  Bool               = false
+    var markerSearch:           String             = ""
+    var hiddenTrackTypes:       Set<PTXTrackType>  = []
+    var showTrackPlugins:       Bool               = false
+    var showTrackSends:         Bool               = false
+    var showTrackOptions:       Bool               = false
+    var trackSortIndex:         Int                = 0
+    var trackSortAscending:     Bool               = true
+}
+
 // MARK: - Root inspector view
 // Displayed both in the Quick Look extension and the standalone app window.
 
@@ -20,6 +44,8 @@ struct SessionInspectorView: View {
     let session: PTXSession
     let sessionURL: URL
     var isResolvingFiles: Bool = false
+    var initialViewState:     TabViewState = TabViewState()
+    var onViewStateChanged:   ((TabViewState) -> Void)? = nil
     var onOpenInProTools: (() -> Void)? = nil
     var onRescan:        (() -> Void)? = nil
     var onClose:         (() -> Void)? = nil
@@ -29,6 +55,7 @@ struct SessionInspectorView: View {
     @AppStorage("ov.showInactiveTracks") private var showInactiveTracks: Bool = false
     @AppStorage("ov.showVideoTrack")     private var showVideoTrack:     Bool = true
     @AppStorage("ov.hideMutedClips")     private var hideMutedClips:     Bool = false
+    @AppStorage("ov.hideClipGroups")     private var hideClipGroups:     Bool = false
     @AppStorage("ov.showMarkers")        private var showMarkers:         Bool = false
     @AppStorage("ov.showEmptyTracks")    private var showEmptyTracks:     Bool = true
     // Track list toggles (separate from overview)
@@ -49,7 +76,15 @@ struct SessionInspectorView: View {
     @State private var trackSortColumn: TrackSortColumn = .none
     @State private var trackSortAscending: Bool = true
 
-    private enum TrackSortColumn { case none, name, format, input, output, atmos }
+    private enum TrackSortColumn {
+        case none, name, format, input, output, atmos
+        var index: Int {
+            switch self { case .none: 0; case .name: 1; case .format: 2; case .input: 3; case .output: 4; case .atmos: 5 }
+        }
+        init(index: Int) {
+            switch index { case 1: self = .name; case 2: self = .format; case 3: self = .input; case 4: self = .output; case 5: self = .atmos; default: self = .none }
+        }
+    }
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
     @StateObject private var audioPlayer = AudioPlayer()
@@ -75,8 +110,6 @@ struct SessionInspectorView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
-            sessionSetupSection
             Divider()
             overviewSection
             Divider()
@@ -145,10 +178,65 @@ struct SessionInspectorView: View {
             }
         )
         .background(Color(nsColor: .windowBackgroundColor))
-        .onAppear { pluginScanner.startupCheck() }
+        .onAppear {
+            pluginScanner.startupCheck()
+            let s = initialViewState
+            tc.scale                 = s.zoomScale
+            tc.viewStart             = s.zoomViewStart
+            tc.selStart              = s.selStart
+            tc.selEnd                = s.selEnd
+            tc.selTrack              = s.selTrack
+            tc.selTrackEnd           = s.selTrackEnd
+            tc.globalTrackHeightLevel = s.globalTrackHeightLevel
+            tc.trackHeightLevels     = s.trackHeightLevels
+            trackSectionExpanded     = s.trackSectionExpanded
+            audioSectionExpanded     = s.audioSectionExpanded
+            pluginSectionExpanded    = s.pluginSectionExpanded
+            memLocSectionExpanded    = s.memLocSectionExpanded
+            markerSearch             = s.markerSearch
+            hiddenTrackTypes         = s.hiddenTrackTypes
+            showTrackPlugins         = s.showTrackPlugins
+            showTrackSends           = s.showTrackSends
+            showTrackOptions         = s.showTrackOptions
+            trackSortColumn          = TrackSortColumn(index: s.trackSortIndex)
+            trackSortAscending       = s.trackSortAscending
+        }
+        .onDisappear {
+            onViewStateChanged?(TabViewState(
+                zoomScale:              tc.scale,
+                zoomViewStart:          tc.viewStart,
+                selStart:               tc.selStart,
+                selEnd:                 tc.selEnd,
+                selTrack:               tc.selTrack,
+                selTrackEnd:            tc.selTrackEnd,
+                globalTrackHeightLevel: tc.globalTrackHeightLevel,
+                trackHeightLevels:      tc.trackHeightLevels,
+                trackSectionExpanded:   trackSectionExpanded,
+                audioSectionExpanded:   audioSectionExpanded,
+                pluginSectionExpanded:  pluginSectionExpanded,
+                memLocSectionExpanded:  memLocSectionExpanded,
+                markerSearch:           markerSearch,
+                hiddenTrackTypes:       hiddenTrackTypes,
+                showTrackPlugins:       showTrackPlugins,
+                showTrackSends:         showTrackSends,
+                showTrackOptions:       showTrackOptions,
+                trackSortIndex:         trackSortColumn.index,
+                trackSortAscending:     trackSortAscending
+            ))
+        }
     }
 
     // MARK: - Header
+
+    /// Compact session-setup subtitle: "24-bit · 48kHz · 23.976 · 00:58:00:00"
+    private var sessionSetupSubtitle: String {
+        var parts: [String] = []
+        if !session.bitDepth.isEmpty   { parts.append("\(session.bitDepth)-bit") }
+        if !session.sampleRate.isEmpty { parts.append("\(session.sampleRate)Hz") }
+        if !session.tcFormat.isEmpty   { parts.append(session.tcFormat) }
+        if !session.sessionStart.isEmpty { parts.append(session.sessionStart) }
+        return parts.joined(separator: " · ")
+    }
 
     private var header: some View {
         HStack(spacing: 12) {
@@ -157,8 +245,16 @@ struct SessionInspectorView: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(session.sessionName)
-                    .font(.headline)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(session.sessionName)
+                        .font(.headline)
+                    let sub = sessionSetupSubtitle
+                    if !sub.isEmpty {
+                        Text("(\(sub))")
+                            .font(.system(size: 11).monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Text(sessionURL.deletingLastPathComponent().path)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -201,35 +297,6 @@ struct SessionInspectorView: View {
         .padding(.vertical, 12)
     }
 
-    // MARK: - Session Setup
-
-    private var sessionSetupSection: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "info.circle")
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
-            Text("Session Setup")
-                .font(.subheadline.weight(.semibold))
-            Divider().frame(height: 12)
-            sessionField("SR",    session.sampleRate.isEmpty  ? "—" : "\(session.sampleRate) Hz")
-            sessionField("Bit",   session.bitDepth.isEmpty    ? "—" : "\(session.bitDepth)-bit")
-            sessionField("TC",    session.tcFormat.isEmpty    ? "—" : session.tcFormat)
-            sessionField("Start", session.sessionStart.isEmpty ? "—" : session.sessionStart)
-            Spacer()
-        }
-        .font(.system(size: 11).monospacedDigit())
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .separatorColor).opacity(0.1))
-    }
-
-    private func sessionField(_ label: String, _ value: String) -> some View {
-        HStack(spacing: 3) {
-            Text(label + ":").foregroundStyle(.secondary)
-            Text(value)
-        }
-    }
-
     // MARK: - Overview (Universe-style timeline)
 
     private var overviewSection: some View {
@@ -240,6 +307,7 @@ struct SessionInspectorView: View {
         let hasInactive = session.tracks.contains { $0.isInactive && !$0.clips.isEmpty }
         let hasVideo    = session.tracks.contains { $0.type == .video && !$0.clips.isEmpty }
         let hasMuted    = session.tracks.contains { $0.clips.contains { $0.isMuted } }
+        let hasGroups   = session.tracks.contains { $0.clips.contains { $0.isGroup } }
         let hasMarkers  = session.memoryLocations.contains { $0.samplePosition > 0 }
         let clippedTracks = session.tracks
             .filter {
@@ -258,8 +326,8 @@ struct SessionInspectorView: View {
                 return a.index < b.index
             }
         let sr = Double(session.sampleRate) ?? 48000.0
-        // Leave at least 200 px for the collapsible sections below the overview.
-        let maxH = max(100, availableHeight - 280)
+        // Leave ~180 px for the collapsible sections below the overview.
+        let maxH = max(100, availableHeight - 180)
         return VStack(spacing: 0) {
             InspectorSection(title: "Overview", systemImage: "chart.bar.xaxis") {
                 if clippedTracks.isEmpty {
@@ -270,12 +338,14 @@ struct SessionInspectorView: View {
                     // Base lane heights at scale 1.0 (video=16, audio=8, gap=2)
                     let baseLanesH  = CGFloat(videoCount) * 16 + CGFloat(otherCount) * 8
                                    + CGFloat(max(0, videoCount + otherCount - 1)) * 2
-                    // overhead = toolbar(24) + hover row(24) + sel row(24) + transport(22) + waveform(64) + ruler(30) + padding(4)
-                    let overhead: CGFloat = 192
-                    // Auto-init height on first render: fit all tracks at scale 1, capped at 300
+                    // Scale by current global track height level
+                    let scaledLanesH = baseLanesH * CGFloat(1 << tc.globalTrackHeightLevel)
+                    // overhead = hover+toolbar row(24) + sel row(24) + transport(22) + waveform(64) + ruler(30) + padding(4)
+                    let overhead: CGFloat = 168
+                    // Auto-init height on first render: fit all tracks at current zoom, capped at 500
                     let effectiveH: CGFloat = {
                         if overviewHeight == 0 {
-                            let h = min(baseLanesH + overhead, 300)
+                            let h = min(scaledLanesH + overhead, 500)
                             DispatchQueue.main.async { overviewHeight = h }
                             return h
                         }
@@ -300,11 +370,13 @@ struct SessionInspectorView: View {
                                         hasInactive: hasInactive,
                                         hasVideo:    hasVideo,
                                         hasMuted:    hasMuted,
+                                        hasGroups:   hasGroups,
                                         hasMarkers:  hasMarkers,
                                         showHidden:    $showHiddenTracks,
                                         showInactive:  $showInactiveTracks,
                                         showVideo:     $showVideoTrack,
                                         hideMuted:     $hideMutedClips,
+                                        hideGroups:    $hideClipGroups,
                                         showMarkers:   $showMarkers,
                                         showEmpty:     $showEmptyTracks,
                                         overviewHeight: $overviewHeight)
@@ -1184,7 +1256,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     @Published var selTrackEnd: Int?    = nil   // non-nil when drag spans multiple tracks
 
     // Global track height level (0 = base, each step doubles all lane heights, max 4)
-    @Published var globalTrackHeightLevel: Int = 0
+    @Published var globalTrackHeightLevel: Int = 2
     // Per-track overrides on top of the global level
     @Published var trackHeightLevels: [Int: Int] = [:]
 
@@ -1255,20 +1327,26 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         }
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, self.isHovering || self.isFocused else { return event }
+            guard let self else { return event }
             guard !(event.window is NSPanel) else { return event }
+            // Global shortcuts — work from anywhere in the app
             // Numpad * (keyCode 67) → open TC entry popover (mirrors Pro Tools behaviour)
             if event.keyCode == 67 {
                 self.openTCEntry = true
                 return nil
             }
+            if event.charactersIgnoringModifiers == " " {
+                self.spacebarTapped += 1
+                return nil
+            }
+            // Timeline-specific shortcuts — only when waveform pane is hovered/focused
+            guard self.isHovering || self.isFocused else { return event }
             guard let ch = event.charactersIgnoringModifiers else { return event }
             let mods   = event.modifierFlags
             switch ch {
             case "t":      self.zoomIn();  return nil
             case "r":      self.zoomOut(); return nil
             case "e", "E": self.zoomToFitCursor(); return nil
-            case " ":      self.spacebarTapped += 1;      return nil  // Spacebar → play/stop
             case "\u{1b}": self.clearSelection();        return nil  // Escape
             case "\u{f729}":                                        // Home → go to start
                 self.selStart = 0.0; self.selEnd = nil; self.viewStart = 0.0
@@ -1528,11 +1606,13 @@ private struct SessionTimelineView: View {
     var hasInactive: Bool = false
     var hasVideo:    Bool = false
     var hasMuted:    Bool = false
+    var hasGroups:   Bool = false
     var hasMarkers:  Bool = false
     @Binding var showHidden:    Bool
     @Binding var showInactive:  Bool
     @Binding var showVideo:     Bool
     @Binding var hideMuted:     Bool
+    @Binding var hideGroups:    Bool
     @Binding var showMarkers:   Bool
     @Binding var showEmpty:     Bool
     @Binding var overviewHeight: CGFloat
@@ -1547,6 +1627,9 @@ private struct SessionTimelineView: View {
     @State private var isDragging:  Bool   = false   // dragging a selection
     @State private var isPanning:   Bool   = false   // option+dragging to pan
     @State private var panOrigin:   (viewStart: Double, window: Double)? = nil
+
+    // Waveform channel URLs — cached so multiMonoChannels isn't called on every 60fps render
+    @State private var waveChannelURLs: [URL] = []
 
     // TC entry
     @State private var showTCEntry:      Bool   = false
@@ -1593,9 +1676,36 @@ private struct SessionTimelineView: View {
     private func clipAt(trackIdx: Int?, sample: Int64, respectHideMuted: Bool = false) -> PTXClip? {
         guard let idx = trackIdx, idx < tracks.count else { return nil }
         return tracks[idx].clips.first {
+            !$0.isGroup &&
             (!respectHideMuted || !$0.isMuted) &&
             sample >= $0.startSample &&
             sample < $0.startSample + $0.lengthSamples
+        }
+    }
+
+    /// Applies a shift-click to extend the current selection to include the clicked clip/position.
+    private func applyShiftClick(clickedClip: PTXClip?, clickFrac: Double, clickLane: Int?, total: Double) {
+        guard let existing = tc.selStart else { return }
+        let anchor = tc.selEnd == nil ? existing : min(existing, tc.selEnd!)
+        let targetStart: Double
+        let targetEnd: Double
+        if let clip = clickedClip {
+            targetStart = Double(clip.startSample) / total
+            let clipEndSamp = clip.startSample + clip.lengthSamples
+            targetEnd = Double(clipEndSamp) / total
+        } else {
+            targetStart = clickFrac
+            targetEnd   = clickFrac
+        }
+        let newStart = min(anchor, targetStart)
+        let newEnd   = max(tc.selEnd ?? existing, existing, targetEnd)
+        tc.selStart    = newStart
+        tc.selEnd      = newEnd > newStart ? newEnd : nil
+        if let lane = clickLane {
+            let loTrack    = min(tc.selTrack ?? lane, lane)
+            let hiTrack    = max(tc.selTrackEnd ?? tc.selTrack ?? lane, lane)
+            tc.selTrack    = loTrack
+            tc.selTrackEnd = hiTrack != loTrack ? hiTrack : nil
         }
     }
 
@@ -1621,6 +1731,36 @@ private struct SessionTimelineView: View {
         return nil
     }
 
+    /// Snaps tc.selStart / tc.selEnd to the exact boundaries of the clips touched
+    /// by the selection — always whole clips, never sub-clip or super-clip ranges.
+    private func snapSelectionToClipBounds(total: Double) {
+        guard let s = tc.selStart, let e = tc.selEnd, e > s else { return }
+        let startSamp = Int64((s * total).rounded())
+        let endSamp   = Int64((e * total).rounded())
+        let trackLo   = min(tc.selTrack ?? 0, tc.selTrackEnd ?? (tc.selTrack ?? 0))
+        let trackHi   = max(tc.selTrack ?? 0, tc.selTrackEnd ?? (tc.selTrack ?? 0))
+        let hiIdx     = min(trackHi, tracks.count - 1)
+        guard trackLo >= 0, trackLo <= hiIdx else { return }
+
+        var minStart = Int64.max
+        var maxEnd   = Int64.min
+        for idx in trackLo...hiIdx {
+            let track = tracks[idx]
+            guard track.type == .audio else { continue }
+            for clip in track.clips {
+                guard !clip.isGroup,
+                      clip.startSample < endSamp,
+                      clip.startSample + clip.lengthSamples > startSamp else { continue }
+                minStart = min(minStart, clip.startSample)
+                maxEnd   = max(maxEnd, clip.startSample + clip.lengthSamples)
+            }
+        }
+        guard minStart < maxEnd, minStart != .max else { return }
+        // Use clip bounds directly — selection = exactly the clips touched, no more, no less.
+        if minStart != startSamp { tc.selStart = Double(minStart) / total }
+        if maxEnd   != endSamp   { tc.selEnd   = Double(maxEnd)   / total }
+    }
+
     var body: some View {
         // Use allTracksSamples if provided so ruler markers and the cursor always share
         // the same denominator, even when some tracks are hidden/filtered from the canvas.
@@ -1635,16 +1775,159 @@ private struct SessionTimelineView: View {
         let selectedClipSamp: Int64? = (tc.selEnd == nil) ? tc.selStart.map { Int64(($0 * total).rounded()) } : nil
         let selectedClip: PTXClip? = selectedClipSamp.flatMap { samp in
             guard let idx = tc.selTrack, idx < tracks.count else { return nil }
-            return tracks[idx].clips.first { $0.startSample == samp }
+            // Prefer audio clips over group brackets (groups are purely visual)
+            return tracks[idx].clips.first { !$0.isGroup && $0.startSample == samp }
+                ?? tracks[idx].clips.first { $0.startSample == samp }
         }
         let selectedClipTrackIdx: Int? = selectedClip != nil ? tc.selTrack : nil
 
-        VStack(spacing: 0) {
-            // ── Toolbar: zoom | filters ─────────────────────────────────────
-            HStack(spacing: 8) {
-                Spacer()
+        // Build a PlayRegion when the user has drawn a time selection (selEnd != nil),
+        // or when the cursor is on a group clip (isGroup == true).
+        // Group clips expand by position: all non-group clips across all tracks that
+        // fall within the group's time range are treated as the group's contents.
+        let selectedRegion: PlayRegion? = {
+            let startSamp: Int64
+            let endSamp:   Int64
+            let trackLo:   Int
+            let trackHi:   Int
 
-                // H zoom
+            if let clip = selectedClip, clip.isGroup {
+                // Group clip: expand across all tracks over the group's duration
+                startSamp = clip.startSample
+                endSamp   = clip.startSample + clip.lengthSamples
+                trackLo   = 0
+                trackHi   = tracks.count - 1
+            } else if let s = tc.selStart, let e = tc.selEnd, e > s {
+                // User-drawn time selection
+                startSamp = Int64((s * total).rounded())
+                endSamp   = Int64((e * total).rounded())
+                trackLo   = tc.selTrack ?? 0
+                trackHi   = tc.selTrackEnd ?? trackLo
+            } else {
+                return nil
+            }
+
+            guard endSamp > startSamp else { return nil }
+
+            // Safety cap: don't build a region that would require reading
+            // hundreds of files or gigabytes of audio on the main thread.
+            let kMaxClips: Int    = 200
+            let kMaxSec:   Double = 120.0
+            let durationSec = Double(endSamp - startSamp) / sr
+            guard durationSec <= kMaxSec else { return nil }
+
+            let hiIdx = min(max(trackLo, trackHi), tracks.count - 1)
+            guard trackLo >= 0, trackLo <= hiIdx else { return nil }
+
+            var segments: [PlayRegion.TrackSegment] = []
+            var totalClips = 0
+            for idx in trackLo...hiIdx {
+                let track = tracks[idx]
+                guard track.type == .audio else { continue }
+                let clipsInRange = track.clips.filter { clip in
+                    !clip.isGroup &&
+                    !clip.isMuted &&   // muted clips excluded from playback
+                    clip.startSample < endSamp &&
+                    clip.startSample + clip.lengthSamples > startSamp
+                }.sorted { $0.startSample < $1.startSample }
+
+                let resolved = clipsInRange.compactMap { clip -> (PTXClip, URL)? in
+                    guard let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+                    else { return nil }
+                    return (clip, url)
+                }
+                if !resolved.isEmpty {
+                    totalClips += resolved.count
+                    segments.append(PlayRegion.TrackSegment(trackIdx: idx, clips: resolved))
+                }
+                if totalClips > kMaxClips { return nil }  // bail early
+            }
+            guard !segments.isEmpty else { return nil }
+
+            // Use clip bounds directly — region = exactly the clips touched, no leading/trailing space.
+            let allClips = segments.flatMap(\.clips).map(\.clip)
+            let clipStart = allClips.map(\.startSample).min() ?? startSamp
+            let clipEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
+
+            return PlayRegion(startSample: clipStart,
+                              endSample:   clipEnd,
+                              segments: segments, sampleRate: sr,
+                              resolvedPool: resolvedFiles.compactMap(\.url))
+        }()
+
+        // spotRegion: same bounds as selectedRegion but includes muted clips,
+        // unless hideMutedClips is on — hidden clips are never spotted.
+        let spotRegion: PlayRegion? = {
+            let startSamp: Int64
+            let endSamp:   Int64
+            let trackLo:   Int
+            let trackHi:   Int
+
+            if let clip = selectedClip, clip.isGroup {
+                startSamp = clip.startSample
+                endSamp   = clip.startSample + clip.lengthSamples
+                trackLo   = 0
+                trackHi   = tracks.count - 1
+            } else if let s = tc.selStart, let e = tc.selEnd, e > s {
+                startSamp = Int64((s * total).rounded())
+                endSamp   = Int64((e * total).rounded())
+                trackLo   = tc.selTrack ?? 0
+                trackHi   = tc.selTrackEnd ?? trackLo
+            } else {
+                return nil
+            }
+
+            guard endSamp > startSamp else { return nil }
+            let hiIdx = min(max(trackLo, trackHi), tracks.count - 1)
+            guard trackLo >= 0, trackLo <= hiIdx else { return nil }
+
+            var segments: [PlayRegion.TrackSegment] = []
+            for idx in trackLo...hiIdx {
+                let track = tracks[idx]
+                guard track.type == .audio else { continue }
+                let clipsInRange = track.clips.filter { clip in
+                    !clip.isGroup &&
+                    (!hideMuted || !clip.isMuted) &&   // hidden muted clips are never spotted
+                    clip.startSample < endSamp &&
+                    clip.startSample + clip.lengthSamples > startSamp
+                }.sorted { $0.startSample < $1.startSample }
+                let resolved = clipsInRange.compactMap { clip -> (PTXClip, URL)? in
+                    guard let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+                    else { return nil }
+                    return (clip, url)
+                }
+                if !resolved.isEmpty {
+                    segments.append(PlayRegion.TrackSegment(trackIdx: idx, clips: resolved))
+                }
+            }
+            guard !segments.isEmpty else { return nil }
+
+            let allClips = segments.flatMap(\.clips).map(\.clip)
+            let clipStart = allClips.map(\.startSample).min() ?? startSamp
+            let clipEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
+            return PlayRegion(startSample: clipStart,
+                              endSample:   clipEnd,
+                              segments: segments, sampleRate: sr,
+                              resolvedPool: resolvedFiles.compactMap(\.url))
+        }()
+
+        VStack(spacing: 0) {
+            // ── HOVER row + zoom/filter controls (single row) ───────────────
+            HStack(spacing: 0) {
+                // Hover clip info (left side — no in/out/length)
+                hoverInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
+                             sr: sr, total: total,
+                             resolvedURL: resolvedFiles.first(where: { $0.name == hoverClip?.sourceFile })?.url,
+                             cursorAbsFrac: hoverClip == nil ? hoverAbsFrac : nil,
+                             cursorLane:    hoverClip == nil ? hoverLane    : nil)
+                    .onTapGesture {
+                        tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                        showTCEntry = true
+                    }
+
+                Spacer(minLength: 8)
+
+                // Zoom controls (right side)
                 HStack(spacing: 4) {
                     Text("H:").foregroundStyle(.secondary)
                     Button { tc.zoomOut() } label: { Image(systemName: "minus") }
@@ -1656,9 +1939,8 @@ private struct SessionTimelineView: View {
                         .buttonStyle(.borderless).controlSize(.mini)
                 }
 
-                Divider().frame(height: 14)
+                Divider().frame(height: 14).padding(.horizontal, 6)
 
-                // V zoom
                 HStack(spacing: 4) {
                     Text("V:").foregroundStyle(.secondary)
                     Button { tc.adjustGlobalTrackHeight(by: -1) } label: { Image(systemName: "minus") }
@@ -1669,10 +1951,9 @@ private struct SessionTimelineView: View {
                         .disabled(tc.globalTrackHeightLevel == 4)
                 }
 
-                Divider().frame(height: 14)
+                Divider().frame(height: 14).padding(.horizontal, 6)
 
-                // Pane options
-                let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || showMarkers || !showEmpty
+                let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || hideGroups || showMarkers || !showEmpty
                 Button { showFiltersPopover.toggle() } label: {
                     Image(systemName: filtersActive ? "ellipsis.circle.fill" : "ellipsis.circle")
                         .foregroundStyle(filtersActive ? Color.accentColor : Color.secondary)
@@ -1701,44 +1982,30 @@ private struct SessionTimelineView: View {
                                    isOn: Binding(get: { !hideMuted }, set: { hideMuted = !$0 }))
                             .toggleStyle(.checkbox)
                         }
+                        if hasGroups {
+                            Toggle("Show Clip Groups",
+                                   isOn: Binding(get: { !hideGroups }, set: { hideGroups = !$0 }))
+                            .toggleStyle(.checkbox)
+                        }
                     }
                     .font(.system(size: 12))
                     .padding(12)
                     .frame(minWidth: 180)
                 }
 
-                // Reset Heights — inline only when non-default
-                if !tc.trackHeightLevels.isEmpty || tc.globalTrackHeightLevel != 0 {
-                    Divider().frame(height: 14)
-                    Button { tc.resetTrackHeights() } label: { Text("Reset Heights") }
+                if !tc.trackHeightLevels.isEmpty || tc.globalTrackHeightLevel != 2 {
+                    Divider().frame(height: 14).padding(.horizontal, 6)
+                    Button { tc.resetTrackHeights() } label: { Text("Reset") }
                         .buttonStyle(.borderless)
                 }
             }
             .font(.system(size: 11).monospacedDigit())
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
+            .padding(.leading, 0)
+            .padding(.trailing, 8)
             .frame(height: 24)
 
-            // ── HOVER / SELECT clip rows (aligned columns) ───────────────────
-            clipInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
-                        label: "HOVER", sr: sr, total: total, isSelected: false,
-                        resolvedURL: resolvedFiles.first(where: { $0.name == hoverClip?.sourceFile })?.url,
-                        cursorAbsFrac: hoverClip == nil ? hoverAbsFrac : nil,
-                        cursorLane:    hoverClip == nil ? hoverLane    : nil)
-                .onTapGesture {
-                    // Clicking the hover row (when showing cursor position) opens TC entry
-                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
-                    showTCEntry = true
-                }
-                .popover(isPresented: $showTCEntry, arrowEdge: .bottom) {
-                    TCEntryPopover(text: $tcEntryText) { text in
-                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
-                                                              totalSamples: total, sampleRate: sr) {
-                            tc.jumpTo(frac)
-                        }
-                        showTCEntry = false
-                    }
-                }
+            // ── SELECT clip row ───────────────────────────────────────────────
             clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
                         label: "SELECT", sr: sr, total: total, isSelected: true,
                         resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
@@ -1792,25 +2059,54 @@ private struct SessionTimelineView: View {
 
                 Spacer()
 
+                // TC counter — always visible; priority: playback > cursor > hover > dash
+                Group {
+                    if let ap = audioPlayer, ap.isPlaying, let clip = ap.playingClip {
+                        let samp = Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)
+                        Text(formatTC(samp / sr, fps: frameRate))
+                            .foregroundStyle(Color(nsColor: .labelColor))
+                    } else if let frac = tc.selStart {
+                        Text(formatTC(frac * total / sr, fps: frameRate))
+                            .foregroundStyle(Color(nsColor: .secondaryLabelColor))
+                    } else if let frac = hoverAbsFrac {
+                        Text(formatTC(frac * total / sr, fps: frameRate))
+                            .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+                    } else {
+                        Text("—")
+                            .foregroundStyle(.quaternary)
+                    }
+                }
+                .font(.system(size: 11).monospacedDigit())
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(nsColor: .separatorColor).opacity(0.4)))
+                .onTapGesture {
+                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                    showTCEntry = true
+                }
+                .popover(isPresented: $showTCEntry, arrowEdge: .top) {
+                    TCEntryPopover(text: $tcEntryText) { text in
+                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
+                                                              totalSamples: total, sampleRate: sr) {
+                            tc.jumpTo(frac)
+                        }
+                        showTCEntry = false
+                    }
+                }
+                .help("Click to jump to timecode")
+
+                Divider().frame(height: 12).padding(.horizontal, 4)
+
                 // Volume fader
                 if let ap = audioPlayer {
                     VolumeFaderView(volume: Binding(get: { ap.volume }, set: { ap.volume = $0 }))
                         .frame(width: 72)
                 }
 
-                // Spot to PT: only when clip is selected and online
-                if let clip = selectedClip, !clip.isGroup,
-                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
-                    Button {
-                        Task { try? await PTSLSessionInfo.shared.spotClip(clip: clip, sourceURL: url) }
-                    } label: {
-                        Label("Spot to PT", systemImage: "pin.fill")
-                            .font(.system(size: 10))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.accentColor)
-                    .help("Import and spot this clip to its Pro Tools timeline position")
-                }
+                // Spot to PT (uses spotRegion; includes muted clips unless hidden)
+                spotButton(region: spotRegion, clip: selectedClip,
+                           resolvedFiles: resolvedFiles)
 
                 Divider().frame(height: 12)
 
@@ -1854,34 +2150,36 @@ private struct SessionTimelineView: View {
             .frame(height: 22)
 
             // ── Clip waveform — always present to keep lane canvas height stable ─
-            let resolvedWaveURL: URL? = {
-                guard let clip = selectedClip, !clip.isGroup else { return nil }
-                return resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+            let waveColor: Color = {
+                if selectedClip?.isMuted == true { return Color(white: 0.45) }
+                return selectedClipTrackIdx.map { t in
+                    t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
+                } ?? Color.accentColor
             }()
-            // Split-stereo companion: Pro Tools multi-mono stores L/R as separate files.
-            // Naming convention: BaseName_L-TrackInfo[.L] / BaseName_R-TrackInfo[.R]
-            // Must swap both the _L-/_R- stem marker AND the trailing .L/.R suffix.
-            let resolvedWaveURLR: URL? = {
-                guard let clip = selectedClip, !clip.isGroup else { return nil }
-                let src = clip.sourceFile
-                if let companion = multiMonoCompanion(src) {
-                    return resolvedFiles.first(where: { $0.name == companion })?.url
-                }
-                return nil
-            }()
-            let waveColor: Color = selectedClipTrackIdx.map { t in
-                t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
-            } ?? Color.accentColor
             ZStack {
                 // Faint placeholder track so the area is visually defined even when empty
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.primary.opacity(0.04))
-                if let clip = selectedClip, !clip.isGroup,
-                   let url = resolvedWaveURL, let ap = audioPlayer {
-                    ClipWaveformView(clip: clip, url: url, urlCompanion: resolvedWaveURLR,
+                if let region = selectedRegion, let ap = audioPlayer {
+                    // Composite waveform for the selected region
+                    let segColors: [Color] = region.segments.map { seg in
+                        seg.trackIdx < tracks.count
+                            ? trackColor(tracks[seg.trackIdx], index: seg.trackIdx)
+                            : waveColor
+                    }
+                    RegionWaveformView(region: region, segColors: segColors, audioPlayer: ap)
+                } else if tc.selEnd != nil {
+                    // Selection exists but exceeds the cap — don't try to play or preview it
+                    Label("Selection too large to play (> 25 clips or > 2 min)",
+                          systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                } else if let clip = selectedClip, !clip.isGroup,
+                          !waveChannelURLs.isEmpty, let ap = audioPlayer {
+                    ClipWaveformView(clip: clip, channelURLs: waveChannelURLs,
                                      sampleRate: sr, color: waveColor, audioPlayer: ap)
                 } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
-                          resolvedWaveURL == nil {
+                          waveChannelURLs.isEmpty {
                     // Clip is selected but source file is not on disk
                     Label("Audio file offline", systemImage: "exclamationmark.triangle")
                         .font(.system(size: 10))
@@ -1926,9 +2224,11 @@ private struct SessionTimelineView: View {
                     tracks:                  tracks,
                     total:                   total,
                     hideMuted:               hideMuted,
+                    hideGroups:              hideGroups,
                     verticalScale:           verticalScale,
                     grmMode:                 colorMode == .grm,
-                    globalTrackHeightLevel:  tc.globalTrackHeightLevel
+                    globalTrackHeightLevel:  tc.globalTrackHeightLevel,
+                    resolvedFiles:           resolvedFiles
                 )
                 .equatable()
 
@@ -2020,9 +2320,12 @@ private struct SessionTimelineView: View {
                                             isDragging = true
                                             let startFrac = (Double(val.startLocation.x / geo.size.width)
                                                 * tc.window + tc.viewStart).clamped(to: 0...1)
-                                            tc.selStart = startFrac
-                                            tc.selTrack = laneIndex(at: val.startLocation.y,
-                                                                     availH: geo.size.height)
+                                            // Clear any existing selection before starting fresh
+                                            tc.selEnd      = nil
+                                            tc.selTrackEnd = nil
+                                            tc.selStart    = startFrac
+                                            tc.selTrack    = laneIndex(at: val.startLocation.y,
+                                                                       availH: geo.size.height)
                                         }
                                         tc.selEnd = curFrac
                                         let curLane = laneIndex(at: val.location.y,
@@ -2031,39 +2334,48 @@ private struct SessionTimelineView: View {
                                     }
                                 }
                                 .onEnded { val in
+                                    let wasDragging = isDragging
+                                    isDragging = false
+                                    isPanning  = false
+                                    panOrigin  = nil
+
                                     let dist = hypot(val.translation.width, val.translation.height)
                                     if dist < 3 {
                                         // Click: place cursor, or select clip if one is under the click
-                                        let frac     = (Double(val.location.x / geo.size.width)
+                                        let frac      = (Double(val.location.x / geo.size.width)
                                             * tc.window + tc.viewStart).clamped(to: 0...1)
                                         let clickLane = laneIndex(at: val.location.y, availH: geo.size.height)
-                                        tc.selTrackEnd = nil
-                                        tc.isFocused   = true
-                                        tc.selTrack    = clickLane
+                                        let shiftHeld = NSEvent.modifierFlags.contains(.shift)
+                                        tc.isFocused  = true
 
                                         let clickedClip = clipAt(trackIdx: clickLane,
                                                                      sample: Int64(frac * total),
                                                                      respectHideMuted: hideMuted)
 
-                                        if let clip = clickedClip {
-                                            // Place cursor at clip in-point; SEL row derives from this.
-                                            // onChange(of: tc.selStart) handles autoplay uniformly.
+                                        if shiftHeld, tc.selStart != nil {
+                                            applyShiftClick(clickedClip: clickedClip,
+                                                            clickFrac: frac,
+                                                            clickLane: clickLane,
+                                                            total: total)
+                                        } else if let clip = clickedClip {
+                                            tc.selTrackEnd = nil
+                                            tc.selTrack    = clickLane
                                             tc.selStart = Double(clip.startSample) / total
                                             tc.selEnd   = nil
                                         } else {
-                                            // Empty space → cursor only, no clip selected
+                                            tc.selTrackEnd = nil
+                                            tc.selTrack    = clickLane
                                             tc.selStart = frac
                                             tc.selEnd   = nil
                                         }
-                                    } else if isDragging {
+                                    } else if wasDragging {
                                         // Normalize selection so start <= end
                                         if let s = tc.selStart, let e = tc.selEnd, e < s {
                                             let tmp = tc.selStart; tc.selStart = tc.selEnd; tc.selEnd = tmp
                                         }
+                                        // Snap edges to actual clip bounds (trim leading/trailing silence)
+                                        snapSelectionToClipBounds(total: total)
                                     }
-                                    isDragging = false
-                                    isPanning  = false
-                                    panOrigin  = nil
                                 }
                         )
                 }
@@ -2165,7 +2477,13 @@ private struct SessionTimelineView: View {
             tc.hideMuted    = hideMuted
             tc.startMonitoring()
         }
-        .onDisappear { tc.stopMonitoring() }
+        .onDisappear {
+            tc.stopMonitoring()
+            audioPlayer?.stop()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+            audioPlayer?.stop()
+        }
         .onChange(of: tracks)           { tc.tracks       = $0 }
         .onChange(of: allTracksSamples) { tc.totalSamples = $0 }
         .onChange(of: hideMuted)        { tc.hideMuted    = $0 }
@@ -2176,7 +2494,15 @@ private struct SessionTimelineView: View {
             showTCEntry = true
         }
         .onChange(of: tc.spacebarTapped) { _ in
-            guard let ap = audioPlayer, let clip = selectedClip, !clip.isGroup,
+            guard let ap = audioPlayer else { return }
+            // Region selected → toggle region playback
+            if let region = selectedRegion {
+                if ap.isPlaying { ap.stop() }
+                else { ap.playRegion(region) }
+                return
+            }
+            // Single clip → existing behaviour
+            guard let clip = selectedClip, !clip.isGroup,
                   let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
             else { return }
             if ap.isPlaying && ap.playingClip == clip { ap.stop() }
@@ -2195,7 +2521,28 @@ private struct SessionTimelineView: View {
             guard !(ap.isPlaying && ap.playingClip == clip) else { return }
             ap.play(clip: clip, url: url, sampleRate: sr)
         }
+        .onChange(of: tc.selEnd) { newSelEnd in
+            // Autoplay when a region selection is completed (selEnd becomes non-nil).
+            // Snap is handled in onEnded; this covers programmatic selEnd changes too.
+            guard newSelEnd != nil, !isDragging, autoplay,
+                  let ap = audioPlayer,
+                  let region = selectedRegion else { return }
+            ap.playRegion(region)
+        }
         .onChange(of: selectedClip?.sourceFile) { sourceFile in
+            // selectedClip is a locally computed let — it's captured stale in SwiftUI closures.
+            // Recompute from tc (a reference type) so we always see the current selection.
+            let samp = tc.selEnd == nil ? tc.selStart.map { Int64(($0 * total).rounded()) } : nil
+            let clip = samp.flatMap { s -> PTXClip? in
+                guard let idx = tc.selTrack, idx < tracks.count else { return nil }
+                return tracks[idx].clips.first { $0.startSample == s }
+            }
+            if let clip = clip, !clip.isGroup, clip.channelFiles.count >= 1 {
+                waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
+            } else {
+                waveChannelURLs = []
+            }
+            // BWF metadata refresh
             guard bwfPanelVisible else { return }
             bwfMetadata = nil
             guard let name = sourceFile,
@@ -2204,6 +2551,124 @@ private struct SessionTimelineView: View {
                 let m = BWFParser.parse(url: url)
                 await MainActor.run { bwfMetadata = m }
             }
+        }
+        .onChange(of: resolvedFiles.count) { _ in
+            // Re-run when file resolution finishes (resolvedFiles populates asynchronously
+            // after open). Without this, clicking a clip before resolution completes shows
+            // "audio offline" even when the file exists on disk.
+            let samp = tc.selEnd == nil ? tc.selStart.map { Int64(($0 * total).rounded()) } : nil
+            let clip = samp.flatMap { s -> PTXClip? in
+                guard let idx = tc.selTrack, idx < tracks.count else { return nil }
+                return tracks[idx].clips.first { $0.startSample == s }
+            }
+            if let clip = clip, !clip.isGroup, clip.channelFiles.count >= 1 {
+                waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
+            }
+        }
+    }
+
+    /// Compact hover row — shows track/clip name only, no in/out/length.
+    /// Used in the merged hover+toolbar row to save vertical space.
+    private func hoverInfoRow(clip: PTXClip?, trackIdx: Int?,
+                              sr: Double, total: Double,
+                              resolvedURL: URL? = nil,
+                              cursorAbsFrac: Double? = nil,
+                              cursorLane: Int? = nil) -> some View {
+        let color = trackIdx.map { t in
+            t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
+        } ?? Color.secondary
+
+        return HStack(spacing: 0) {
+            Text("HOVER")
+                .font(.system(size: 9).weight(.bold))
+                .foregroundStyle(Color.secondary)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(nsColor: .separatorColor).opacity(0.5)))
+                .frame(width: 52, alignment: .leading)
+
+            if let clip, let tIdx = trackIdx {
+                let trackName = tIdx < tracks.count ? tracks[tIdx].name : ""
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(color.opacity(0.5))
+                    .frame(width: 3, height: 14)
+                    .padding(.trailing, 6)
+                if !trackName.isEmpty {
+                    Text(trackName)
+                        .foregroundStyle(color.opacity(0.75))
+                        .lineLimit(1)
+                        .frame(width: 90, alignment: .leading)
+                    Spacer().frame(width: 4)
+                }
+                Text(clip.name)
+                    .foregroundStyle(Color(nsColor: .secondaryLabelColor))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } else if let absFrac = cursorAbsFrac {
+                let laneIdx = cursorLane
+                if let idx = laneIdx, idx < tracks.count {
+                    let track  = tracks[idx]
+                    let tcolor = trackColor(track, index: idx)
+                    let fmt: String = track.type == .video
+                        ? (tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)")
+                        : track.channelFormat
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(tcolor.opacity(0.5))
+                        .frame(width: 3, height: 14)
+                        .padding(.trailing, 6)
+                    Text(track.name).foregroundStyle(tcolor.opacity(0.75)).lineLimit(1)
+                        .frame(width: 90, alignment: .leading)
+                    Spacer().frame(width: 4)
+                    Text("[\(fmt)]").foregroundStyle(.secondary).lineLimit(1)
+                } else {
+                    Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
+                }
+                Spacer(minLength: 8)
+                Group {
+                    Text("pos ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                    + Text(formatTC(absFrac * total / sr, fps: frameRate))
+                        .foregroundColor(Color(nsColor: .secondaryLabelColor))
+                }
+            } else {
+                Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
+            }
+        }
+        .font(.system(size: 11).monospacedDigit())
+        .padding(.leading, 12)
+    }
+
+    @ViewBuilder
+    private func spotButton(region: PlayRegion?, clip: PTXClip?,
+                            resolvedFiles: [ResolvedAudioFile]) -> some View {
+        if let region {
+            Button {
+                Task { try? await PTSLSessionInfo.shared.spotRegion(region) }
+            } label: {
+                Label("Spot \(region.totalClipCount) to PT", systemImage: "pin.fill")
+                    .font(.system(size: 10))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.accentColor)
+            .help("Spot all selected clips to their original Pro Tools timeline positions, with full source handles")
+        } else if let clip, !clip.isGroup,
+                  let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+            Button {
+                let pool = resolvedFiles.compactMap(\.url)
+                let segment = PlayRegion.TrackSegment(trackIdx: 0, clips: [(clip: clip, url: url)])
+                let region  = PlayRegion(startSample: clip.startSample,
+                                         endSample:   clip.startSample + clip.lengthSamples,
+                                         segments:    [segment],
+                                         sampleRate:  max(sampleRate, 1),
+                                         resolvedPool: pool)
+                Task { try? await PTSLSessionInfo.shared.spotRegion(region) }
+            } label: {
+                Label("Spot to PT", systemImage: "pin.fill")
+                    .font(.system(size: 10))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.accentColor)
+            .help("Spot this clip to the selected Pro Tools track with full source handles")
         }
     }
 
@@ -2396,9 +2861,11 @@ private struct TimelineLaneCanvas: View, Equatable {
     let tracks:               [PTXTrack]
     let total:                Double
     let hideMuted:            Bool
+    let hideGroups:           Bool
     let verticalScale:        CGFloat
     let grmMode:              Bool
     let globalTrackHeightLevel: Int
+    let resolvedFiles:        [ResolvedAudioFile]
 
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.viewStart               == rhs.viewStart               &&
@@ -2411,9 +2878,11 @@ private struct TimelineLaneCanvas: View, Equatable {
         lhs.tracks.count            == rhs.tracks.count            &&
         lhs.total                   == rhs.total                   &&
         lhs.hideMuted               == rhs.hideMuted               &&
+        lhs.hideGroups              == rhs.hideGroups              &&
         lhs.verticalScale           == rhs.verticalScale           &&
         lhs.grmMode                 == rhs.grmMode                 &&
-        lhs.globalTrackHeightLevel  == rhs.globalTrackHeightLevel
+        lhs.globalTrackHeightLevel  == rhs.globalTrackHeightLevel  &&
+        lhs.resolvedFiles.count     == rhs.resolvedFiles.count
     }
 
     private static let audioLaneH: CGFloat = 8
@@ -2442,19 +2911,85 @@ private struct TimelineLaneCanvas: View, Equatable {
             let winStartSamp = Int64((vStart * total).rounded(.down))
             let winEndSamp   = Int64(((vStart + vWindow) * total).rounded(.up))
 
+            // Pre-compute laneY for each track so the selection box can span exactly
+            // the selected track rows rather than the full canvas height.
+            var trackLaneYs: [CGFloat] = []
+            do {
+                var y: CGFloat = 0
+                for (i, track) in tracks.enumerated() {
+                    trackLaneYs.append(y)
+                    y += scaledLaneH(track, index: i) + Self.laneGap
+                }
+            }
+
+            // Build offline set once per draw — used below to hatch unresolved clips.
+            let offlineNames = Set(resolvedFiles.filter { $0.url == nil }.map { $0.name })
+
             var laneY: CGFloat = 0
             for (i, track) in tracks.enumerated() {
                 let thisLaneH  = scaledLaneH(track, index: i)
                 let color      = trackColor(track, index: i)
                 let isSelected = selLo >= 0 && i >= selLo && i <= selHi
-                let bgAlpha: Double = isSelected ? 0.18 : 0.03
+                let bgAlpha: Double = 0.03
 
                 ctx.fill(
                     Path(CGRect(x: 0, y: laneY, width: size.width, height: thisLaneH)),
                     with: .color(color.opacity(bgAlpha))
                 )
 
-                for clip in track.clips {
+                // Precompute selection state for this track's clips
+                let selStartSamp: Int64? = selStart.map { Int64(($0 * total).rounded()) }
+                let selEndSamp:   Int64? = selEnd.map   { Int64(($0 * total).rounded()) }
+                let trackInSelRange = isSelected   // track is within selTrack…selTrackEnd
+
+                // Pass 1: draw group-box clips as transparent bracket (behind regular clips)
+                for clip in track.clips where clip.isGroup {
+                    guard clip.lengthSamples > 0 else { continue }
+                    if hideGroups { continue }
+                    if hideMuted && clip.isMuted { continue }
+                    if clip.startSample >= winEndSamp { continue }
+                    if clip.startSample + clip.lengthSamples <= winStartSamp { continue }
+
+                    let clipFracStart = Double(clip.startSample) / total
+                    let clipFracLen   = Double(clip.lengthSamples) / total
+                    let x = CGFloat((clipFracStart - vStart) / vWindow) * size.width
+                    let w = max(2, CGFloat(clipFracLen / vWindow) * size.width)
+                    let clipRect = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
+
+                    // Faint tinted fill so the group extent is readable but clips show through
+                    ctx.fill(Path(clipRect), with: .color(color.opacity(0.07)))
+
+                    // Dashed border to distinguish from regular clips
+                    if w >= 4 {
+                        ctx.stroke(Path(clipRect), with: .color(color.opacity(0.4)),
+                                   style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                        if w > 48 {
+                            let fontSize: CGFloat = max(min(thisLaneH - 2, 9), 7)
+                            ctx.draw(
+                                Text(clip.name)
+                                    .font(.system(size: fontSize).italic())
+                                    .foregroundColor(color.opacity(0.85)),
+                                in: CGRect(x: x + 4, y: laneY + 1,
+                                           width: w - 8, height: fontSize + 2)
+                            )
+                        }
+                    }
+
+                    // Selection highlight for group clip
+                    let isGroupSelected: Bool = {
+                        if let ss = selStartSamp, i == (selTrack ?? -1), selEnd == nil {
+                            return clip.startSample == ss
+                        }
+                        return false
+                    }()
+                    if isGroupSelected {
+                        ctx.stroke(Path(clipRect), with: .color(.white.opacity(0.5)),
+                                   style: StrokeStyle(lineWidth: 2, dash: [4, 3]))
+                    }
+                }
+
+                // Pass 2: draw regular (non-group) clips on top
+                for clip in track.clips where !clip.isGroup {
                     guard clip.lengthSamples > 0 else { continue }
                     if clip.startSample >= winEndSamp { break }
                     if clip.startSample + clip.lengthSamples <= winStartSamp { continue }
@@ -2465,45 +3000,92 @@ private struct TimelineLaneCanvas: View, Equatable {
                     let x = CGFloat((clipFracStart - vStart) / vWindow) * size.width
                     let w = max(1, CGFloat(clipFracLen / vWindow) * size.width)
                     let clipRect  = CGRect(x: x, y: laneY, width: w, height: thisLaneH)
-                    let fillAlpha: Double = clip.isMuted ? 0.28 : 0.88
-                    ctx.fill(Path(clipRect), with: .color(color.opacity(fillAlpha)))
+                    let clipColor: Color = clip.isMuted ? Color(white: 0.45) : color
+                    ctx.fill(Path(clipRect), with: .color(clipColor.opacity(clip.isMuted ? 0.55 : 0.88)))
 
                     if w >= 2 {
-                        let edgeAlpha: Double = clip.isMuted ? 0.45 : 1.0
-                        ctx.stroke(Path(clipRect), with: .color(color.opacity(edgeAlpha)),
+                        ctx.stroke(Path(clipRect), with: .color(clipColor.opacity(clip.isMuted ? 0.7 : 1.0)),
                                    style: StrokeStyle(lineWidth: 1))
                         if w > 32 {
                             let fontSize: CGFloat = max(min(thisLaneH - 2, 10), 7)
-                            let labelAlpha: Double = clip.isMuted ? 0.5 : 1.0
+                            let isOffline = offlineNames.contains(clip.sourceFile)
+                            let label = isOffline ? "⚠ \(clip.name)" : clip.name
                             ctx.draw(
-                                Text(clip.name)
+                                Text(label)
                                     .font(.system(size: fontSize).bold())
-                                    .foregroundColor(.white.opacity(labelAlpha)),
+                                    .foregroundColor(isOffline
+                                        ? Color.orange.opacity(1.0)
+                                        : .white.opacity(clip.isMuted ? 0.5 : 1.0)),
                                 in: CGRect(x: x + 3,
                                            y: laneY + (thisLaneH - fontSize) / 2 - 1,
                                            width: w - 6, height: fontSize + 2)
                             )
                         }
                     }
+
+                    // Offline: orange overlay + dense diagonal hatch + warning prefix on label.
+                    if offlineNames.contains(clip.sourceFile), w >= 2 {
+                        // Orange tint so the clip reads as "problem" at a glance
+                        ctx.fill(Path(clipRect), with: .color(Color.orange.opacity(0.35)))
+                        var hatchCtx = ctx
+                        hatchCtx.clip(to: Path(clipRect))
+                        var hatchPath = Path()
+                        let step: CGFloat = 4
+                        var d: CGFloat = -thisLaneH
+                        while d <= w {
+                            hatchPath.move(to: CGPoint(x: x + d, y: laneY))
+                            hatchPath.addLine(to: CGPoint(x: x + d + thisLaneH, y: laneY + thisLaneH))
+                            d += step
+                        }
+                        hatchCtx.stroke(hatchPath, with: .color(Color.orange.opacity(0.8)),
+                                        style: StrokeStyle(lineWidth: 1.5))
+                    }
+
+                    // Selected-clip highlight: brighten by overlaying a white fill
+                    let isClipSelected: Bool = {
+                        if let ss = selEndSamp, trackInSelRange {
+                            let selS = selStartSamp ?? 0
+                            return clip.startSample < ss && clip.startSample + clip.lengthSamples > selS
+                        } else if let ss = selStartSamp, i == (selTrack ?? -1), selEnd == nil {
+                            return clip.startSample == ss
+                        }
+                        return false
+                    }()
+                    if isClipSelected, w >= 1 {
+                        ctx.fill(Path(clipRect), with: .color(.white.opacity(0.28)))
+                    }
                 }
                 laneY += thisLaneH + Self.laneGap
             }
 
-            // Cursor / selection band (drawn over clips)
+            // Cursor / selection box (drawn over clips)
             if let sStart = selStart {
                 let sx = CGFloat((sStart - vStart) / vWindow) * size.width
                 if let sEnd = selEnd {
                     let ex = CGFloat((sEnd - vStart) / vWindow) * size.width
                     let x  = min(sx, ex)
                     let w  = max(1, abs(ex - sx))
+
+                    // Clamp the box to the vertical span of the selected tracks.
+                    let boxY: CGFloat
+                    let boxH: CGFloat
+                    if selLo >= 0, selLo < trackLaneYs.count {
+                        boxY = trackLaneYs[selLo]
+                        let hiIdx  = min(selHi, tracks.count - 1)
+                        let bottom = trackLaneYs[hiIdx] + scaledLaneH(tracks[hiIdx], index: hiIdx)
+                        boxH = max(1, bottom - boxY)
+                    } else {
+                        boxY = 0; boxH = availH
+                    }
+
                     ctx.fill(
-                        Path(CGRect(x: x, y: 0, width: w, height: availH)),
-                        with: .color(Color.accentColor.opacity(0.18))
+                        Path(CGRect(x: x, y: boxY, width: w, height: boxH)),
+                        with: .color(Color.accentColor.opacity(0.22))
                     )
-                    ctx.fill(Path(CGRect(x: x,         y: 0, width: 1, height: availH)),
-                             with: .color(Color.accentColor.opacity(0.7)))
-                    ctx.fill(Path(CGRect(x: x + w - 1, y: 0, width: 1, height: availH)),
-                             with: .color(Color.accentColor.opacity(0.7)))
+                    ctx.fill(Path(CGRect(x: x,         y: boxY, width: 1, height: boxH)),
+                             with: .color(Color.accentColor.opacity(0.8)))
+                    ctx.fill(Path(CGRect(x: x + w - 1, y: boxY, width: 1, height: boxH)),
+                             with: .color(Color.accentColor.opacity(0.8)))
                 } else if sx >= 0, sx <= size.width {
                     ctx.fill(
                         Path(CGRect(x: sx - 0.5, y: 0, width: 1, height: availH)),
@@ -2868,31 +3450,6 @@ private struct VolumeFaderView: View {
     }
 }
 
-// MARK: - Multi-mono companion lookup
-
-/// Returns the companion file name for a Pro Tools multi-mono stereo pair, or nil if not applicable.
-/// PT naming: BaseName_L-TrackInfo[.L]  ↔  BaseName_R-TrackInfo[.R]
-/// Must swap BOTH the _L-/_R- stem marker AND the optional trailing .L/.R suffix.
-private func multiMonoCompanion(_ src: String) -> String? {
-    func swapSuffix(_ s: String, from: String, to: String) -> String {
-        s.hasSuffix(from) ? String(s.dropLast(from.count)) + to : s
-    }
-    if let range = src.range(of: "_L-") {
-        var c = src; c.replaceSubrange(range, with: "_R-")
-        c = swapSuffix(c, from: ".L", to: ".R")
-        return c
-    }
-    if let range = src.range(of: "_R-") {
-        var c = src; c.replaceSubrange(range, with: "_L-")
-        c = swapSuffix(c, from: ".R", to: ".L")
-        return c
-    }
-    // Fallback: bare trailing .L / .R with no stem marker
-    if src.hasSuffix(".L") { return String(src.dropLast(2)) + ".R" }
-    if src.hasSuffix(".R") { return String(src.dropLast(2)) + ".L" }
-    return nil
-}
-
 // MARK: - Clip Waveform View
 
 private func waveformChannelLabels(_ count: Int) -> [String] {
@@ -2906,85 +3463,304 @@ private func waveformChannelLabels(_ count: Int) -> [String] {
     }
 }
 
-/// Async waveform display for a resolved clip. Shows PCM peaks per channel,
-/// with a moving playhead, click-to-seek, and drag-out-to-export.
-private struct ClipWaveformView: View {
-    let clip:         PTXClip
-    let url:          URL
-    var urlCompanion: URL?   = nil   // split-stereo .R (or .L) companion
-    let sampleRate:   Double
-    let color:        Color
+// MARK: - Region waveform (composite: clips + silence, one row per track segment)
+
+private struct RegionWaveformView: View {
+    let region:    PlayRegion
+    let segColors: [Color]          // one Color per segment (in segment order)
     @ObservedObject var audioPlayer: AudioPlayer
 
-    @State private var peaks:     [[Float]] = []   // one [Float] per channel
-    @State private var loadID:    UUID      = UUID()
-    @State private var viewWidth: CGFloat   = 1
+    // trackIdx → assembled peak array (one Float per pixel)
+    @State private var trackPeaks:  [Int: [Float]] = [:]
+    @State private var peaksReady:  Bool    = false
+    @State private var viewWidth:   CGFloat = 1
+    @State private var loadID:      UUID    = UUID()
 
     var body: some View {
         Canvas { ctx, size in
-            let w   = size.width
-            let h   = size.height
-            let mid = h / 2
+            let w        = size.width
+            let h        = size.height
+            let segCount = CGFloat(region.segments.count)
+            let rowH     = h / segCount
 
-            if peaks.isEmpty {
-                ctx.fill(Path(CGRect(x: 0, y: mid - 0.5, width: w, height: 1)),
-                         with: .color(.secondary.opacity(0.2)))
-            } else {
-                // One equal-height band per channel, symmetric bars on each midline
-                // (matches sfxlibrary WaveformView rendering model)
-                let chCount    = peaks.count
-                let labels     = waveformChannelLabels(chCount)
-                let showLabels = chCount > 1
-                let labelW: CGFloat = showLabels ? 20 : 0
-                let drawW      = w - labelW
-                let n          = CGFloat(peaks[0].count)
-                let bandH      = h / CGFloat(chCount)
-                let step       = drawW / n
-                let lineW      = max(1, step * 0.6)
+            for (rowIdx, segment) in region.segments.enumerated() {
+                let rowY  = CGFloat(rowIdx) * rowH
+                let midY  = rowY + rowH / 2
+                let color = rowIdx < segColors.count ? segColors[rowIdx] : Color.accentColor
 
-                for (ch, channelPeaks) in peaks.enumerated() {
-                    let midY = bandH * CGFloat(ch) + bandH / 2
-                    var path = Path()
-                    for (i, peak) in channelPeaks.enumerated() {
-                        let x   = labelW + (CGFloat(i) + 0.5) * step
-                        let amp = CGFloat(peak) * (bandH / 2) * 0.9
-                        path.move(to:    CGPoint(x: x, y: midY - amp))
-                        path.addLine(to: CGPoint(x: x, y: midY + amp))
-                    }
-                    ctx.stroke(path, with: .color(color.opacity(0.85)),
-                               style: StrokeStyle(lineWidth: lineW))
+                // Silence baseline
+                ctx.fill(Path(CGRect(x: 0, y: midY - 0.5, width: w, height: 1)),
+                         with: .color(color.opacity(0.15)))
 
-                    if showLabels {
-                        let label = ch < labels.count ? labels[ch] : "\(ch + 1)"
-                        ctx.draw(
-                            Text(label)
-                                .font(.system(size: 7, weight: .medium))
-                                .foregroundColor(.secondary),
-                            at: CGPoint(x: 3, y: midY), anchor: .leading
-                        )
-                    }
+                // Clip presence bands (faint background where audio exists)
+                let totalSamp = Double(region.endSample - region.startSample)
+                for (clip, _) in segment.clips {
+                    let x1 = CGFloat((Double(clip.startSample - region.startSample) / totalSamp) * Double(w))
+                    let x2 = CGFloat((Double(clip.startSample + clip.lengthSamples - region.startSample) / totalSamp) * Double(w))
+                    ctx.fill(Path(CGRect(x: x1, y: rowY, width: max(1, x2 - x1), height: rowH)),
+                             with: .color(color.opacity(0.07)))
                 }
 
-                // Divider between channels (only for multi-channel)
-                if chCount > 1 {
-                    var div = Path()
-                    for ch in 1..<chCount {
-                        let y = bandH * CGFloat(ch)
-                        div.move(to:    CGPoint(x: 0, y: y))
-                        div.addLine(to: CGPoint(x: w, y: y))
+                // Waveform peaks — only once fully loaded
+                guard peaksReady,
+                      let peaks = trackPeaks[segment.trackIdx], !peaks.isEmpty else {
+                    if !peaksReady {
+                        ctx.draw(
+                            Text("Waveform Loading…")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.secondary.opacity(0.6)),
+                            at: CGPoint(x: w / 2, y: midY), anchor: .center)
                     }
-                    ctx.stroke(div, with: .color(Color.primary.opacity(0.15)),
-                               style: StrokeStyle(lineWidth: 0.5))
+                    continue
+                }
+                let n    = CGFloat(peaks.count)
+                let step = w / n
+                let lineW = max(1, step * 0.7)
+                var path = Path()
+                for (i, peak) in peaks.enumerated() {
+                    let x   = (CGFloat(i) + 0.5) * step
+                    let amp = CGFloat(peak) * (rowH / 2) * 0.85
+                    path.move(to:    CGPoint(x: x, y: midY - amp))
+                    path.addLine(to: CGPoint(x: x, y: midY + amp))
+                }
+                ctx.stroke(path, with: .color(color.opacity(0.85)),
+                           style: StrokeStyle(lineWidth: lineW))
+
+                // Row divider for multi-track
+                if rowIdx > 0 {
+                    ctx.fill(Path(CGRect(x: 0, y: rowY, width: w, height: 0.5)),
+                             with: .color(.primary.opacity(0.1)))
                 }
             }
 
             // Playhead
-            if audioPlayer.playingClip == clip {
+            if audioPlayer.isPlayingRegion || (audioPlayer.isPlaying && !audioPlayer.isPlayingRegion) {
                 let x = CGFloat(audioPlayer.playbackFraction) * w
-                ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: h)),
-                         with: .color(.white.opacity(0.9)))
-                ctx.fill(Path(CGRect(x: x - 2,   y: 0, width: 4, height: h)),
-                         with: .color(.white.opacity(0.12)))
+                ctx.fill(Path(CGRect(x: x - 6, y: 0, width: 12, height: h)),
+                         with: .color(Color.accentColor.opacity(0.15)))
+                ctx.fill(Path(CGRect(x: x - 1, y: 0, width: 2,  height: h)),
+                         with: .color(Color.accentColor.opacity(1.0)))
+                // Downward-pointing triangle pointer at the top
+                var tri = Path(); tri.move(to: CGPoint(x: x - 5, y: 0))
+                tri.addLine(to: CGPoint(x: x + 5, y: 0))
+                tri.addLine(to: CGPoint(x: x, y: 6)); tri.closeSubpath()
+                ctx.fill(tri, with: .color(Color.accentColor))
+            }
+        }
+        .background(GeometryReader { geo in
+            Color.clear
+                .onAppear       { viewWidth = geo.size.width; loadID = UUID() }
+                .onChange(of: geo.size.width) { viewWidth = $0; loadID = UUID() }
+        })
+        .task(id: loadID) { await loadPeaks() }
+        .onChange(of: region.startSample) { _ in loadID = UUID() }
+        .onChange(of: region.endSample)   { _ in loadID = UUID() }
+    }
+
+    private func loadPeaks() async {
+        // Debounce: cancel if region changes again within 120ms (e.g. while dragging).
+        // Avoids building waveforms for every intermediate drag position.
+        try? await Task.sleep(for: .milliseconds(120))
+        guard !Task.isCancelled else { return }
+        guard viewWidth > 1 else { return }
+        await MainActor.run { peaksReady = false }
+        let totalSamples = Double(region.endSample - region.startSample)
+        let width        = Int(viewWidth)
+
+        // ── Pass 1: load raw peaks for all clips concurrently ───────────────
+        struct ClipRaw {
+            let trackIdx: Int
+            let pxStart:  Int
+            let peaks:    [Float]   // raw linear amplitude, 0..1+
+        }
+        var rawClips: [ClipRaw] = []
+
+        // Initialise empty result rows so progressive renders have a valid base.
+        var progressResult: [Int: [Float]] = [:]
+        for segment in region.segments {
+            progressResult[segment.trackIdx] = [Float](repeating: 0, count: width)
+        }
+
+        await withTaskGroup(of: ClipRaw?.self) { group in
+            for segment in region.segments {
+                for (clip, url) in segment.clips {
+                    let clipStartFrac = Double(clip.startSample - region.startSample) / totalSamples
+                    let clipEndFrac   = Double(clip.startSample + clip.lengthSamples - region.startSample) / totalSamples
+                    let pxStart  = Int((clipStartFrac * Double(width)).rounded())
+                    let pxEnd    = Int((clipEndFrac   * Double(width)).rounded())
+                    let pxCount  = max(1, pxEnd - pxStart)
+                    let chIdx    = AudioPlayer.channelIndex(fromClipName: clip.name)
+                    let trackIdx = segment.trackIdx
+                    let srcOff   = clip.sourceOffset
+                    let srcLen   = clip.lengthSamples
+
+                    group.addTask {
+                        let peaks = await AudioPlayer.loadWaveform(
+                            url: url, startSample: srcOff, lengthSamples: srcLen,
+                            resolution: pxCount, channelIndex: chIdx,
+                            normalized: false, sparse: true)
+                        guard let ch0 = peaks.first else { return nil }
+                        return ClipRaw(trackIdx: trackIdx, pxStart: pxStart, peaks: ch0)
+                    }
+                }
+            }
+            // Collect all clip peaks concurrently; we'll render once at the end.
+            for await raw in group {
+                guard let raw else { continue }
+                rawClips.append(raw)
+            }
+        }
+        guard !Task.isCancelled else { return }
+
+        // ── Pass 2: find global peak, apply silence gate, normalise ──────────
+        // Silence gate: if the loudest sample across the entire region is below
+        // -60 dBFS (~0.001 linear) render everything as silence.
+        let kSilenceGate: Float = 0.001
+        let globalMax = rawClips.compactMap { $0.peaks.max() }.max() ?? 0
+        let globalMaxdB = globalMax > 0 ? 20 * log10(globalMax) : -Float.infinity
+        AppLog.shared.log("[Waveform] region globalMax=\(String(format:"%.6f", globalMax)) (\(String(format:"%.1f", globalMaxdB)) dBFS) clips=\(rawClips.count)")
+
+        var result: [Int: [Float]] = [:]
+        for segment in region.segments {
+            result[segment.trackIdx] = [Float](repeating: 0, count: width)
+        }
+
+        if globalMax > kSilenceGate {
+            for raw in rawClips {
+                guard var assembled = result[raw.trackIdx] else { continue }
+                for (i, peak) in raw.peaks.enumerated() {
+                    let idx = raw.pxStart + i
+                    if idx >= 0 && idx < assembled.count {
+                        assembled[idx] = peak / globalMax
+                    }
+                }
+                result[raw.trackIdx] = assembled
+            }
+        }
+
+        await MainActor.run { trackPeaks = result; peaksReady = true }
+    }
+}
+
+private struct ChannelLabelButton: View {
+    let label:    String
+    let isSoloed: Bool
+    let action:   () -> Void
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 7, weight: isSoloed ? .bold : .medium))
+                .foregroundColor(isSoloed ? .accentColor : .secondary.opacity(0.6))
+                .frame(width: 20)
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Async waveform display for a resolved clip. Shows PCM peaks per channel,
+/// with a moving playhead, click-to-seek, and per-channel solo (click label).
+///
+/// `channelURLs` drives the channel model:
+///  - count == 1 → interleaved or mono file; `loadWaveform` returns all channels naturally.
+///  - count  > 1 → multi-mono files; each URL is one channel (load as separate mono).
+private struct ClipWaveformView: View {
+    let clip:        PTXClip
+    let channelURLs: [URL]   // one per channel (multi-mono) or single URL (interleaved/mono)
+    let sampleRate:  Double
+    let color:       Color
+    @ObservedObject var audioPlayer: AudioPlayer
+
+    @State private var peaks:       [[Float]] = []
+    @State private var loadID:      UUID      = UUID()
+    @State private var viewWidth:   CGFloat   = 1
+    @State private var soloChannel: Int?      = nil  // nil = no solo
+
+    private var primaryURL: URL { channelURLs.first! }
+    /// True only when there are genuinely distinct files (multi-mono).
+    /// A 5.1 interleaved file appears as 6 identical URLs — that is NOT multi-mono.
+    private var isMultiMono: Bool { Set(channelURLs).count > 1 }
+
+    var body: some View {
+        let chCount = peaks.count
+        let labels  = waveformChannelLabels(chCount)
+        let lw: CGFloat = chCount > 1 ? 20 : 0
+
+        ZStack(alignment: .leading) {
+            // ── Waveform canvas ─────────────────────────────────────────────
+            Canvas { ctx, size in
+                let w   = size.width
+                let h   = size.height
+                let mid = h / 2
+
+                if peaks.isEmpty {
+                    ctx.draw(
+                        Text("Waveform Loading…")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.secondary.opacity(0.6)),
+                        at: CGPoint(x: w / 2, y: mid), anchor: .center)
+                } else {
+                    let drawW = w - lw
+                    let n     = CGFloat(peaks[0].count)
+                    let bandH = h / CGFloat(chCount)
+                    let step  = drawW / n
+                    let lineW = max(1, step * 0.6)
+
+                    for (ch, channelPeaks) in peaks.enumerated() {
+                        let midY    = bandH * CGFloat(ch) + bandH / 2
+                        let opacity = soloChannel == nil || soloChannel == ch ? 0.85 : 0.2
+                        var path = Path()
+                        for (i, peak) in channelPeaks.enumerated() {
+                            let x   = lw + (CGFloat(i) + 0.5) * step
+                            let amp = CGFloat(peak) * (bandH / 2) * 0.9
+                            path.move(to:    CGPoint(x: x, y: midY - amp))
+                            path.addLine(to: CGPoint(x: x, y: midY + amp))
+                        }
+                        ctx.stroke(path, with: .color(color.opacity(opacity)),
+                                   style: StrokeStyle(lineWidth: lineW))
+                    }
+
+                    if chCount > 1 {
+                        var div = Path()
+                        for ch in 1..<chCount {
+                            let y = bandH * CGFloat(ch)
+                            div.move(to:    CGPoint(x: 0, y: y))
+                            div.addLine(to: CGPoint(x: w, y: y))
+                        }
+                        ctx.stroke(div, with: .color(Color.primary.opacity(0.15)),
+                                   style: StrokeStyle(lineWidth: 0.5))
+                    }
+                }
+
+                // Playhead — shown regardless of whether waveform has loaded.
+                // Offset by lw so it tracks inside the waveform area, not over the channel labels.
+                if audioPlayer.playingClip == clip {
+                    let x = lw + CGFloat(audioPlayer.playbackFraction) * (w - lw)
+                    ctx.fill(Path(CGRect(x: x - 6, y: 0, width: 12, height: h)),
+                             with: .color(Color.accentColor.opacity(0.15)))
+                    ctx.fill(Path(CGRect(x: x - 1, y: 0, width: 2,  height: h)),
+                             with: .color(Color.accentColor.opacity(1.0)))
+                    var tri = Path(); tri.move(to: CGPoint(x: x - 5, y: 0))
+                    tri.addLine(to: CGPoint(x: x + 5, y: 0))
+                    tri.addLine(to: CGPoint(x: x, y: 6)); tri.closeSubpath()
+                    ctx.fill(tri, with: .color(Color.accentColor))
+                }
+            }
+
+            // ── Channel label buttons (multi-channel only) ───────────────────
+            if chCount > 1 {
+                VStack(spacing: 0) {
+                    ForEach(0..<chCount, id: \.self) { ch in
+                        ChannelLabelButton(
+                            label:    ch < labels.count ? labels[ch] : "\(ch + 1)",
+                            isSoloed: soloChannel == ch
+                        ) {
+                            soloChannel = soloChannel == ch ? nil : ch
+                        }
+                    }
+                }
+                .frame(width: 20)
             }
         }
         .background(GeometryReader { geo in
@@ -2992,32 +3768,58 @@ private struct ClipWaveformView: View {
                 .onAppear       { viewWidth = geo.size.width }
                 .onChange(of: geo.size.width) { viewWidth = $0 }
         })
-        // Tap to seek / start playback at that position
+        // Tap waveform area to seek / play (label column handled by buttons above)
         .onTapGesture { location in
-            let fraction = max(0, min(1, location.x / viewWidth))
-            audioPlayer.play(clip: clip, url: url, sampleRate: sampleRate, fromFraction: fraction)
+            guard location.x > lw else { return }
+            let fraction = max(0, min(1, (location.x - lw) / max(viewWidth - lw, 1)))
+            if isMultiMono {
+                // Multi-mono: play the specific channel file; default to first (L)
+                let idx     = min(soloChannel ?? 0, channelURLs.count - 1)
+                let playURL = channelURLs[idx]
+                audioPlayer.play(clip: clip, url: playURL, sampleRate: sampleRate,
+                                 fromFraction: fraction)
+            } else {
+                // Interleaved/mono: extract channel by index when soloed
+                let chIdx = soloChannel   // nil = all channels
+                audioPlayer.play(clip: clip, url: primaryURL, sampleRate: sampleRate,
+                                 fromFraction: fraction, channelIndex: chIdx)
+            }
         }
         .task(id: loadID) {
             peaks = []
-            let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name)
-            if let companion = urlCompanion {
-                // Split-stereo: load primary and companion in parallel, combine as [L, R]
-                async let primary   = AudioPlayer.loadWaveform(url: url,      startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
-                async let secondary = AudioPlayer.loadWaveform(url: companion, startSample: clip.sourceOffset, lengthSamples: clip.lengthSamples, sampleRate: sampleRate)
-                let (p, s) = await (primary, secondary)
-                peaks = (p.first.map { [$0] } ?? []) + (s.first.map { [$0] } ?? [])
+            if isMultiMono {
+                // Load each channel file as a separate mono peak array
+                var result: [[Float]] = []
+                for chURL in channelURLs {
+                    let chPeaks = await AudioPlayer.loadWaveform(
+                        url: chURL, startSample: clip.sourceOffset,
+                        lengthSamples: clip.lengthSamples)
+                    if let mono = chPeaks.first { result.append(mono) }
+                }
+                peaks = result
             } else {
+                // Single URL: interleaved (returns all channels) or mono
+                let chIdx = AudioPlayer.channelIndex(fromClipName: clip.name)
                 peaks = await AudioPlayer.loadWaveform(
-                    url: url,
-                    startSample: clip.sourceOffset,
-                    lengthSamples: clip.lengthSamples,
-                    sampleRate: sampleRate,
-                    channelIndex: chIdx
-                )
+                    url: primaryURL, startSample: clip.sourceOffset,
+                    lengthSamples: clip.lengthSamples, channelIndex: chIdx)
             }
         }
-        .onChange(of: clip)         { _ in loadID = UUID() }
-        .onChange(of: url)          { _ in loadID = UUID() }
-        .onChange(of: urlCompanion) { _ in loadID = UUID() }
+        .onChange(of: clip)        { _ in loadID = UUID(); soloChannel = nil }
+        .onChange(of: channelURLs) { _ in loadID = UUID(); soloChannel = nil }
+        .onChange(of: soloChannel) { newSolo in
+            // If already playing, restart from the current position with the new channel.
+            guard audioPlayer.playingClip == clip else { return }
+            let fraction = audioPlayer.playbackFraction
+            if isMultiMono {
+                let idx = min(newSolo ?? 0, channelURLs.count - 1)
+                audioPlayer.play(clip: clip, url: channelURLs[idx],
+                                 sampleRate: sampleRate, fromFraction: fraction)
+            } else {
+                audioPlayer.play(clip: clip, url: primaryURL,
+                                 sampleRate: sampleRate, fromFraction: fraction,
+                                 channelIndex: newSolo)
+            }
+        }
     }
 }

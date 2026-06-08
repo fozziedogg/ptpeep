@@ -1,7 +1,13 @@
-=== PeepTest  |  2026-05-10T17:33:47Z ===
+=== PeepTest  |  2026-05-24T16:26:29Z ===
 Sample Rate : 48000 Hz
 Tracks      : 11
 Total Clips : 76
+
+── PIX [Video] ───────────────────────────────────────────── (4 clips)
+  [01] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:12:29:07    len=0:04:59:17    file=—  [35966000]
+  [02] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:00:00:00    len=0:04:59:17    file=—  [172800000]
+  [03] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:00:09:07    len=0:04:59:17    file=—  [173246000]
+  [04] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:01:23:04    len=0:04:59:17    file=—  [176792000]
 
 ── GT PIX [Stereo] ───────────────────────────────────────── (10 clips)
   [01] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:12:29:07    len=0:00:08:14    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [35966000]
@@ -16,30 +22,39 @@ Total Clips : 76
   [10] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:01:23:04    len=0:00:06:20    file=Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1  [176792000]
 
 ── SVB_BTS_InstagramMix [Stereo] ─────────────────────────── (1 clips)
-  [01] SVB_BTS_InstagramMix_2026Apr28.L                    start=1:00:00:00    len=0:01:30:00    file=Printmaster-ProL2_01  [172800000]
+  [01] SVB_BTS_InstagramMix_2026Apr28                      start=1:00:00:00    len=0:01:30:00    file=Printmaster-ProL2_01  [172800000]
 
 ── Printmaster [Stereo] ──────────────────────────────────── (1 clips)
-  [01] Printmaster_01.L                                    start=1:00:00:00    len=0:01:30:00    file=Printmaster_01  [172800000]
+  [01] Printmaster_01                                      start=1:00:00:00    len=0:01:30:00    file=Printmaster_01  [172800000]
+
+── Master Bus [Stereo] ───────────────────────────────────── (0 clips)
+   (no clips)
+
+── ƒ DME [] ──────────────────────────────────────────────── (0 clips)
+   (no clips)
 
 ── SVB_102_2.0 DIA_Final_01 [Stereo] ─────────────────────── (5 clips)
-  [01] SVB_102_2.0 DIA_Final_01-02.L                       start=0:12:29:07    len=0:04:59:17    file=SVB_102_2.0 DIA_Final_01.L  [35966000]
-  [02] SVB_102_2.0 DIA_Final_01-04.L                       start=1:00:00:00    len=0:00:09:07    file=SVB_102_2.0 DIA_Final_01.L  [172800000]
-  [03] SVB_102_2.0 DIA_Final_01-05.L                       start=1:00:09:07    len=0:01:12:22    file=SVB_102_2.0 DIA_Final_01.L  [173246000]
-  [04] SVB_102_2.0 DIA_Final_01-08.L                       start=1:01:22:05    len=0:00:06:12    file=SVB_102_2.0 DIA_Final_01.L  [176745216]
-  [05] SVB_102_2.0 DIA_Final_01-09.L                       start=1:01:28:16    len=0:00:01:08    file=SVB_102_2.0 DIA_Final_01.L  [177056256]  Muted
+  [01] SVB_102_2.0 DIA_Final_01-02                         start=0:12:29:07    len=0:04:59:17    file=SVB_102_2.0 DIA_Final_01.L  [35966000]
+  [02] SVB_102_2.0 DIA_Final_01-04                         start=1:00:00:00    len=0:00:09:07    file=SVB_102_2.0 DIA_Final_01.L  [172800000]
+  [03] SVB_102_2.0 DIA_Final_01-05                         start=1:00:09:07    len=0:01:12:22    file=SVB_102_2.0 DIA_Final_01.L  [173246000]
+  [04] SVB_102_2.0 DIA_Final_01-08                         start=1:01:22:05    len=0:00:06:12    file=SVB_102_2.0 DIA_Final_01.L  [176745216]
+  [05] SVB_102_2.0 DIA_Final_01-09                         start=1:01:28:16    len=0:00:01:08    file=SVB_102_2.0 DIA_Final_01.L  [177056256]  Muted
 
 ── SVB_102_2.0 MUS_Final_01 [Stereo] ─────────────────────── (4 clips)
-  [01] SVB_102_2.0 MUS_Final_01-02.L                       start=0:12:29:07    len=0:04:59:17    file=SVB_102_2.0 MUS_Final_01.L  [35966000]
-  [02] SVB_102_2.0 MUS_Final_01-04.L                       start=1:00:00:00    len=0:00:08:01    file=SVB_102_2.0 MUS_Final_01.L  [172800000]
-  [03] SVB_102_2.0 MUS_Final_01-05.L                       start=1:00:08:01    len=0:01:15:03    file=SVB_102_2.0 MUS_Final_01.L  [173186048]
-  [04] SVB_102_2.0 MUS_Final_01-07.L                       start=1:01:23:04    len=0:00:04:14    file=SVB_102_2.0 MUS_Final_01.L  [176792000]
+  [01] SVB_102_2.0 MUS_Final_01-02                         start=0:12:29:07    len=0:04:59:17    file=SVB_102_2.0 MUS_Final_01.L  [35966000]
+  [02] SVB_102_2.0 MUS_Final_01-04                         start=1:00:00:00    len=0:00:08:01    file=SVB_102_2.0 MUS_Final_01.L  [172800000]
+  [03] SVB_102_2.0 MUS_Final_01-05                         start=1:00:08:01    len=0:01:15:03    file=SVB_102_2.0 MUS_Final_01.L  [173186048]
+  [04] SVB_102_2.0 MUS_Final_01-07                         start=1:01:23:04    len=0:00:04:14    file=SVB_102_2.0 MUS_Final_01.L  [176792000]
 
 ── SVB_102_2.0 SFX_Final_01 [Stereo] ─────────────────────── (5 clips)
-  [01] SVB_102_2.0 SFX_Final_01-02.L                       start=0:12:29:07    len=0:04:59:17    file=SVB_102_2.0 SFX_Final_01.L  [35966000]
-  [02] SVB_102_2.0 SFX_Final_01-07.L                       start=1:00:00:00    len=0:00:00:22    file=SVB_102_2.0 SFX_Final_01.L  [172800000]
-  [03] SVB_102_2.0 SFX_Final_01-08.L                       start=1:00:00:22    len=0:00:08:09    file=SVB_102_2.0 SFX_Final_01.L  [172843392]
-  [04] SVB_102_2.0 SFX_Final_01-05.L                       start=1:00:09:07    len=0:01:13:21    file=SVB_102_2.0 SFX_Final_01.L  [173246000]
-  [05] SVB_102_2.0 SFX_Final_01-06.L                       start=1:01:23:04    len=0:00:06:20    file=SVB_102_2.0 SFX_Final_01.L  [176792000]
+  [01] SVB_102_2.0 SFX_Final_01-02                         start=0:12:29:07    len=0:04:59:17    file=SVB_102_2.0 SFX_Final_01.L  [35966000]
+  [02] SVB_102_2.0 SFX_Final_01-07                         start=1:00:00:00    len=0:00:00:22    file=SVB_102_2.0 SFX_Final_01.L  [172800000]
+  [03] SVB_102_2.0 SFX_Final_01-08                         start=1:00:00:22    len=0:00:08:09    file=SVB_102_2.0 SFX_Final_01.L  [172843392]
+  [04] SVB_102_2.0 SFX_Final_01-05                         start=1:00:09:07    len=0:01:13:21    file=SVB_102_2.0 SFX_Final_01.L  [173246000]
+  [05] SVB_102_2.0 SFX_Final_01-06                         start=1:01:23:04    len=0:00:06:20    file=SVB_102_2.0 SFX_Final_01.L  [176792000]
+
+── vDME [] ───────────────────────────────────────────────── (0 clips)
+   (no clips)
 
 ── Haley 1 [Mono] ────────────────────────────────────────── (11 clips)
   [01] PART ONE-RX9Cnct_01-02                              start=1:00:09:23    len=0:00:19:18    file=PART ONE-RX9Cnct_01  [173278000]
@@ -101,20 +116,5 @@ Total Clips : 76
   [05] PART ONE-40                                         start=1:00:46:10    len=0:01:46:05    file=PART ONE  [175027712]
   [06] PART TWO                                            start=1:02:40:19    len=0:00:37:20    file=PART TWO  [180518338]
 
-── Aux 1 [Mono] ──────────────────────────────────────────── (0 clips)
-   (no clips)
-
-── Master Bus [Mono] ─────────────────────────────────────── (0 clips)
-   (no clips)
-
-── PIX [Video] ───────────────────────────────────────────── (4 clips)
-  [01] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=0:12:29:07    len=0:04:59:17    file=—  [35966000]
-  [02] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:00:00:00    len=0:04:59:17    file=—  [172800000]
-  [03] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:00:09:07    len=0:04:59:17    file=—  [173246000]
-  [04] Something_Very_Bad_Is_Going_to_Happen_Season_1_Epi  start=1:01:23:04    len=0:04:59:17    file=—  [176792000]
-
-── vDME [Mono] ───────────────────────────────────────────── (0 clips)
-   (no clips)
-
-── ƒ DME [Mono] ──────────────────────────────────────────── (0 clips)
+── Aux 1 [Stereo] ────────────────────────────────────────── (0 clips)
    (no clips)

@@ -49,6 +49,30 @@ struct ClipEntry {
     let audioFileIndex: Int     // index into the AudioFileEntry list
 }
 
+/// One constituent clip inside a compound/group clip.
+/// Decoded from the sentinel 0x1052 sections in the second 0x1054 container.
+struct ConstituentClip {
+    /// When isSubGroup==false: index into the ClipEntry audio pool (0x2629 ordinals).
+    /// When isSubGroup==true:  index into the compound pool (0x262b ordinals, == combined-pool index
+    ///                         for sessions where compounds precede audio in the combined pool).
+    let audioClipIdx: Int
+    let relativeOffset: Int64 // samples from the group's own timeline position
+    let isSubGroup: Bool      // true = compound sub-group bracket; false = leaf audio clip
+    let subGroupName: String  // compound name (non-empty when isSubGroup==true)
+    let subGroupLength: Int64 // compound duration in samples (>0 when isSubGroup==true)
+    /// Convenience init for audio leaf constituents (isSubGroup=false).
+    init(audioClipIdx: Int, relativeOffset: Int64) {
+        self.audioClipIdx = audioClipIdx; self.relativeOffset = relativeOffset
+        self.isSubGroup = false; self.subGroupName = ""; self.subGroupLength = 0
+    }
+
+    /// Init for compound sub-group constituents (isSubGroup=true).
+    init(audioClipIdx: Int, relativeOffset: Int64, isSubGroup: Bool, subGroupName: String, subGroupLength: Int64) {
+        self.audioClipIdx = audioClipIdx; self.relativeOffset = relativeOffset
+        self.isSubGroup = isSubGroup; self.subGroupName = subGroupName; self.subGroupLength = subGroupLength
+    }
+}
+
 /// A single clip placement on the session timeline (from a 0x104f playlist entry).
 struct ClipPlacement {
     let clipIdx: Int        // index into the ClipEntry list (u16 at 0x104f offset+2)
@@ -59,6 +83,16 @@ struct ClipPlacement {
     var isGroup: Bool = false    // true if byte[18]==0x01 (compound group; may or may not be muted)
     var groupName: String? = nil // compound clip name ("1 src.grp.L") when isGroup==true
     var groupLength: Int64? = nil // compound clip length in samples when isGroup==true
+    /// Constituent clips decoded from the compound pool entry (non-empty when isGroup==true
+    /// and the compound pool lookup succeeded).  Each element maps to an audio clip pool entry.
+    var groupConstituents: [ConstituentClip] = []
+    /// clipIdx values for channels 2, 3, … of a multi-mono track (empty for mono).
+    /// Each entry is the index into the ClipEntry list for that channel's audio file.
+    var companionClipIdxs: [Int] = []
+    /// Slot index from 0x2425 map (links tracks that belong to same multitrack group)
+    var slotIndex: Int? = nil
+    /// Slot name from 0x2423 (the multitrack group name, e.g. "ABC")
+    var slotName: String? = nil
 }
 
 struct TrackEntry {
@@ -388,7 +422,7 @@ final class PTXBlockDecoder {
             videoPool.append(VideoPoolEntry(name: name, lengthSamples: lengthSamples))
         }
 
-        print("[PTXBlockDecoder] Video clip pool: \(videoPool.count) entries (first 5: \(videoPool.prefix(5).map(\.name)))")
+        AppLog.shared.log("[PTXBlockDecoder] Video clip pool: \(videoPool.count) entries (first 5: \(videoPool.prefix(5).map(\.name)))")
 
         // Find the 0x1055 video playlist container and collect 0x104f timeline refs within it.
         guard let container = blocks
@@ -728,9 +762,9 @@ final class PTXBlockDecoder {
         }
 
         let nonAudioTypes = info.types.filter { $0.value != 0 }.map { "\($0.key)=\($0.value)" }.sorted()
-        print("[PTXBlockDecoder] Non-audio types: \(nonAudioTypes)")
-        print("[PTXBlockDecoder] Hidden:   \(info.hidden.sorted())")
-        print("[PTXBlockDecoder] Inactive: \(info.inactive.sorted())")
+        AppLog.shared.log("[PTXBlockDecoder] Non-audio types: \(nonAudioTypes)")
+        AppLog.shared.log("[PTXBlockDecoder] Hidden:   \(info.hidden.sorted())")
+        AppLog.shared.log("[PTXBlockDecoder] Inactive: \(info.inactive.sorted())")
         return info
     }
 
@@ -814,7 +848,21 @@ final class PTXBlockDecoder {
     /// 0x262b blocks are the compound/group clip pool parents (analogous to 0x2629 for audio).
     /// Each 0x2628 child uses the same encoding as audio clip entries.
     /// Returns sparse array indexed by file-order position of the 0x262b parent.
-    static func extractCompoundClips(blocks: [PTXBlock], data: Data, bigEndian: Bool) -> [(name: String, lengthSamples: Int64)?] {
+    /// Each entry also includes the constituent clips decoded from the embedded 0x2523 blocks.
+    ///
+    /// 0x2628 compound entry — extra bytes layout (after the three-point section, before last-2 fileIdx):
+    ///   [0..3]   startSample repeated (same value as three-point "start")
+    ///   [4..23]  padding / flags
+    ///   [24..27] u32 LE constituent count
+    ///   [28 + i*97 .. 28 + i*97 + 96]  i-th constituent: 9-byte 0x2523 header + 88-byte content
+    ///     Within 0x2523 content (at content offset 0):
+    ///       [0..8]   0x2526 block header (9 bytes)
+    ///       [9..22]  0x2526 content (14 bytes)
+    ///       [23..26] constituent absolute timeline position (u32 LE)
+    ///       [39..42] constituent audio clip pool index (u32 LE)
+    static func extractCompoundClips(blocks: [PTXBlock], data: Data, bigEndian: Bool)
+        -> [(name: String, startSample: Int64, lengthSamples: Int64)?]
+    {
         let parentBlocks = blocks
             .filter { $0.contentType == 0x262b }
             .sorted { $0.dataOffset < $1.dataOffset }
@@ -831,7 +879,7 @@ final class PTXBlockDecoder {
             return idx
         }
 
-        var poolByIndex: [Int: (name: String, lengthSamples: Int64)] = [:]
+        var poolByIndex: [Int: (name: String, startSample: Int64, lengthSamples: Int64)] = [:]
         for block in blocks where block.contentType == 0x2628 {
             guard let pIdx = parentIndex(of: block) else { continue }
             guard poolByIndex[pIdx] == nil else { continue }
@@ -855,18 +903,369 @@ final class PTXBlockDecoder {
             vp += nSrcOff  // skip sourceOffset
             let lengthVal = readLE(data, at: vp, count: nLength)
             guard lengthVal > 0, lengthVal < 10_000_000_000 else { continue }
+            vp += nLength
+            let startVal = readLE(data, at: vp, count: nStart)  // group's absolute timeline position
 
-            poolByIndex[pIdx] = (name: name, lengthSamples: Int64(bitPattern: lengthVal))
+            // Cross-validate against Python's doubled-value pattern for CG start times
+            let afterName = pos + 4 + Int(nl)
+            for dOff in 10..<min(data.count - afterName - 8, 30) {
+                let v1 = readLE(data, at: afterName + dOff, count: 4)
+                let v2 = readLE(data, at: afterName + dOff + 4, count: 4)
+                if v1 == v2 && v1 > 100_000 && v1 < 500_000_000 {
+                    if Int64(bitPattern: v1) != Int64(bitPattern: startVal) {
+                        print("[WARN] CG start mismatch: nibble=\(startVal) doubled=\(v1) for '\(name)'")
+                    }
+                    break
+                }
+            }
+
+            poolByIndex[pIdx] = (name: name, startSample: Int64(bitPattern: startVal),
+                                 lengthSamples: Int64(bitPattern: lengthVal))
         }
 
         return (0..<parentBlocks.count).map { poolByIndex[$0] }
     }
 
     static func buildTrackPlaylists(blocks: [PTXBlock], data: Data, bigEndian: Bool,
-                                    displayInfo: TrackDisplayInfo = TrackDisplayInfo()) -> [TrackPlaylist] {
-        // Build compound clip pool: poolIndex → (name, lengthSamples)
-        // Used for group placements (byte0==0x01); pool is 0x262b→0x2628.
+                                    displayInfo: TrackDisplayInfo = TrackDisplayInfo(),
+                                    clips: [ClipEntry?] = []) -> [TrackPlaylist] {
+        // Build compound clip pool: poolIndex → (name, startSample, lengthSamples)
+        // Used for group placements; pool is 0x262b→0x2628.
         let compoundPool = extractCompoundClips(blocks: blocks, data: data, bigEndian: bigEndian)
+
+        // ── Clip Group Resolution (ported from clipgroupdecoder/test_positions_v2.py) ──
+        // Maps compound pool indices → sentinel sections → constituent audio clips.
+        // Algorithm: 0x2423 GIDs → 0x262b trailing (trail_idx, pos) → (gid, pos) → slot index.
+        // The 2nd 0x1054 holds one 0x1052 sentinel section per slot; each contains 0x104f
+        // entries where byte[18]==0x00 = audio leaf, byte[18]==0x01 = nested sub-group.
+        let audioParents = blocks.filter { $0.contentType == 0x2629 }.sorted { $0.dataOffset < $1.dataOffset }
+        let cmpdParents  = blocks.filter { $0.contentType == 0x262b }.sorted { $0.dataOffset < $1.dataOffset }
+
+        let all1054sorted = blocks.filter { $0.contentType == 0x1054 }.sorted { $0.dataOffset < $1.dataOffset }
+        var sentinelSections: [PTXBlock] = []
+        if all1054sorted.count >= 2 {
+            let sentContainer = all1054sorted[1]
+            let sStart = sentContainer.dataOffset, sEnd = sStart + sentContainer.dataSize
+            let innerRanges = blocks.filter {
+                $0.contentType == 0x1054 && $0.dataOffset > sStart && $0.dataOffset + $0.dataSize <= sEnd
+            }.map { ($0.dataOffset, $0.dataOffset + $0.dataSize) }
+            sentinelSections = blocks.filter { blk in
+                blk.contentType == 0x1052 &&
+                blk.dataOffset >= sStart && blk.dataOffset + blk.dataSize <= sEnd &&
+                !innerRanges.contains { r in r.0 <= blk.dataOffset && blk.dataOffset + blk.dataSize <= r.1 }
+            }.sorted { $0.dataOffset < $1.dataOffset }
+        }
+
+        // Build group definition names from 0x2423 blocks, keyed by trail index (ordinal).
+        // Structure (from dataOffset): [GID:u16LE] + [pad:u16] + [nameLen:u32LE] + [name bytes].
+        // Each 0x2423 entry has a unique name (e.g. "Joan Temp-35") even when multiple
+        // entries share the same GID (split groups).  Trail index → name is 1:1.
+        var trailNames: [Int: String] = [:]
+        for (idx, b) in blocks.filter({ $0.contentType == 0x2423 }).sorted(by: { $0.dataOffset < $1.dataOffset }).enumerated() {
+            guard b.dataSize >= 8 else { continue }
+            let nl = Int(readLE(data, at: b.dataOffset + 4, count: 4))
+            guard nl > 0, nl < 512, b.dataOffset + 8 + nl <= data.count else { continue }
+            trailNames[idx] = String(bytes: data[b.dataOffset + 8 ..< b.dataOffset + 8 + nl], encoding: .utf8)?.trimmingCharacters(in: .whitespaces) ?? "?"
+        }
+
+        // ── Trail-based sentinel resolution (from 0x262b trailing bytes) ─────────
+        // Each 0x262b parent contains a 0x2628 child block.  After the 0x2628 block,
+        // trailing bytes encode (trail_idx, pos) which map via 0x2423 gids to sentinel
+        // slot indices.  This mapping survives file rewrites (unlike 0x2523 counters).
+
+        // Step 1: Extract 2-byte GIDs from 0x2423 blocks (trail_idx = file-order index)
+        let b2423sorted = blocks.filter { $0.contentType == 0x2423 }.sorted { $0.dataOffset < $1.dataOffset }
+        var trailToGid: [Int: Int] = [:]
+        var seenGids: [Int] = []
+        for (idx, b) in b2423sorted.enumerated() {
+            guard b.dataSize >= 2 else { continue }
+            let gid = Int(readLE(data, at: b.dataOffset, count: 2))
+            trailToGid[idx] = gid
+            if !seenGids.contains(gid) { seenGids.append(gid) }
+        }
+
+        // Step 2: Extract trailing (trail_idx, pos) from 0x262b blocks
+        var cgTrail: [Int: (trailIdx: Int, pos: Int)] = [:]
+        var gidMaxPos: [Int: Int] = [:]
+        for (ci, parent) in cmpdParents.enumerated() {
+            guard let g2628 = blocks.first(where: { b in
+                b.contentType == 0x2628 &&
+                b.dataOffset >= parent.dataOffset &&
+                b.dataOffset + b.dataSize <= parent.dataOffset + parent.dataSize
+            }) else { continue }
+            // End of block in raw data = dataOffset + dataSize - 2
+            // (dataSize includes 2-byte ctype that precedes dataOffset)
+            let trailingStart = g2628.dataOffset + g2628.dataSize - 2
+            let trailingEnd = parent.dataOffset + parent.dataSize - 2
+            guard trailingEnd - trailingStart >= 7 else { continue }
+            let trailIdx = Int(readLE(data, at: trailingStart + 1, count: 2))
+            let pos = Int(readLE(data, at: trailingStart + 5, count: 2))
+            cgTrail[ci] = (trailIdx: trailIdx, pos: pos)
+            if let gid = trailToGid[trailIdx] {
+                gidMaxPos[gid] = max(gidMaxPos[gid] ?? 0, pos + 1)
+            }
+        }
+
+        // Step 2b: Extract per-GID member counts from 0x2425 blocks.
+        // These include phantom slots from removed group members — critical for
+        // correct slot counting when compounds have been deleted from a group.
+        let b2425sorted = blocks.filter { $0.contentType == 0x2425 }.sorted { $0.dataOffset < $1.dataOffset }
+        var gidMemberCount: [Int: Int] = [:]
+        for (i, b) in b2425sorted.enumerated() {
+            guard b.dataSize >= 2 else { continue }
+            gidMemberCount[i] = Int(readLE(data, at: b.dataOffset, count: 2))
+        }
+
+        // Step 3: Build (gid, pos) → slot index → trailResolved mapping
+        var gidPosToSlot: [Int: Int] = [:]
+        var trailSlotCounter = 0
+        for gid in seenGids {
+            let nPos = max(gidMemberCount[gid] ?? 0, gidMaxPos[gid] ?? 1)
+            for p in 0..<nPos {
+                gidPosToSlot[(gid << 16) | p] = trailSlotCounter
+                trailSlotCounter += 1
+            }
+        }
+        var trailResolved: [Int: Int] = [:]
+        for (ci, trail) in cgTrail {
+            guard let gid = trailToGid[trail.trailIdx],
+                  let slot = gidPosToSlot[(gid << 16) | trail.pos],
+                  slot >= 0, slot < sentinelSections.count else { continue }
+            trailResolved[ci] = slot
+        }
+
+        // ── Diagnostic: classify every compound pool entry by resolution chain step ──
+        do {
+            var failNoChild = 0, failTrailShort = 0, failNoGid = 0
+            var failNoSlot = 0, failSlotOOB = 0, resolved = 0
+            var examples: [String: [(Int, String?)]] = [
+                "noChild": [], "trailShort": [], "noGid": [], "noSlot": [], "slotOOB": []
+            ]
+            for ci in cmpdParents.indices {
+                let parent = cmpdParents[ci]
+                let name = compoundPool[ci]?.name
+                if trailResolved[ci] != nil {
+                    resolved += 1
+                    continue
+                }
+                // Check which step failed
+                let g2628 = blocks.first(where: { b in
+                    b.contentType == 0x2628 &&
+                    b.dataOffset >= parent.dataOffset &&
+                    b.dataOffset + b.dataSize <= parent.dataOffset + parent.dataSize
+                })
+                guard let g2628 = g2628 else {
+                    failNoChild += 1
+                    if (examples["noChild"]?.count ?? 0) < 5 { examples["noChild"]?.append((ci, name)) }
+                    continue
+                }
+                let trailingStart = g2628.dataOffset + g2628.dataSize - 2
+                let trailingEnd = parent.dataOffset + parent.dataSize - 2
+                guard trailingEnd - trailingStart >= 7 else {
+                    failTrailShort += 1
+                    if (examples["trailShort"]?.count ?? 0) < 5 { examples["trailShort"]?.append((ci, name)) }
+                    continue
+                }
+                let trailIdx = Int(readLE(data, at: trailingStart + 1, count: 2))
+                let pos = Int(readLE(data, at: trailingStart + 5, count: 2))
+                guard let gid = trailToGid[trailIdx] else {
+                    failNoGid += 1
+                    if (examples["noGid"]?.count ?? 0) < 5 { examples["noGid"]?.append((ci, name)) }
+                    continue
+                }
+                let slotKey = (gid << 16) | pos
+                guard let slot = gidPosToSlot[slotKey] else {
+                    failNoSlot += 1
+                    if (examples["noSlot"]?.count ?? 0) < 5 { examples["noSlot"]?.append((ci, name)) }
+                    continue
+                }
+                if slot < 0 || slot >= sentinelSections.count {
+                    failSlotOOB += 1
+                    if (examples["slotOOB"]?.count ?? 0) < 5 { examples["slotOOB"]?.append((ci, name)) }
+                } else {
+                    // Should have been resolved — shouldn't reach here
+                    resolved += 1
+                }
+            }
+            let total = cmpdParents.count
+            print("[CG-DIAG] compounds=\(total) cgTrail=\(cgTrail.count) trailResolved=\(trailResolved.count) sentinels=\(sentinelSections.count)")
+            print("[CG-DIAG] resolved=\(resolved) noChild=\(failNoChild) trailShort=\(failTrailShort) noGid=\(failNoGid) noSlot=\(failNoSlot) slotOOB=\(failSlotOOB)")
+            for (cat, exs) in examples.sorted(by: { $0.key < $1.key }) where !exs.isEmpty {
+                let items = exs.map { "ci=\($0.0) '\($0.1 ?? "?")'" }.joined(separator: ", ")
+                print("[CG-DIAG]   \(cat): \(items)")
+            }
+        }
+
+        // Build compoundBaseStart: for each (gid, pos), the minimum CG start across all
+        // compounds sharing that pair.  This is the original group start before splits — sentinel
+        // deltas are always relative to this base, not to individual split variants' starts.
+        var gidPosBaseStart: [Int: Int64] = [:]  // key = (gid << 16) | pos
+        for (ci, trail) in cgTrail {
+            guard let gid = trailToGid[trail.trailIdx],
+                  let st = compoundPool[ci]?.startSample else { continue }
+            let key = (gid << 16) | trail.pos
+            if let cur = gidPosBaseStart[key] {
+                gidPosBaseStart[key] = min(cur, st)
+            } else {
+                gidPosBaseStart[key] = st
+            }
+        }
+        // Content range from 0x2523 blocks: for split groups, each variant's 0x2523
+        // stores the delta range it "sees" within the shared sentinel section.
+        // Bytes 49-53 (from Swift dataOffset) = content start (5-byte LE) minus SENT_ORIGIN
+        // Bytes 57-61 = content end (5-byte LE) minus SENT_ORIGIN
+        // Default: widest non-negative span. Fallback: tightest fit when delta outside default.
+        let SENT_ORIGIN: UInt64 = 1_000_000_000_000
+        var cgContentRange: [Int: (cs: Int64, ce: Int64)] = [:]  // widest non-negative
+        var cgAllRanges: [Int: [(cs: Int64, ce: Int64)]] = [:]    // all ranges for fallback
+        for (ci, parent) in cmpdParents.enumerated() {
+            var bestSpan: Int64 = -1
+            for blk in blocks where blk.contentType == 0x2523 &&
+                blk.dataOffset >= parent.dataOffset &&
+                blk.dataOffset + blk.dataSize <= parent.dataOffset + parent.dataSize &&
+                blk.dataSize >= 64 {
+                let cs = Int64(bitPattern: readLE(data, at: blk.dataOffset + 49, count: 5) &- SENT_ORIGIN)
+                let ce = Int64(bitPattern: readLE(data, at: blk.dataOffset + 57, count: 5) &- SENT_ORIGIN)
+                cgAllRanges[ci, default: []].append((cs: cs, ce: ce))
+                guard cs >= 0 else { continue }  // skip pre-roll for default range
+                let span = ce - cs
+                if span > bestSpan {
+                    bestSpan = span
+                    cgContentRange[ci] = (cs: cs, ce: ce)
+                }
+            }
+        }
+
+        // Per-entry content range: use default (widest non-negative) when delta is inside it;
+        // fall back to tightest fit from all ranges (including negative cs) when delta is outside.
+        func pickRange(ci: Int, delta: Int64) -> (cs: Int64, ce: Int64) {
+            if let def = cgContentRange[ci], def.cs <= delta, delta < def.ce {
+                return def
+            }
+            if let ranges = cgAllRanges[ci] {
+                var best: (cs: Int64, ce: Int64)? = nil
+                for r in ranges {
+                    if r.cs <= delta && delta <= r.ce {
+                        if best == nil || r.cs > best!.cs { best = r }
+                    }
+                }
+                if let best = best { return best }
+            }
+            return cgContentRange[ci] ?? (cs: 0, ce: Int64.max)
+        }
+
+        // Moved-group detection: compare CG creation start against track-listing position.
+        // If they differ, the group was moved after creation and sentinel deltas are
+        // relative to the moved position (start4), not the creation position (robust).
+        var gidPosStart4: [Int: Int64] = [:]   // (gid << 16 | pos) → min(start4)
+        var gidReliable: [Int: Bool] = [:]     // gid → true if creation start matches track start
+
+        if all1054sorted.count >= 1 {
+            let first1054 = all1054sorted[0]
+            let f1Start = first1054.dataOffset
+            let f1End = f1Start + first1054.dataSize
+            for ref in blocks where ref.contentType == 0x104f && ref.dataSize >= 21 &&
+                ref.dataOffset >= f1Start && ref.dataOffset + ref.dataSize <= f1End {
+                let byte18 = data[ref.dataOffset + 18]
+                guard byte18 == 0x01 else { continue }
+                let ri = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
+                guard let trail = cgTrail[ri], let gid = trailToGid[trail.trailIdx] else { continue }
+                let start4 = Int64(bitPattern: readLE(data, at: ref.dataOffset + 7, count: 4))
+                let key = (gid << 16) | trail.pos
+                if let cur = gidPosStart4[key] {
+                    gidPosStart4[key] = min(cur, start4)
+                } else {
+                    gidPosStart4[key] = start4
+                }
+                if gidReliable[gid] == nil { gidReliable[gid] = true }
+                if let robust = compoundPool[ri]?.startSample, robust != start4 {
+                    gidReliable[gid] = false
+                }
+            }
+        }
+        // slotBase: returns the correct base start for a CG's sentinel deltas.
+        // Uses creation start (robust) if the group hasn't been moved, otherwise
+        // falls back to the track-listing start (start4).
+        func slotBase(_ ci: Int) -> Int64 {
+            guard let trail = cgTrail[ci], let gid = trailToGid[trail.trailIdx] else { return 0 }
+            let key = (gid << 16) | trail.pos
+            if gidReliable[gid] ?? true {
+                return gidPosBaseStart[key] ?? 0
+            } else {
+                return gidPosStart4[key] ?? gidPosBaseStart[key] ?? 0
+            }
+        }
+
+        // Resolve a compound group to its constituent clips.
+        // Ported from clipgroupdecoder/test_positions_v2.py resolve_cg().
+        // ci = compound pool index; absStart = absolute timeline position from 1st 0x1054.
+        // Content range filtering selects which sentinel entries belong to split-group variants.
+        func resolveCG(_ ci: Int, absStart: Int64?, trackB17: UInt8? = nil, depth: Int, visited: Set<Int> = []) -> [ConstituentClip] {
+            guard depth < 10, !visited.contains(ci) else { return [] }
+            guard let slot = trailResolved[ci], slot >= 0, slot < sentinelSections.count else { return [] }
+            let section = sentinelSections[slot]
+            let secEnd = section.dataOffset + section.dataSize
+            let pls = blocks.filter {
+                $0.contentType == 0x104f &&
+                $0.dataOffset >= section.dataOffset && $0.dataOffset + $0.dataSize <= secEnd
+            }.sorted { $0.dataOffset < $1.dataOffset }
+
+            let base = absStart ?? slotBase(ci)
+            var nextVisited = visited; nextVisited.insert(ci)
+            var result: [ConstituentClip] = []
+
+            // Only apply b17 filtering on shared sentinel slots (multiple tracks → same slot).
+            // Non-shared slots use b17 for other purposes — filtering would drop valid entries.
+            let effectiveB17: UInt8? = (trackB17 != nil && sharedSlots.contains(slot)) ? trackB17 : nil
+
+            for pl in pls {
+                guard pl.dataSize >= 19 else { continue }
+                let ri = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
+                let tl = readLE(data, at: pl.dataOffset + 7, count: 5)
+                guard tl >= SENT_ORIGIN else { continue }
+                guard pl.dataSize < 36 || data[pl.dataOffset + 35] == 0x00 else { continue }
+                // byte[17] (Python) = dataOffset+15 (Swift): track-within-group identifier
+                let b17 = pl.dataSize >= 16 ? data[pl.dataOffset + 15] : 0
+                if let tb17 = effectiveB17, b17 != tb17 { continue }
+                let delta = Int64(bitPattern: tl - SENT_ORIGIN)
+                let grp = data[pl.dataOffset + 18]
+
+                // Per-entry content range: default (widest non-neg), fallback for fades
+                let cr = pickRange(ci: ci, delta: delta)
+
+                if grp == 0x00 {
+                    // Audio leaf — filter by content range (position only, no length trimming)
+                    let clipLen = ri < clips.count ? Int64(clips[ri]?.lengthSamples ?? 0) : 0
+                    if delta >= cr.cs && delta < cr.ce {
+                        let pos = base + (delta - cr.cs)
+                        if ri < audioParents.count {
+                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: pos))
+                        }
+                    } else if delta < cr.cs {
+                        if delta + clipLen > cr.cs, ri < audioParents.count {
+                            // Straddling clip: visible portion starts at cr.cs
+                            result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: base))
+                        }
+                    }
+                } else {
+                    // Nested sub-group
+                    if absStart != nil {
+                        if delta >= cr.cs && delta < cr.ce {
+                            let innerAbs = base + (delta - cr.cs)
+                            result += resolveCG(ri, absStart: innerAbs, trackB17: trackB17, depth: depth + 1, visited: nextVisited)
+                        } else if delta < cr.cs {
+                            result += resolveCG(ri, absStart: base, trackB17: trackB17, depth: depth + 1, visited: nextVisited)
+                        }
+                    } else {
+                        result += resolveCG(ri, absStart: nil, trackB17: trackB17, depth: depth + 1, visited: nextVisited)
+                        break
+                    }
+                }
+            }
+
+            var seen = Set<Int>()
+            return result.filter { seen.insert($0.audioClipIdx).inserted }
+        }
 
         // Use the first non-empty 0x1054 (main active playlist set)
         guard let container = blocks
@@ -925,13 +1324,46 @@ final class PTXBlockDecoder {
             .filter { $0.contentType == 0x104f && $0.dataSize >= 11 }
             .sorted { $0.dataOffset < $1.dataOffset }
 
+        // Build sharedSlots: sentinel slots used by CG placements on multiple track sections.
+        // b17 filtering only applies on shared slots. Uses grp==1 (byte[18] in Swift, byte[20]
+        // in Python) + cgTrail membership to avoid audio/compound index collisions.
+        let sharedSlots: Set<Int> = {
+            var slotToTracks: [Int: Set<Int>] = [:]
+            for (ti, section) in trackSections.enumerated() {
+                let sStart = section.dataOffset
+                let sEnd = section.dataOffset + section.dataSize
+                var lo = 0, hi = sortedRefs.count
+                while lo < hi {
+                    let mid = (lo + hi) / 2
+                    if sortedRefs[mid].dataOffset < sStart { lo = mid + 1 } else { hi = mid }
+                }
+                var j = lo
+                while j < sortedRefs.count {
+                    let r = sortedRefs[j]
+                    guard r.dataOffset >= sStart, r.dataOffset + r.dataSize <= sEnd else { break }
+                    // Only CG entries: grp==1 (byte[18]) AND clipIdx in cgTrail
+                    if r.dataSize >= 19 && data[r.dataOffset + 18] == 0x01 {
+                        let ci = Int(u16(data, at: r.dataOffset + 2, be: bigEndian))
+                        if let trail = cgTrail[ci],
+                           let gid = trailToGid[trail.trailIdx] {
+                            let key = (gid << 16) | trail.pos
+                            if let slot = gidPosToSlot[key], slot >= 0 {
+                                slotToTracks[slot, default: []].insert(ti)
+                            }
+                        }
+                    }
+                    j += 1
+                }
+            }
+            return Set(slotToTracks.filter { $0.value.count > 1 }.keys)
+        }()
+
         // Nameless sections (nl=0): collect separately for a second pass.
         // These occur in some sessions (e.g. inactive tracks imported from AAF) where PT writes
         // the 0x1052 block without an inline name.  We match them to audio tracks in orderedNames
         // that were not claimed by any named section, preserving mixer order.
         var namelessSections: [PTXBlock] = []
-
-        for (_, section) in trackSections.enumerated() {
+        for section in trackSections {
             // Read track name: [u32 nameLen][nameBytes].
             let name: String
             if let nameLen = safeU32(data, at: section.dataOffset, be: false),
@@ -967,38 +1399,104 @@ final class PTXBlockDecoder {
                 if r.dataOffset + r.dataSize <= sEnd { refs.append(r) } else { break }
                 j += 1
             }
+            // Per-section pass: collect compound clipIdx values from byte18=0x01 placements
+            // on THIS track only.  Used to detect copy placements (byte18=0x00, same clipIdx).
+            // Must be per-section to avoid cross-track contamination — compound pool and audio
+            // pool both start at 0, so a compound index on track A could match an audio index
+            // on track B if we built the set globally.
+            let sectionGroupIdxSet: Set<Int> = {
+                var s = Set<Int>()
+                for ref in refs {
+                    guard ref.dataSize >= 19, parent1050(of: ref) != nil else { continue }
+                    var rawTL: UInt64 = 0
+                    for k in 0..<min(8, ref.dataSize - 7) { rawTL |= UInt64(data[ref.dataOffset + 7 + k]) << (k * 8) }
+                    guard rawTL < 1_000_000_000_000, rawTL > 0 else { continue }
+                    if data[ref.dataOffset + 18] == 0x01 { s.insert(Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))) }
+                }
+                return s
+            }()
+
             let placements: [ClipPlacement] = refs.compactMap { ref in
                 guard parent1050(of: ref) != nil else { return nil }  // reject false positives
-                // 0x104f byte[0]: 0x01 = muted clip (individual audio or compound group)
-                // 0x104f byte[18]: 0x01 = compound group (uses compound pool for name/length)
-                //                  0x00 = muted individual audio clip (uses audio pool)
+
+                // 0x104f byte[0]: 0x01 = muted
+                // 0x104f byte[18]: 0x01 = compound group original-def placement
+                //                  0x00 = audio clip OR compound copy placement
+                //         Detect copy placements by matching clipIdx against this track's group set.
                 // 0x104f byte[35]: 0x00 = visible on timeline, 0x01 = hidden dialog/sync ref
-                let byte0   = ref.dataSize >= 1  ? data[ref.dataOffset]      : 0x00
-                let byte18  = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x00
+                let byte0    = ref.dataSize >= 1  ? data[ref.dataOffset]      : 0x00
+                let byte18   = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x01
                 let isMuted  = byte0 == 0x01
-                let isGroup  = byte18 == 0x01              // compound group → compound pool (may be muted or unmuted)
                 let isHidden = ref.dataSize >= 36 && data[ref.dataOffset + 35] == 0x01
                 let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
-                let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
+                let isGroup  = byte18 == 0x01 || (byte18 == 0x00 && sectionGroupIdxSet.contains(clipIdx))
+                // Timeline: 5-byte sample position stored as u64 LE; sentinel value
+                // (1_000_000_000_000 = 0xE8D4A51000) marks constituent refs, not real placements.
+                let rawTL = readLE(data, at: ref.dataOffset + 7, count: 8)
+                guard rawTL < 1_000_000_000_000 else { return nil }
+                let timeline = Int64(bitPattern: rawTL)
                 guard timeline >= 0 else { return nil }
-                let compoundEntry = isGroup && clipIdx < compoundPool.count ? compoundPool[clipIdx] : nil
+                let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
                 let groupName   = compoundEntry?.name
                 let groupLength = compoundEntry?.lengthSamples
+                // Resolve constituents per-placement.
+                // Sentinel ordinal = creation counter stored in bytes[37..38] of the
+                // compound's 0x2523 block.  This is the same for all placements of the
+                // same compound (both b18==0x01 original-def and b18==0x00 copies).
+                // Compounds whose counter exceeds the sentinel count have no sentinel.
+                let groupConstituents: [ConstituentClip]
+                let slotIdx: Int?
+                let slotNameVal: String?
+                if isGroup {
+                    // byte[17] (Python) = dataOffset+15 (Swift): track-within-group ID
+                    let b17: UInt8 = ref.dataSize >= 16 ? data[ref.dataOffset + 15] : 0
+                    groupConstituents = resolveCG(clipIdx, absStart: timeline, trackB17: b17, depth: 0)
+                    slotIdx = trailResolved[clipIdx]
+                    slotNameVal = cgTrail[clipIdx].flatMap { trailNames[$0.trailIdx] }
+                } else {
+                    groupConstituents = []
+                    slotIdx = nil
+                    slotNameVal = nil
+                }
                 return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0,
                                      isHidden: isHidden, isMuted: isMuted, isGroup: isGroup,
-                                     groupName: groupName, groupLength: groupLength)
+                                     groupName: groupName, groupLength: groupLength,
+                                     groupConstituents: groupConstituents,
+                                     slotIndex: slotIdx, slotName: slotNameVal)
             }
 
-            // Only the FIRST 0x1052 section for each track name is used for clip data.
+            // Only the FIRST 0x1052 section for each track name drives timeline positions.
             // For stereo/surround tracks the additional channel sections share the same
-            // timeline positions as the first, so we simply count them and skip the content.
+            // timeline positions as the first but reference different audio files.
+            // Capture their clipIdx values keyed by timeline position so PTXParser can
+            // resolve each channel's audio file name from the clip pool.
             if channelCounts[name] == nil {
                 nameOrder.append(name)
                 placementsByName[name] = placements
                 channelCounts[name] = 1
             } else {
+                let prevCount = channelCounts[name]!
                 channelCounts[name]! += 1
-                // Ignore subsequent sections — do not add novel positions from alternates.
+                // Only capture companions for genuine additional audio channels.
+                // A track with N audio channels has N consecutive 0x1052 blocks;
+                // any further blocks with the same name are alternate playlists and must be skipped.
+                // Use the authoritative channel count from the 0x251a format byte when available.
+                let audioChannels = displayInfo.channelCounts[name] ?? (prevCount + 1)
+                guard prevCount < audioChannels else { continue }
+                // Build timeline→clipIdx map for this additional channel.
+                var companionByTimeline: [Int64: Int] = [:]
+                for p in placements where !p.isHidden {
+                    companionByTimeline[p.timelineSample] = p.clipIdx
+                }
+                // Attach companion clipIdx to each first-channel placement at the same position.
+                if var arr = placementsByName[name] {
+                    for i in arr.indices {
+                        if let idx = companionByTimeline[arr[i].timelineSample] {
+                            arr[i].companionClipIdxs.append(idx)
+                        }
+                    }
+                    placementsByName[name] = arr
+                }
             }
         }
 
@@ -1023,19 +1521,46 @@ final class PTXBlockDecoder {
                     if r.dataOffset + r.dataSize <= sEnd { refs2.append(r) } else { break }
                     j2 += 1
                 }
+                // Per-section group set for nameless section (same per-track logic as main loop).
+                let namelessGroupIdxSet: Set<Int> = {
+                    var s = Set<Int>()
+                    for ref in refs2 {
+                        guard ref.dataSize >= 19, parent1050(of: ref) != nil else { continue }
+                        let tl = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
+                        guard tl > 0 else { continue }
+                        if data[ref.dataOffset + 18] == 0x01 { s.insert(Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))) }
+                    }
+                    return s
+                }()
                 let placements: [ClipPlacement] = refs2.compactMap { ref in
                     guard parent1050(of: ref) != nil else { return nil }
                     let byte0  = ref.dataSize >= 1  ? data[ref.dataOffset]      : 0x00
-                    let byte18 = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x00
+                    let byte18 = ref.dataSize >= 19 ? data[ref.dataOffset + 18] : 0x01
                     let isHidden = ref.dataSize >= 36 && data[ref.dataOffset + 35] == 0x01
                     let clipIdx  = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
                     let timeline = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
                     guard timeline >= 0 else { return nil }
-                    let isMuted = byte0 == 0x01; let isGroup = byte18 == 0x01
-                    let compoundEntry = isGroup && clipIdx < compoundPool.count ? compoundPool[clipIdx] : nil
+                    let isMuted = byte0 == 0x01
+                    let isGroup = byte18 == 0x01 || (byte18 == 0x00 && namelessGroupIdxSet.contains(clipIdx))
+                    let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
+                    let groupConstituents: [ConstituentClip]
+                    let slotIdx2: Int?
+                    let slotNameVal2: String?
+                    if isGroup {
+                        let b17: UInt8 = ref.dataSize >= 16 ? data[ref.dataOffset + 15] : 0
+                        groupConstituents = resolveCG(clipIdx, absStart: timeline, trackB17: b17, depth: 0)
+                        slotIdx2 = trailResolved[clipIdx]
+                        slotNameVal2 = cgTrail[clipIdx].flatMap { trailNames[$0.trailIdx] }
+                    } else {
+                        groupConstituents = []
+                        slotIdx2 = nil
+                        slotNameVal2 = nil
+                    }
                     return ClipPlacement(clipIdx: clipIdx, timelineSample: timeline, trackHint: 0,
                                          isHidden: isHidden, isMuted: isMuted, isGroup: isGroup,
-                                         groupName: compoundEntry?.name, groupLength: compoundEntry?.lengthSamples)
+                                         groupName: compoundEntry?.name, groupLength: compoundEntry?.lengthSamples,
+                                         groupConstituents: groupConstituents,
+                                         slotIndex: slotIdx2, slotName: slotNameVal2)
                 }
                 if channelCounts[name] == nil {
                     nameOrder.append(name)
