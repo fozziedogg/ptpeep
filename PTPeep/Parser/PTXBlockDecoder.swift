@@ -1302,8 +1302,9 @@ final class PTXBlockDecoder {
             .filter { $0.contentType == 0x104f && $0.dataSize >= 11 }
             .sorted { $0.dataOffset < $1.dataOffset }
 
-        // Build sharedSlots: sentinel slots referenced by CG placements on multiple track sections.
-        // b17 filtering only applies on shared slots (multi-track groups sharing a sentinel).
+        // Build sharedSlots: sentinel slots used by CG placements on multiple track sections.
+        // b17 filtering only applies on shared slots. Uses grp==1 (byte[18] in Swift, byte[20]
+        // in Python) + cgTrail membership to avoid audio/compound index collisions.
         let sharedSlots: Set<Int> = {
             var slotToTracks: [Int: Set<Int>] = [:]
             for (ti, section) in trackSections.enumerated() {
@@ -1315,13 +1316,18 @@ final class PTXBlockDecoder {
                     if sortedRefs[mid].dataOffset < sStart { lo = mid + 1 } else { hi = mid }
                 }
                 var j = lo
-                while j < sortedRefs.count && sortedRefs[j].dataOffset >= sStart {
+                while j < sortedRefs.count {
                     let r = sortedRefs[j]
-                    guard r.dataOffset + r.dataSize <= sEnd else { break }
-                    if r.dataSize >= 19 {
-                        let clipIdx = Int(u16(data, at: r.dataOffset + 2, be: bigEndian))
-                        if let slot = trailResolved[clipIdx] {
-                            slotToTracks[slot, default: []].insert(ti)
+                    guard r.dataOffset >= sStart, r.dataOffset + r.dataSize <= sEnd else { break }
+                    // Only CG entries: grp==1 (byte[18]) AND clipIdx in cgTrail
+                    if r.dataSize >= 19 && data[r.dataOffset + 18] == 0x01 {
+                        let ci = Int(u16(data, at: r.dataOffset + 2, be: bigEndian))
+                        if let trail = cgTrail[ci],
+                           let gid = trailToGid[trail.trailIdx] {
+                            let key = (gid << 16) | trail.pos
+                            if let slot = gidPosToSlot[key], slot >= 0 {
+                                slotToTracks[slot, default: []].insert(ti)
+                            }
                         }
                     }
                     j += 1
