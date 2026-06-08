@@ -1116,22 +1116,32 @@ final class PTXBlockDecoder {
         // Bytes 57-61 = content end (5-byte LE) minus SENT_ORIGIN
         // For multi-element CGs (split history), use the WIDEST span.
         let SENT_ORIGIN: UInt64 = 1_000_000_000_000
-        var cgContentRange: [Int: (start: Int64, end: Int64)] = [:]
+        var cgAllRanges: [Int: [(cs: Int64, ce: Int64)]] = [:]
         for (ci, parent) in cmpdParents.enumerated() {
-            var bestSpan: Int64 = -1
             for blk in blocks where blk.contentType == 0x2523 &&
                 blk.dataOffset >= parent.dataOffset &&
                 blk.dataOffset + blk.dataSize <= parent.dataOffset + parent.dataSize &&
                 blk.dataSize >= 64 {
                 let cs = Int64(bitPattern: readLE(data, at: blk.dataOffset + 49, count: 5) &- SENT_ORIGIN)
                 let ce = Int64(bitPattern: readLE(data, at: blk.dataOffset + 57, count: 5) &- SENT_ORIGIN)
-                guard cs >= 0 else { continue }  // skip pre-roll history ranges
-                let span = ce - cs
-                if span > bestSpan {
-                    bestSpan = span
-                    cgContentRange[ci] = (start: cs, end: ce)
+                cgAllRanges[ci, default: []].append((cs: cs, ce: ce))
+            }
+        }
+
+        // Per-entry content range selection: pick the tightest 0x2523 range containing delta.
+        // This replaces the old "widest span, skip cs<0" heuristic and correctly handles
+        // pre-roll history (cs<0), fades, and crossfade trim snapshots.
+        func pickRange(ci: Int, delta: Int64) -> (cs: Int64, ce: Int64) {
+            guard let ranges = cgAllRanges[ci] else { return (cs: 0, ce: Int64.max) }
+            var best: (cs: Int64, ce: Int64)? = nil
+            for r in ranges {
+                if r.cs <= delta && delta <= r.ce {
+                    if best == nil || r.cs > best!.cs { best = r }
                 }
             }
+            if let best = best { return best }
+            // Fallback: widest range
+            return ranges.max(by: { ($0.ce - $0.cs) < ($1.ce - $1.cs) }) ?? (cs: 0, ce: Int64.max)
         }
 
         // Moved-group detection: compare CG creation start against track-listing position.
@@ -1191,7 +1201,6 @@ final class PTXBlockDecoder {
             }.sorted { $0.dataOffset < $1.dataOffset }
 
             let base = absStart ?? slotBase(ci)
-            let cr = cgContentRange[ci] ?? (start: Int64(0), end: Int64.max)
             var nextVisited = visited; nextVisited.insert(ci)
             var result: [ConstituentClip] = []
 
@@ -1211,27 +1220,30 @@ final class PTXBlockDecoder {
                 let delta = Int64(bitPattern: tl - SENT_ORIGIN)
                 let grp = data[pl.dataOffset + 18]
 
+                // Per-entry content range: pick tightest 0x2523 range containing this delta
+                let cr = pickRange(ci: ci, delta: delta)
+
                 if grp == 0x00 {
                     // Audio leaf — filter by content range (position only, no length trimming)
                     let clipLen = ri < clips.count ? Int64(clips[ri]?.lengthSamples ?? 0) : 0
-                    if delta >= cr.start && delta < cr.end {
-                        let pos = base + (delta - cr.start)
+                    if delta >= cr.cs && delta < cr.ce {
+                        let pos = base + (delta - cr.cs)
                         if ri < audioParents.count {
                             result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: pos))
                         }
-                    } else if delta < cr.start {
-                        if delta + clipLen > cr.start, ri < audioParents.count {
-                            // Straddling clip: visible portion starts at cr.start
+                    } else if delta < cr.cs {
+                        if delta + clipLen > cr.cs, ri < audioParents.count {
+                            // Straddling clip: visible portion starts at cr.cs
                             result.append(ConstituentClip(audioClipIdx: ri, relativeOffset: base))
                         }
                     }
                 } else {
                     // Nested sub-group
                     if absStart != nil {
-                        if delta >= cr.start && delta < cr.end {
-                            let innerAbs = base + (delta - cr.start)
+                        if delta >= cr.cs && delta < cr.ce {
+                            let innerAbs = base + (delta - cr.cs)
                             result += resolveCG(ri, absStart: innerAbs, trackB17: trackB17, depth: depth + 1, visited: nextVisited)
-                        } else if delta < cr.start {
+                        } else if delta < cr.cs {
                             result += resolveCG(ri, absStart: base, trackB17: trackB17, depth: depth + 1, visited: nextVisited)
                         }
                     } else {
