@@ -1195,12 +1195,9 @@ final class PTXBlockDecoder {
             var nextVisited = visited; nextVisited.insert(ci)
             var result: [ConstituentClip] = []
 
-            // If no entries match the requested b17, slot is not shared — skip filtering
-            let effectiveB17: UInt8? = {
-                guard let tb17 = trackB17 else { return nil }
-                let hasMatch = pls.contains { $0.dataSize >= 16 && data[$0.dataOffset + 15] == tb17 }
-                return hasMatch ? tb17 : nil
-            }()
+            // Only apply b17 filtering on shared sentinel slots (multiple tracks → same slot).
+            // Non-shared slots use b17 for other purposes — filtering would drop valid entries.
+            let effectiveB17: UInt8? = (trackB17 != nil && sharedSlots.contains(slot)) ? trackB17 : nil
 
             for pl in pls {
                 guard pl.dataSize >= 19 else { continue }
@@ -1304,6 +1301,34 @@ final class PTXBlockDecoder {
         let sortedRefs = blocks
             .filter { $0.contentType == 0x104f && $0.dataSize >= 11 }
             .sorted { $0.dataOffset < $1.dataOffset }
+
+        // Build sharedSlots: sentinel slots referenced by CG placements on multiple track sections.
+        // b17 filtering only applies on shared slots (multi-track groups sharing a sentinel).
+        let sharedSlots: Set<Int> = {
+            var slotToTracks: [Int: Set<Int>] = [:]
+            for (ti, section) in trackSections.enumerated() {
+                let sStart = section.dataOffset
+                let sEnd = section.dataOffset + section.dataSize
+                var lo = 0, hi = sortedRefs.count
+                while lo < hi {
+                    let mid = (lo + hi) / 2
+                    if sortedRefs[mid].dataOffset < sStart { lo = mid + 1 } else { hi = mid }
+                }
+                var j = lo
+                while j < sortedRefs.count && sortedRefs[j].dataOffset >= sStart {
+                    let r = sortedRefs[j]
+                    guard r.dataOffset + r.dataSize <= sEnd else { break }
+                    if r.dataSize >= 19 {
+                        let clipIdx = Int(u16(data, at: r.dataOffset + 2, be: bigEndian))
+                        if let slot = trailResolved[clipIdx] {
+                            slotToTracks[slot, default: []].insert(ti)
+                        }
+                    }
+                    j += 1
+                }
+            }
+            return Set(slotToTracks.filter { $0.value.count > 1 }.keys)
+        }()
 
         // Nameless sections (nl=0): collect separately for a second pass.
         // These occur in some sessions (e.g. inactive tracks imported from AAF) where PT writes
