@@ -913,7 +913,7 @@ final class PTXBlockDecoder {
                 let v2 = readLE(data, at: afterName + dOff + 4, count: 4)
                 if v1 == v2 && v1 > 100_000 && v1 < 500_000_000 {
                     if Int64(bitPattern: v1) != Int64(bitPattern: startVal) {
-                        print("[WARN] CG start mismatch: nibble=\(startVal) doubled=\(v1) for '\(name)'")
+                        AppLog.shared.log("[WARN] CG start mismatch: nibble=\(startVal) doubled=\(v1) for '\(name)'")
                     }
                     break
                 }
@@ -1032,68 +1032,6 @@ final class PTXBlockDecoder {
                   let slot = gidPosToSlot[(gid << 16) | trail.pos],
                   slot >= 0, slot < sentinelSections.count else { continue }
             trailResolved[ci] = slot
-        }
-
-        // ── Diagnostic: classify every compound pool entry by resolution chain step ──
-        do {
-            var failNoChild = 0, failTrailShort = 0, failNoGid = 0
-            var failNoSlot = 0, failSlotOOB = 0, resolved = 0
-            var examples: [String: [(Int, String?)]] = [
-                "noChild": [], "trailShort": [], "noGid": [], "noSlot": [], "slotOOB": []
-            ]
-            for ci in cmpdParents.indices {
-                let parent = cmpdParents[ci]
-                let name = compoundPool[ci]?.name
-                if trailResolved[ci] != nil {
-                    resolved += 1
-                    continue
-                }
-                // Check which step failed
-                let g2628 = blocks.first(where: { b in
-                    b.contentType == 0x2628 &&
-                    b.dataOffset >= parent.dataOffset &&
-                    b.dataOffset + b.dataSize <= parent.dataOffset + parent.dataSize
-                })
-                guard let g2628 = g2628 else {
-                    failNoChild += 1
-                    if (examples["noChild"]?.count ?? 0) < 5 { examples["noChild"]?.append((ci, name)) }
-                    continue
-                }
-                let trailingStart = g2628.dataOffset + g2628.dataSize - 2
-                let trailingEnd = parent.dataOffset + parent.dataSize - 2
-                guard trailingEnd - trailingStart >= 7 else {
-                    failTrailShort += 1
-                    if (examples["trailShort"]?.count ?? 0) < 5 { examples["trailShort"]?.append((ci, name)) }
-                    continue
-                }
-                let trailIdx = Int(readLE(data, at: trailingStart + 1, count: 2))
-                let pos = Int(readLE(data, at: trailingStart + 5, count: 2))
-                guard let gid = trailToGid[trailIdx] else {
-                    failNoGid += 1
-                    if (examples["noGid"]?.count ?? 0) < 5 { examples["noGid"]?.append((ci, name)) }
-                    continue
-                }
-                let slotKey = (gid << 16) | pos
-                guard let slot = gidPosToSlot[slotKey] else {
-                    failNoSlot += 1
-                    if (examples["noSlot"]?.count ?? 0) < 5 { examples["noSlot"]?.append((ci, name)) }
-                    continue
-                }
-                if slot < 0 || slot >= sentinelSections.count {
-                    failSlotOOB += 1
-                    if (examples["slotOOB"]?.count ?? 0) < 5 { examples["slotOOB"]?.append((ci, name)) }
-                } else {
-                    // Should have been resolved — shouldn't reach here
-                    resolved += 1
-                }
-            }
-            let total = cmpdParents.count
-            print("[CG-DIAG] compounds=\(total) cgTrail=\(cgTrail.count) trailResolved=\(trailResolved.count) sentinels=\(sentinelSections.count)")
-            print("[CG-DIAG] resolved=\(resolved) noChild=\(failNoChild) trailShort=\(failTrailShort) noGid=\(failNoGid) noSlot=\(failNoSlot) slotOOB=\(failSlotOOB)")
-            for (cat, exs) in examples.sorted(by: { $0.key < $1.key }) where !exs.isEmpty {
-                let items = exs.map { "ci=\($0.0) '\($0.1 ?? "?")'" }.joined(separator: ", ")
-                print("[CG-DIAG]   \(cat): \(items)")
-            }
         }
 
         // Build compoundBaseStart: for each (gid, pos), the minimum CG start across all
