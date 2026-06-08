@@ -1114,10 +1114,12 @@ final class PTXBlockDecoder {
         // stores the delta range it "sees" within the shared sentinel section.
         // Bytes 49-53 (from Swift dataOffset) = content start (5-byte LE) minus SENT_ORIGIN
         // Bytes 57-61 = content end (5-byte LE) minus SENT_ORIGIN
-        // For multi-element CGs (split history), use the WIDEST span.
+        // Default: widest non-negative span. Fallback: tightest fit when delta outside default.
         let SENT_ORIGIN: UInt64 = 1_000_000_000_000
-        var cgAllRanges: [Int: [(cs: Int64, ce: Int64)]] = [:]
+        var cgContentRange: [Int: (cs: Int64, ce: Int64)] = [:]  // widest non-negative
+        var cgAllRanges: [Int: [(cs: Int64, ce: Int64)]] = [:]    // all ranges for fallback
         for (ci, parent) in cmpdParents.enumerated() {
+            var bestSpan: Int64 = -1
             for blk in blocks where blk.contentType == 0x2523 &&
                 blk.dataOffset >= parent.dataOffset &&
                 blk.dataOffset + blk.dataSize <= parent.dataOffset + parent.dataSize &&
@@ -1125,23 +1127,31 @@ final class PTXBlockDecoder {
                 let cs = Int64(bitPattern: readLE(data, at: blk.dataOffset + 49, count: 5) &- SENT_ORIGIN)
                 let ce = Int64(bitPattern: readLE(data, at: blk.dataOffset + 57, count: 5) &- SENT_ORIGIN)
                 cgAllRanges[ci, default: []].append((cs: cs, ce: ce))
+                guard cs >= 0 else { continue }  // skip pre-roll for default range
+                let span = ce - cs
+                if span > bestSpan {
+                    bestSpan = span
+                    cgContentRange[ci] = (cs: cs, ce: ce)
+                }
             }
         }
 
-        // Per-entry content range selection: pick the tightest 0x2523 range containing delta.
-        // This replaces the old "widest span, skip cs<0" heuristic and correctly handles
-        // pre-roll history (cs<0), fades, and crossfade trim snapshots.
+        // Per-entry content range: use default (widest non-negative) when delta is inside it;
+        // fall back to tightest fit from all ranges (including negative cs) when delta is outside.
         func pickRange(ci: Int, delta: Int64) -> (cs: Int64, ce: Int64) {
-            guard let ranges = cgAllRanges[ci] else { return (cs: 0, ce: Int64.max) }
-            var best: (cs: Int64, ce: Int64)? = nil
-            for r in ranges {
-                if r.cs <= delta && delta <= r.ce {
-                    if best == nil || r.cs > best!.cs { best = r }
-                }
+            if let def = cgContentRange[ci], def.cs <= delta, delta < def.ce {
+                return def
             }
-            if let best = best { return best }
-            // Fallback: widest range
-            return ranges.max(by: { ($0.ce - $0.cs) < ($1.ce - $1.cs) }) ?? (cs: 0, ce: Int64.max)
+            if let ranges = cgAllRanges[ci] {
+                var best: (cs: Int64, ce: Int64)? = nil
+                for r in ranges {
+                    if r.cs <= delta && delta <= r.ce {
+                        if best == nil || r.cs > best!.cs { best = r }
+                    }
+                }
+                if let best = best { return best }
+            }
+            return cgContentRange[ci] ?? (cs: 0, ce: Int64.max)
         }
 
         // Moved-group detection: compare CG creation start against track-listing position.
@@ -1220,7 +1230,7 @@ final class PTXBlockDecoder {
                 let delta = Int64(bitPattern: tl - SENT_ORIGIN)
                 let grp = data[pl.dataOffset + 18]
 
-                // Per-entry content range: pick tightest 0x2523 range containing this delta
+                // Per-entry content range: default (widest non-neg), fallback for fades
                 let cr = pickRange(ci: ci, delta: delta)
 
                 if grp == 0x00 {
