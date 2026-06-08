@@ -1195,6 +1195,13 @@ final class PTXBlockDecoder {
             var nextVisited = visited; nextVisited.insert(ci)
             var result: [ConstituentClip] = []
 
+            // If no entries match the requested b17, slot is not shared — skip filtering
+            let effectiveB17: UInt8? = {
+                guard let tb17 = trackB17 else { return nil }
+                let hasMatch = pls.contains { $0.dataSize >= 16 && data[$0.dataOffset + 15] == tb17 }
+                return hasMatch ? tb17 : nil
+            }()
+
             for pl in pls {
                 guard pl.dataSize >= 19 else { continue }
                 let ri = Int(readLE(data, at: pl.dataOffset + 2, count: 2))
@@ -1203,7 +1210,7 @@ final class PTXBlockDecoder {
                 guard pl.dataSize < 36 || data[pl.dataOffset + 35] == 0x00 else { continue }
                 // byte[17] (Python) = dataOffset+15 (Swift): track-within-group identifier
                 let b17 = pl.dataSize >= 16 ? data[pl.dataOffset + 15] : 0
-                if let tb17 = trackB17, b17 != tb17 { continue }
+                if let tb17 = effectiveB17, b17 != tb17 { continue }
                 let delta = Int64(bitPattern: tl - SENT_ORIGIN)
                 let grp = data[pl.dataOffset + 18]
 
