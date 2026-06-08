@@ -1125,6 +1125,7 @@ final class PTXBlockDecoder {
                 blk.dataSize >= 64 {
                 let cs = Int64(bitPattern: readLE(data, at: blk.dataOffset + 49, count: 5) &- SENT_ORIGIN)
                 let ce = Int64(bitPattern: readLE(data, at: blk.dataOffset + 57, count: 5) &- SENT_ORIGIN)
+                guard cs >= 0 else { continue }  // skip pre-roll history ranges
                 let span = ce - cs
                 if span > bestSpan {
                     bestSpan = span
