@@ -86,12 +86,12 @@ struct SessionInspectorView: View {
         }
     }
     private enum DetailTab: String, CaseIterable {
-        case tracks       = "Tracks"
         case audioFiles   = "Audio Files"
-        case plugins      = "Plug-Ins"
+        case tracks       = "Tracks"
         case memLocations = "Markers"
+        case plugins      = "Plug-Ins"
     }
-    @State private var selectedDetailTab: DetailTab = .tracks
+    @State private var selectedDetailTab: DetailTab = .audioFiles
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
     @StateObject private var audioPlayer = AudioPlayer()
@@ -1812,6 +1812,50 @@ private struct SessionTimelineView: View {
             .help("Click to jump to timecode")
     }
 
+    @ViewBuilder
+    private func waveformSection(selectedClip: PTXClip?, selectedRegion: PlayRegion?,
+                                 sr: Double, total: Double, trackIdx: Int?) -> some View {
+        let waveColor: Color = {
+            if let idx = trackIdx, idx < tracks.count {
+                return trackColor(tracks[idx], index: idx)
+            }
+            return .secondary
+        }()
+
+        // Segment colors for multi-track region waveform
+        let segColors: [Color] = selectedRegion?.segments.map { seg in
+            seg.trackIdx < tracks.count
+                ? trackColor(tracks[seg.trackIdx], index: seg.trackIdx)
+                : .secondary
+        } ?? []
+
+        ZStack {
+            if let region = selectedRegion, let ap = audioPlayer {
+                RegionWaveformView(region: region, segColors: segColors, audioPlayer: ap)
+            } else if let clip = selectedClip, !clip.isGroup,
+                      !waveChannelURLs.isEmpty, let ap = audioPlayer {
+                ClipWaveformView(clip: clip, channelURLs: waveChannelURLs,
+                                 sampleRate: sr, color: waveColor, audioPlayer: ap)
+            } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
+                      waveChannelURLs.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange.opacity(0.7))
+                    Text("Audio offline")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Color.clear
+            }
+        }
+        .frame(height: 48)
+        .clipShape(.rect(cornerRadius: 4))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
+    }
+
     private var totalLaneHeight: CGFloat {
         var h: CGFloat = 0
         for (i, t) in tracks.enumerated() {
@@ -2161,7 +2205,9 @@ private struct SessionTimelineView: View {
                         label: "SELECT", sr: sr, total: total, isSelected: true,
                         resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
 
-            Divider().opacity(0.3)
+            // ── Waveform display ──────────────────────────────────────────────
+            waveformSection(selectedClip: selectedClip, selectedRegion: selectedRegion,
+                            sr: sr, total: total, trackIdx: selectedClipTrackIdx)
 
             // ── BWF metadata panel ────────────────────────────────────────────
             if bwfPanelVisible {
