@@ -76,17 +76,6 @@ struct SessionInspectorView: View {
     @State private var trackSortColumn: TrackSortColumn = .none
     @State private var trackSortAscending: Bool = true
 
-    // BWF metadata (background-parsed for all resolved files)
-    @AppStorage("bwf.selectedFields") private var bwfFieldsRaw: String = BWFFieldKey.defaults.map(\.rawValue).joined(separator: ",")
-    @State private var bwfCache: [String: BWFMetadata] = [:]
-    @State private var bwfParsing: Bool = false   // true while background parse is running
-    @State private var showAudioFileOptions: Bool = false
-    @AppStorage("af.followSelection") private var afFollowSelection: Bool = true
-    @State private var highlightedAudioFiles: Set<String> = []  // source files from selected clip(s)
-    private var bwfSelectedFields: [BWFFieldKey] {
-        bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
-    }
-
     private enum TrackSortColumn {
         case none, name, format, input, output, atmos
         var index: Int {
@@ -151,15 +140,9 @@ struct SessionInspectorView: View {
                             HStack(spacing: 4) {
                                 Text(tab.rawValue)
                                     .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
-                                if tab == .audioFiles && bwfParsing {
-                                    ProgressView()
-                                        .controlSize(.mini)
-                                        .scaleEffect(0.6)
-                                } else {
-                                    Text("\(count)")
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(isSelected ? Color.primary.opacity(0.5) : Color.secondary.opacity(0.6))
-                                }
+                                Text("\(count)")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(isSelected ? Color.primary.opacity(0.5) : Color.secondary.opacity(0.6))
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
@@ -209,52 +192,8 @@ struct SessionInspectorView: View {
                                 tracksContent
                             }
                         case .audioFiles:
-                            // Options bar
-                            HStack(spacing: 0) {
-                                if bwfParsing {
-                                    ProgressView()
-                                        .controlSize(.mini)
-                                        .scaleEffect(0.6)
-                                        .padding(.leading, 12)
-                                    Text("Scanning…")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(.secondary)
-                                        .padding(.leading, 4)
-                                }
-                                Spacer()
-                                let optionsActive = afFollowSelection || !bwfSelectedFields.isEmpty
-                                Button { showAudioFileOptions.toggle() } label: {
-                                    Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
-                                        .font(.caption)
-                                        .foregroundStyle(optionsActive ? Color.accentColor : Color.secondary)
-                                }
-                                .buttonStyle(.plain)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .popover(isPresented: $showAudioFileOptions, arrowEdge: .bottom) {
-                                    audioFileOptionsPopover
-                                }
-                            }
-                            if session.audioFileNames.isEmpty {
-                                PlaceholderRow(text: "No audio files found")
-                            } else {
-                                let fields = bwfSelectedFields
-                                let sr = Double(session.sampleRate) ?? 48000
-                                let fps = session.frameRate
-                                let resolvedLookup = Dictionary(
-                                    session.resolvedAudioFiles.map { ($0.name, $0) },
-                                    uniquingKeysWith: { first, _ in first }
-                                )
-                                audioFilesHeaderRow(fields: fields)
-                                ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { i, name in
-                                    audioFileDataRow(
-                                        name: name, index: i,
-                                        resolved: resolvedLookup[name],
-                                        meta: bwfCache[name],
-                                        fields: fields, sr: sr, fps: fps
-                                    )
-                                }
-                            }
+                            audioFilesContent
+                                .padding(.top, 4)
                         case .plugins:
                             VStack(alignment: .leading, spacing: 0) {
                                 // Options bar for plugins
@@ -325,77 +264,6 @@ struct SessionInspectorView: View {
                 trackSortIndex:         trackSortColumn.index,
                 trackSortAscending:     trackSortAscending
             ))
-        }
-        .onChange(of: session.resolvedAudioFiles.count) { _ in parseBWFInBackground() }
-        .onChange(of: isResolvingFiles) { resolving in
-            if !resolving { parseBWFInBackground() }
-        }
-        .onAppear { parseBWFInBackground() }
-        .onChange(of: tc.selStart) { _ in updateHighlightedAudioFiles() }
-        .onChange(of: tc.selEnd)   { _ in updateHighlightedAudioFiles() }
-    }
-
-    /// Derive the set of source file names from the current clip/region selection.
-    private func updateHighlightedAudioFiles() {
-        guard afFollowSelection else {
-            if !highlightedAudioFiles.isEmpty { highlightedAudioFiles = [] }
-            return
-        }
-        let tracks = session.tracks
-        let total = totalSamples
-
-        if let selStart = tc.selStart, let selEnd = tc.selEnd, selEnd > selStart {
-            // Region selection: all non-group clips in the selected track range
-            let startSamp = Int64((selStart * total).rounded())
-            let endSamp   = Int64((selEnd * total).rounded())
-            let lo = tc.selTrack ?? 0
-            let hi = min(tc.selTrackEnd ?? lo, tracks.count - 1)
-            guard lo >= 0, lo <= hi else { highlightedAudioFiles = []; return }
-            var files = Set<String>()
-            for idx in lo...hi {
-                for clip in tracks[idx].clips where !clip.isGroup && !clip.sourceFile.isEmpty {
-                    if clip.startSample < endSamp && clip.startSample + clip.lengthSamples > startSamp {
-                        files.insert(clip.sourceFile)
-                    }
-                }
-            }
-            highlightedAudioFiles = files
-        } else if let selStart = tc.selStart,
-                  let trackIdx = tc.selTrack, trackIdx < tracks.count {
-            // Single clip selection
-            let samp = Int64((selStart * total).rounded())
-            if let clip = tracks[trackIdx].clips.first(where: { !$0.isGroup && $0.startSample == samp }),
-               !clip.sourceFile.isEmpty {
-                highlightedAudioFiles = [clip.sourceFile]
-            } else {
-                highlightedAudioFiles = []
-            }
-        } else {
-            highlightedAudioFiles = []
-        }
-    }
-
-    /// Background-parse BWF metadata for all resolved audio files.
-    /// Safe to call multiple times — skips if already parsing or no files.
-    private func parseBWFInBackground() {
-        let files = session.resolvedAudioFiles
-        let onlineCount = files.filter { $0.url != nil }.count
-        AppLog.shared.log("[BWF] parseBWFInBackground: \(files.count) resolved, \(onlineCount) online, bwfParsing=\(bwfParsing)")
-        guard onlineCount > 0, !bwfParsing else { return }
-        bwfParsing = true
-        Task.detached(priority: .utility) {
-            var cache: [String: BWFMetadata] = [:]
-            for file in files {
-                guard let url = file.url else { continue }
-                if let meta = BWFParser.parse(url: url) {
-                    cache[file.name] = meta
-                }
-            }
-            await MainActor.run {
-                AppLog.shared.log("[BWF] Parse complete: \(cache.count) files with metadata")
-                bwfCache = cache
-                bwfParsing = false
-            }
         }
     }
 
@@ -802,105 +670,15 @@ struct SessionInspectorView: View {
 
     // MARK: - Audio Files
 
-    private var audioFileOptionsPopover: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Toggle("Follow clip selection", isOn: $afFollowSelection)
-                .toggleStyle(.checkbox)
-            Divider()
-            Text("Metadata Fields")
-                .font(.system(size: 10).weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 2)
-            ForEach(BWFFieldKey.allCases) { key in
-                let isOn = bwfSelectedFields.contains(key)
-                Toggle(key.label, isOn: Binding(
-                    get: { isOn },
-                    set: { on in
-                        var current = bwfSelectedFields
-                        if on { current.append(key) } else { current.removeAll { $0 == key } }
-                        bwfFieldsRaw = current.map(\.rawValue).joined(separator: ",")
-                    }
-                ))
-                .toggleStyle(.checkbox)
-            }
-        }
-        .font(.system(size: 12))
-        .padding(12)
-        .frame(minWidth: 200)
-    }
-
-    // MARK: Audio files table constants
-    private static let afIconW:  CGFloat = 20
-    private static let afFieldW: CGFloat = 90
-
-    /// Computed name column width — capped at 300pt.
-    private var afNameW: CGFloat {
-        min(300, session.audioFileNames.reduce(CGFloat(80)) { w, name in
-            max(w, CGFloat(name.count) * 6.2 + 8)
-        })
-    }
-
-    /// Column header row for the audio files table.
-    private func audioFilesHeaderRow(fields: [BWFFieldKey]) -> some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Color.clear.frame(width: Self.afIconW)
-                Text("NAME")
-                    .frame(width: afNameW, alignment: .leading)
-                ForEach(fields) { key in
-                    Text(key.label.uppercased())
-                        .frame(width: Self.afFieldW, alignment: .leading)
-                }
-                Spacer()
-            }
-            .font(.system(size: 8).weight(.semibold))
-            .foregroundStyle(.tertiary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            Divider().opacity(0.3)
-        }
-        .background(Color(nsColor: .windowBackgroundColor))
-    }
-
-    /// A single data row in the audio files table.
-    private func audioFileDataRow(name: String, index: Int,
-                                  resolved: ResolvedAudioFile?,
-                                  meta: BWFMetadata?,
-                                  fields: [BWFFieldKey],
-                                  sr: Double, fps: Double) -> some View {
-        HStack(spacing: 0) {
-            Image(systemName: resolved?.url != nil ? "checkmark.circle" : "circle.dashed")
-                .foregroundStyle(resolved?.url != nil ? .green : .secondary)
-                .font(.system(size: 10))
-                .frame(width: Self.afIconW)
-            Text(name)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(width: afNameW, alignment: .leading)
-            ForEach(fields) { key in
-                let val = meta?.displayValue(for: key, sampleRate: sr, frameRate: fps)
-                Text(val ?? "—")
-                    .foregroundStyle(val != nil ? Color.primary : Color.secondary.opacity(0.4))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(width: Self.afFieldW, alignment: .leading)
-            }
-            Spacer()
-        }
-        .font(.system(size: 11).monospacedDigit())
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(
-            highlightedAudioFiles.contains(name)
-                ? Color.accentColor.opacity(0.15)
-                : (index % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
-        )
-        .contentShape(Rectangle())
-        .contextMenu {
-            if let url = resolved?.url {
-                Button("Reveal in Finder") {
-                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                }
+    @ViewBuilder
+    private var audioFilesContent: some View {
+        if session.audioFileNames.isEmpty {
+            PlaceholderRow(text: "No audio files found")
+        } else {
+            ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { i, name in
+                AudioFileRow(name: name,
+                             resolved: session.resolvedAudioFiles.first { $0.name == name },
+                             index: i)
             }
         }
     }
@@ -1410,6 +1188,47 @@ private struct TrackRow: View {
     }
 }
 
+private struct AudioFileRow: View {
+    let name: String
+    let resolved: ResolvedAudioFile?
+    let index: Int
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: resolved != nil ? "checkmark.circle" : "circle.dashed")
+                .foregroundStyle(resolved != nil ? .green : .secondary)
+                .font(.system(size: 11))
+                .frame(width: 16)
+            Text(name)
+                .font(.subheadline)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer()
+            if resolved == nil {
+                Text("missing")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            } else if let url = resolved?.url {
+                Text(url.pathExtension.uppercased())
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 3))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+        .background(index % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
+        .contextMenu {
+            if let url = resolved?.url {
+                Button("Reveal in Finder") {
+                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Plugin row (with optional availability badge)
 
 private let elasticAudioModes: Set<String> = [
@@ -1911,6 +1730,25 @@ private struct SessionTimelineView: View {
     @State private var showFiltersPopover: Bool  = false
     @AppStorage("ov.autoplay") private var autoplay: Bool = false
 
+    // BWF metadata panel
+    @AppStorage("bwf.panelVisible")     private var bwfPanelVisible: Bool   = false
+    @AppStorage("bwf.selectedFields")   private var bwfFieldsRaw:    String = BWFFieldKey.defaults.map(\.rawValue).joined(separator: ",")
+    @State private var bwfMetadata:     BWFMetadata? = nil
+    @State private var showBWFSettings: Bool         = false
+
+    private var bwfSelectedFields: [BWFFieldKey] {
+        bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
+    }
+    private func bwfToggleField(_ key: BWFFieldKey) {
+        var current = bwfSelectedFields
+        if let idx = current.firstIndex(of: key) {
+            current.remove(at: idx)
+        } else {
+            current.append(key)
+        }
+        bwfFieldsRaw = current.map(\.rawValue).joined(separator: ",")
+    }
+
     private static let audioLaneH: CGFloat = 8
     private static let videoLaneH: CGFloat = 16
     private static let laneGap:    CGFloat = 2
@@ -2302,6 +2140,44 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
+                // BWF toggle + settings
+                Button {
+                    bwfPanelVisible.toggle()
+                    if bwfPanelVisible, let clip = selectedClip,
+                       let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                        Task.detached(priority: .userInitiated) {
+                            let m = BWFParser.parse(url: url)
+                            await MainActor.run { bwfMetadata = m }
+                        }
+                    } else if !bwfPanelVisible {
+                        bwfMetadata = nil
+                    }
+                } label: {
+                    Text("BWF")
+                        .font(.system(size: 9).weight(.semibold))
+                        .foregroundStyle(bwfPanelVisible ? Color.accentColor : Color.secondary)
+                        .padding(.horizontal, 5).padding(.vertical, 2)
+                        .background(RoundedRectangle(cornerRadius: 3)
+                            .fill(bwfPanelVisible
+                                  ? Color.accentColor.opacity(0.15)
+                                  : Color(nsColor: .separatorColor).opacity(0.5)))
+                }
+                .buttonStyle(.plain)
+
+                if bwfPanelVisible {
+                    Button { showBWFSettings = true } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showBWFSettings, arrowEdge: .bottom) {
+                        BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
+                    }
+                }
+
+                Divider().frame(height: 14)
+
                 // Filter/options popover (right-most)
                 let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || hideGroups || showMarkers || !showEmpty
                 Button { showFiltersPopover.toggle() } label: {
@@ -2360,6 +2236,18 @@ private struct SessionTimelineView: View {
             // ── Waveform display ──────────────────────────────────────────────
             waveformSection(selectedClip: selectedClip, selectedRegion: selectedRegion,
                             sr: sr, total: total, trackIdx: selectedClipTrackIdx)
+
+            // ── BWF metadata panel ────────────────────────────────────────────
+            if bwfPanelVisible {
+                BWFMetadataPanel(
+                    metadata:       bwfMetadata,
+                    selectedFields: bwfSelectedFields,
+                    sampleRate:     sr,
+                    frameRate:      frameRate
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+            }
 
             // ── Scrollable lane area ──────────────────────────────────────────
             ScrollView(.vertical) {
@@ -2732,6 +2620,15 @@ private struct SessionTimelineView: View {
                 waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
             } else {
                 waveChannelURLs = []
+            }
+            // BWF metadata refresh
+            guard bwfPanelVisible else { return }
+            bwfMetadata = nil
+            guard let name = sourceFile,
+                  let url  = resolvedFiles.first(where: { $0.name == name })?.url else { return }
+            Task.detached(priority: .userInitiated) {
+                let m = BWFParser.parse(url: url)
+                await MainActor.run { bwfMetadata = m }
             }
         }
         .onChange(of: resolvedFiles.count) { _ in
@@ -3372,7 +3269,117 @@ private extension PTXTrackType {
     }
 }
 
+// MARK: - BWF Metadata Panel
 
+private struct BWFMetadataPanel: View {
+    let metadata:       BWFMetadata?
+    let selectedFields: [BWFFieldKey]
+    let sampleRate:     Double
+    let frameRate:      Double
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let meta = metadata {
+                VStack(spacing: 1) {
+                    ForEach(selectedFields) { key in
+                        let value = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate)
+                        HStack(alignment: .top, spacing: 6) {
+                            Text(key.label.uppercased())
+                                .font(.system(size: 8).weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                                .frame(width: 88, alignment: .trailing)
+                                .padding(.top, 1)
+                            Text(value ?? "—")
+                                .font(.system(size: 10).monospacedDigit())
+                                .foregroundStyle(value != nil ? Color.primary : Color.secondary)
+                                .lineLimit(key == .bextCodingHistory ? 4 : 1)
+                                .truncationMode(.tail)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 6)
+                        .background(Color(nsColor: .separatorColor).opacity(0.04))
+                    }
+                }
+                .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.03)))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5))
+            } else {
+                HStack {
+                    Spacer()
+                    Text("No BWF metadata")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.03)))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5))
+            }
+        }
+    }
+}
+
+// MARK: - BWF Settings Popover
+
+private struct BWFSettingsPopover: View {
+    @Binding var selectedRaw: String
+
+    private var selected: [BWFFieldKey] {
+        selectedRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
+    }
+    private func toggle(_ key: BWFFieldKey) {
+        var current = selected
+        if let idx = current.firstIndex(of: key) {
+            current.remove(at: idx)
+        } else {
+            current.append(key)
+        }
+        selectedRaw = current.map(\.rawValue).joined(separator: ",")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("BWF Fields")
+                    .font(.system(size: 11).weight(.semibold))
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
+
+            Divider()
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(BWFFieldKey.allCases) { key in
+                        let isOn = selected.contains(key)
+                        Button {
+                            toggle(key)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(isOn ? Color.accentColor : Color.secondary.opacity(0.7))
+                                    .font(.system(size: 12))
+                                Text(key.label)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Color.primary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .frame(maxHeight: 320)
+        }
+        .frame(width: 200)
+        .padding(.bottom, 8)
+    }
+}
 
 // MARK: - Volume Fader
 
