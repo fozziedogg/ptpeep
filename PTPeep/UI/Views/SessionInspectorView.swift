@@ -218,8 +218,24 @@ struct SessionInspectorView: View {
                                     Spacer()
                                 }
                                 .frame(maxWidth: .infinity)
+                            } else if session.audioFileNames.isEmpty {
+                                PlaceholderRow(text: "No audio files found")
                             } else {
-                                audioFilesContent
+                                let fields = bwfSelectedFields
+                                let sr = Double(session.sampleRate) ?? 48000
+                                let fps = session.frameRate
+                                let resolvedLookup = Dictionary(
+                                    session.resolvedAudioFiles.map { ($0.name, $0) },
+                                    uniquingKeysWith: { first, _ in first }
+                                )
+                                // Header (not lazy — always visible)
+                                audioFilesHeader
+                                // Rows (lazy — only visible rows are instantiated)
+                                ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { i, name in
+                                    audioFileRow(name: name, index: i,
+                                                 resolvedLookup: resolvedLookup,
+                                                 fields: fields, sr: sr, fps: fps)
+                                }
                             }
                         case .plugins:
                             VStack(alignment: .leading, spacing: 0) {
@@ -715,88 +731,77 @@ struct SessionInspectorView: View {
 
     // MARK: - Audio Files
 
+    /// Column header for the audio files table (pinned above the lazy rows).
     @ViewBuilder
-    private var audioFilesContent: some View {
-        if session.audioFileNames.isEmpty {
-            PlaceholderRow(text: "No audio files found")
-        } else {
-            let fields = bwfSelectedFields
-            let sr = Double(session.sampleRate) ?? 48000
-            let fps = session.frameRate
-            VStack(spacing: 0) {
-                // Column header + field selector
-                HStack(spacing: 0) {
-                    // Status column
-                    Color.clear.frame(width: 24)
-                    // Name column
-                    Text("Name")
-                        .frame(minWidth: 120, alignment: .leading)
-                    // BWF field columns
-                    ForEach(fields) { key in
-                        Divider().frame(height: 12).padding(.horizontal, 2)
-                        Text(key.label.uppercased())
-                            .frame(minWidth: 60, idealWidth: 80, alignment: .leading)
-                    }
-                    Spacer()
-                    // Field selector
-                    Button { showBWFSettings = true } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showBWFSettings, arrowEdge: .bottom) {
-                        BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
-                    }
-                    .padding(.trailing, 8)
-                }
-                .font(.system(size: 8).weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.primary.opacity(0.03))
+    private var audioFilesHeader: some View {
+        let fields = bwfSelectedFields
+        HStack(spacing: 0) {
+            Color.clear.frame(width: 24)
+            Text("Name")
+                .frame(minWidth: 120, alignment: .leading)
+            ForEach(fields) { key in
+                Divider().frame(height: 12).padding(.horizontal, 2)
+                Text(key.label.uppercased())
+                    .frame(minWidth: 60, idealWidth: 80, alignment: .leading)
+            }
+            Spacer()
+            Button { showBWFSettings = true } label: {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showBWFSettings, arrowEdge: .bottom) {
+                BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
+            }
+            .padding(.trailing, 8)
+        }
+        .font(.system(size: 8).weight(.semibold))
+        .foregroundStyle(.tertiary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.primary.opacity(0.03))
 
-                Divider().opacity(0.3)
+        Divider().opacity(0.3)
+    }
 
-                // Rows
-                ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { i, name in
-                    let resolved = session.resolvedAudioFiles.first { $0.name == name }
-                    let meta = bwfCache[name]
-                    HStack(spacing: 0) {
-                        // Status icon
-                        Image(systemName: resolved?.url != nil ? "checkmark.circle" : "circle.dashed")
-                            .foregroundStyle(resolved?.url != nil ? .green : .secondary)
-                            .font(.system(size: 10))
-                            .frame(width: 24)
-                        // File name
-                        Text(name)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .frame(minWidth: 120, alignment: .leading)
-                        // BWF field values
-                        ForEach(fields) { key in
-                            Divider().frame(height: 12).opacity(0.3).padding(.horizontal, 2)
-                            let val = meta?.displayValue(for: key, sampleRate: sr, frameRate: fps)
-                            Text(val ?? "—")
-                                .foregroundStyle(val != nil ? Color.primary : Color.secondary.opacity(0.4))
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                                .frame(minWidth: 60, idealWidth: 80, alignment: .leading)
-                        }
-                        Spacer()
-                    }
-                    .font(.system(size: 11).monospacedDigit())
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(i % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
-                    .contentShape(Rectangle())
-                    .contextMenu {
-                        if let url = resolved?.url {
-                            Button("Reveal in Finder") {
-                                NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                            }
-                        }
-                    }
+    /// A single row in the audio files table — extracted so the parent LazyVStack
+    /// can lazily instantiate each row independently.
+    @ViewBuilder
+    private func audioFileRow(name: String, index: Int,
+                              resolvedLookup: [String: ResolvedAudioFile],
+                              fields: [BWFFieldKey], sr: Double, fps: Double) -> some View {
+        let resolved = resolvedLookup[name]
+        let meta = bwfCache[name]
+        HStack(spacing: 0) {
+            Image(systemName: resolved?.url != nil ? "checkmark.circle" : "circle.dashed")
+                .foregroundStyle(resolved?.url != nil ? .green : .secondary)
+                .font(.system(size: 10))
+                .frame(width: 24)
+            Text(name)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(minWidth: 120, alignment: .leading)
+            ForEach(fields) { key in
+                Divider().frame(height: 12).opacity(0.3).padding(.horizontal, 2)
+                let val = meta?.displayValue(for: key, sampleRate: sr, frameRate: fps)
+                Text(val ?? "—")
+                    .foregroundStyle(val != nil ? Color.primary : Color.secondary.opacity(0.4))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(minWidth: 60, idealWidth: 80, alignment: .leading)
+            }
+            Spacer()
+        }
+        .font(.system(size: 11).monospacedDigit())
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(index % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
+        .contentShape(Rectangle())
+        .contextMenu {
+            if let url = resolved?.url {
+                Button("Reveal in Finder") {
+                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                 }
             }
         }
