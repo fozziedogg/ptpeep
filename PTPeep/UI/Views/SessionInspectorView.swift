@@ -1794,18 +1794,8 @@ private struct SessionTimelineView: View {
         let hasTC = !tcText.isEmpty
 
         Text(hasTC ? tcText : "—:——:——:——")
-            .font(.system(size: 14, weight: .medium, design: .monospaced))
-            .foregroundStyle(hasTC ? Color.primary : Color.secondary.opacity(0.2))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.black.opacity(0.2))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 3)
-                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
-            )
+            .font(.system(size: 13, weight: .medium).monospacedDigit())
+            .foregroundStyle(hasTC ? Color.primary : Color.secondary.opacity(0.25))
             .onTapGesture {
                 tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
                 showTCEntry = true
@@ -2024,40 +2014,9 @@ private struct SessionTimelineView: View {
         }()
 
         VStack(spacing: 0) {
-            // ── Row 1: Transport + big TC counter + zoom/filter controls ─────
+            // ── Row 1: TC counter + zoom/filter controls ─────────────────────
             HStack(spacing: 8) {
-                // Play / stop
-                if let clip = selectedClip, !clip.isGroup {
-                    let resolvedURL = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
-                    if let ap = audioPlayer, let url = resolvedURL {
-                        let playing = ap.isPlaying && ap.playingClip == clip
-                        let selColor = selectedClipTrackIdx.map { t in
-                            t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
-                        } ?? Color.secondary
-                        Button {
-                            playing ? ap.stop() : ap.play(clip: clip, url: url, sampleRate: sr)
-                        } label: {
-                            Image(systemName: playing ? "stop.fill" : "play.fill")
-                                .foregroundStyle(playing ? Color.red : selColor)
-                        }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 14))
-                    } else if !clip.sourceFile.isEmpty {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.orange)
-                    } else {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(.clear)
-                    }
-                } else {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.clear)
-                }
-
-                // Big TC counter — prominent, editable
+                // TC counter — plain text, left-aligned
                 tcCounter(sr: sr, total: total)
 
                 Spacer()
@@ -2193,16 +2152,16 @@ private struct SessionTimelineView: View {
             }
             .foregroundStyle(.secondary)
             .padding(.horizontal, 12)
-            .frame(height: 36)
-            .background(Color(nsColor: .windowBackgroundColor).opacity(0.4))
+            .frame(height: 28)
 
-            Divider().opacity(0.5)
+            Divider().opacity(0.3)
 
             // ── Row 2: SELECT clip info ──────────────────────────────────────
             clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
                         label: "SELECT", sr: sr, total: total, isSelected: true,
                         resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
-            .background(Color.accentColor.opacity(0.04))
+
+            Divider().opacity(0.3)
 
             // ── BWF metadata panel ────────────────────────────────────────────
             if bwfPanelVisible {
