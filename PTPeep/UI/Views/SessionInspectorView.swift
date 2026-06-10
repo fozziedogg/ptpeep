@@ -80,7 +80,8 @@ struct SessionInspectorView: View {
     @AppStorage("bwf.selectedFields") private var bwfFieldsRaw: String = BWFFieldKey.defaults.map(\.rawValue).joined(separator: ",")
     @State private var bwfCache: [String: BWFMetadata] = [:]
     @State private var bwfParsing: Bool = false   // true while background parse is running
-    @State private var showBWFSettings: Bool = false
+    @State private var showAudioFileOptions: Bool = false
+    @AppStorage("af.followSelection") private var afFollowSelection: Bool = true
     @State private var highlightedAudioFiles: Set<String> = []  // source files from selected clip(s)
     private var bwfSelectedFields: [BWFFieldKey] {
         bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
@@ -208,18 +209,33 @@ struct SessionInspectorView: View {
                                 tracksContent
                             }
                         case .audioFiles:
-                            if bwfParsing {
-                                VStack(spacing: 8) {
-                                    Spacer().frame(height: 40)
+                            // Options bar
+                            HStack(spacing: 0) {
+                                if bwfParsing {
                                     ProgressView()
-                                        .controlSize(.small)
-                                    Text("Scanning audio files…")
-                                        .font(.system(size: 11))
+                                        .controlSize(.mini)
+                                        .scaleEffect(0.6)
+                                        .padding(.leading, 12)
+                                    Text("Scanning…")
+                                        .font(.system(size: 10))
                                         .foregroundStyle(.secondary)
-                                    Spacer()
+                                        .padding(.leading, 4)
                                 }
-                                .frame(maxWidth: .infinity)
-                            } else if session.audioFileNames.isEmpty {
+                                Spacer()
+                                let optionsActive = afFollowSelection || !bwfSelectedFields.isEmpty
+                                Button { showAudioFileOptions.toggle() } label: {
+                                    Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
+                                        .font(.caption)
+                                        .foregroundStyle(optionsActive ? Color.accentColor : Color.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .popover(isPresented: $showAudioFileOptions, arrowEdge: .bottom) {
+                                    audioFileOptionsPopover
+                                }
+                            }
+                            if session.audioFileNames.isEmpty {
                                 PlaceholderRow(text: "No audio files found")
                             } else {
                                 audioFilesTable
@@ -296,6 +312,9 @@ struct SessionInspectorView: View {
             ))
         }
         .onChange(of: session.resolvedAudioFiles.count) { _ in parseBWFInBackground() }
+        .onChange(of: isResolvingFiles) { resolving in
+            if !resolving { parseBWFInBackground() }
+        }
         .onAppear { parseBWFInBackground() }
         .onChange(of: tc.selStart) { _ in updateHighlightedAudioFiles() }
         .onChange(of: tc.selEnd)   { _ in updateHighlightedAudioFiles() }
@@ -303,6 +322,10 @@ struct SessionInspectorView: View {
 
     /// Derive the set of source file names from the current clip/region selection.
     private func updateHighlightedAudioFiles() {
+        guard afFollowSelection else {
+            if !highlightedAudioFiles.isEmpty { highlightedAudioFiles = [] }
+            return
+        }
         let tracks = session.tracks
         let total = totalSamples
 
@@ -341,7 +364,9 @@ struct SessionInspectorView: View {
     /// Safe to call multiple times — skips if already parsing or no files.
     private func parseBWFInBackground() {
         let files = session.resolvedAudioFiles
-        guard !files.isEmpty, !bwfParsing else { return }
+        let onlineCount = files.filter { $0.url != nil }.count
+        AppLog.shared.log("[BWF] parseBWFInBackground: \(files.count) resolved, \(onlineCount) online, bwfParsing=\(bwfParsing)")
+        guard onlineCount > 0, !bwfParsing else { return }
         bwfParsing = true
         Task.detached(priority: .utility) {
             var cache: [String: BWFMetadata] = [:]
@@ -352,6 +377,7 @@ struct SessionInspectorView: View {
                 }
             }
             await MainActor.run {
+                AppLog.shared.log("[BWF] Parse complete: \(cache.count) files with metadata")
                 bwfCache = cache
                 bwfParsing = false
             }
@@ -761,6 +787,33 @@ struct SessionInspectorView: View {
 
     // MARK: - Audio Files
 
+    private var audioFileOptionsPopover: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle("Follow clip selection", isOn: $afFollowSelection)
+                .toggleStyle(.checkbox)
+            Divider()
+            Text("Metadata Fields")
+                .font(.system(size: 10).weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 2)
+            ForEach(BWFFieldKey.allCases) { key in
+                let isOn = bwfSelectedFields.contains(key)
+                Toggle(key.label, isOn: Binding(
+                    get: { isOn },
+                    set: { on in
+                        var current = bwfSelectedFields
+                        if on { current.append(key) } else { current.removeAll { $0 == key } }
+                        bwfFieldsRaw = current.map(\.rawValue).joined(separator: ",")
+                    }
+                ))
+                .toggleStyle(.checkbox)
+            }
+        }
+        .font(.system(size: 12))
+        .padding(12)
+        .frame(minWidth: 200)
+    }
+
     // MARK: Audio files table constants
     private static let afIconW:  CGFloat = 20
     private static let afFieldW: CGFloat = 90
@@ -832,16 +885,6 @@ struct SessionInspectorView: View {
                             .frame(width: Self.afFieldW, alignment: .leading)
                     }
                     Spacer()
-                    Button { showBWFSettings = true } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showBWFSettings, arrowEdge: .bottom) {
-                        BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
-                    }
-                    .padding(.trailing, 8)
                 }
                 .font(.system(size: 8).weight(.semibold))
                 .foregroundStyle(.tertiary)
@@ -3321,117 +3364,7 @@ private extension PTXTrackType {
     }
 }
 
-// MARK: - BWF Metadata Panel
 
-private struct BWFMetadataPanel: View {
-    let metadata:       BWFMetadata?
-    let selectedFields: [BWFFieldKey]
-    let sampleRate:     Double
-    let frameRate:      Double
-
-    var body: some View {
-        VStack(spacing: 0) {
-            if let meta = metadata {
-                VStack(spacing: 1) {
-                    ForEach(selectedFields) { key in
-                        let value = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate)
-                        HStack(alignment: .top, spacing: 6) {
-                            Text(key.label.uppercased())
-                                .font(.system(size: 8).weight(.semibold))
-                                .foregroundStyle(.tertiary)
-                                .frame(width: 88, alignment: .trailing)
-                                .padding(.top, 1)
-                            Text(value ?? "—")
-                                .font(.system(size: 10).monospacedDigit())
-                                .foregroundStyle(value != nil ? Color.primary : Color.secondary)
-                                .lineLimit(key == .bextCodingHistory ? 4 : 1)
-                                .truncationMode(.tail)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .padding(.vertical, 2)
-                        .padding(.horizontal, 6)
-                        .background(Color(nsColor: .separatorColor).opacity(0.04))
-                    }
-                }
-                .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.03)))
-                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5))
-            } else {
-                HStack {
-                    Spacer()
-                    Text("No BWF metadata")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                    Spacer()
-                }
-                .padding(.vertical, 6)
-                .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.03)))
-                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5))
-            }
-        }
-    }
-}
-
-// MARK: - BWF Settings Popover
-
-private struct BWFSettingsPopover: View {
-    @Binding var selectedRaw: String
-
-    private var selected: [BWFFieldKey] {
-        selectedRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
-    }
-    private func toggle(_ key: BWFFieldKey) {
-        var current = selected
-        if let idx = current.firstIndex(of: key) {
-            current.remove(at: idx)
-        } else {
-            current.append(key)
-        }
-        selectedRaw = current.map(\.rawValue).joined(separator: ",")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("BWF Fields")
-                    .font(.system(size: 11).weight(.semibold))
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
-
-            Divider()
-
-            ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(BWFFieldKey.allCases) { key in
-                        let isOn = selected.contains(key)
-                        Button {
-                            toggle(key)
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(isOn ? Color.accentColor : Color.secondary.opacity(0.7))
-                                    .font(.system(size: 12))
-                                Text(key.label)
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(Color.primary)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 5)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            .frame(maxHeight: 320)
-        }
-        .frame(width: 200)
-        .padding(.bottom, 8)
-    }
-}
 
 // MARK: - Volume Fader
 
