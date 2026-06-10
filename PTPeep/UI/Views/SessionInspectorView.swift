@@ -184,7 +184,7 @@ struct SessionInspectorView: View {
 
                 // Tab content
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
                         switch selectedDetailTab {
                         case .tracks:
                             VStack(spacing: 0) {
@@ -238,7 +238,22 @@ struct SessionInspectorView: View {
                             if session.audioFileNames.isEmpty {
                                 PlaceholderRow(text: "No audio files found")
                             } else {
-                                audioFilesTable
+                                let fields = bwfSelectedFields
+                                let sr = Double(session.sampleRate) ?? 48000
+                                let fps = session.frameRate
+                                let resolvedLookup = Dictionary(
+                                    session.resolvedAudioFiles.map { ($0.name, $0) },
+                                    uniquingKeysWith: { first, _ in first }
+                                )
+                                audioFilesHeaderRow(fields: fields)
+                                ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { i, name in
+                                    audioFileDataRow(
+                                        name: name, index: i,
+                                        resolved: resolvedLookup[name],
+                                        meta: bwfCache[name],
+                                        fields: fields, sr: sr, fps: fps
+                                    )
+                                }
                             }
                         case .plugins:
                             VStack(alignment: .leading, spacing: 0) {
@@ -818,82 +833,75 @@ struct SessionInspectorView: View {
     private static let afIconW:  CGFloat = 20
     private static let afFieldW: CGFloat = 90
 
-    /// The audio files table as a Section with pinned header + lazy rows.
-    @ViewBuilder
-    private var audioFilesTable: some View {
-        let fields = bwfSelectedFields
-        let sr = Double(session.sampleRate) ?? 48000
-        let fps = session.frameRate
-        let resolvedLookup = Dictionary(
-            session.resolvedAudioFiles.map { ($0.name, $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
-        // Compute a fixed name column width from the longest name.
-        // Cap at 300pt so metadata columns stay visible.
-        let nameW: CGFloat = min(300, session.audioFileNames.reduce(CGFloat(80)) { w, name in
+    /// Computed name column width — capped at 300pt.
+    private var afNameW: CGFloat {
+        min(300, session.audioFileNames.reduce(CGFloat(80)) { w, name in
             max(w, CGFloat(name.count) * 6.2 + 8)
         })
+    }
 
-        Section {
-            ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { i, name in
-                let resolved = resolvedLookup[name]
-                let meta = bwfCache[name]
-                HStack(spacing: 0) {
-                    Image(systemName: resolved?.url != nil ? "checkmark.circle" : "circle.dashed")
-                        .foregroundStyle(resolved?.url != nil ? .green : .secondary)
-                        .font(.system(size: 10))
-                        .frame(width: Self.afIconW)
-                    Text(name)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .frame(width: nameW, alignment: .leading)
-                    ForEach(fields) { key in
-                        let val = meta?.displayValue(for: key, sampleRate: sr, frameRate: fps)
-                        Text(val ?? "—")
-                            .foregroundStyle(val != nil ? Color.primary : Color.secondary.opacity(0.4))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(width: Self.afFieldW, alignment: .leading)
-                    }
-                    Spacer()
+    /// Column header row for the audio files table.
+    private func audioFilesHeaderRow(fields: [BWFFieldKey]) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Color.clear.frame(width: Self.afIconW)
+                Text("NAME")
+                    .frame(width: afNameW, alignment: .leading)
+                ForEach(fields) { key in
+                    Text(key.label.uppercased())
+                        .frame(width: Self.afFieldW, alignment: .leading)
                 }
-                .font(.system(size: 11).monospacedDigit())
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(
-                    highlightedAudioFiles.contains(name)
-                        ? Color.accentColor.opacity(0.15)
-                        : (i % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
-                )
-                .contentShape(Rectangle())
-                .contextMenu {
-                    if let url = resolved?.url {
-                        Button("Reveal in Finder") {
-                            NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                        }
-                    }
+                Spacer()
+            }
+            .font(.system(size: 8).weight(.semibold))
+            .foregroundStyle(.tertiary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            Divider().opacity(0.3)
+        }
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    /// A single data row in the audio files table.
+    private func audioFileDataRow(name: String, index: Int,
+                                  resolved: ResolvedAudioFile?,
+                                  meta: BWFMetadata?,
+                                  fields: [BWFFieldKey],
+                                  sr: Double, fps: Double) -> some View {
+        HStack(spacing: 0) {
+            Image(systemName: resolved?.url != nil ? "checkmark.circle" : "circle.dashed")
+                .foregroundStyle(resolved?.url != nil ? .green : .secondary)
+                .font(.system(size: 10))
+                .frame(width: Self.afIconW)
+            Text(name)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(width: afNameW, alignment: .leading)
+            ForEach(fields) { key in
+                let val = meta?.displayValue(for: key, sampleRate: sr, frameRate: fps)
+                Text(val ?? "—")
+                    .foregroundStyle(val != nil ? Color.primary : Color.secondary.opacity(0.4))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: Self.afFieldW, alignment: .leading)
+            }
+            Spacer()
+        }
+        .font(.system(size: 11).monospacedDigit())
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(
+            highlightedAudioFiles.contains(name)
+                ? Color.accentColor.opacity(0.15)
+                : (index % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
+        )
+        .contentShape(Rectangle())
+        .contextMenu {
+            if let url = resolved?.url {
+                Button("Reveal in Finder") {
+                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                 }
             }
-        } header: {
-            VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    Color.clear.frame(width: Self.afIconW)
-                    Text("NAME")
-                        .frame(width: nameW, alignment: .leading)
-                    ForEach(fields) { key in
-                        Text(key.label.uppercased())
-                            .frame(width: Self.afFieldW, alignment: .leading)
-                    }
-                    Spacer()
-                }
-                .font(.system(size: 8).weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-
-                Divider().opacity(0.3)
-            }
-            .background(Color(nsColor: .windowBackgroundColor))
         }
     }
 
