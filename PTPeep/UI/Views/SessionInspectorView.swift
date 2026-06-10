@@ -1962,7 +1962,7 @@ private struct SessionTimelineView: View {
                             .foregroundStyle(.quaternary)
                     }
                 }
-                .font(.system(size: 20, weight: .medium, design: .monospaced))
+                .font(.system(size: 20, weight: .light).monospacedDigit())
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(RoundedRectangle(cornerRadius: 4)
@@ -2027,7 +2027,51 @@ private struct SessionTimelineView: View {
                         .frame(width: 72)
                 }
 
-                // Filter popover
+                // Spot to PT
+                spotButton(region: spotRegion, clip: selectedClip,
+                           resolvedFiles: resolvedFiles)
+
+                Divider().frame(height: 14)
+
+                // BWF toggle + settings
+                Button {
+                    bwfPanelVisible.toggle()
+                    if bwfPanelVisible, let clip = selectedClip,
+                       let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                        Task.detached(priority: .userInitiated) {
+                            let m = BWFParser.parse(url: url)
+                            await MainActor.run { bwfMetadata = m }
+                        }
+                    } else if !bwfPanelVisible {
+                        bwfMetadata = nil
+                    }
+                } label: {
+                    Text("BWF")
+                        .font(.system(size: 9).weight(.semibold))
+                        .foregroundStyle(bwfPanelVisible ? Color.accentColor : Color.secondary)
+                        .padding(.horizontal, 5).padding(.vertical, 2)
+                        .background(RoundedRectangle(cornerRadius: 3)
+                            .fill(bwfPanelVisible
+                                  ? Color.accentColor.opacity(0.15)
+                                  : Color(nsColor: .separatorColor).opacity(0.5)))
+                }
+                .buttonStyle(.plain)
+
+                if bwfPanelVisible {
+                    Button { showBWFSettings = true } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showBWFSettings, arrowEdge: .bottom) {
+                        BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
+                    }
+                }
+
+                Divider().frame(height: 14)
+
+                // Filter/options popover (right-most)
                 let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || hideGroups || showMarkers || !showEmpty
                 Button { showFiltersPopover.toggle() } label: {
                     Image(systemName: filtersActive ? "ellipsis.circle.fill" : "ellipsis.circle")
@@ -2069,48 +2113,6 @@ private struct SessionTimelineView: View {
                     .font(.system(size: 12))
                     .padding(12)
                     .frame(minWidth: 180)
-                }
-
-                // Spot to PT
-                spotButton(region: spotRegion, clip: selectedClip,
-                           resolvedFiles: resolvedFiles)
-
-                Divider().frame(height: 14)
-
-                // BWF toggle + settings
-                Button {
-                    bwfPanelVisible.toggle()
-                    if bwfPanelVisible, let clip = selectedClip,
-                       let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
-                        Task.detached(priority: .userInitiated) {
-                            let m = BWFParser.parse(url: url)
-                            await MainActor.run { bwfMetadata = m }
-                        }
-                    } else if !bwfPanelVisible {
-                        bwfMetadata = nil
-                    }
-                } label: {
-                    Text("BWF")
-                        .font(.system(size: 9).weight(.semibold))
-                        .foregroundStyle(bwfPanelVisible ? Color.accentColor : Color.secondary)
-                        .padding(.horizontal, 5).padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 3)
-                            .fill(bwfPanelVisible
-                                  ? Color.accentColor.opacity(0.15)
-                                  : Color(nsColor: .separatorColor).opacity(0.5)))
-                }
-                .buttonStyle(.plain)
-
-                if bwfPanelVisible {
-                    Button { showBWFSettings = true } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showBWFSettings, arrowEdge: .bottom) {
-                        BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
-                    }
                 }
             }
             .foregroundStyle(.secondary)
