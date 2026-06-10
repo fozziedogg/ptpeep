@@ -142,27 +142,26 @@ struct SessionInspectorView: View {
                                     .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
                                 Text("\(count)")
                                     .font(.system(size: 9))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(isSelected ? Color.primary.opacity(0.5) : Color.secondary.opacity(0.6))
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
                             .frame(maxWidth: .infinity)
-                            .background(isSelected
-                                ? Color(nsColor: .controlBackgroundColor)
-                                : Color.clear)
-                            .overlay(alignment: .bottom) {
-                                if isSelected {
-                                    Rectangle()
-                                        .fill(Color.accentColor)
-                                        .frame(height: 2)
-                                }
-                            }
+                            .background(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(isSelected
+                                        ? Color.primary.opacity(0.1)
+                                        : Color.clear)
+                            )
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(isSelected ? .primary : .secondary)
                     }
                 }
-                .background(Color(nsColor: .windowBackgroundColor).opacity(0.6))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(Color(nsColor: .windowBackgroundColor).opacity(0.4))
 
                 Divider()
 
