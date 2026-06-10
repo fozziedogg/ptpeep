@@ -86,12 +86,12 @@ struct SessionInspectorView: View {
         }
     }
     private enum DetailTab: String, CaseIterable {
-        case audioFiles   = "Audio Files"
         case tracks       = "Tracks"
-        case memLocations = "Markers"
         case plugins      = "Plug-Ins"
+        case memLocations = "Markers"
+        case audioFiles   = "Audio Files"
     }
-    @State private var selectedDetailTab: DetailTab = .audioFiles
+    @State private var selectedDetailTab: DetailTab = .tracks
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
     @StateObject private var audioPlayer = AudioPlayer()

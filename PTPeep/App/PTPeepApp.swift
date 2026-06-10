@@ -204,6 +204,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    // Cmd+Tab or clicking the app icon — bring the window back if it was hidden.
+    func applicationDidBecomeActive(_ notification: Notification) {
+        bringWindowForward(NSApp)
+    }
+
     private func bringWindowForward(_ app: NSApplication) {
         if let win = app.windows.first(where: { $0.isVisible }) ?? app.windows.first {
             win.makeKeyAndOrderFront(nil)
