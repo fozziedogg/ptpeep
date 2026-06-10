@@ -1130,7 +1130,7 @@ private struct TrackRow: View {
 
             // Send pills
             if showSends && !track.sendPaths.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.turn.up.right")
                             .font(.system(size: 8))
@@ -1152,7 +1152,7 @@ private struct TrackRow: View {
 
             // Plugin pills
             if showPlugins && !track.plugins.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: 4) {
                         ForEach(track.plugins, id: \.self) { plugin in
                             let ok = pluginInstalled(plugin)
@@ -1275,7 +1275,7 @@ private struct OverviewResizeHandle: View {
         ZStack {
             Color(nsColor: .separatorColor).opacity(0.25)
             RoundedRectangle(cornerRadius: 1.5)
-                .fill(Color(nsColor: .tertiaryLabelColor))
+                .fill(Color.secondary.opacity(0.6))
                 .frame(width: 32, height: 3)
         }
         .frame(height: 8)
@@ -1780,6 +1780,48 @@ private struct SessionTimelineView: View {
     }
 
     /// Total pixel height of all track lanes at current scale (no ruler).
+    @ViewBuilder
+    private func tcCounter(sr: Double, total: Double) -> some View {
+        let tcText: String = {
+            if let ap = audioPlayer, ap.isPlaying, let clip = ap.playingClip {
+                let samp = Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)
+                return formatTC(samp / sr, fps: frameRate)
+            } else if let frac = tc.selStart {
+                return formatTC(frac * total / sr, fps: frameRate)
+            }
+            return ""
+        }()
+        let hasTC = !tcText.isEmpty
+
+        Text(hasTC ? tcText : "—:——:——:——")
+            .font(.system(size: 18, weight: .medium, design: .monospaced))
+            .foregroundStyle(hasTC ? Color.green.opacity(0.9) : Color.secondary.opacity(0.2))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.black.opacity(0.35))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(Color.black.opacity(0.4), lineWidth: 1)
+            )
+            .onTapGesture {
+                tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                showTCEntry = true
+            }
+            .popover(isPresented: $showTCEntry, arrowEdge: .top) {
+                TCEntryPopover(text: $tcEntryText) { text in
+                    if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
+                                                          totalSamples: total, sampleRate: sr) {
+                        tc.jumpTo(frac)
+                    }
+                    showTCEntry = false
+                }
+            }
+            .help("Click to jump to timecode")
+    }
+
     private var totalLaneHeight: CGFloat {
         var h: CGFloat = 0
         for (i, t) in tracks.enumerated() {
@@ -2016,49 +2058,7 @@ private struct SessionTimelineView: View {
                 }
 
                 // Big TC counter — prominent, editable
-                Group {
-                    if let ap = audioPlayer, ap.isPlaying, let clip = ap.playingClip {
-                        let samp = Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)
-                        Text(formatTC(samp / sr, fps: frameRate))
-                            .foregroundStyle(Color(nsColor: .labelColor))
-                    } else if let frac = tc.selStart {
-                        Text(formatTC(frac * total / sr, fps: frameRate))
-                            .foregroundStyle(Color(nsColor: .labelColor))
-                    } else {
-                        Text("—:——:——:——")
-                            .foregroundStyle(.quaternary)
-                    }
-                }
-                .font(.system(size: 20, weight: .light).monospacedDigit())
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(Color.black.opacity(0.25))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .strokeBorder(Color.black.opacity(0.3), lineWidth: 1)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .strokeBorder(Color.white.opacity(0.05), lineWidth: 0.5)
-                        .padding(1)
-                )
-                .onTapGesture {
-                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
-                    showTCEntry = true
-                }
-                .popover(isPresented: $showTCEntry, arrowEdge: .top) {
-                    TCEntryPopover(text: $tcEntryText) { text in
-                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
-                                                              totalSamples: total, sampleRate: sr) {
-                            tc.jumpTo(frac)
-                        }
-                        showTCEntry = false
-                    }
-                }
-                .help("Click to jump to timecode")
+                tcCounter(sr: sr, total: total)
 
                 Spacer()
 
@@ -2217,7 +2217,7 @@ private struct SessionTimelineView: View {
             }
 
             // ── Scrollable lane area ──────────────────────────────────────────
-            ScrollView(.vertical, showsIndicators: false) {
+            ScrollView(.vertical) {
              HStack(alignment: .top, spacing: 0) {
               // ── Pinned track names ──────────────────────────────────────
               if showTrackNames {
@@ -2423,6 +2423,7 @@ private struct SessionTimelineView: View {
               )
              } // HStack (track names + timeline)
             } // ScrollView
+            .scrollIndicators(.hidden)
 
             // ── Ruler — pinned below tracks, always visible at any zoom ──────
             Canvas { ctx, size in
@@ -2693,7 +2694,7 @@ private struct SessionTimelineView: View {
 
                 // Clip name
                 Text(clip.name)
-                    .foregroundStyle(isSelected ? color : Color(nsColor: .secondaryLabelColor))
+                    .foregroundStyle(isSelected ? color : Color.secondary)
                     .fontWeight(isSelected ? .semibold : .regular)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -2729,20 +2730,20 @@ private struct SessionTimelineView: View {
                 // In / Out / Length
                 HStack(spacing: 0) {
                     Group {
-                        Text("in ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                        + Text(inTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
+                        Text("in ").foregroundColor(Color.secondary.opacity(0.6))
+                        + Text(inTC).foregroundColor(isSelected ? Color.primary : Color.secondary)
                     }
                     .frame(width: 106, alignment: .trailing)
                     if isSelected { clipCopyButton(tcForPT(inTC)) }
                     Group {
-                        Text("  out ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                        + Text(outTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
+                        Text("  out ").foregroundColor(Color.secondary.opacity(0.6))
+                        + Text(outTC).foregroundColor(isSelected ? Color.primary : Color.secondary)
                     }
                     .frame(width: isSelected ? 108 : 118, alignment: .trailing)
                     if isSelected { clipCopyButton(tcForPT(outTC)) }
                     Group {
-                        Text("  len ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                        + Text(durTC).foregroundColor(isSelected ? Color(nsColor: .labelColor) : Color(nsColor: .secondaryLabelColor))
+                        Text("  len ").foregroundColor(Color.secondary.opacity(0.6))
+                        + Text(durTC).foregroundColor(isSelected ? Color.primary : Color.secondary)
                     }
                     .frame(width: 106, alignment: .trailing)
                     if isSelected { clipCopyButton(tcForPT(durTC)) }
@@ -2772,9 +2773,9 @@ private struct SessionTimelineView: View {
                 // Cursor TC in the IN column position, styled to match
                 HStack(spacing: 0) {
                     Group {
-                        Text("pos ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                        Text("pos ").foregroundColor(Color.secondary.opacity(0.6))
                         + Text(formatTC(absFrac * total / sr, fps: frameRate))
-                            .foregroundColor(Color(nsColor: .secondaryLabelColor))
+                            .foregroundColor(Color.secondary)
                     }
                     .frame(width: 106, alignment: .trailing)
                 }
@@ -3257,7 +3258,7 @@ private struct BWFMetadataPanel: View {
                                 .padding(.top, 1)
                             Text(value ?? "—")
                                 .font(.system(size: 10).monospacedDigit())
-                                .foregroundStyle(value != nil ? Color(nsColor: .labelColor) : Color.secondary)
+                                .foregroundStyle(value != nil ? Color.primary : Color.secondary)
                                 .lineLimit(key == .bextCodingHistory ? 4 : 1)
                                 .truncationMode(.tail)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -3329,7 +3330,7 @@ private struct BWFSettingsPopover: View {
                                     .font(.system(size: 12))
                                 Text(key.label)
                                     .font(.system(size: 11))
-                                    .foregroundStyle(Color(nsColor: .labelColor))
+                                    .foregroundStyle(Color.primary)
                                 Spacer()
                             }
                             .padding(.horizontal, 12)
@@ -3385,13 +3386,13 @@ private struct VolumeFaderView: View {
                 Capsule()
                     .fill(dB > 0.1
                           ? Color.orange.opacity(0.7)
-                          : Color(nsColor: .secondaryLabelColor).opacity(0.5))
+                          : Color.secondary.opacity(0.5))
                     .frame(width: max(0, knobX), height: 2)
                     .padding(.leading, knobW / 2)
 
                 // Unity notch
                 Rectangle()
-                    .fill(Color(nsColor: .tertiaryLabelColor))
+                    .fill(Color.secondary.opacity(0.6))
                     .frame(width: 1, height: 5)
                     .offset(x: unityX + knobW / 2 - 0.5,
                             y: -1.5)
@@ -3624,7 +3625,7 @@ private struct ChannelLabelButton: View {
         Button(action: action) {
             Text(label)
                 .font(.system(size: 7, weight: isSoloed ? .bold : .medium))
-                .foregroundColor(isSoloed ? .accentColor : .secondary.opacity(0.6))
+                .foregroundStyle(isSoloed ? Color.accentColor : Color.secondary.opacity(0.6))
                 .frame(width: 20)
                 .frame(maxHeight: .infinity)
                 .contentShape(Rectangle())
