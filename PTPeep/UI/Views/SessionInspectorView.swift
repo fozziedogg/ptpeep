@@ -85,6 +85,13 @@ struct SessionInspectorView: View {
             switch index { case 1: self = .name; case 2: self = .format; case 3: self = .input; case 4: self = .output; case 5: self = .atmos; default: self = .none }
         }
     }
+    private enum DetailTab: String, CaseIterable {
+        case tracks       = "Tracks"
+        case audioFiles   = "Audio Files"
+        case plugins      = "Plug-Ins"
+        case memLocations = "Markers"
+    }
+    @State private var selectedDetailTab: DetailTab = .tracks
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
     @StateObject private var audioPlayer = AudioPlayer()
@@ -113,61 +120,96 @@ struct SessionInspectorView: View {
             Divider()
             overviewSection
             Divider()
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    // ── Tracks ───────────────────────────────────────────────────
-                    Section {
-                        VStack(alignment: .leading, spacing: 0) {
-                            if trackSectionExpanded { tracksContent }
-                            Divider().padding(.horizontal, 16)
-                        }
-                    } header: {
-                        VStack(spacing: 0) {
-                            tracksHeader
-                            if trackSectionExpanded { trackColumnHeader }
-                        }
-                        .background(Color(nsColor: .windowBackgroundColor))
-                    }
-                    // ── Audio Files ───────────────────────────────────────────────
-                    Section {
-                        VStack(alignment: .leading, spacing: 0) {
-                            if audioSectionExpanded {
-                                LazyVStack(alignment: .leading, spacing: 0) {
-                                    audioFilesContent
+            // ── Detail pane with tab bar ─────────────────────────────────────
+            VStack(spacing: 0) {
+                // Tab bar
+                HStack(spacing: 0) {
+                    ForEach(DetailTab.allCases, id: \.self) { tab in
+                        let isSelected = selectedDetailTab == tab
+                        let count: Int = {
+                            switch tab {
+                            case .tracks:       return session.tracks.count
+                            case .audioFiles:   return session.audioFileNames.count
+                            case .plugins:      return session.plugins.count
+                            case .memLocations: return session.memoryLocations.count
+                            }
+                        }()
+                        Button {
+                            selectedDetailTab = tab
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(tab.rawValue)
+                                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
+                                Text("\(count)")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .frame(maxWidth: .infinity)
+                            .background(isSelected
+                                ? Color(nsColor: .controlBackgroundColor)
+                                : Color.clear)
+                            .overlay(alignment: .bottom) {
+                                if isSelected {
+                                    Rectangle()
+                                        .fill(Color.accentColor)
+                                        .frame(height: 2)
                                 }
                             }
-                            Divider().padding(.horizontal, 16)
                         }
-                    } header: {
-                        SectionHeader(title: "Audio Files", systemImage: "waveform",
-                                      count: session.audioFileNames.count,
-                                      isLoading: isResolvingFiles,
-                                      isExpanded: $audioSectionExpanded)
-                            .background(Color(nsColor: .windowBackgroundColor))
-                    }
-                    // ── Plug-Ins ──────────────────────────────────────────────────
-                    Section {
-                        VStack(alignment: .leading, spacing: 0) {
-                            if pluginSectionExpanded { pluginsContent }
-                            Divider().padding(.horizontal, 16)
-                        }
-                    } header: {
-                        pluginsHeader
-                            .background(Color(nsColor: .windowBackgroundColor))
-                    }
-                    // ── Memory Locations ─────────────────────────────────────────
-                    Section {
-                        VStack(alignment: .leading, spacing: 0) {
-                            if memLocSectionExpanded { memoryLocationsContent }
-                            Divider().padding(.horizontal, 16)
-                        }
-                    } header: {
-                        SectionHeader(title: "Memory Locations", systemImage: "mappin.and.ellipse",
-                                      count: session.memoryLocations.count, isExpanded: $memLocSectionExpanded)
-                            .background(Color(nsColor: .windowBackgroundColor))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(isSelected ? .primary : .secondary)
                     }
                 }
-                .padding(.vertical, 8)
+                .background(Color(nsColor: .windowBackgroundColor).opacity(0.6))
+
+                Divider()
+
+                // Tab content
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        switch selectedDetailTab {
+                        case .tracks:
+                            VStack(spacing: 0) {
+                                // Options bar for tracks
+                                HStack(spacing: 0) {
+                                    Spacer()
+                                    let optionsActive = !hiddenTrackTypes.isEmpty || showTrackSends || showTrackPlugins
+                                                     || tlShowHiddenTracks || !tlShowInactiveTracks
+                                    Button { showTrackOptions.toggle() } label: {
+                                        Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
+                                            .font(.caption)
+                                            .foregroundStyle(optionsActive ? Color.accentColor : Color.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .popover(isPresented: $showTrackOptions, arrowEdge: .bottom) {
+                                        trackOptionsPopover
+                                    }
+                                }
+                                trackColumnHeader
+                                tracksContent
+                            }
+                        case .audioFiles:
+                            audioFilesContent
+                                .padding(.top, 4)
+                        case .plugins:
+                            VStack(alignment: .leading, spacing: 0) {
+                                // Options bar for plugins
+                                HStack(spacing: 0) {
+                                    Spacer()
+                                    pluginOptionsBar
+                                }
+                                pluginsContent
+                            }
+                        case .memLocations:
+                            memoryLocationsContent
+                                .padding(.top, 4)
+                        }
+                    }
+                }
             }
         }
         .background(
@@ -698,6 +740,31 @@ struct SessionInspectorView: View {
             .padding(.vertical, 8)
         }
         .background(Color(nsColor: .separatorColor).opacity(0.1))
+    }
+
+    private var pluginOptionsBar: some View {
+        Button { showPluginOptions.toggle() } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .popover(isPresented: $showPluginOptions, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 6) {
+                Button {
+                    pluginScanner.scan()
+                    showPluginOptions = false
+                } label: {
+                    Label("Rescan Plug-ins Folder", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.plain)
+                .disabled(pluginScanner.isScanning)
+            }
+            .font(.system(size: 12))
+            .padding(12)
+        }
     }
 
     @ViewBuilder
@@ -1963,12 +2030,21 @@ private struct SessionTimelineView: View {
                     }
                 }
                 .font(.system(size: 20, weight: .light).monospacedDigit())
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(nsColor: .textBackgroundColor).opacity(0.6)))
-                .overlay(RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.5))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(Color.black.opacity(0.25))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5)
+                        .strokeBorder(Color.black.opacity(0.3), lineWidth: 1)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5)
+                        .strokeBorder(Color.white.opacity(0.05), lineWidth: 0.5)
+                        .padding(1)
+                )
                 .onTapGesture {
                     tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
                     showTCEntry = true
@@ -2118,11 +2194,15 @@ private struct SessionTimelineView: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, 12)
             .frame(height: 36)
+            .background(Color(nsColor: .windowBackgroundColor).opacity(0.4))
+
+            Divider().opacity(0.5)
 
             // ── Row 2: SELECT clip info ──────────────────────────────────────
             clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
                         label: "SELECT", sr: sr, total: total, isSelected: true,
                         resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
+            .background(Color.accentColor.opacity(0.04))
 
             // ── BWF metadata panel ────────────────────────────────────────────
             if bwfPanelVisible {
