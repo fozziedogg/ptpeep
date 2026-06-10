@@ -1617,6 +1617,9 @@ private struct SessionTimelineView: View {
     @Binding var showEmpty:     Bool
     @Binding var overviewHeight: CGFloat
 
+    // Track name column
+    @State private var showTrackNames: Bool = true
+
     // Hover state (view-owned for rendering; tc.hoverAbsFrac mirrors it for key handler)
     @State private var hoverAbsFrac:      Double?  = nil
     @State private var hoverLane:         Int?     = nil
@@ -1912,22 +1915,78 @@ private struct SessionTimelineView: View {
         }()
 
         VStack(spacing: 0) {
-            // ── HOVER row + zoom/filter controls (single row) ───────────────
-            HStack(spacing: 0) {
-                // Hover clip info (left side — no in/out/length)
-                hoverInfoRow(clip: hoverClip, trackIdx: hoverClipTrackIdx,
-                             sr: sr, total: total,
-                             resolvedURL: resolvedFiles.first(where: { $0.name == hoverClip?.sourceFile })?.url,
-                             cursorAbsFrac: hoverClip == nil ? hoverAbsFrac : nil,
-                             cursorLane:    hoverClip == nil ? hoverLane    : nil)
-                    .onTapGesture {
-                        tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
-                        showTCEntry = true
+            // ── Row 1: Transport + big TC counter + zoom/filter controls ─────
+            HStack(spacing: 8) {
+                // Play / stop
+                if let clip = selectedClip, !clip.isGroup {
+                    let resolvedURL = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
+                    if let ap = audioPlayer, let url = resolvedURL {
+                        let playing = ap.isPlaying && ap.playingClip == clip
+                        let selColor = selectedClipTrackIdx.map { t in
+                            t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
+                        } ?? Color.secondary
+                        Button {
+                            playing ? ap.stop() : ap.play(clip: clip, url: url, sampleRate: sr)
+                        } label: {
+                            Image(systemName: playing ? "stop.fill" : "play.fill")
+                                .foregroundStyle(playing ? Color.red : selColor)
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 14))
+                    } else if !clip.sourceFile.isEmpty {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.orange)
+                    } else {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.clear)
                     }
+                } else {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.clear)
+                }
 
-                Spacer(minLength: 8)
+                // Big TC counter — prominent, editable
+                Group {
+                    if let ap = audioPlayer, ap.isPlaying, let clip = ap.playingClip {
+                        let samp = Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)
+                        Text(formatTC(samp / sr, fps: frameRate))
+                            .foregroundStyle(Color(nsColor: .labelColor))
+                    } else if let frac = tc.selStart {
+                        Text(formatTC(frac * total / sr, fps: frameRate))
+                            .foregroundStyle(Color(nsColor: .labelColor))
+                    } else {
+                        Text("—:——:——:——")
+                            .foregroundStyle(.quaternary)
+                    }
+                }
+                .font(.system(size: 20, weight: .medium, design: .monospaced))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(nsColor: .textBackgroundColor).opacity(0.6)))
+                .overlay(RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.5))
+                .onTapGesture {
+                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
+                    showTCEntry = true
+                }
+                .popover(isPresented: $showTCEntry, arrowEdge: .top) {
+                    TCEntryPopover(text: $tcEntryText) { text in
+                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
+                                                              totalSamples: total, sampleRate: sr) {
+                            tc.jumpTo(frac)
+                        }
+                        showTCEntry = false
+                    }
+                }
+                .help("Click to jump to timecode")
 
-                // Zoom controls (right side)
+                Spacer()
+
+                // Zoom controls
                 HStack(spacing: 4) {
                     Text("H:").foregroundStyle(.secondary)
                     Button { tc.zoomOut() } label: { Image(systemName: "minus") }
@@ -1938,8 +1997,9 @@ private struct SessionTimelineView: View {
                     Button { tc.zoomIn() } label: { Image(systemName: "plus") }
                         .buttonStyle(.borderless).controlSize(.mini)
                 }
+                .font(.system(size: 11).monospacedDigit())
 
-                Divider().frame(height: 14).padding(.horizontal, 6)
+                Divider().frame(height: 14).padding(.horizontal, 2)
 
                 HStack(spacing: 4) {
                     Text("V:").foregroundStyle(.secondary)
@@ -1950,9 +2010,24 @@ private struct SessionTimelineView: View {
                         .buttonStyle(.borderless).controlSize(.mini)
                         .disabled(tc.globalTrackHeightLevel == 4)
                 }
+                .font(.system(size: 11).monospacedDigit())
 
-                Divider().frame(height: 14).padding(.horizontal, 6)
+                if !tc.trackHeightLevels.isEmpty || tc.globalTrackHeightLevel != 2 {
+                    Divider().frame(height: 14).padding(.horizontal, 2)
+                    Button { tc.resetTrackHeights() } label: { Text("Reset") }
+                        .buttonStyle(.borderless)
+                        .font(.system(size: 11))
+                }
 
+                Divider().frame(height: 14).padding(.horizontal, 2)
+
+                // Volume fader
+                if let ap = audioPlayer {
+                    VolumeFaderView(volume: Binding(get: { ap.volume }, set: { ap.volume = $0 }))
+                        .frame(width: 72)
+                }
+
+                // Filter popover
                 let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || hideGroups || showMarkers || !showEmpty
                 Button { showFiltersPopover.toggle() } label: {
                     Image(systemName: filtersActive ? "ellipsis.circle.fill" : "ellipsis.circle")
@@ -1987,128 +2062,20 @@ private struct SessionTimelineView: View {
                                    isOn: Binding(get: { !hideGroups }, set: { hideGroups = !$0 }))
                             .toggleStyle(.checkbox)
                         }
+                        Divider()
+                        Toggle("Show Track Names", isOn: $showTrackNames)
+                            .toggleStyle(.checkbox)
                     }
                     .font(.system(size: 12))
                     .padding(12)
                     .frame(minWidth: 180)
                 }
 
-                if !tc.trackHeightLevels.isEmpty || tc.globalTrackHeightLevel != 2 {
-                    Divider().frame(height: 14).padding(.horizontal, 6)
-                    Button { tc.resetTrackHeights() } label: { Text("Reset") }
-                        .buttonStyle(.borderless)
-                }
-            }
-            .font(.system(size: 11).monospacedDigit())
-            .foregroundStyle(.secondary)
-            .padding(.leading, 0)
-            .padding(.trailing, 8)
-            .frame(height: 24)
-
-            // ── SELECT clip row ───────────────────────────────────────────────
-            clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
-                        label: "SELECT", sr: sr, total: total, isSelected: true,
-                        resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
-
-            // ── Transport strip ───────────────────────────────────────────────
-            HStack(spacing: 8) {
-                // Play / stop or offline indicator
-                if let clip = selectedClip, !clip.isGroup {
-                    let resolvedURL = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
-                    if let ap = audioPlayer, let url = resolvedURL {
-                        let playing = ap.isPlaying && ap.playingClip == clip
-                        let selColor = selectedClipTrackIdx.map { t in
-                            t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
-                        } ?? Color.secondary
-                        Button {
-                            playing ? ap.stop() : ap.play(clip: clip, url: url, sampleRate: sr)
-                        } label: {
-                            Image(systemName: playing ? "stop.fill" : "play.fill")
-                                .foregroundStyle(playing ? Color.red : selColor)
-                        }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 12))
-                    } else if !clip.sourceFile.isEmpty {
-                        // File could not be resolved on disk
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.orange)
-                        Text("Offline")
-                            .font(.system(size: 10).weight(.medium))
-                            .foregroundStyle(.orange)
-                    } else {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.clear)
-                    }
-                } else {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.clear)
-                }
-
-                // Source file name when a clip is selected
-                if let clip = selectedClip, !clip.sourceFile.isEmpty {
-                    Divider().frame(height: 12)
-                    Text(clip.sourceFile)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-
-                Spacer()
-
-                // TC counter — always visible; priority: playback > cursor > hover > dash
-                Group {
-                    if let ap = audioPlayer, ap.isPlaying, let clip = ap.playingClip {
-                        let samp = Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)
-                        Text(formatTC(samp / sr, fps: frameRate))
-                            .foregroundStyle(Color(nsColor: .labelColor))
-                    } else if let frac = tc.selStart {
-                        Text(formatTC(frac * total / sr, fps: frameRate))
-                            .foregroundStyle(Color(nsColor: .secondaryLabelColor))
-                    } else if let frac = hoverAbsFrac {
-                        Text(formatTC(frac * total / sr, fps: frameRate))
-                            .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
-                    } else {
-                        Text("—")
-                            .foregroundStyle(.quaternary)
-                    }
-                }
-                .font(.system(size: 11).monospacedDigit())
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(nsColor: .separatorColor).opacity(0.4)))
-                .onTapGesture {
-                    tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
-                    showTCEntry = true
-                }
-                .popover(isPresented: $showTCEntry, arrowEdge: .top) {
-                    TCEntryPopover(text: $tcEntryText) { text in
-                        if let frac = TimelineNav.parseTCFrac(text, fps: frameRate,
-                                                              totalSamples: total, sampleRate: sr) {
-                            tc.jumpTo(frac)
-                        }
-                        showTCEntry = false
-                    }
-                }
-                .help("Click to jump to timecode")
-
-                Divider().frame(height: 12).padding(.horizontal, 4)
-
-                // Volume fader
-                if let ap = audioPlayer {
-                    VolumeFaderView(volume: Binding(get: { ap.volume }, set: { ap.volume = $0 }))
-                        .frame(width: 72)
-                }
-
-                // Spot to PT (uses spotRegion; includes muted clips unless hidden)
+                // Spot to PT
                 spotButton(region: spotRegion, clip: selectedClip,
                            resolvedFiles: resolvedFiles)
 
-                Divider().frame(height: 12)
+                Divider().frame(height: 14)
 
                 // BWF toggle + settings
                 Button {
@@ -2146,55 +2113,14 @@ private struct SessionTimelineView: View {
                     }
                 }
             }
+            .foregroundStyle(.secondary)
             .padding(.horizontal, 12)
-            .frame(height: 22)
+            .frame(height: 36)
 
-            // ── Clip waveform — always present to keep lane canvas height stable ─
-            let waveColor: Color = {
-                if selectedClip?.isMuted == true { return Color(white: 0.45) }
-                return selectedClipTrackIdx.map { t in
-                    t < tracks.count ? trackColor(tracks[t], index: t) : Color.accentColor
-                } ?? Color.accentColor
-            }()
-            ZStack {
-                // Faint placeholder track so the area is visually defined even when empty
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.primary.opacity(0.04))
-                if let region = selectedRegion, let ap = audioPlayer {
-                    // Composite waveform for the selected region
-                    let segColors: [Color] = region.segments.map { seg in
-                        seg.trackIdx < tracks.count
-                            ? trackColor(tracks[seg.trackIdx], index: seg.trackIdx)
-                            : waveColor
-                    }
-                    RegionWaveformView(region: region, segColors: segColors, audioPlayer: ap)
-                } else if tc.selEnd != nil {
-                    // Selection exists but exceeds the cap — don't try to play or preview it
-                    Label("Selection too large to play (> 25 clips or > 2 min)",
-                          systemImage: "exclamationmark.triangle")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                } else if let clip = selectedClip, !clip.isGroup,
-                          !waveChannelURLs.isEmpty, let ap = audioPlayer {
-                    ClipWaveformView(clip: clip, channelURLs: waveChannelURLs,
-                                     sampleRate: sr, color: waveColor, audioPlayer: ap)
-                } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
-                          waveChannelURLs.isEmpty {
-                    // Clip is selected but source file is not on disk
-                    Label("Audio file offline", systemImage: "exclamationmark.triangle")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.orange.opacity(0.7))
-                } else {
-                    // Hairline centre rule — gives the empty zone a hint of purpose
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.12))
-                        .frame(height: 1)
-                }
-            }
-            .frame(height: 56)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 4)
+            // ── Row 2: SELECT clip info ──────────────────────────────────────
+            clipInfoRow(clip: selectedClip, trackIdx: selectedClipTrackIdx,
+                        label: "SELECT", sr: sr, total: total, isSelected: true,
+                        resolvedURL: resolvedFiles.first(where: { $0.name == selectedClip?.sourceFile })?.url)
 
             // ── BWF metadata panel ────────────────────────────────────────────
             if bwfPanelVisible {
@@ -2210,6 +2136,39 @@ private struct SessionTimelineView: View {
 
             // ── Scrollable lane area ──────────────────────────────────────────
             ScrollView(.vertical, showsIndicators: false) {
+             HStack(alignment: .top, spacing: 0) {
+              // ── Pinned track names ──────────────────────────────────────
+              if showTrackNames {
+                VStack(spacing: 0) {
+                  ForEach(Array(tracks.enumerated()), id: \.offset) { i, track in
+                    HStack(spacing: 4) {
+                      RoundedRectangle(cornerRadius: 1.5)
+                        .fill(trackColor(track, index: i).opacity(0.6))
+                        .frame(width: 3)
+                      Text(track.name)
+                        .font(.system(size: 10))
+                        .foregroundStyle(trackColor(track, index: i).opacity(0.85))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                      Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 4)
+                    .frame(height: scaledLaneH(track, index: i))
+                    .background(i % 2 == 0
+                      ? Color.clear
+                      : Color(nsColor: .separatorColor).opacity(0.08))
+                    if i < tracks.count - 1 {
+                      Spacer().frame(height: Self.laneGap)
+                    }
+                  }
+                }
+                .frame(width: 80, height: totalLaneHeight)
+                .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+
+                Divider()
+              }
+
+              // ── Timeline canvas ─────────────────────────────────────────
               ZStack(alignment: .topLeading) {
                 // Clip canvas — Equatable so hover moves don't trigger a repaint.
                 // Only redraws when tc publishes (pan/zoom/cursor) or selection changes.
@@ -2380,6 +2339,7 @@ private struct SessionTimelineView: View {
                         )
                 }
               )
+             } // HStack (track names + timeline)
             } // ScrollView
 
             // ── Ruler — pinned below tracks, always visible at any zoom ──────
@@ -2484,6 +2444,9 @@ private struct SessionTimelineView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
             audioPlayer?.stop()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
+            audioPlayer?.stop()
+        }
         .onChange(of: tracks)           { tc.tracks       = $0 }
         .onChange(of: allTracksSamples) { tc.totalSamples = $0 }
         .onChange(of: hideMuted)        { tc.hideMuted    = $0 }
@@ -2565,77 +2528,6 @@ private struct SessionTimelineView: View {
                 waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
             }
         }
-    }
-
-    /// Compact hover row — shows track/clip name only, no in/out/length.
-    /// Used in the merged hover+toolbar row to save vertical space.
-    private func hoverInfoRow(clip: PTXClip?, trackIdx: Int?,
-                              sr: Double, total: Double,
-                              resolvedURL: URL? = nil,
-                              cursorAbsFrac: Double? = nil,
-                              cursorLane: Int? = nil) -> some View {
-        let color = trackIdx.map { t in
-            t < tracks.count ? trackColor(tracks[t], index: t) : Color.secondary
-        } ?? Color.secondary
-
-        return HStack(spacing: 0) {
-            Text("HOVER")
-                .font(.system(size: 9).weight(.bold))
-                .foregroundStyle(Color.secondary)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(nsColor: .separatorColor).opacity(0.5)))
-                .frame(width: 52, alignment: .leading)
-
-            if let clip, let tIdx = trackIdx {
-                let trackName = tIdx < tracks.count ? tracks[tIdx].name : ""
-                RoundedRectangle(cornerRadius: 1.5)
-                    .fill(color.opacity(0.5))
-                    .frame(width: 3, height: 14)
-                    .padding(.trailing, 6)
-                if !trackName.isEmpty {
-                    Text(trackName)
-                        .foregroundStyle(color.opacity(0.75))
-                        .lineLimit(1)
-                        .frame(width: 90, alignment: .leading)
-                    Spacer().frame(width: 4)
-                }
-                Text(clip.name)
-                    .foregroundStyle(Color(nsColor: .secondaryLabelColor))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            } else if let absFrac = cursorAbsFrac {
-                let laneIdx = cursorLane
-                if let idx = laneIdx, idx < tracks.count {
-                    let track  = tracks[idx]
-                    let tcolor = trackColor(track, index: idx)
-                    let fmt: String = track.type == .video
-                        ? (tcFormat.isEmpty ? "Video" : "Video · \(tcFormat)")
-                        : track.channelFormat
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(tcolor.opacity(0.5))
-                        .frame(width: 3, height: 14)
-                        .padding(.trailing, 6)
-                    Text(track.name).foregroundStyle(tcolor.opacity(0.75)).lineLimit(1)
-                        .frame(width: 90, alignment: .leading)
-                    Spacer().frame(width: 4)
-                    Text("[\(fmt)]").foregroundStyle(.secondary).lineLimit(1)
-                } else {
-                    Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
-                }
-                Spacer(minLength: 8)
-                Group {
-                    Text("pos ").foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                    + Text(formatTC(absFrac * total / sr, fps: frameRate))
-                        .foregroundColor(Color(nsColor: .secondaryLabelColor))
-                }
-            } else {
-                Text("—").foregroundStyle(.tertiary).padding(.leading, 8)
-            }
-        }
-        .font(.system(size: 11).monospacedDigit())
-        .padding(.leading, 12)
     }
 
     @ViewBuilder

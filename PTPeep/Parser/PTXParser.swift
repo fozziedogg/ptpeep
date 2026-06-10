@@ -535,7 +535,7 @@ final class PTXParser {
     /// Format a sample count as H:MM:SS:FF
     private static func formatTC(samples: Int64, sr: Double, fps: Double) -> String {
         guard sr > 0, fps > 0, samples >= 0 else { return "—" }
-        let totalFrames = Int64((Double(samples) / sr * fps).rounded())
+        let totalFrames = Int64(Double(samples) / sr * fps)
         let fr  = Int64(fps.rounded())
         let f   = totalFrames % fr
         let sec = (totalFrames / fr) % 60
