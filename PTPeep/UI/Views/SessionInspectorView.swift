@@ -551,8 +551,11 @@ struct SessionInspectorView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
         .background(Color(nsColor: .windowBackgroundColor))
+        .overlay(alignment: .bottom) {
+            Divider().opacity(0.5)
+        }
     }
 
     private func sortableColumnHeader(_ title: String, col: TrackSortColumn,
@@ -655,7 +658,7 @@ struct SessionInspectorView: View {
             }
             // ── Track rows ─────────────────────────────────────────────────
             ForEach(visibleTracks, id: \.index) { track in
-                TrackRow(track: track, showPlugins: showTrackPlugins,
+                TrackRow(track: track, index: track.index, showPlugins: showTrackPlugins,
                          pluginInstalled: { name in
                              guard pluginScanner.scanCompleted else { return nil }
                              return pluginScanner.index?.contains(name, secondString: session.pluginSecondStrings[name])
@@ -673,9 +676,10 @@ struct SessionInspectorView: View {
         if session.audioFileNames.isEmpty {
             PlaceholderRow(text: "No audio files found")
         } else {
-            ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { _, name in
+            ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { i, name in
                 AudioFileRow(name: name,
-                             resolved: session.resolvedAudioFiles.first { $0.name == name })
+                             resolved: session.resolvedAudioFiles.first { $0.name == name },
+                             index: i)
             }
         }
     }
@@ -798,10 +802,10 @@ struct SessionInspectorView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 4)
             }
-            ForEach(session.plugins, id: \.self) { plugin in
+            ForEach(Array(session.plugins.enumerated()), id: \.element) { i, plugin in
                 PluginRow(plugin: plugin, installed: pluginScanner.scanCompleted ? pluginScanner.index?.contains(
                     plugin, secondString: session.pluginSecondStrings[plugin]
-                ) : nil)
+                ) : nil, index: i)
             }
         }
     }
@@ -837,7 +841,7 @@ struct SessionInspectorView: View {
             if filtered.isEmpty {
                 PlaceholderRow(text: "No results for \"\(markerSearch)\"")
             } else {
-                ForEach(filtered, id: \.number) { loc in
+                ForEach(Array(filtered.enumerated()), id: \.element.number) { i, loc in
                     let hasFrac = loc.samplePosition > 0 && total > 1
                     let frac    = hasFrac ? Double(loc.samplePosition) / total : 0.0
                     Button {
@@ -863,7 +867,8 @@ struct SessionInspectorView: View {
                             }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 3)
+                        .padding(.vertical, 4)
+                        .background(i % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -1004,6 +1009,7 @@ private struct SectionHeader: View {
 
 private struct TrackRow: View {
     let track: PTXTrack
+    let index: Int
     let showPlugins: Bool
     var pluginInstalled: (String) -> Bool? = { _ in nil }
     var showRouting: Bool = false
@@ -1178,17 +1184,20 @@ private struct TrackRow: View {
         }
         .padding(.leading, 16)
         .padding(.trailing, 16)
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
+        .background(index % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
     }
 }
 
 private struct AudioFileRow: View {
     let name: String
     let resolved: ResolvedAudioFile?
+    let index: Int
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: resolved != nil ? "checkmark.circle" : "circle.dashed")
                 .foregroundStyle(resolved != nil ? .green : .secondary)
+                .font(.system(size: 11))
                 .frame(width: 16)
             Text(name)
                 .font(.subheadline)
@@ -1201,12 +1210,16 @@ private struct AudioFileRow: View {
                     .foregroundStyle(.red)
             } else if let url = resolved?.url {
                 Text(url.pathExtension.uppercased())
-                    .font(.caption)
+                    .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 3))
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
+        .background(index % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
         .contextMenu {
             if let url = resolved?.url {
                 Button("Reveal in Finder") {
@@ -1226,6 +1239,7 @@ private let elasticAudioModes: Set<String> = [
 private struct PluginRow: View {
     let plugin:    String
     let installed: Bool?   // nil = not yet checked
+    let index:     Int
 
     private var isElastic: Bool { elasticAudioModes.contains(plugin) }
 
@@ -1234,29 +1248,39 @@ private struct PluginRow: View {
             if isElastic {
                 Image(systemName: "waveform.path")
                     .foregroundStyle(.secondary)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .frame(width: 16)
             } else if let ok = installed {
                 Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(ok ? .green : .red)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .frame(width: 16)
             } else {
                 Image(systemName: "puzzlepiece")
                     .foregroundStyle(.secondary)
+                    .font(.system(size: 11))
                     .frame(width: 16)
             }
             Text(plugin)
                 .font(.subheadline)
             if isElastic {
-                Text("Elastic Audio mode")
-                    .font(.caption)
+                Text("Elastic Audio")
+                    .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 3))
             }
             Spacer()
+            if let ok = installed, !isElastic {
+                Text(ok ? "installed" : "missing")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(ok ? .green.opacity(0.8) : .red.opacity(0.8))
+            }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
+        .background(index % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
     }
 }
 
