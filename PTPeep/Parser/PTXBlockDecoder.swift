@@ -171,9 +171,9 @@ final class PTXBlockDecoder {
         while i + 9 <= data.count {
             guard data[i] == 0x5a else { i += 1; continue }
             let size = Int(u32(data, at: i + 3, be: bigEndian))
-            let ct   = u16(data, at: i + 7, be: bigEndian)
+            let contentType = u16(data, at: i + 7, be: bigEndian)
             guard size > 0, size < 50_000_000, i + 9 + size <= data.count else { i += 1; continue }
-            blocks.append(PTXBlock(contentType: ct, dataOffset: i + 9, dataSize: size))
+            blocks.append(PTXBlock(contentType: contentType, dataOffset: i + 9, dataSize: size))
             i += 1   // byte-by-byte to catch nested blocks
         }
         return blocks
@@ -413,9 +413,9 @@ final class PTXBlockDecoder {
                 let nLength = Int((data[tp + 2] & 0xf0) >> 4)
                 if nSrcOff <= 5, nLength <= 5, tp + 5 + nSrcOff + nLength <= data.count {
                     let vp = tp + 5 + nSrcOff
-                    let lf = readLE(data, at: vp, count: nLength)
-                    if lf > 0, lf < 500_000_000 {
-                        lengthSamples = Int64(bitPattern: lf) * samplesPerFrame
+                    let lengthFrames = readLE(data, at: vp, count: nLength)
+                    if lengthFrames > 0, lengthFrames < 500_000_000 {
+                        lengthSamples = Int64(bitPattern: lengthFrames) * samplesPerFrame
                     }
                 }
             }
@@ -1675,6 +1675,24 @@ final class PTXBlockDecoder {
     //
     // Returns: trackName → ordered list of plugin display names (slot order, skipping empties)
 
+    /// Parse 0x210b blocks to build a track name → UID mapping (used by both plugins and routing).
+    private static func buildTrackUIDMapping(sortedBlocks: [PTXBlock], data: Data) -> [(trackName: String, uid: String)] {
+        var trackToUID: [(trackName: String, uid: String)] = []
+        for b in sortedBlocks where b.contentType == 0x210b {
+            let blockDataOffset = b.dataOffset
+            guard b.dataSize >= 24,
+                  let nameLen = safeU32(data, at: blockDataOffset + 4, be: false),
+                  nameLen >= 1, nameLen <= 256,
+                  blockDataOffset + 8 + Int(nameLen) + 8 + 8 <= data.count,
+                  let tname = String(bytes: data[(blockDataOffset+8)..<(blockDataOffset+8+Int(nameLen))], encoding: .utf8),
+                  !tname.isEmpty else { continue }
+            let uidStart = blockDataOffset + 8 + Int(nameLen) + 8
+            let uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
+            trackToUID.append((trackName: tname, uid: uid))
+        }
+        return trackToUID
+    }
+
     static func extractTrackPlugins(blocks: [PTXBlock], data: Data) -> [String: [String]] {
         let sorted = blocks.sorted { $0.dataOffset < $1.dataOffset }
 
@@ -1689,9 +1707,9 @@ final class PTXBlockDecoder {
             guard let name = String(bytes: data[(p+5)..<(p+5+Int(nameLen))], encoding: .utf8),
                   !name.isEmpty else { continue }
             let base = p + 5 + Int(nameLen)
-            let ot0 = String(bytes: data[base..<base+4].reversed(), encoding: .utf8) ?? ""
-            let ot1 = String(bytes: data[base+4..<base+8].reversed(), encoding: .utf8) ?? ""
-            let key = ot0 + ot1
+            let manufacturerCode = String(bytes: data[base..<base+4].reversed(), encoding: .utf8) ?? ""
+            let productCode = String(bytes: data[base+4..<base+8].reversed(), encoding: .utf8) ?? ""
+            let key = manufacturerCode + productCode
             if key.count == 8 { keyToPlugin[key] = name }
         }
         guard !keyToPlugin.isEmpty else { return [:] }
@@ -1742,20 +1760,20 @@ final class PTXBlockDecoder {
             for _ in 0 ..< 10 {
                 guard pos + 9 < pb.dataSize,
                       data[blockBase + pos] == 0x5a,
-                      let sz = safeU32(data, at: blockBase + pos + 3, be: false),
-                      sz > 0, sz < 50_000_000,
-                      blockBase + pos + 9 + Int(sz) <= blockBase + pb.dataSize
+                      let blockSize = safeU32(data, at: blockBase + pos + 3, be: false),
+                      blockSize > 0, blockSize < 50_000_000,
+                      blockBase + pos + 9 + Int(blockSize) <= blockBase + pb.dataSize
                 else { break }
 
-                let ct = UInt16(data[blockBase + pos + 7]) | UInt16(data[blockBase + pos + 8]) << 8
+                let contentType = UInt16(data[blockBase + pos + 7]) | UInt16(data[blockBase + pos + 8]) << 8
 
-                if ct == 0x2616 {
+                if contentType == 0x2616 {
                     // Occupied slot: OSType key at content + 56
                     let keyBase = blockBase + pos + 9 + 56
                     if keyBase + 8 <= blockBase + pb.dataSize {
-                        let w = data[keyBase ..< keyBase + 8]
-                        if w.allSatisfy({ $0 >= 0x20 && $0 <= 0x7e }),
-                           let key = String(bytes: w, encoding: .utf8),
+                        let keyBytes = data[keyBase ..< keyBase + 8]
+                        if keyBytes.allSatisfy({ $0 >= 0x20 && $0 <= 0x7e }),
+                           let key = String(bytes: keyBytes, encoding: .utf8),
                            let pluginName = keyToPlugin[key] {
                             plugins.append(pluginName)
                         }
@@ -1763,7 +1781,7 @@ final class PTXBlockDecoder {
                 }
                 // 0x2625 = empty slot, skip silently.
 
-                pos += 9 + Int(sz) - 2
+                pos += 9 + Int(blockSize) - 2
             }
 
             if !plugins.isEmpty {
@@ -1780,19 +1798,7 @@ final class PTXBlockDecoder {
         //   [8..8+nameLen-1]  track display name
         //   [8+nameLen..8+nameLen+7]  00 00 00 00 | 2a 00 00 00
         //   [8+nameLen+8..8+nameLen+15]  8-byte track UID
-        var trackToUID: [(trackName: String, uid: String)] = []
-        for b in sorted where b.contentType == 0x210b {
-            let doff = b.dataOffset
-            guard b.dataSize >= 24,
-                  let nameLen = safeU32(data, at: doff + 4, be: false),
-                  nameLen >= 1, nameLen <= 256,
-                  doff + 8 + Int(nameLen) + 8 + 8 <= data.count,
-                  let tname = String(bytes: data[(doff+8)..<(doff+8+Int(nameLen))], encoding: .utf8),
-                  !tname.isEmpty else { continue }
-            let uidStart = doff + 8 + Int(nameLen) + 8
-            let uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
-            trackToUID.append((trackName: tname, uid: uid))
-        }
+        let trackToUID = buildTrackUIDMapping(sortedBlocks: sorted, data: data)
 
         var result: [String: [String]] = [:]
 
@@ -1926,12 +1932,12 @@ final class PTXBlockDecoder {
                 else { continue }
 
                 let isSend = outputPath != nil  // first valid block = main output; rest = sends
-                let lpOff  = pathBlock.dataOffset + 36
-                guard lpOff + 4 <= pathBlock.dataOffset + pathBlock.dataSize,
-                      let stringLen = safeU32(data, at: lpOff, be: false),
+                let pathStringOffset  = pathBlock.dataOffset + 36
+                guard pathStringOffset + 4 <= pathBlock.dataOffset + pathBlock.dataSize,
+                      let stringLen = safeU32(data, at: pathStringOffset, be: false),
                       stringLen > 0, stringLen <= 256,
-                      lpOff + 4 + Int(stringLen) <= pathBlock.dataOffset + pathBlock.dataSize,
-                      let s = String(bytes: data[(lpOff+4)..<(lpOff+4+Int(stringLen))], encoding: .utf8),
+                      pathStringOffset + 4 + Int(stringLen) <= pathBlock.dataOffset + pathBlock.dataSize,
+                      let s = String(bytes: data[(pathStringOffset+4)..<(pathStringOffset+4+Int(stringLen))], encoding: .utf8),
                       !s.isEmpty else { continue }
 
                 if isSend {
@@ -1943,18 +1949,18 @@ final class PTXBlockDecoder {
                     //         [b10: 0x00][b11: Atmos group id, 0xff = not a Bed]
                     //   Object: b2 != 0xff && b2 != 0x00 && b0==0x00 && b1==0x00 (b2=object slot)
                     //   Bed:    b11 != 0xff (Atmos group: 0x00=Dialog, 0x0a=Music, etc.)
-                    let flagOff = lpOff + 4 + Int(stringLen)
+                    let flagOff = pathStringOffset + 4 + Int(stringLen)
                     if flagOff + 12 <= pathBlock.dataOffset + pathBlock.dataSize {
-                        let b1  = data[flagOff + 1], b2 = data[flagOff + 2]
-                        let b11 = data[flagOff + 11]
-                        isAtmosObject = b2 != 0xff && b2 != 0x00
-                        isAtmosBed    = !isAtmosObject && b11 != 0xff
-                        // b11 is 0-indexed renderer input; +1 gives the 1-indexed channel shown in PT
-                        if isAtmosObject || isAtmosBed { isAtmosRendererInput = Int(b11) + 1 }
-                        if isAtmosBed { atmosBedChannelCount = PTXBlockDecoder.bedChannelCount(routingFormatByte: b1) }
+                        let channelFormat = data[flagOff + 1], atmosSlotByte = data[flagOff + 2]
+                        let atmosGroupByte = data[flagOff + 11]
+                        isAtmosObject = atmosSlotByte != 0xff && atmosSlotByte != 0x00
+                        isAtmosBed    = !isAtmosObject && atmosGroupByte != 0xff
+                        // atmosGroupByte is 0-indexed renderer input; +1 gives the 1-indexed channel shown in PT
+                        if isAtmosObject || isAtmosBed { isAtmosRendererInput = Int(atmosGroupByte) + 1 }
+                        if isAtmosBed { atmosBedChannelCount = PTXBlockDecoder.bedChannelCount(routingFormatByte: channelFormat) }
                     } else if flagOff + 3 <= pathBlock.dataOffset + pathBlock.dataSize {
-                        let b2 = data[flagOff + 2]
-                        isAtmosObject = b2 != 0xff && b2 != 0x00
+                        let atmosSlotByte = data[flagOff + 2]
+                        isAtmosObject = atmosSlotByte != 0xff && atmosSlotByte != 0x00
                     }
                 }
             }
@@ -1975,11 +1981,11 @@ final class PTXBlockDecoder {
             var pos = lastChildEnd
             while pos + 9 < cEnd, inputPath == nil {
                 if data[pos] == 0 && data[pos+1] == 0 && data[pos+2] == 0 && data[pos+3] == 0 {
-                    let lpOff = pos + 9   // skip sentinel(4) + format(4) + separator(1)
-                    if lpOff + 4 <= cEnd,
-                       let stringLen = safeU32(data, at: lpOff, be: false),
-                       stringLen > 0, stringLen <= 128, lpOff + 4 + Int(stringLen) <= cEnd {
-                        let bytes = data[(lpOff+4)..<(lpOff+4+Int(stringLen))]
+                    let pathStringOffset = pos + 9   // skip sentinel(4) + format(4) + separator(1)
+                    if pathStringOffset + 4 <= cEnd,
+                       let stringLen = safeU32(data, at: pathStringOffset, be: false),
+                       stringLen > 0, stringLen <= 128, pathStringOffset + 4 + Int(stringLen) <= cEnd {
+                        let bytes = data[(pathStringOffset+4)..<(pathStringOffset+4+Int(stringLen))]
                         if bytes.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
                            let s = String(bytes: bytes, encoding: .utf8), !s.isEmpty {
                             inputPath = s
@@ -2003,20 +2009,7 @@ final class PTXBlockDecoder {
         var uidToRouting: [String: RoutingEntry] = [:]
         for s in strips where !s.uid.isEmpty { uidToRouting[s.uid] = s.entry }
 
-        // Parse 0x210b blocks: display name → 8-byte UID (same layout as in extractTrackPlugins)
-        var trackToUID: [(trackName: String, uid: String)] = []
-        for b in sorted where b.contentType == 0x210b {
-            let doff = b.dataOffset
-            guard b.dataSize >= 24,
-                  let nameLen = safeU32(data, at: doff + 4, be: false),
-                  nameLen >= 1, nameLen <= 256,
-                  doff + 8 + Int(nameLen) + 8 + 8 <= data.count,
-                  let tname = String(bytes: data[(doff+8)..<(doff+8+Int(nameLen))], encoding: .utf8),
-                  !tname.isEmpty else { continue }
-            let uidStart = doff + 8 + Int(nameLen) + 8
-            let uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
-            trackToUID.append((trackName: tname, uid: uid))
-        }
+        let trackToUID = buildTrackUIDMapping(sortedBlocks: sorted, data: data)
 
         var result: [String: RoutingEntry] = [:]
 
