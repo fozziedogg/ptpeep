@@ -1852,15 +1852,20 @@ private struct SessionTimelineView: View {
                 : .secondary
         } ?? []
 
+        let clipURLs: [URL] = {
+            guard let clip = selectedClip, !clip.isGroup, !clip.channelFiles.isEmpty else { return [] }
+            return clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
+        }()
+
         ZStack {
             if let region = selectedRegion, let ap = audioPlayer {
                 RegionWaveformView(region: region, segColors: segColors, audioPlayer: ap)
             } else if let clip = selectedClip, !clip.isGroup,
-                      !waveChannelURLs.isEmpty, let ap = audioPlayer {
-                ClipWaveformView(clip: clip, channelURLs: waveChannelURLs,
+                      !clipURLs.isEmpty, let ap = audioPlayer {
+                ClipWaveformView(clip: clip, channelURLs: clipURLs,
                                  sampleRate: sr, color: waveColor, audioPlayer: ap)
             } else if let clip = selectedClip, !clip.isGroup, !clip.sourceFile.isEmpty,
-                      waveChannelURLs.isEmpty {
+                      clipURLs.isEmpty {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 10))
