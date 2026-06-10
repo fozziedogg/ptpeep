@@ -2091,25 +2091,6 @@ private struct SessionTimelineView: View {
                 // TC counter — plain text, left-aligned
                 tcCounter(sr: sr, total: total)
 
-                // Hover info — shows clip/track under cursor
-                if let clip = hoverClip, let tIdx = hoverClipTrackIdx, tIdx < tracks.count {
-                    let color = trackColor(tracks[tIdx], index: tIdx)
-                    HStack(spacing: 5) {
-                        RoundedRectangle(cornerRadius: 1.5)
-                            .fill(color.opacity(0.6))
-                            .frame(width: 3, height: 12)
-                        Text(tracks[tIdx].name)
-                            .foregroundStyle(color.opacity(0.75))
-                            .lineLimit(1)
-                            .frame(maxWidth: 80, alignment: .leading)
-                        Text(clip.name)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                    .font(.system(size: 11))
-                }
-
                 Spacer()
 
                 // Zoom controls
