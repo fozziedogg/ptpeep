@@ -1794,17 +1794,17 @@ private struct SessionTimelineView: View {
         let hasTC = !tcText.isEmpty
 
         Text(hasTC ? tcText : "—:——:——:——")
-            .font(.system(size: 18, weight: .medium, design: .monospaced))
-            .foregroundStyle(hasTC ? Color.green.opacity(0.9) : Color.secondary.opacity(0.2))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
+            .font(.system(size: 14, weight: .medium, design: .monospaced))
+            .foregroundStyle(hasTC ? Color.primary : Color.secondary.opacity(0.2))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
             .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.black.opacity(0.35))
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.black.opacity(0.2))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(Color.black.opacity(0.4), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 3)
+                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
             )
             .onTapGesture {
                 tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
