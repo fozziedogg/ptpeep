@@ -216,14 +216,14 @@ final class PTXBlockDecoder {
             var currentFolderName = "Audio Files"   // updated when a FOLDER_MARKER is seen
 
             while pos + 4 <= end {
-                guard let nl = safeU32(data, at: pos, be: bigEndian),
-                      nl >= 1, nl <= 512,
-                      pos + 4 + Int(nl) + 9 <= end else { break }
+                guard let nameLen = safeU32(data, at: pos, be: bigEndian),
+                      nameLen >= 1, nameLen <= 512,
+                      pos + 4 + Int(nameLen) + 9 <= end else { break }
 
-                let nameSlice = data[(pos + 4) ..< (pos + 4 + Int(nl))]
+                let nameSlice = data[(pos + 4) ..< (pos + 4 + Int(nameLen))]
                 let name = String(bytes: nameSlice, encoding: .utf8) ?? ""
 
-                let typeStart = pos + 4 + Int(nl)
+                let typeStart = pos + 4 + Int(nameLen)
                 let typeBytes = data[typeStart ..< typeStart + 4]
                 let tag = String(bytes: typeBytes, encoding: .ascii) ?? ""
                 let trail0 = data[typeStart + 4]
@@ -245,7 +245,7 @@ final class PTXBlockDecoder {
                 }
                 // trail0 == 0x01 → path component (depth/nodeID), ignored for now
 
-                pos += 4 + Int(nl) + 9   // nameLen(4) + name + typeField(4) + trail(5)
+                pos += 4 + Int(nameLen) + 9   // nameLen(4) + name + typeField(4) + trail(5)
             }
         }
         return results
@@ -311,14 +311,14 @@ final class PTXBlockDecoder {
             guard poolByIndex[pIdx] == nil else { continue }   // first child per parent wins
 
             let pos = block.dataOffset
-            guard let nl = safeU32(data, at: pos, be: bigEndian),
-                  nl >= 1, nl <= 512,
-                  pos + 4 + Int(nl) <= data.count else { continue }
-            let nameSlice = data[pos+4 ..< pos+4+Int(nl)]
+            guard let nameLen = safeU32(data, at: pos, be: bigEndian),
+                  nameLen >= 1, nameLen <= 512,
+                  pos + 4 + Int(nameLen) <= data.count else { continue }
+            let nameSlice = data[pos+4 ..< pos+4+Int(nameLen)]
             // Accept any valid UTF-8 (including non-ASCII: accented chars, Unicode filenames)
             guard let name = String(bytes: nameSlice, encoding: .utf8), !name.isEmpty else { continue }
 
-            let tp = pos + 4 + Int(nl)
+            let tp = pos + 4 + Int(nameLen)
             guard tp + 5 <= data.count else { continue }
 
             // HIGH nibble gives byte count; 0 means value is 0 (zero bytes consumed)
@@ -399,15 +399,15 @@ final class PTXBlockDecoder {
         for block in blocks where block.contentType == 0x2628 {
             guard isInVideoPool(block) else { continue }
             let pos = block.dataOffset
-            guard let nl = safeU32(data, at: pos, be: bigEndian),
-                  nl >= 1, nl <= 512,
-                  pos + 4 + Int(nl) <= data.count else { continue }
-            let nameSlice = data[pos+4 ..< pos+4+Int(nl)]
+            guard let nameLen = safeU32(data, at: pos, be: bigEndian),
+                  nameLen >= 1, nameLen <= 512,
+                  pos + 4 + Int(nameLen) <= data.count else { continue }
+            let nameSlice = data[pos+4 ..< pos+4+Int(nameLen)]
             guard nameSlice.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
                   let name = String(bytes: nameSlice, encoding: .utf8) else { continue }
 
             var lengthSamples: Int64 = 0
-            let tp = pos + 4 + Int(nl)
+            let tp = pos + 4 + Int(nameLen)
             if tp + 5 <= data.count {
                 let nSrcOff = Int((data[tp + 1] & 0xf0) >> 4)
                 let nLength = Int((data[tp + 2] & 0xf0) >> 4)
@@ -477,10 +477,10 @@ final class PTXBlockDecoder {
         var idx = 0
         for block in blocks where block.contentType == 0x1014 {
             let pos = block.dataOffset + 2
-            guard let nl = safeU32(data, at: pos, be: bigEndian),
-                  nl >= 1, nl <= 256,
-                  pos + 4 + Int(nl) <= data.count else { continue }
-            let nameSlice = data[pos+4 ..< pos+4+Int(nl)]
+            guard let nameLen = safeU32(data, at: pos, be: bigEndian),
+                  nameLen >= 1, nameLen <= 256,
+                  pos + 4 + Int(nameLen) <= data.count else { continue }
+            let nameSlice = data[pos+4 ..< pos+4+Int(nameLen)]
             guard nameSlice.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
                   let name = String(bytes: nameSlice, encoding: .utf8) else { continue }
             results.append(TrackEntry(index: idx, name: name))
@@ -600,9 +600,9 @@ final class PTXBlockDecoder {
 
             let typeCode = UInt16(data[p]) | UInt16(data[p + 1]) << 8
 
-            guard let nl = safeU32(data, at: p + 2, be: false),
-                  nl >= 1, nl <= 256 else { continue }
-            let nameLen = Int(nl)
+            guard let nameLenU32 = safeU32(data, at: p + 2, be: false),
+                  nameLenU32 >= 1, nameLenU32 <= 256 else { continue }
+            let nameLen = Int(nameLenU32)
             let nameStart = p + 6
             let nameEndPos = nameStart + nameLen
             guard nameEndPos <= sub.dataOffset + sub.dataSize,
@@ -710,8 +710,8 @@ final class PTXBlockDecoder {
             for sub in subBlocks {
                 let p = sub.dataOffset
                 guard p + 6 <= sub.dataOffset + sub.dataSize else { continue }
-                guard let nl = safeU32(data, at: p + 2, be: false), nl >= 1, nl <= 256 else { continue }
-                let nameLen = Int(nl)
+                guard let nameLenU32 = safeU32(data, at: p + 2, be: false), nameLenU32 >= 1, nameLenU32 <= 256 else { continue }
+                let nameLen = Int(nameLenU32)
                 let nameStart = p + 6
                 let nameEndPos = nameStart + nameLen
                 guard nameEndPos <= sub.dataOffset + sub.dataSize,
@@ -885,14 +885,14 @@ final class PTXBlockDecoder {
             guard poolByIndex[pIdx] == nil else { continue }
 
             let pos = block.dataOffset
-            guard let nl = safeU32(data, at: pos, be: bigEndian),
-                  nl >= 1, nl <= 512,
-                  pos + 4 + Int(nl) <= data.count else { continue }
+            guard let nameLen = safeU32(data, at: pos, be: bigEndian),
+                  nameLen >= 1, nameLen <= 512,
+                  pos + 4 + Int(nameLen) <= data.count else { continue }
             // Accept any valid UTF-8 (including non-ASCII filenames)
-            guard let name = String(bytes: data[pos+4 ..< pos+4+Int(nl)], encoding: .utf8),
+            guard let name = String(bytes: data[pos+4 ..< pos+4+Int(nameLen)], encoding: .utf8),
                   !name.isEmpty else { continue }
 
-            let tp = pos + 4 + Int(nl)
+            let tp = pos + 4 + Int(nameLen)
             guard tp + 5 <= data.count else { continue }
             let nLength = Int((data[tp + 2] & 0xf0) >> 4)
             let nSrcOff = Int((data[tp + 1] & 0xf0) >> 4)
@@ -907,7 +907,7 @@ final class PTXBlockDecoder {
             let startVal = readLE(data, at: vp, count: nStart)  // group's absolute timeline position
 
             // Cross-validate against Python's doubled-value pattern for CG start times
-            let afterName = pos + 4 + Int(nl)
+            let afterName = pos + 4 + Int(nameLen)
             for dOff in 10..<min(data.count - afterName - 8, 30) {
                 let v1 = readLE(data, at: afterName + dOff, count: 4)
                 let v2 = readLE(data, at: afterName + dOff + 4, count: 4)
@@ -931,15 +931,15 @@ final class PTXBlockDecoder {
                                     clips: [ClipEntry?] = []) -> [TrackPlaylist] {
         // Build compound clip pool: poolIndex → (name, startSample, lengthSamples)
         // Used for group placements; pool is 0x262b→0x2628.
-        let compoundPool = extractCompoundClips(blocks: blocks, data: data, bigEndian: bigEndian)
+        let groupPool = extractCompoundClips(blocks: blocks, data: data, bigEndian: bigEndian)
 
         // ── Clip Group Resolution (ported from clipgroupdecoder/test_positions_v2.py) ──
         // Maps compound pool indices → sentinel sections → constituent audio clips.
-        // Algorithm: 0x2423 GIDs → 0x262b trailing (trail_idx, pos) → (gid, pos) → slot index.
+        // Algorithm: 0x2423 grpIds → 0x262b trailing (grpDefIdx, pos) → (grpId, pos) → slot index.
         // The 2nd 0x1054 holds one 0x1052 sentinel section per slot; each contains 0x104f
         // entries where byte[18]==0x00 = audio leaf, byte[18]==0x01 = nested sub-group.
         let audioParents = blocks.filter { $0.contentType == 0x2629 }.sorted { $0.dataOffset < $1.dataOffset }
-        let cmpdParents  = blocks.filter { $0.contentType == 0x262b }.sorted { $0.dataOffset < $1.dataOffset }
+        let groupParents  = blocks.filter { $0.contentType == 0x262b }.sorted { $0.dataOffset < $1.dataOffset }
 
         let all1054sorted = blocks.filter { $0.contentType == 0x1054 }.sorted { $0.dataOffset < $1.dataOffset }
         var sentinelSections: [PTXBlock] = []
@@ -963,9 +963,9 @@ final class PTXBlockDecoder {
         var grpDefNames: [Int: String] = [:]
         for (idx, b) in blocks.filter({ $0.contentType == 0x2423 }).sorted(by: { $0.dataOffset < $1.dataOffset }).enumerated() {
             guard b.dataSize >= 8 else { continue }
-            let nl = Int(readLE(data, at: b.dataOffset + 4, count: 4))
-            guard nl > 0, nl < 512, b.dataOffset + 8 + nl <= data.count else { continue }
-            grpDefNames[idx] = String(bytes: data[b.dataOffset + 8 ..< b.dataOffset + 8 + nl], encoding: .utf8)?.trimmingCharacters(in: .whitespaces) ?? "?"
+            let nameLen = Int(readLE(data, at: b.dataOffset + 4, count: 4))
+            guard nameLen > 0, nameLen < 512, b.dataOffset + 8 + nameLen <= data.count else { continue }
+            grpDefNames[idx] = String(bytes: data[b.dataOffset + 8 ..< b.dataOffset + 8 + nameLen], encoding: .utf8)?.trimmingCharacters(in: .whitespaces) ?? "?"
         }
 
         // ── Trail-based sentinel resolution (from 0x262b trailing bytes) ─────────
@@ -975,19 +975,19 @@ final class PTXBlockDecoder {
 
         // Step 1: Extract 2-byte GIDs from 0x2423 blocks (trail_idx = file-order index)
         let b2423sorted = blocks.filter { $0.contentType == 0x2423 }.sorted { $0.dataOffset < $1.dataOffset }
-        var grpDefToGid: [Int: Int] = [:]
-        var seenGids: [Int] = []
+        var grpDefToGrpId: [Int: Int] = [:]
+        var seenGrpIds: [Int] = []
         for (idx, b) in b2423sorted.enumerated() {
             guard b.dataSize >= 2 else { continue }
-            let gid = Int(readLE(data, at: b.dataOffset, count: 2))
-            grpDefToGid[idx] = gid
-            if !seenGids.contains(gid) { seenGids.append(gid) }
+            let grpId = Int(readLE(data, at: b.dataOffset, count: 2))
+            grpDefToGrpId[idx] = grpId
+            if !seenGrpIds.contains(grpId) { seenGrpIds.append(grpId) }
         }
 
         // Step 2: Extract trailing (trail_idx, pos) from 0x262b blocks
         var grpMapping: [Int: (grpDefIdx: Int, pos: Int)] = [:]
-        var gidMaxPos: [Int: Int] = [:]
-        for (gi, parent) in cmpdParents.enumerated() {
+        var grpIdMaxPos: [Int: Int] = [:]
+        for (grpIdx, parent) in groupParents.enumerated() {
             guard let g2628 = blocks.first(where: { b in
                 b.contentType == 0x2628 &&
                 b.dataOffset >= parent.dataOffset &&
@@ -1000,9 +1000,9 @@ final class PTXBlockDecoder {
             guard trailingEnd - trailingStart >= 7 else { continue }
             let grpDefIdx = Int(readLE(data, at: trailingStart + 1, count: 2))
             let pos = Int(readLE(data, at: trailingStart + 5, count: 2))
-            grpMapping[gi] = (grpDefIdx: grpDefIdx, pos: pos)
-            if let gid = grpDefToGid[grpDefIdx] {
-                gidMaxPos[gid] = max(gidMaxPos[gid] ?? 0, pos + 1)
+            grpMapping[grpIdx] = (grpDefIdx: grpDefIdx, pos: pos)
+            if let grpId = grpDefToGrpId[grpDefIdx] {
+                grpIdMaxPos[grpId] = max(grpIdMaxPos[grpId] ?? 0, pos + 1)
             }
         }
 
@@ -1010,42 +1010,42 @@ final class PTXBlockDecoder {
         // These include phantom slots from removed group members — critical for
         // correct slot counting when compounds have been deleted from a group.
         let b2425sorted = blocks.filter { $0.contentType == 0x2425 }.sorted { $0.dataOffset < $1.dataOffset }
-        var gidMemberCount: [Int: Int] = [:]
+        var grpIdMemberCount: [Int: Int] = [:]
         for (i, b) in b2425sorted.enumerated() {
             guard b.dataSize >= 2 else { continue }
-            gidMemberCount[i] = Int(readLE(data, at: b.dataOffset, count: 2))
+            grpIdMemberCount[i] = Int(readLE(data, at: b.dataOffset, count: 2))
         }
 
-        // Step 3: Build (gid, pos) → slot index → grpDefResolved mapping
-        var gidPosToSlot: [Int: Int] = [:]
+        // Step 3: Build (grpId, pos) → slot index → grpDefResolved mapping
+        var grpIdPosToSlot: [Int: Int] = [:]
         var trailSlotCounter = 0
-        for gid in seenGids {
-            let nPos = max(gidMemberCount[gid] ?? 0, gidMaxPos[gid] ?? 1)
+        for grpId in seenGrpIds {
+            let nPos = max(grpIdMemberCount[grpId] ?? 0, grpIdMaxPos[grpId] ?? 1)
             for p in 0..<nPos {
-                gidPosToSlot[(gid << 16) | p] = trailSlotCounter
+                grpIdPosToSlot[(grpId << 16) | p] = trailSlotCounter
                 trailSlotCounter += 1
             }
         }
         var grpDefResolved: [Int: Int] = [:]
-        for (gi, grpDef) in grpMapping {
-            guard let gid = grpDefToGid[grpDef.grpDefIdx],
-                  let slot = gidPosToSlot[(gid << 16) | grpDef.pos],
+        for (grpIdx, grpDef) in grpMapping {
+            guard let grpId = grpDefToGrpId[grpDef.grpDefIdx],
+                  let slot = grpIdPosToSlot[(grpId << 16) | grpDef.pos],
                   slot >= 0, slot < sentinelSections.count else { continue }
-            grpDefResolved[gi] = slot
+            grpDefResolved[grpIdx] = slot
         }
 
-        // Build compoundBaseStart: for each (gid, pos), the minimum CG start across all
+        // Build compoundBaseStart: for each (grpId, pos), the minimum CG start across all
         // compounds sharing that pair.  This is the original group start before splits — sentinel
         // deltas are always relative to this base, not to individual split variants' starts.
-        var gidPosBaseStart: [Int: Int64] = [:]  // key = (gid << 16) | pos
-        for (gi, grpDef) in grpMapping {
-            guard let gid = grpDefToGid[grpDef.grpDefIdx],
-                  let st = compoundPool[gi]?.startSample else { continue }
-            let key = (gid << 16) | grpDef.pos
-            if let cur = gidPosBaseStart[key] {
-                gidPosBaseStart[key] = min(cur, st)
+        var grpIdPosBaseStart: [Int: Int64] = [:]  // key = (grpId << 16) | pos
+        for (grpIdx, grpDef) in grpMapping {
+            guard let grpId = grpDefToGrpId[grpDef.grpDefIdx],
+                  let startSample = groupPool[grpIdx]?.startSample else { continue }
+            let key = (grpId << 16) | grpDef.pos
+            if let cur = grpIdPosBaseStart[key] {
+                grpIdPosBaseStart[key] = min(cur, startSample)
             } else {
-                gidPosBaseStart[key] = st
+                grpIdPosBaseStart[key] = startSample
             }
         }
         // Content range from 0x2523 blocks: for split groups, each variant's 0x2523
@@ -1054,49 +1054,49 @@ final class PTXBlockDecoder {
         // Bytes 57-61 = content end (5-byte LE) minus SENTINEL_OFFSET
         // Default: widest non-negative span. Fallback: tightest fit when delta outside default.
         let SENTINEL_OFFSET: UInt64 = 1_000_000_000_000
-        var grpCurrentRange: [Int: (cs: Int64, ce: Int64)] = [:]  // widest non-negative
-        var grpAllRanges: [Int: [(cs: Int64, ce: Int64)]] = [:]    // all ranges for fallback
-        for (gi, parent) in cmpdParents.enumerated() {
+        var grpCurrentRange: [Int: (contentIn: Int64, contentOut: Int64)] = [:]  // widest non-negative
+        var grpAllRanges: [Int: [(contentIn: Int64, contentOut: Int64)]] = [:]    // all ranges for fallback
+        for (grpIdx, parent) in groupParents.enumerated() {
             var bestSpan: Int64 = -1
             for blk in blocks where blk.contentType == 0x2523 &&
                 blk.dataOffset >= parent.dataOffset &&
                 blk.dataOffset + blk.dataSize <= parent.dataOffset + parent.dataSize &&
                 blk.dataSize >= 64 {
-                let cs = Int64(bitPattern: readLE(data, at: blk.dataOffset + 49, count: 5) &- SENTINEL_OFFSET)
-                let ce = Int64(bitPattern: readLE(data, at: blk.dataOffset + 57, count: 5) &- SENTINEL_OFFSET)
-                grpAllRanges[gi, default: []].append((cs: cs, ce: ce))
-                guard cs >= 0 else { continue }  // skip pre-roll for default range
-                let span = ce - cs
+                let contentIn = Int64(bitPattern: readLE(data, at: blk.dataOffset + 49, count: 5) &- SENTINEL_OFFSET)
+                let contentOut = Int64(bitPattern: readLE(data, at: blk.dataOffset + 57, count: 5) &- SENTINEL_OFFSET)
+                grpAllRanges[grpIdx, default: []].append((contentIn: contentIn, contentOut: contentOut))
+                guard contentIn >= 0 else { continue }  // skip pre-roll for default range
+                let span = contentOut - contentIn
                 if span > bestSpan {
                     bestSpan = span
-                    grpCurrentRange[gi] = (cs: cs, ce: ce)
+                    grpCurrentRange[grpIdx] = (contentIn: contentIn, contentOut: contentOut)
                 }
             }
         }
 
         // Per-entry content range: use default (widest non-negative) when delta is inside it;
-        // fall back to tightest fit from all ranges (including negative cs) when delta is outside.
-        func pickRange(gi: Int, delta: Int64) -> (cs: Int64, ce: Int64) {
-            if let def = grpCurrentRange[gi], def.cs <= delta, delta < def.ce {
+        // fall back to tightest fit from all ranges (including negative contentIn) when delta is outside.
+        func pickRange(grpIdx: Int, delta: Int64) -> (contentIn: Int64, contentOut: Int64) {
+            if let def = grpCurrentRange[grpIdx], def.contentIn <= delta, delta < def.contentOut {
                 return def
             }
-            if let ranges = grpAllRanges[gi] {
-                var best: (cs: Int64, ce: Int64)? = nil
+            if let ranges = grpAllRanges[grpIdx] {
+                var best: (contentIn: Int64, contentOut: Int64)? = nil
                 for r in ranges {
-                    if r.cs <= delta && delta <= r.ce {
-                        if best == nil || r.cs > best!.cs { best = r }
+                    if r.contentIn <= delta && delta <= r.contentOut {
+                        if best == nil || r.contentIn > best!.contentIn { best = r }
                     }
                 }
                 if let best = best { return best }
             }
-            return grpCurrentRange[gi] ?? (cs: 0, ce: Int64.max)
+            return grpCurrentRange[grpIdx] ?? (contentIn: 0, contentOut: Int64.max)
         }
 
         // Moved-group detection: compare CG creation start against track-listing position.
         // If they differ, the group was moved after creation and sentinel deltas are
         // relative to the moved position (start4), not the creation position (robust).
-        var gidPosStart4: [Int: Int64] = [:]   // (gid << 16 | pos) → min(start4)
-        var gidReliable: [Int: Bool] = [:]     // gid → true if creation start matches track start
+        var grpIdPosStart4: [Int: Int64] = [:]   // (grpId << 16 | pos) → min(start4)
+        var grpIdReliable: [Int: Bool] = [:]     // grpId → true if creation start matches track start
 
         if all1054sorted.count >= 1 {
             let first1054 = all1054sorted[0]
@@ -1106,43 +1106,43 @@ final class PTXBlockDecoder {
                 ref.dataOffset >= f1Start && ref.dataOffset + ref.dataSize <= f1End {
                 let byte18 = data[ref.dataOffset + 18]
                 guard byte18 == 0x01 else { continue }
-                let gi = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
-                guard let grpDef = grpMapping[gi], let gid = grpDefToGid[grpDef.grpDefIdx] else { continue }
+                let grpIdx = Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))
+                guard let grpDef = grpMapping[grpIdx], let grpId = grpDefToGrpId[grpDef.grpDefIdx] else { continue }
                 let start4 = Int64(bitPattern: readLE(data, at: ref.dataOffset + 7, count: 4))
-                let key = (gid << 16) | grpDef.pos
-                if let cur = gidPosStart4[key] {
-                    gidPosStart4[key] = min(cur, start4)
+                let key = (grpId << 16) | grpDef.pos
+                if let cur = grpIdPosStart4[key] {
+                    grpIdPosStart4[key] = min(cur, start4)
                 } else {
-                    gidPosStart4[key] = start4
+                    grpIdPosStart4[key] = start4
                 }
-                if gidReliable[gid] == nil { gidReliable[gid] = true }
-                if let robust = compoundPool[gi]?.startSample, robust != start4 {
-                    gidReliable[gid] = false
+                if grpIdReliable[grpId] == nil { grpIdReliable[grpId] = true }
+                if let robust = groupPool[grpIdx]?.startSample, robust != start4 {
+                    grpIdReliable[grpId] = false
                 }
             }
         }
         // slotBase: returns the correct base start for a CG's sentinel deltas.
         // Uses creation start (robust) if the group hasn't been moved, otherwise
         // falls back to the track-listing start (start4).
-        func slotBase(_ gi: Int) -> Int64 {
-            guard let grpDef = grpMapping[gi], let gid = grpDefToGid[grpDef.grpDefIdx] else { return 0 }
-            let key = (gid << 16) | grpDef.pos
-            if gidReliable[gid] ?? true {
-                return gidPosBaseStart[key] ?? 0
+        func slotBase(_ grpIdx: Int) -> Int64 {
+            guard let grpDef = grpMapping[grpIdx], let grpId = grpDefToGrpId[grpDef.grpDefIdx] else { return 0 }
+            let key = (grpId << 16) | grpDef.pos
+            if grpIdReliable[grpId] ?? true {
+                return grpIdPosBaseStart[key] ?? 0
             } else {
-                return gidPosStart4[key] ?? gidPosBaseStart[key] ?? 0
+                return grpIdPosStart4[key] ?? grpIdPosBaseStart[key] ?? 0
             }
         }
 
         // Resolve a clip group to its constituent clips.
         // Ported from clipgroupdecoder/test_positions_v2.py resolve_cg().
-        // Python cross-reference: gi=ci, ci=ri, grpMember=pl,
+        // Python cross-reference: grpIdx=ci, ci=ri, grpMember=pl,
         //   offset=tl, grpMapping=cg_trail, SENTINEL_OFFSET=SENT_ORIGIN
-        // gi = group index; absStart = absolute timeline position from 1st 0x1054.
+        // grpIdx = group index; absStart = absolute timeline position from 1st 0x1054.
         // Content range filtering selects which sentinel entries belong to split-group variants.
-        func resolveCG(_ gi: Int, absStart: Int64?, trackInGrp: UInt8? = nil, depth: Int, visited: Set<Int> = []) -> [ConstituentClip] {
-            guard depth < 10, !visited.contains(gi) else { return [] }
-            guard let slot = grpDefResolved[gi], slot >= 0, slot < sentinelSections.count else { return [] }
+        func resolveCG(_ grpIdx: Int, absStart: Int64?, trackInGrp: UInt8? = nil, depth: Int, visited: Set<Int> = []) -> [ConstituentClip] {
+            guard depth < 10, !visited.contains(grpIdx) else { return [] }
+            guard let slot = grpDefResolved[grpIdx], slot >= 0, slot < sentinelSections.count else { return [] }
             let section = sentinelSections[slot]
             let secEnd = section.dataOffset + section.dataSize
             let grpMembers = blocks.filter {
@@ -1150,8 +1150,8 @@ final class PTXBlockDecoder {
                 $0.dataOffset >= section.dataOffset && $0.dataOffset + $0.dataSize <= secEnd
             }.sorted { $0.dataOffset < $1.dataOffset }
 
-            let base = absStart ?? slotBase(gi)
-            var nextVisited = visited; nextVisited.insert(gi)
+            let base = absStart ?? slotBase(grpIdx)
+            var nextVisited = visited; nextVisited.insert(grpIdx)
             var result: [ConstituentClip] = []
 
             // Only apply trackInGrp filtering on shared sentinel slots (multiple tracks → same slot).
@@ -1171,29 +1171,29 @@ final class PTXBlockDecoder {
                 let isClip = data[grpMember.dataOffset + 18] == 0x00
 
                 // Per-entry content range: default (widest non-neg), fallback for fades
-                let contentRange = pickRange(gi: gi, delta: delta)
+                let contentRange = pickRange(grpIdx: grpIdx, delta: delta)
 
                 if isClip {
                     // Audio leaf — filter by content range (position only, no length trimming)
                     let clipLen = ci < clips.count ? Int64(clips[ci]?.lengthSamples ?? 0) : 0
-                    if delta >= contentRange.cs && delta < contentRange.ce {
-                        let pos = base + (delta - contentRange.cs)
+                    if delta >= contentRange.contentIn && delta < contentRange.contentOut {
+                        let pos = base + (delta - contentRange.contentIn)
                         if ci < audioParents.count {
                             result.append(ConstituentClip(audioClipIdx: ci, relativeOffset: pos))
                         }
-                    } else if delta < contentRange.cs {
-                        if delta + clipLen > contentRange.cs, ci < audioParents.count {
-                            // Straddling clip: visible portion starts at contentRange.cs
+                    } else if delta < contentRange.contentIn {
+                        if delta + clipLen > contentRange.contentIn, ci < audioParents.count {
+                            // Straddling clip: visible portion starts at contentRange.contentIn
                             result.append(ConstituentClip(audioClipIdx: ci, relativeOffset: base))
                         }
                     }
                 } else {
                     // Nested sub-group
                     if absStart != nil {
-                        if delta >= contentRange.cs && delta < contentRange.ce {
-                            let innerAbs = base + (delta - contentRange.cs)
+                        if delta >= contentRange.contentIn && delta < contentRange.contentOut {
+                            let innerAbs = base + (delta - contentRange.contentIn)
                             result += resolveCG(ci, absStart: innerAbs, trackInGrp: trackInGrp, depth: depth + 1, visited: nextVisited)
-                        } else if delta < contentRange.cs {
+                        } else if delta < contentRange.contentIn {
                             result += resolveCG(ci, absStart: base, trackInGrp: trackInGrp, depth: depth + 1, visited: nextVisited)
                         }
                     } else {
@@ -1265,7 +1265,7 @@ final class PTXBlockDecoder {
             .sorted { $0.dataOffset < $1.dataOffset }
 
         // Build sharedSlots: sentinel slots used by CG placements on multiple track sections.
-        // b17 filtering only applies on shared slots. Uses grp==1 (byte[18] in Swift, byte[20]
+        // trackInGrp filtering only applies on shared slots. Uses grp==1 (byte[18] in Swift, byte[20]
         // in Python) + grpMapping membership to avoid audio/compound index collisions.
         let sharedSlots: Set<Int> = {
             var slotToTracks: [Int: Set<Int>] = [:]
@@ -1283,11 +1283,11 @@ final class PTXBlockDecoder {
                     guard r.dataOffset >= sStart, r.dataOffset + r.dataSize <= sEnd else { break }
                     // Only CG entries: grp==1 (byte[18]) AND clipIdx in grpMapping
                     if r.dataSize >= 19 && data[r.dataOffset + 18] == 0x01 {
-                        let gi = Int(u16(data, at: r.dataOffset + 2, be: bigEndian))
-                        if let grpDef = grpMapping[gi],
-                           let gid = grpDefToGid[grpDef.grpDefIdx] {
-                            let key = (gid << 16) | grpDef.pos
-                            if let slot = gidPosToSlot[key], slot >= 0 {
+                        let grpIdx = Int(u16(data, at: r.dataOffset + 2, be: bigEndian))
+                        if let grpDef = grpMapping[grpIdx],
+                           let grpId = grpDefToGrpId[grpDef.grpDefIdx] {
+                            let key = (grpId << 16) | grpDef.pos
+                            if let slot = grpIdPosToSlot[key], slot >= 0 {
                                 slotToTracks[slot, default: []].insert(ti)
                             }
                         }
@@ -1376,7 +1376,7 @@ final class PTXBlockDecoder {
                 guard rawTL < 1_000_000_000_000 else { return nil }
                 let timeline = Int64(bitPattern: rawTL)
                 guard timeline >= 0 else { return nil }
-                let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
+                let compoundEntry = isGroup ? groupPool[clipIdx] : nil
                 let groupName   = compoundEntry?.name
                 let groupLength = compoundEntry?.lengthSamples
                 // Resolve constituents per-placement.
@@ -1389,8 +1389,8 @@ final class PTXBlockDecoder {
                 let slotNameVal: String?
                 if isGroup {
                     // byte[17] (Python) = dataOffset+15 (Swift): track-within-group ID
-                    let b17: UInt8 = ref.dataSize >= 16 ? data[ref.dataOffset + 15] : 0
-                    groupConstituents = resolveCG(clipIdx, absStart: timeline, trackInGrp: b17, depth: 0)
+                    let trackInGrp: UInt8 = ref.dataSize >= 16 ? data[ref.dataOffset + 15] : 0
+                    groupConstituents = resolveCG(clipIdx, absStart: timeline, trackInGrp: trackInGrp, depth: 0)
                     slotIdx = grpDefResolved[clipIdx]
                     slotNameVal = grpMapping[clipIdx].flatMap { grpDefNames[$0.grpDefIdx] }
                 } else {
@@ -1466,8 +1466,8 @@ final class PTXBlockDecoder {
                     var s = Set<Int>()
                     for ref in refs2 {
                         guard ref.dataSize >= 19, parent1050(of: ref) != nil else { continue }
-                        let tl = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
-                        guard tl > 0 else { continue }
+                        let timelinePos = Int64(u32(data, at: ref.dataOffset + 7, be: bigEndian))
+                        guard timelinePos > 0 else { continue }
                         if data[ref.dataOffset + 18] == 0x01 { s.insert(Int(u16(data, at: ref.dataOffset + 2, be: bigEndian))) }
                     }
                     return s
@@ -1482,7 +1482,7 @@ final class PTXBlockDecoder {
                     guard timeline >= 0 else { return nil }
                     let isMuted = byte0 == 0x01
                     let isGroup = byte18 == 0x01 || (byte18 == 0x00 && namelessGroupIdxSet.contains(clipIdx))
-                    let compoundEntry = isGroup ? compoundPool[clipIdx] : nil
+                    let compoundEntry = isGroup ? groupPool[clipIdx] : nil
                     let groupConstituents: [ConstituentClip]
                     let slotIdx2: Int?
                     let slotNameVal2: String?
@@ -1567,10 +1567,10 @@ final class PTXBlockDecoder {
         // Sample rate + bit depth from first 0x1001 block
         if let b = blocks.first(where: { $0.contentType == 0x1001 }), b.dataSize >= 6 {
             let p = b.dataOffset
-            let sr = Int(u32(data, at: p, be: false))
-            let bd = Int(data[p + 5])
-            if sr >= 8000 && sr <= 384000 { params.sampleRate = sr }
-            if bd == 16 || bd == 24 || bd == 32 { params.bitDepth = bd }
+            let sampleRate = Int(u32(data, at: p, be: false))
+            let bitDepth = Int(data[p + 5])
+            if sampleRate >= 8000 && sampleRate <= 384000 { params.sampleRate = sampleRate }
+            if bitDepth == 16 || bitDepth == 24 || bitDepth == 32 { params.bitDepth = bitDepth }
         }
 
         // TC frame rate + session start from 0x1028 block
@@ -1634,19 +1634,19 @@ final class PTXBlockDecoder {
             guard block.dataSize >= 5 else { continue }
             let typeByte = data[p]
             guard typeByte != 0xff else { continue }
-            guard let nl = safeU32(data, at: p + 1, be: false),
-                  nl >= 1, nl <= 512,
-                  p + 5 + Int(nl) <= block.dataOffset + block.dataSize else { continue }
-            let nameSlice = data[(p + 5) ..< (p + 5 + Int(nl))]
+            guard let nameLen = safeU32(data, at: p + 1, be: false),
+                  nameLen >= 1, nameLen <= 512,
+                  p + 5 + Int(nameLen) <= block.dataOffset + block.dataSize else { continue }
+            let nameSlice = data[(p + 5) ..< (p + 5 + Int(nameLen))]
             guard let name = String(bytes: nameSlice, encoding: .utf8),
                   !name.isEmpty else { continue }
             // Second string: display_name + 12 OSType bytes + 4 flags + 3 bytes = +19
-            let secondOff = p + 5 + Int(nl) + 19
+            let secondOff = p + 5 + Int(nameLen) + 19
             if seconds[name] == nil,
                secondOff + 4 <= block.dataOffset + block.dataSize,
-               let sl = safeU32(data, at: secondOff, be: false), sl > 0, sl <= 512,
-               secondOff + 4 + Int(sl) <= block.dataOffset + block.dataSize {
-                let slice = data[(secondOff + 4) ..< (secondOff + 4 + Int(sl))]
+               let stringLen = safeU32(data, at: secondOff, be: false), stringLen > 0, stringLen <= 512,
+               secondOff + 4 + Int(stringLen) <= block.dataOffset + block.dataSize {
+                let slice = data[(secondOff + 4) ..< (secondOff + 4 + Int(stringLen))]
                 if let s = String(bytes: slice, encoding: .utf8), !s.isEmpty {
                     seconds[name] = s
                 }
@@ -1683,12 +1683,12 @@ final class PTXBlockDecoder {
         for b in sorted where b.contentType == 0x1017 {
             let p = b.dataOffset
             guard b.dataSize >= 5, data[p] != 0xff else { continue }
-            guard let nl = safeU32(data, at: p + 1, be: false),
-                  nl >= 1, nl <= 512,
-                  p + 5 + Int(nl) + 8 <= b.dataOffset + b.dataSize else { continue }
-            guard let name = String(bytes: data[(p+5)..<(p+5+Int(nl))], encoding: .utf8),
+            guard let nameLen = safeU32(data, at: p + 1, be: false),
+                  nameLen >= 1, nameLen <= 512,
+                  p + 5 + Int(nameLen) + 8 <= b.dataOffset + b.dataSize else { continue }
+            guard let name = String(bytes: data[(p+5)..<(p+5+Int(nameLen))], encoding: .utf8),
                   !name.isEmpty else { continue }
-            let base = p + 5 + Int(nl)
+            let base = p + 5 + Int(nameLen)
             let ot0 = String(bytes: data[base..<base+4].reversed(), encoding: .utf8) ?? ""
             let ot1 = String(bytes: data[base+4..<base+8].reversed(), encoding: .utf8) ?? ""
             let key = ot0 + ot1
@@ -1706,12 +1706,12 @@ final class PTXBlockDecoder {
         var strips: [StripInfo] = []
         for b in sorted where b.contentType == 0x102d {
             let p = b.dataOffset + 9   // past 0x2619 block header
-            guard let nl = safeU32(data, at: p, be: false),
-                  nl >= 1, nl <= 64,
-                  p + 4 + Int(nl) <= data.count,
-                  let name = String(bytes: data[(p+4)..<(p+4+Int(nl))], encoding: .utf8),
+            guard let nameLen = safeU32(data, at: p, be: false),
+                  nameLen >= 1, nameLen <= 64,
+                  p + 4 + Int(nameLen) <= data.count,
+                  let name = String(bytes: data[(p+4)..<(p+4+Int(nameLen))], encoding: .utf8),
                   !name.isEmpty else { continue }
-            let uidStart = p + 4 + Int(nl) + 11
+            let uidStart = p + 4 + Int(nameLen) + 11
             let uid: String
             if uidStart + 8 <= data.count {
                 uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
@@ -1784,12 +1784,12 @@ final class PTXBlockDecoder {
         for b in sorted where b.contentType == 0x210b {
             let doff = b.dataOffset
             guard b.dataSize >= 24,
-                  let nl = safeU32(data, at: doff + 4, be: false),
-                  nl >= 1, nl <= 256,
-                  doff + 8 + Int(nl) + 8 + 8 <= data.count,
-                  let tname = String(bytes: data[(doff+8)..<(doff+8+Int(nl))], encoding: .utf8),
+                  let nameLen = safeU32(data, at: doff + 4, be: false),
+                  nameLen >= 1, nameLen <= 256,
+                  doff + 8 + Int(nameLen) + 8 + 8 <= data.count,
+                  let tname = String(bytes: data[(doff+8)..<(doff+8+Int(nameLen))], encoding: .utf8),
                   !tname.isEmpty else { continue }
-            let uidStart = doff + 8 + Int(nl) + 8
+            let uidStart = doff + 8 + Int(nameLen) + 8
             let uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
             trackToUID.append((trackName: tname, uid: uid))
         }
@@ -1884,13 +1884,13 @@ final class PTXBlockDecoder {
             }) else { continue }
 
             let nameOff = strip.dataOffset + 9
-            guard let nl = safeU32(data, at: nameOff, be: false),
-                  nl >= 1, nl <= 64,
-                  nameOff + 4 + Int(nl) <= data.count,
-                  let name = String(bytes: data[(nameOff+4)..<(nameOff+4+Int(nl))], encoding: .utf8),
+            guard let nameLen = safeU32(data, at: nameOff, be: false),
+                  nameLen >= 1, nameLen <= 64,
+                  nameOff + 4 + Int(nameLen) <= data.count,
+                  let name = String(bytes: data[(nameOff+4)..<(nameOff+4+Int(nameLen))], encoding: .utf8),
                   !name.isEmpty else { continue }
 
-            let uidStart = nameOff + 4 + Int(nl) + 11
+            let uidStart = nameOff + 4 + Int(nameLen) + 11
             let uid: String
             if uidStart + 8 <= data.count {
                 uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
@@ -1928,10 +1928,10 @@ final class PTXBlockDecoder {
                 let isSend = outputPath != nil  // first valid block = main output; rest = sends
                 let lpOff  = pathBlock.dataOffset + 36
                 guard lpOff + 4 <= pathBlock.dataOffset + pathBlock.dataSize,
-                      let sl = safeU32(data, at: lpOff, be: false),
-                      sl > 0, sl <= 256,
-                      lpOff + 4 + Int(sl) <= pathBlock.dataOffset + pathBlock.dataSize,
-                      let s = String(bytes: data[(lpOff+4)..<(lpOff+4+Int(sl))], encoding: .utf8),
+                      let stringLen = safeU32(data, at: lpOff, be: false),
+                      stringLen > 0, stringLen <= 256,
+                      lpOff + 4 + Int(stringLen) <= pathBlock.dataOffset + pathBlock.dataSize,
+                      let s = String(bytes: data[(lpOff+4)..<(lpOff+4+Int(stringLen))], encoding: .utf8),
                       !s.isEmpty else { continue }
 
                 if isSend {
@@ -1943,7 +1943,7 @@ final class PTXBlockDecoder {
                     //         [b10: 0x00][b11: Atmos group id, 0xff = not a Bed]
                     //   Object: b2 != 0xff && b2 != 0x00 && b0==0x00 && b1==0x00 (b2=object slot)
                     //   Bed:    b11 != 0xff (Atmos group: 0x00=Dialog, 0x0a=Music, etc.)
-                    let flagOff = lpOff + 4 + Int(sl)
+                    let flagOff = lpOff + 4 + Int(stringLen)
                     if flagOff + 12 <= pathBlock.dataOffset + pathBlock.dataSize {
                         let b1  = data[flagOff + 1], b2 = data[flagOff + 2]
                         let b11 = data[flagOff + 11]
@@ -1977,9 +1977,9 @@ final class PTXBlockDecoder {
                 if data[pos] == 0 && data[pos+1] == 0 && data[pos+2] == 0 && data[pos+3] == 0 {
                     let lpOff = pos + 9   // skip sentinel(4) + format(4) + separator(1)
                     if lpOff + 4 <= cEnd,
-                       let sl = safeU32(data, at: lpOff, be: false),
-                       sl > 0, sl <= 128, lpOff + 4 + Int(sl) <= cEnd {
-                        let bytes = data[(lpOff+4)..<(lpOff+4+Int(sl))]
+                       let stringLen = safeU32(data, at: lpOff, be: false),
+                       stringLen > 0, stringLen <= 128, lpOff + 4 + Int(stringLen) <= cEnd {
+                        let bytes = data[(lpOff+4)..<(lpOff+4+Int(stringLen))]
                         if bytes.allSatisfy({ $0 >= 0x20 && $0 < 0x7f }),
                            let s = String(bytes: bytes, encoding: .utf8), !s.isEmpty {
                             inputPath = s
@@ -2008,12 +2008,12 @@ final class PTXBlockDecoder {
         for b in sorted where b.contentType == 0x210b {
             let doff = b.dataOffset
             guard b.dataSize >= 24,
-                  let nl = safeU32(data, at: doff + 4, be: false),
-                  nl >= 1, nl <= 256,
-                  doff + 8 + Int(nl) + 8 + 8 <= data.count,
-                  let tname = String(bytes: data[(doff+8)..<(doff+8+Int(nl))], encoding: .utf8),
+                  let nameLen = safeU32(data, at: doff + 4, be: false),
+                  nameLen >= 1, nameLen <= 256,
+                  doff + 8 + Int(nameLen) + 8 + 8 <= data.count,
+                  let tname = String(bytes: data[(doff+8)..<(doff+8+Int(nameLen))], encoding: .utf8),
                   !tname.isEmpty else { continue }
-            let uidStart = doff + 8 + Int(nl) + 8
+            let uidStart = doff + 8 + Int(nameLen) + 8
             let uid = data[uidStart..<(uidStart+8)].map { String(format: "%02x", $0) }.joined()
             trackToUID.append((trackName: tname, uid: uid))
         }
@@ -2053,14 +2053,14 @@ final class PTXBlockDecoder {
         for block in blocks where block.contentType == 0x2077 {
             let p = block.dataOffset
             guard block.dataSize >= 18 else { continue }
-            guard let nl = safeU32(data, at: p + 6, be: false),
-                  nl >= 1, nl <= 256,
-                  p + 10 + Int(nl) + 8 <= block.dataOffset + block.dataSize else { continue }
+            guard let nameLen = safeU32(data, at: p + 6, be: false),
+                  nameLen >= 1, nameLen <= 256,
+                  p + 10 + Int(nameLen) + 8 <= block.dataOffset + block.dataSize else { continue }
             let number = Int(u16(data, at: p, be: false))
-            let nameSlice = data[(p + 10) ..< (p + 10 + Int(nl))]
+            let nameSlice = data[(p + 10) ..< (p + 10 + Int(nameLen))]
             guard let name = String(bytes: nameSlice, encoding: .utf8), !name.isEmpty else { continue }
-            let samp = Int64(bitPattern: UInt64(u32(data, at: p + 10 + Int(nl),     be: false)) |
-                                         (UInt64(u32(data, at: p + 10 + Int(nl) + 4, be: false)) << 32))
+            let samp = Int64(bitPattern: UInt64(u32(data, at: p + 10 + Int(nameLen),     be: false)) |
+                                         (UInt64(u32(data, at: p + 10 + Int(nameLen) + 4, be: false)) << 32))
             guard samp >= 0 else { continue }
             result.append(PTXMemoryLocation(number: number, name: name, samplePosition: samp))
         }
