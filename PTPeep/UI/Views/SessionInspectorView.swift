@@ -81,6 +81,7 @@ struct SessionInspectorView: View {
     @State private var bwfCache: [String: BWFMetadata] = [:]
     @State private var bwfParsing: Bool = false   // true while background parse is running
     @State private var showBWFSettings: Bool = false
+    @State private var highlightedAudioFiles: Set<String> = []  // source files from selected clip(s)
     private var bwfSelectedFields: [BWFFieldKey] {
         bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
     }
@@ -296,6 +297,44 @@ struct SessionInspectorView: View {
         }
         .onChange(of: session.resolvedAudioFiles.count) { _ in parseBWFInBackground() }
         .onAppear { parseBWFInBackground() }
+        .onChange(of: tc.selStart) { _ in updateHighlightedAudioFiles() }
+        .onChange(of: tc.selEnd)   { _ in updateHighlightedAudioFiles() }
+    }
+
+    /// Derive the set of source file names from the current clip/region selection.
+    private func updateHighlightedAudioFiles() {
+        let tracks = session.tracks
+        let total = totalSamples
+
+        if let selStart = tc.selStart, let selEnd = tc.selEnd, selEnd > selStart {
+            // Region selection: all non-group clips in the selected track range
+            let startSamp = Int64((selStart * total).rounded())
+            let endSamp   = Int64((selEnd * total).rounded())
+            let lo = tc.selTrack ?? 0
+            let hi = min(tc.selTrackEnd ?? lo, tracks.count - 1)
+            guard lo >= 0, lo <= hi else { highlightedAudioFiles = []; return }
+            var files = Set<String>()
+            for idx in lo...hi {
+                for clip in tracks[idx].clips where !clip.isGroup && !clip.sourceFile.isEmpty {
+                    if clip.startSample < endSamp && clip.startSample + clip.lengthSamples > startSamp {
+                        files.insert(clip.sourceFile)
+                    }
+                }
+            }
+            highlightedAudioFiles = files
+        } else if let selStart = tc.selStart,
+                  let trackIdx = tc.selTrack, trackIdx < tracks.count {
+            // Single clip selection
+            let samp = Int64((selStart * total).rounded())
+            if let clip = tracks[trackIdx].clips.first(where: { !$0.isGroup && $0.startSample == samp }),
+               !clip.sourceFile.isEmpty {
+                highlightedAudioFiles = [clip.sourceFile]
+            } else {
+                highlightedAudioFiles = []
+            }
+        } else {
+            highlightedAudioFiles = []
+        }
     }
 
     /// Background-parse BWF metadata for all resolved audio files.
@@ -768,7 +807,11 @@ struct SessionInspectorView: View {
                 .font(.system(size: 11).monospacedDigit())
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(i % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
+                .background(
+                    highlightedAudioFiles.contains(name)
+                        ? Color.accentColor.opacity(0.15)
+                        : (i % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
+                )
                 .contentShape(Rectangle())
                 .contextMenu {
                     if let url = resolved?.url {
