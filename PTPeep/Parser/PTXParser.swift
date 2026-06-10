@@ -388,8 +388,6 @@ final class PTXParser {
             // a regular clip that may start at the same position.
             var groupBoxes:[Int64: PTXClip] = [:]
 
-            let logTrack = false
-
             // Pass 1: regular (non-group) placements — authoritative timeline positions.
             for p in tp.placements where !p.isHidden && !p.isGroup {
                 let clipEntry = p.clipIdx < clips.count ? clips[p.clipIdx] : nil
@@ -404,7 +402,6 @@ final class PTXParser {
                         channelFiles.append(fn)
                     }
                 }
-                if logTrack { AppLog.shared.log("[clips] \(tp.name) regular tl=\(p.timelineSample) '\(name)'") }
                 byPos[p.timelineSample] = PTXClip(
                     name: name, startSample: p.timelineSample, lengthSamples: len,
                     sourceOffset: clipEntry?.sourceOffset ?? 0,
@@ -420,7 +417,6 @@ final class PTXParser {
                 guard len > 0, !p.groupConstituents.isEmpty else { continue }
                 let gStart = p.timelineSample
                 let gName  = p.slotName ?? stripChannelSuffix(p.groupName ?? "Group \(p.clipIdx)")
-                if logTrack { AppLog.shared.log("[clips] \(tp.name) group '\(gName)' tl=\(gStart) len=\(len) constituents=\(p.groupConstituents.count)") }
                 groupBoxes[gStart] = PTXClip(
                     name: gName, startSample: gStart, lengthSamples: len,
                     sourceOffset: 0, sourceFile: "", channelFiles: [],
@@ -446,7 +442,6 @@ final class PTXParser {
                     guard cLen > 0 else { continue }
                     let cName = stripChannelSuffix(clipEntry?.name ?? "Clip \(constituent.audioClipIdx)")
                     let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
-                    if logTrack { AppLog.shared.log("[clips] \(tp.name) constituent tl=\(absPos) '\(cName)' (in '\(gName)')") }
                     constituentClips.append(PTXClip(
                         name: cName, startSample: absPos, lengthSamples: cLen,
                         sourceOffset: clipEntry?.sourceOffset ?? 0,
