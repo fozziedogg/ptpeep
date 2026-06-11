@@ -76,6 +76,75 @@ struct SessionInspectorView: View {
     @State private var trackSortColumn: TrackSortColumn = .none
     @State private var trackSortAscending: Bool = true
 
+    // BWF metadata (background-parsed for Audio Files tab)
+    @AppStorage("bwf.selectedFields")   private var bwfFieldsRaw: String = BWFFieldKey.defaults.map(\.rawValue).joined(separator: ",")
+    @AppStorage("af.followSelection")   private var followClipSelection: Bool = true
+    @State private var bwfCache: [String: BWFMetadata] = [:]
+    @State private var isBWFLoading: Bool = false
+    @State private var highlightedAudioFiles: Set<String> = []
+    @State private var showAFOptions: Bool = false
+
+    private var bwfSelectedFields: [BWFFieldKey] {
+        bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
+    }
+    private var resolvedLookup: [String: ResolvedAudioFile] {
+        Dictionary(session.resolvedAudioFiles.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
+    }
+
+    private func updateHighlightedFiles() {
+        guard followClipSelection else { return }
+        let total = totalSamples
+        let tracks = session.tracks.filter { $0.type == .audio }
+        guard let start = tc.selStart else { highlightedAudioFiles = []; return }
+
+        if let end = tc.selEnd {
+            // Range selection — collect all source files from clips in range
+            let startSamp = Int64((start * total).rounded())
+            let endSamp   = Int64((end * total).rounded())
+            let lo = min(startSamp, endSamp)
+            let hi = max(startSamp, endSamp)
+            let tLo = min(tc.selTrack ?? 0, tc.selTrackEnd ?? tc.selTrack ?? 0)
+            let tHi = max(tc.selTrack ?? 0, tc.selTrackEnd ?? tc.selTrack ?? 0)
+            var files = Set<String>()
+            for ti in tLo...tHi where ti < tracks.count {
+                for clip in tracks[ti].clips where !clip.isGroup {
+                    let cEnd = clip.startSample + clip.lengthSamples
+                    if clip.startSample < hi && cEnd > lo && !clip.sourceFile.isEmpty {
+                        files.insert(clip.sourceFile)
+                    }
+                }
+            }
+            highlightedAudioFiles = files
+        } else {
+            // Single click — find clip at cursor
+            let samp = Int64((start * total).rounded())
+            guard let idx = tc.selTrack, idx < tracks.count else { highlightedAudioFiles = []; return }
+            if let clip = tracks[idx].clips.first(where: { $0.startSample == samp }), !clip.isGroup, !clip.sourceFile.isEmpty {
+                highlightedAudioFiles = [clip.sourceFile]
+            } else {
+                highlightedAudioFiles = []
+            }
+        }
+    }
+
+    private func startBWFParse() {
+        let files = session.resolvedAudioFiles.filter { $0.url != nil }
+        guard !files.isEmpty, bwfCache.isEmpty else { return }
+        isBWFLoading = true
+        Task.detached(priority: .utility) {
+            var cache: [String: BWFMetadata] = [:]
+            for file in files {
+                if let url = file.url, let meta = BWFParser.parse(url: url) {
+                    cache[file.name] = meta
+                }
+            }
+            await MainActor.run {
+                bwfCache = cache
+                isBWFLoading = false
+            }
+        }
+    }
+
     private enum TrackSortColumn {
         case none, name, format, input, output, atmos
         var index: Int {
@@ -166,46 +235,59 @@ struct SessionInspectorView: View {
                 Divider()
 
                 // Tab content
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        switch selectedDetailTab {
-                        case .tracks:
-                            VStack(spacing: 0) {
-                                // Options bar for tracks
-                                HStack(spacing: 0) {
-                                    Spacer()
-                                    let optionsActive = !hiddenTrackTypes.isEmpty || showTrackSends || showTrackPlugins
-                                                     || tlShowHiddenTracks || !tlShowInactiveTracks
-                                    Button { showTrackOptions.toggle() } label: {
-                                        Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
-                                            .font(.caption)
-                                            .foregroundStyle(optionsActive ? Color.accentColor : Color.secondary)
+                if selectedDetailTab == .audioFiles {
+                    AudioFilesTableView(
+                        audioFileNames: session.audioFileNames,
+                        resolvedLookup: resolvedLookup,
+                        bwfCache: bwfCache,
+                        selectedFields: bwfSelectedFields,
+                        sampleRate: Double(session.sampleRate) ?? 48000,
+                        frameRate: session.frameRate,
+                        highlightedFiles: highlightedAudioFiles,
+                        isBWFLoading: isBWFLoading,
+                        followClipSelection: $followClipSelection,
+                        bwfFieldsRaw: $bwfFieldsRaw
+                    )
+                } else {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            switch selectedDetailTab {
+                            case .tracks:
+                                VStack(spacing: 0) {
+                                    // Options bar for tracks
+                                    HStack(spacing: 0) {
+                                        Spacer()
+                                        let optionsActive = !hiddenTrackTypes.isEmpty || showTrackSends || showTrackPlugins
+                                                         || tlShowHiddenTracks || !tlShowInactiveTracks
+                                        Button { showTrackOptions.toggle() } label: {
+                                            Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
+                                                .font(.caption)
+                                                .foregroundStyle(optionsActive ? Color.accentColor : Color.secondary)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .popover(isPresented: $showTrackOptions, arrowEdge: .bottom) {
+                                            trackOptionsPopover
+                                        }
                                     }
-                                    .buttonStyle(.plain)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .popover(isPresented: $showTrackOptions, arrowEdge: .bottom) {
-                                        trackOptionsPopover
+                                    trackColumnHeader
+                                    tracksContent
+                                }
+                            case .plugins:
+                                VStack(alignment: .leading, spacing: 0) {
+                                    // Options bar for plugins
+                                    HStack(spacing: 0) {
+                                        Spacer()
+                                        pluginOptionsBar
                                     }
+                                    pluginsContent
                                 }
-                                trackColumnHeader
-                                tracksContent
+                            case .memLocations:
+                                memoryLocationsContent
+                                    .padding(.top, 4)
+                            default: EmptyView()
                             }
-                        case .audioFiles:
-                            audioFilesContent
-                                .padding(.top, 4)
-                        case .plugins:
-                            VStack(alignment: .leading, spacing: 0) {
-                                // Options bar for plugins
-                                HStack(spacing: 0) {
-                                    Spacer()
-                                    pluginOptionsBar
-                                }
-                                pluginsContent
-                            }
-                        case .memLocations:
-                            memoryLocationsContent
-                                .padding(.top, 4)
                         }
                     }
                 }
@@ -241,7 +323,14 @@ struct SessionInspectorView: View {
             showTrackOptions         = s.showTrackOptions
             trackSortColumn          = TrackSortColumn(index: s.trackSortIndex)
             trackSortAscending       = s.trackSortAscending
+            if !isResolvingFiles { startBWFParse() }
         }
+        .onChange(of: isResolvingFiles) { resolving in
+            if !resolving { startBWFParse() }
+        }
+        .onChange(of: tc.selStart) { _ in updateHighlightedFiles() }
+        .onChange(of: tc.selTrack) { _ in updateHighlightedFiles() }
+        .onChange(of: tc.selEnd)   { _ in updateHighlightedFiles() }
         .onDisappear {
             onViewStateChanged?(TabViewState(
                 zoomScale:              tc.scale,
@@ -664,21 +753,6 @@ struct SessionInspectorView: View {
                          },
                          showRouting: hasRoutingData, showSends: showTrackSends,
                          showAtmos: hasAtmosData, indentDepth: track.indentDepth)
-            }
-        }
-    }
-
-    // MARK: - Audio Files
-
-    @ViewBuilder
-    private var audioFilesContent: some View {
-        if session.audioFileNames.isEmpty {
-            PlaceholderRow(text: "No audio files found")
-        } else {
-            ForEach(Array(session.audioFileNames.enumerated()), id: \.offset) { i, name in
-                AudioFileRow(name: name,
-                             resolved: session.resolvedAudioFiles.first { $0.name == name },
-                             index: i)
             }
         }
     }
@@ -1188,44 +1262,177 @@ private struct TrackRow: View {
     }
 }
 
-private struct AudioFileRow: View {
-    let name: String
-    let resolved: ResolvedAudioFile?
-    let index: Int
+// MARK: - Audio Files Table View
+
+private struct AudioFilesTableView: View {
+    let audioFileNames: [String]
+    let resolvedLookup: [String: ResolvedAudioFile]
+    let bwfCache: [String: BWFMetadata]
+    let selectedFields: [BWFFieldKey]
+    let sampleRate: Double
+    let frameRate: Double
+    let highlightedFiles: Set<String>
+    let isBWFLoading: Bool
+    @Binding var followClipSelection: Bool
+    @Binding var bwfFieldsRaw: String
+    @State private var showOptions: Bool = false
+
+    static let statusW: CGFloat = 20
+    static let nameW:   CGFloat = 180
+    static let fieldW:  CGFloat = 90
+    static let rowFont  = Font.system(size: 10).monospacedDigit()
+    private static let headerFont = Font.system(size: 9, weight: .semibold)
+
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: resolved != nil ? "checkmark.circle" : "circle.dashed")
-                .foregroundStyle(resolved != nil ? .green : .secondary)
-                .font(.system(size: 11))
-                .frame(width: 16)
-            Text(name)
-                .font(.subheadline)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer()
-            if resolved == nil {
-                Text("missing")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            } else if let url = resolved?.url {
-                Text(url.pathExtension.uppercased())
-                    .font(.system(size: 9, weight: .medium))
+        VStack(spacing: 0) {
+            // Fixed column header
+            HStack(spacing: 0) {
+                Text("")
+                    .frame(width: Self.statusW)
+                Text("Name")
+                    .font(Self.headerFont)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 3))
+                    .frame(width: Self.nameW, alignment: .leading)
+                ForEach(selectedFields) { key in
+                    Text(key.label.uppercased())
+                        .font(Self.headerFont)
+                        .foregroundStyle(.secondary)
+                        .frame(width: Self.fieldW, alignment: .leading)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Button { showOptions = true } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showOptions, arrowEdge: .bottom) {
+                    audioFilesOptionsPopover
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(Color(nsColor: .windowBackgroundColor).opacity(0.6))
+
+            Divider()
+
+            // Scrollable rows
+            if audioFileNames.isEmpty {
+                Spacer()
+                Text("No audio files found")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Spacer()
+            } else if isBWFLoading {
+                Spacer()
+                VStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                    Text("Parsing metadata…")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                Spacer()
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(audioFileNames.enumerated()), id: \.offset) { i, name in
+                            let resolved = resolvedLookup[name]
+                            let meta = bwfCache[name]
+                            let values = selectedFields.map { key in
+                                meta?.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate)
+                            }
+                            AudioFileMetadataRow(
+                                name: name,
+                                isOnline: resolved?.url != nil,
+                                fileURL: resolved?.url,
+                                isHighlighted: highlightedFiles.contains(name),
+                                fieldValues: values,
+                                index: i
+                            )
+                        }
+                    }
+                }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 4)
-        .background(index % 2 == 0 ? Color.clear : Color.primary.opacity(0.03))
+    }
+
+    private var audioFilesOptionsPopover: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Follow clip selection toggle
+            Button {
+                followClipSelection.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: followClipSelection ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(followClipSelection ? Color.accentColor : Color.secondary.opacity(0.7))
+                        .font(.system(size: 12))
+                    Text("Follow clip selection")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.primary)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Divider().padding(.vertical, 4)
+
+            // BWF field selector
+            BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
+        }
+        .frame(width: 200)
+    }
+}
+
+private struct AudioFileMetadataRow: View {
+    let name: String
+    let isOnline: Bool
+    let fileURL: URL?
+    let isHighlighted: Bool
+    let fieldValues: [String?]
+    let index: Int
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Image(systemName: isOnline ? "checkmark.circle" : "circle.dashed")
+                .foregroundStyle(isOnline ? .green : .secondary)
+                .font(.system(size: 10))
+                .frame(width: AudioFilesTableView.statusW)
+            Text(name)
+                .font(.system(size: 10))
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(width: AudioFilesTableView.nameW, alignment: .leading)
+            ForEach(Array(fieldValues.enumerated()), id: \.offset) { _, value in
+                Text(value ?? "—")
+                    .font(AudioFilesTableView.rowFont)
+                    .foregroundStyle(value != nil ? Color.primary : Color.secondary.opacity(0.4))
+                    .lineLimit(1)
+                    .frame(width: AudioFilesTableView.fieldW, alignment: .leading)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 3)
+        .background(rowBackground)
         .contextMenu {
-            if let url = resolved?.url {
+            if let url = fileURL {
                 Button("Reveal in Finder") {
                     NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                 }
             }
         }
+    }
+
+    private var rowBackground: Color {
+        if isHighlighted {
+            return Color.accentColor.opacity(0.15)
+        }
+        return index % 2 == 0 ? Color.clear : Color.primary.opacity(0.03)
     }
 }
 
@@ -1730,25 +1937,6 @@ private struct SessionTimelineView: View {
     @State private var showFiltersPopover: Bool  = false
     @AppStorage("ov.autoplay") private var autoplay: Bool = false
 
-    // BWF metadata panel
-    @AppStorage("bwf.panelVisible")     private var bwfPanelVisible: Bool   = false
-    @AppStorage("bwf.selectedFields")   private var bwfFieldsRaw:    String = BWFFieldKey.defaults.map(\.rawValue).joined(separator: ",")
-    @State private var bwfMetadata:     BWFMetadata? = nil
-    @State private var showBWFSettings: Bool         = false
-
-    private var bwfSelectedFields: [BWFFieldKey] {
-        bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
-    }
-    private func bwfToggleField(_ key: BWFFieldKey) {
-        var current = bwfSelectedFields
-        if let idx = current.firstIndex(of: key) {
-            current.remove(at: idx)
-        } else {
-            current.append(key)
-        }
-        bwfFieldsRaw = current.map(\.rawValue).joined(separator: ",")
-    }
-
     private static let audioLaneH: CGFloat = 8
     private static let videoLaneH: CGFloat = 16
     private static let laneGap:    CGFloat = 2
@@ -2140,44 +2328,6 @@ private struct SessionTimelineView: View {
 
                 Divider().frame(height: 14)
 
-                // BWF toggle + settings
-                Button {
-                    bwfPanelVisible.toggle()
-                    if bwfPanelVisible, let clip = selectedClip,
-                       let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
-                        Task.detached(priority: .userInitiated) {
-                            let m = BWFParser.parse(url: url)
-                            await MainActor.run { bwfMetadata = m }
-                        }
-                    } else if !bwfPanelVisible {
-                        bwfMetadata = nil
-                    }
-                } label: {
-                    Text("BWF")
-                        .font(.system(size: 9).weight(.semibold))
-                        .foregroundStyle(bwfPanelVisible ? Color.accentColor : Color.secondary)
-                        .padding(.horizontal, 5).padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 3)
-                            .fill(bwfPanelVisible
-                                  ? Color.accentColor.opacity(0.15)
-                                  : Color(nsColor: .separatorColor).opacity(0.5)))
-                }
-                .buttonStyle(.plain)
-
-                if bwfPanelVisible {
-                    Button { showBWFSettings = true } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showBWFSettings, arrowEdge: .bottom) {
-                        BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
-                    }
-                }
-
-                Divider().frame(height: 14)
-
                 // Filter/options popover (right-most)
                 let filtersActive = autoplay || showHidden || showInactive || !showVideo || hideMuted || hideGroups || showMarkers || !showEmpty
                 Button { showFiltersPopover.toggle() } label: {
@@ -2236,18 +2386,6 @@ private struct SessionTimelineView: View {
             // ── Waveform display ──────────────────────────────────────────────
             waveformSection(selectedClip: selectedClip, selectedRegion: selectedRegion,
                             sr: sr, total: total, trackIdx: selectedClipTrackIdx)
-
-            // ── BWF metadata panel ────────────────────────────────────────────
-            if bwfPanelVisible {
-                BWFMetadataPanel(
-                    metadata:       bwfMetadata,
-                    selectedFields: bwfSelectedFields,
-                    sampleRate:     sr,
-                    frameRate:      frameRate
-                )
-                .padding(.horizontal, 16)
-                .padding(.bottom, 4)
-            }
 
             // ── Scrollable lane area ──────────────────────────────────────────
             ScrollView(.vertical) {
@@ -2620,15 +2758,6 @@ private struct SessionTimelineView: View {
                 waveChannelURLs = clip.channelFiles.compactMap { fn in resolvedFiles.first { $0.name == fn }?.url }
             } else {
                 waveChannelURLs = []
-            }
-            // BWF metadata refresh
-            guard bwfPanelVisible else { return }
-            bwfMetadata = nil
-            guard let name = sourceFile,
-                  let url  = resolvedFiles.first(where: { $0.name == name })?.url else { return }
-            Task.detached(priority: .userInitiated) {
-                let m = BWFParser.parse(url: url)
-                await MainActor.run { bwfMetadata = m }
             }
         }
         .onChange(of: resolvedFiles.count) { _ in
@@ -3265,56 +3394,6 @@ private extension PTXTrackType {
         case .folder:     return "Folder"
         case .instrument: return "Inst"
         case .unknown:    return "Other"
-        }
-    }
-}
-
-// MARK: - BWF Metadata Panel
-
-private struct BWFMetadataPanel: View {
-    let metadata:       BWFMetadata?
-    let selectedFields: [BWFFieldKey]
-    let sampleRate:     Double
-    let frameRate:      Double
-
-    var body: some View {
-        VStack(spacing: 0) {
-            if let meta = metadata {
-                VStack(spacing: 1) {
-                    ForEach(selectedFields) { key in
-                        let value = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate)
-                        HStack(alignment: .top, spacing: 6) {
-                            Text(key.label.uppercased())
-                                .font(.system(size: 8).weight(.semibold))
-                                .foregroundStyle(.tertiary)
-                                .frame(width: 88, alignment: .trailing)
-                                .padding(.top, 1)
-                            Text(value ?? "—")
-                                .font(.system(size: 10).monospacedDigit())
-                                .foregroundStyle(value != nil ? Color.primary : Color.secondary)
-                                .lineLimit(key == .bextCodingHistory ? 4 : 1)
-                                .truncationMode(.tail)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .padding(.vertical, 2)
-                        .padding(.horizontal, 6)
-                        .background(Color(nsColor: .separatorColor).opacity(0.04))
-                    }
-                }
-                .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.03)))
-                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5))
-            } else {
-                HStack {
-                    Spacer()
-                    Text("No BWF metadata")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                    Spacer()
-                }
-                .padding(.vertical, 6)
-                .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary.opacity(0.03)))
-                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5))
-            }
         }
     }
 }
