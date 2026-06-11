@@ -12,7 +12,6 @@ struct AudioFilesTableView: View {
     let frameRate: Double
     let highlightedFiles: Set<String>
     let isBWFLoading: Bool
-    var onClearFilter: (() -> Void)? = nil
     @Binding var followClipSelection: Bool
     @Binding var bwfFieldsRaw: String
     @State private var showOptions: Bool = false
@@ -136,23 +135,12 @@ struct AudioFilesTableView: View {
         bwfFieldsRaw = fields.map(\.rawValue).joined(separator: ",")
     }
 
-    // MARK: - Filtering
-
-    private var isFiltering: Bool { highlightedFiles.count > 1 }
-
-    private func displayRows(
-        from rows: [(index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?])]
-    ) -> [(index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?])] {
-        isFiltering ? rows.filter { highlightedFiles.contains($0.name) } : rows
-    }
-
     // MARK: - Body
 
     var body: some View {
         let nw = nameWidth()
         let fw = allFieldWidths
-        let allRows = sortedRows
-        let rows = displayRows(from: allRows)
+        let rows = sortedRows
 
         VStack(spacing: 0) {
             if audioFileNames.isEmpty {
@@ -162,25 +150,6 @@ struct AudioFilesTableView: View {
                     .foregroundStyle(.tertiary)
                 Spacer()
             } else {
-                if isFiltering {
-                    HStack(spacing: 4) {
-                        Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.secondary)
-                        Text("Showing \(rows.count) of \(allRows.count) files")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Button("Show All") { onClearFilter?() }
-                            .font(.system(size: 9))
-                            .buttonStyle(.plain)
-                            .foregroundStyle(Color.accentColor)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 3)
-                    .background(Color.accentColor.opacity(0.06))
-                }
-
                 ScrollView(.horizontal) {
                     VStack(alignment: .leading, spacing: 0) {
                         // Column header row
@@ -219,31 +188,20 @@ struct AudioFilesTableView: View {
 
                         Divider()
 
-                        // Vertically-scrollable rows with scroll-to support
-                        ScrollViewReader { proxy in
-                            ScrollView(.vertical) {
-                                LazyVStack(alignment: .leading, spacing: 0) {
-                                    ForEach(Array(rows.enumerated()), id: \.offset) { displayIdx, row in
-                                        AudioFileMetadataRow(
-                                            name: row.name,
-                                            isOnline: row.resolved?.url != nil,
-                                            fileURL: row.resolved?.url,
-                                            isHighlighted: highlightedFiles.contains(row.name),
-                                            fieldValues: row.values,
-                                            fieldWidths: fw,
-                                            nameWidth: nw,
-                                            index: displayIdx
-                                        )
-                                        .id("\(row.name)-\(row.index)")
-                                    }
-                                }
-                            }
-                            .onChange(of: highlightedFiles) { files in
-                                if files.count == 1, let target = files.first,
-                                   let row = rows.first(where: { $0.name == target }) {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        proxy.scrollTo("\(row.name)-\(row.index)", anchor: .center)
-                                    }
+                        // Vertically-scrollable rows
+                        ScrollView(.vertical) {
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                ForEach(Array(rows.enumerated()), id: \.offset) { displayIdx, row in
+                                    AudioFileMetadataRow(
+                                        name: row.name,
+                                        isOnline: row.resolved?.url != nil,
+                                        fileURL: row.resolved?.url,
+                                        isHighlighted: highlightedFiles.contains(row.name),
+                                        fieldValues: row.values,
+                                        fieldWidths: fw,
+                                        nameWidth: nw,
+                                        index: displayIdx
+                                    )
                                 }
                             }
                         }

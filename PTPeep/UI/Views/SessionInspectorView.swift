@@ -91,41 +91,16 @@ struct SessionInspectorView: View {
         Dictionary(session.resolvedAudioFiles.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
     }
 
-    /// Shared filter/sort logic for the timeline track list. Static to avoid computed-property
-    /// pressure on the view body type checker.
-    private static func filteredTracks(
-        from tracks: [PTXTrack],
-        showHidden: Bool, showInactive: Bool, showVideo: Bool, showEmpty: Bool
-    ) -> [PTXTrack] {
-        tracks
-            .filter {
-                (showHidden   || !$0.isHidden   || (showInactive && $0.isInactive))
-                && (showInactive || !$0.isInactive || (showHidden   && $0.isHidden))
-                && (showVideo    || $0.type != .video)
-                && (showEmpty    || !$0.clips.isEmpty)
-            }
-            .sorted { a, b in
-                let av = a.type == .video ? 0 : 1
-                let bv = b.type == .video ? 0 : 1
-                if av != bv { return av < bv }
-                return a.index < b.index
-            }
-    }
-
     private func updateHighlightedFiles() {
         guard followClipSelection else { return }
-        let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
-        let tracks = Self.filteredTracks(
-            from: session.tracks,
-            showHidden: showHiddenTracks, showInactive: showInactiveTracks,
-            showVideo: showVideoTrack, showEmpty: showEmptyTracks
-        )
+        let total = totalSamples
+        let tracks = session.tracks.filter { $0.type == .audio }
         guard let start = tc.selStart else { highlightedAudioFiles = []; return }
 
-        let startSamp = Int64((start * total).rounded())
-
         if let end = tc.selEnd {
-            let endSamp = Int64((end * total).rounded())
+            // Range selection — collect all source files from clips in range
+            let startSamp = Int64((start * total).rounded())
+            let endSamp   = Int64((end * total).rounded())
             let lo = min(startSamp, endSamp)
             let hi = max(startSamp, endSamp)
             let tLo = min(tc.selTrack ?? 0, tc.selTrackEnd ?? tc.selTrack ?? 0)
@@ -141,11 +116,10 @@ struct SessionInspectorView: View {
             }
             highlightedAudioFiles = files
         } else {
+            // Single click — find clip at cursor
+            let samp = Int64((start * total).rounded())
             guard let idx = tc.selTrack, idx < tracks.count else { highlightedAudioFiles = []; return }
-            let trackClips = tracks[idx].clips.filter { !$0.isGroup }
-            if let clip = trackClips.first(where: {
-                $0.startSample <= startSamp && (startSamp < $0.startSample + $0.lengthSamples)
-            }), !clip.sourceFile.isEmpty {
+            if let clip = tracks[idx].clips.first(where: { $0.startSample == samp }), !clip.isGroup, !clip.sourceFile.isEmpty {
                 highlightedAudioFiles = [clip.sourceFile]
             } else {
                 highlightedAudioFiles = []
@@ -290,7 +264,6 @@ struct SessionInspectorView: View {
                         frameRate: session.frameRate,
                         highlightedFiles: highlightedAudioFiles,
                         isBWFLoading: isBWFLoading,
-                        onClearFilter: { highlightedAudioFiles.removeAll() },
                         followClipSelection: $followClipSelection,
                         bwfFieldsRaw: $bwfFieldsRaw
                     )
@@ -484,11 +457,19 @@ struct SessionInspectorView: View {
         let hasMuted    = session.tracks.contains { $0.clips.contains { $0.isMuted } }
         let hasGroups   = session.tracks.contains { $0.clips.contains { $0.isGroup } }
         let hasMarkers  = session.memoryLocations.contains { $0.samplePosition > 0 }
-        let clippedTracks = Self.filteredTracks(
-            from: session.tracks,
-            showHidden: showHiddenTracks, showInactive: showInactiveTracks,
-            showVideo: showVideoTrack, showEmpty: showEmptyTracks
-        )
+        let clippedTracks = session.tracks
+            .filter {
+                (showHiddenTracks   || !$0.isHidden   || (showInactiveTracks && $0.isInactive))
+                && (showInactiveTracks || !$0.isInactive || (showHiddenTracks   && $0.isHidden))
+                && (showVideoTrack     || $0.type != .video)
+                && (showEmptyTracks    || !$0.clips.isEmpty)
+            }
+            .sorted { a, b in
+                let av = a.type == .video ? 0 : 1
+                let bv = b.type == .video ? 0 : 1
+                if av != bv { return av < bv }
+                return a.index < b.index
+            }
         let sr = Double(session.sampleRate) ?? 48000.0
         // Leave ~180 px for the collapsible sections below the overview.
         let maxH = max(100, availableHeight - 180)
