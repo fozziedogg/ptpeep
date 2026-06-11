@@ -189,19 +189,30 @@ struct AudioFilesTableView: View {
                         Divider()
 
                         // Vertically-scrollable rows
-                        ScrollView(.vertical) {
-                            LazyVStack(alignment: .leading, spacing: 0) {
-                                ForEach(Array(rows.enumerated()), id: \.offset) { displayIdx, row in
-                                    AudioFileMetadataRow(
-                                        name: row.name,
-                                        isOnline: row.resolved?.url != nil,
-                                        fileURL: row.resolved?.url,
-                                        isHighlighted: highlightedFiles.contains(row.name),
-                                        fieldValues: row.values,
-                                        fieldWidths: fw,
-                                        nameWidth: nw,
-                                        index: displayIdx
-                                    )
+                        ScrollViewReader { proxy in
+                            ScrollView(.vertical) {
+                                LazyVStack(alignment: .leading, spacing: 0) {
+                                    ForEach(Array(rows.enumerated()), id: \.offset) { displayIdx, row in
+                                        AudioFileMetadataRow(
+                                            name: row.name,
+                                            isOnline: row.resolved?.url != nil,
+                                            fileURL: row.resolved?.url,
+                                            isHighlighted: highlightedFiles.contains(row.name),
+                                            fieldValues: row.values,
+                                            fieldWidths: fw,
+                                            nameWidth: nw,
+                                            index: displayIdx
+                                        )
+                                        .id("\(row.name)-\(row.index)")
+                                    }
+                                }
+                            }
+                            .onChange(of: highlightedFiles) { files in
+                                if files.count == 1, let target = files.first,
+                                   let row = rows.first(where: { $0.name == target }) {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        proxy.scrollTo("\(row.name)-\(row.index)", anchor: .center)
+                                    }
                                 }
                             }
                         }
