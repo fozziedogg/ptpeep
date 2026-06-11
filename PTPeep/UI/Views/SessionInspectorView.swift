@@ -1527,11 +1527,12 @@ private struct AudioFilesTableView: View {
             .buttonStyle(.plain)
             .contextMenu { fieldContextMenu }
 
-            // Drag handle for resizing
+            // Drag handle for resizing — padding widens hit area without inflating height
             Color.secondary.opacity(0.3)
                 .frame(width: 1)
                 .padding(.vertical, 2)
-                .contentShape(Rectangle().size(width: 8, height: 50).offset(x: -3.5))
+                .padding(.horizontal, 4)
+                .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 1)
                         .onChanged { drag in
@@ -1547,7 +1548,7 @@ private struct AudioFilesTableView: View {
                     }
                 }
         }
-        .frame(width: width, alignment: .leading)
+        .frame(width: width, height: 18, alignment: .leading)
     }
 
     @ViewBuilder
