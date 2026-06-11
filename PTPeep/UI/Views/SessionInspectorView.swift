@@ -91,27 +91,34 @@ struct SessionInspectorView: View {
         Dictionary(session.resolvedAudioFiles.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
     }
 
+    /// The same filtered/sorted track list that the timeline uses.
+    private var timelineTracks: [PTXTrack] {
+        session.tracks
+            .filter {
+                (showHiddenTracks   || !$0.isHidden   || (showInactiveTracks && $0.isInactive))
+                && (showInactiveTracks || !$0.isInactive || (showHiddenTracks   && $0.isHidden))
+                && (showVideoTrack     || $0.type != .video)
+                && (showEmptyTracks    || !$0.clips.isEmpty)
+            }
+            .sorted { a, b in
+                let av = a.type == .video ? 0 : 1
+                let bv = b.type == .video ? 0 : 1
+                if av != bv { return av < bv }
+                return a.index < b.index
+            }
+    }
+
     private func updateHighlightedFiles() {
-        guard followClipSelection else {
-            AppLog.shared.log("[AF-SEL] skipped: followClipSelection=false")
-            return
-        }
-        let total = totalSamples
-        let allTracks = session.tracks
-        let tracks = allTracks.filter { $0.type == .audio }
-        guard let start = tc.selStart else {
-            AppLog.shared.log("[AF-SEL] no selStart, clearing")
-            highlightedAudioFiles = []
-            return
-        }
+        guard followClipSelection else { return }
+        // Use the same total the timeline uses for fraction→sample conversion
+        let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
+        let tracks = timelineTracks
+        guard let start = tc.selStart else { highlightedAudioFiles = []; return }
 
         let startSamp = Int64((start * total).rounded())
-        let selTrackStr = tc.selTrack.map { String($0) } ?? "nil"
-        let selEndStr = tc.selEnd.map { String($0) } ?? "nil"
-        AppLog.shared.log("[AF-SEL] start=\(start) selTrack=\(selTrackStr) selEnd=\(selEndStr) startSamp=\(startSamp) total=\(total) audioTracks=\(tracks.count)/\(allTracks.count)")
+        AppLog.shared.log("[AF-SEL] start=\(start) startSamp=\(startSamp) total=\(total) tracks=\(tracks.count)")
 
         if let end = tc.selEnd {
-            // Range selection — collect all source files from clips overlapping range
             let endSamp = Int64((end * total).rounded())
             let lo = min(startSamp, endSamp)
             let hi = max(startSamp, endSamp)
@@ -126,32 +133,19 @@ struct SessionInspectorView: View {
                     }
                 }
             }
-            AppLog.shared.log("[AF-SEL] range: tLo=\(tLo) tHi=\(tHi) loSamp=\(lo) hiSamp=\(hi) → \(files.count) files")
+            AppLog.shared.log("[AF-SEL] range: \(files.count) files")
             highlightedAudioFiles = files
         } else {
-            // Single click — find clip containing cursor position on selected track
-            guard let idx = tc.selTrack, idx < tracks.count else {
-                let idxStr = tc.selTrack.map { String($0) } ?? "nil"
-                AppLog.shared.log("[AF-SEL] single: no valid selTrack (idx=\(idxStr), audioTracks=\(tracks.count))")
-                highlightedAudioFiles = []
-                return
-            }
+            guard let idx = tc.selTrack, idx < tracks.count else { highlightedAudioFiles = []; return }
             let trackClips = tracks[idx].clips.filter { !$0.isGroup }
-            AppLog.shared.log("[AF-SEL] single: track[\(idx)]='\(tracks[idx].name)' has \(trackClips.count) clips, cursor=\(startSamp)")
-            if let firstClip = trackClips.first, let lastClip = trackClips.last {
-                AppLog.shared.log("[AF-SEL]   clip range: \(firstClip.startSample)...\(lastClip.startSample + lastClip.lengthSamples)")
-            }
             if let clip = trackClips.first(where: {
                 $0.startSample <= startSamp && (startSamp < $0.startSample + $0.lengthSamples)
             }), !clip.sourceFile.isEmpty {
-                AppLog.shared.log("[AF-SEL]   HIT: '\(clip.sourceFile)' at \(clip.startSample)...\(clip.startSample + clip.lengthSamples)")
+                AppLog.shared.log("[AF-SEL] HIT: '\(clip.sourceFile)'")
                 highlightedAudioFiles = [clip.sourceFile]
             } else {
-                // Log nearest clip for debugging
                 if let nearest = trackClips.min(by: { abs($0.startSample - startSamp) < abs($1.startSample - startSamp) }) {
-                    AppLog.shared.log("[AF-SEL]   MISS: nearest '\(nearest.name)' src='\(nearest.sourceFile)' at \(nearest.startSample)...\(nearest.startSample + nearest.lengthSamples) (delta=\(startSamp - nearest.startSample))")
-                } else {
-                    AppLog.shared.log("[AF-SEL]   MISS: no clips on track")
+                    AppLog.shared.log("[AF-SEL] MISS: nearest '\(nearest.sourceFile)' at \(nearest.startSample)...\(nearest.startSample + nearest.lengthSamples) cursor=\(startSamp)")
                 }
                 highlightedAudioFiles = []
             }
