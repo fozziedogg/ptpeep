@@ -1290,6 +1290,8 @@ private struct AudioFilesTableView: View {
     @State private var showOptions: Bool = false
     @State private var sortColumn: SortColumn = .none
     @State private var sortAscending: Bool = true
+    @State private var widthOverrides: [String: CGFloat] = [:]  // "name" or field rawValue → width
+    @State private var dragColumnKey: String? = nil  // field being dragged for reorder
 
     private enum SortColumn: Equatable {
         case none
@@ -1299,35 +1301,36 @@ private struct AudioFilesTableView: View {
 
     static let statusW: CGFloat = 20
     private static let colPad: CGFloat = 12
+    private static let minColW: CGFloat = 40
     private static let rowFont  = Font.system(size: 10).monospacedDigit()
     private static let headerFont = Font.system(size: 9, weight: .semibold)
 
-    /// Measure the approximate width needed for a string at 10pt monospaced.
     private static func textWidth(_ s: String) -> CGFloat {
         CGFloat(s.count) * 6.2 + colPad
     }
 
-    /// Compute column widths from actual data. Name column fits the longest name;
-    /// each field column fits the longest value or the header label, whichever is wider.
-    private var columnWidths: (name: CGFloat, fields: [CGFloat]) {
-        // Name column: measure all names, clamp to 100…400
+    /// Auto-size width for a column; overrides take precedence.
+    private func nameWidth() -> CGFloat {
+        if let w = widthOverrides["name"] { return w }
         let maxName = audioFileNames.reduce("Name") { longest, n in n.count > longest.count ? n : longest }
-        let nameW = min(400, max(100, Self.textWidth(maxName)))
+        return min(400, max(100, Self.textWidth(maxName)))
+    }
 
-        // Field columns: measure header + all values
-        var fieldWidths: [CGFloat] = []
-        for key in selectedFields {
-            var longest = key.label.uppercased()
-            for name in audioFileNames {
-                if let meta = bwfCache[name],
-                   let val = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate),
-                   val.count > longest.count {
-                    longest = val
-                }
+    private func fieldWidth(for key: BWFFieldKey) -> CGFloat {
+        if let w = widthOverrides[key.rawValue] { return w }
+        var longest = key.label.uppercased()
+        for name in audioFileNames {
+            if let meta = bwfCache[name],
+               let val = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate),
+               val.count > longest.count {
+                longest = val
             }
-            fieldWidths.append(min(300, max(50, Self.textWidth(longest))))
         }
-        return (nameW, fieldWidths)
+        return min(300, max(50, Self.textWidth(longest)))
+    }
+
+    private var allFieldWidths: [CGFloat] {
+        selectedFields.map { fieldWidth(for: $0) }
     }
 
     /// Pre-compute all display values + apply sorting.
@@ -1375,8 +1378,23 @@ private struct AudioFilesTableView: View {
         return sortAscending ? "chevron.up" : "chevron.down"
     }
 
+    // MARK: - Reorder helpers
+
+    private func moveField(from src: String, to dest: String) {
+        var fields = selectedFields
+        guard let si = fields.firstIndex(where: { $0.rawValue == src }),
+              let di = fields.firstIndex(where: { $0.rawValue == dest }),
+              si != di else { return }
+        let moved = fields.remove(at: si)
+        fields.insert(moved, at: di)
+        bwfFieldsRaw = fields.map(\.rawValue).joined(separator: ",")
+    }
+
+    // MARK: - Body
+
     var body: some View {
-        let widths = columnWidths
+        let nw = nameWidth()
+        let fw = allFieldWidths
         let rows = sortedRows
 
         VStack(spacing: 0) {
@@ -1387,19 +1405,29 @@ private struct AudioFilesTableView: View {
                     .foregroundStyle(.tertiary)
                 Spacer()
             } else {
-                // Single horizontal scroll wraps header + rows so columns stay aligned
                 ScrollView(.horizontal) {
                     VStack(alignment: .leading, spacing: 0) {
                         // Column header row
                         HStack(spacing: 0) {
                             Text("")
                                 .frame(width: Self.statusW)
-                            headerCell(label: "NAME", width: widths.name, col: .name)
-                            ForEach(Array(selectedFields.enumerated()), id: \.offset) { fi, key in
-                                headerCell(label: key.label.uppercased(),
-                                           width: widths.fields[fi],
-                                           col: .field(key))
-                                    .contextMenu { fieldContextMenu }
+                            resizableHeaderCell(label: "NAME", width: nw, col: .name, widthKey: "name")
+                            ForEach(Array(selectedFields.enumerated()), id: \.element) { fi, key in
+                                resizableHeaderCell(
+                                    label: key.label.uppercased(),
+                                    width: fw[fi],
+                                    col: .field(key),
+                                    widthKey: key.rawValue
+                                )
+                                .onDrag {
+                                    dragColumnKey = key.rawValue
+                                    return NSItemProvider(object: key.rawValue as NSString)
+                                }
+                                .onDrop(of: [.text], delegate: FieldDropDelegate(
+                                    targetKey: key.rawValue,
+                                    dragColumnKey: $dragColumnKey,
+                                    moveField: moveField
+                                ))
                             }
                             if isBWFLoading {
                                 ProgressView()
@@ -1425,8 +1453,8 @@ private struct AudioFilesTableView: View {
                                         fileURL: row.resolved?.url,
                                         isHighlighted: highlightedFiles.contains(row.name),
                                         fieldValues: row.values,
-                                        fieldWidths: widths.fields,
-                                        nameWidth: widths.name,
+                                        fieldWidths: fw,
+                                        nameWidth: nw,
                                         index: displayIdx
                                     )
                                 }
@@ -1434,7 +1462,6 @@ private struct AudioFilesTableView: View {
                         }
                     }
                 }
-                // Options button floats top-right
                 .overlay(alignment: .topTrailing) {
                     Button { showOptions = true } label: {
                         Image(systemName: "ellipsis.circle")
@@ -1452,23 +1479,49 @@ private struct AudioFilesTableView: View {
         }
     }
 
-    private func headerCell(label: String, width: CGFloat, col: SortColumn) -> some View {
-        Button { toggleSort(col) } label: {
-            HStack(spacing: 2) {
-                Text(label)
-                    .font(Self.headerFont)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                if let arrow = sortIndicator(for: col) {
-                    Image(systemName: arrow)
-                        .font(.system(size: 7, weight: .bold))
+    // MARK: - Header cell with resize handle
+
+    private func resizableHeaderCell(label: String, width: CGFloat, col: SortColumn, widthKey: String) -> some View {
+        HStack(spacing: 0) {
+            Button { toggleSort(col) } label: {
+                HStack(spacing: 2) {
+                    Text(label)
+                        .font(Self.headerFont)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    if let arrow = sortIndicator(for: col) {
+                        Image(systemName: arrow)
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
                 }
+                .contentShape(Rectangle())
             }
-            .frame(width: width, alignment: .leading)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .contextMenu { fieldContextMenu }
+
+            // Drag handle for resizing
+            Color.secondary.opacity(0.3)
+                .frame(width: 1)
+                .padding(.vertical, 2)
+                .contentShape(Rectangle().size(width: 8, height: 50).offset(x: -3.5))
+                .gesture(
+                    DragGesture(minimumDistance: 1)
+                        .onChanged { drag in
+                            let newW = max(Self.minColW, width + drag.translation.width)
+                            widthOverrides[widthKey] = newW
+                        }
+                )
+                .onHover { hovering in
+                    if hovering {
+                        NSCursor.resizeLeftRight.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
         }
-        .buttonStyle(.plain)
+        .frame(width: width, alignment: .leading)
     }
 
     @ViewBuilder
@@ -1519,6 +1572,27 @@ private struct AudioFilesTableView: View {
         }
         .frame(width: 200)
     }
+}
+
+/// Drop delegate for reordering field columns by dragging headers.
+private struct FieldDropDelegate: DropDelegate {
+    let targetKey: String
+    @Binding var dragColumnKey: String?
+    let moveField: (String, String) -> Void
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard let src = dragColumnKey, src != targetKey else { return false }
+        moveField(src, targetKey)
+        dragColumnKey = nil
+        return true
+    }
+
+    func dropEntered(info: DropInfo) {}
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+    func dropExited(info: DropInfo) {}
+    func validateDrop(info: DropInfo) -> Bool { dragColumnKey != nil }
 }
 
 private struct AudioFileMetadataRow: View {
