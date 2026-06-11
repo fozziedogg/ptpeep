@@ -527,9 +527,13 @@ final class PTXParser {
         }
 
         let text = lines.joined(separator: "\n")
-        let logURL = sessionURL.deletingPathExtension().appendingPathExtension("log")
-        try? text.write(to: logURL, atomically: true, encoding: .utf8)
-        AppLog.shared.log("[PTXParser] Clip log written to \(logURL.path)")
+        let sessionBase = sessionURL.deletingPathExtension().lastPathComponent
+        if let logsDir = AppLog.appSupportDir?.appendingPathComponent("Logs") {
+            try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
+            let logURL = logsDir.appendingPathComponent("\(sessionBase).log")
+            try? text.write(to: logURL, atomically: true, encoding: .utf8)
+            AppLog.shared.log("[PTXParser] Clip log written to \(logURL.path)")
+        }
     }
 
     /// Format a sample count as H:MM:SS:FF
