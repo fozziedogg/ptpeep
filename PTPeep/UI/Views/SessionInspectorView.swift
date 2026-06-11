@@ -127,14 +127,15 @@ struct SessionInspectorView: View {
         }
     }
 
-    private func startBWFParse() {
-        let files = session.resolvedAudioFiles.filter { $0.url != nil }
+    private func startBWFParse(resolvedFiles: [ResolvedAudioFile]) {
+        let files = resolvedFiles.filter { $0.url != nil }
         guard !files.isEmpty, bwfCache.isEmpty else {
             AppLog.shared.log("[BWF] startBWFParse skipped: \(files.count) resolved, cache has \(bwfCache.count) entries")
             return
         }
         AppLog.shared.log("[BWF] Starting parse of \(files.count) resolved audio files")
         isBWFLoading = true
+        let audioNames = session.audioFileNames
         Task.detached(priority: .utility) {
             var cache: [String: BWFMetadata] = [:]
             for file in files {
@@ -146,11 +147,10 @@ struct SessionInspectorView: View {
             if let first = cache.first {
                 AppLog.shared.log("[BWF] Sample cache key: '\(first.key)'")
             }
-            await MainActor.run { [cache] in
-                self.bwfCache = cache
-                self.isBWFLoading = false
-                // Check if audioFileNames match cache keys
-                let afNames = self.session.audioFileNames.prefix(3).map { "'\($0)'" }.joined(separator: ", ")
+            await MainActor.run {
+                bwfCache = cache
+                isBWFLoading = false
+                let afNames = audioNames.prefix(3).map { "'\($0)'" }.joined(separator: ", ")
                 let cacheKeys = cache.keys.prefix(3).map { "'\($0)'" }.joined(separator: ", ")
                 AppLog.shared.log("[BWF] First audioFileNames: \(afNames)")
                 AppLog.shared.log("[BWF] First cache keys: \(cacheKeys)")
@@ -336,13 +336,9 @@ struct SessionInspectorView: View {
             showTrackOptions         = s.showTrackOptions
             trackSortColumn          = TrackSortColumn(index: s.trackSortIndex)
             trackSortAscending       = s.trackSortAscending
-            if !isResolvingFiles { startBWFParse() }
         }
-        .onChange(of: isResolvingFiles) { resolving in
-            if !resolving { startBWFParse() }
-        }
-        .onChange(of: session.resolvedAudioFiles.count) { count in
-            if count > 0 { startBWFParse() }
+        .task(id: session.resolvedAudioFiles.count) {
+            startBWFParse(resolvedFiles: session.resolvedAudioFiles)
         }
         .onChange(of: tc.selStart) { _ in updateHighlightedFiles() }
         .onChange(of: tc.selTrack) { _ in updateHighlightedFiles() }
