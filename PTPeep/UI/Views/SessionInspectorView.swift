@@ -341,6 +341,9 @@ struct SessionInspectorView: View {
         .onChange(of: isResolvingFiles) { resolving in
             if !resolving { startBWFParse() }
         }
+        .onChange(of: session.resolvedAudioFiles.count) { count in
+            if count > 0 { startBWFParse() }
+        }
         .onChange(of: tc.selStart) { _ in updateHighlightedFiles() }
         .onChange(of: tc.selTrack) { _ in updateHighlightedFiles() }
         .onChange(of: tc.selEnd)   { _ in updateHighlightedFiles() }
