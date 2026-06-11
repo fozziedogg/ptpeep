@@ -482,11 +482,19 @@ struct SessionInspectorView: View {
         let hasMuted    = session.tracks.contains { $0.clips.contains { $0.isMuted } }
         let hasGroups   = session.tracks.contains { $0.clips.contains { $0.isGroup } }
         let hasMarkers  = session.memoryLocations.contains { $0.samplePosition > 0 }
-        let clippedTracks = Self.filteredTracks(
-            from: session.tracks,
-            showHidden: showHiddenTracks, showInactive: showInactiveTracks,
-            showVideo: showVideoTrack, showEmpty: showEmptyTracks
-        )
+        let clippedTracks = session.tracks
+            .filter {
+                (showHiddenTracks   || !$0.isHidden   || (showInactiveTracks && $0.isInactive))
+                && (showInactiveTracks || !$0.isInactive || (showHiddenTracks   && $0.isHidden))
+                && (showVideoTrack     || $0.type != .video)
+                && (showEmptyTracks    || !$0.clips.isEmpty)
+            }
+            .sorted { a, b in
+                let av = a.type == .video ? 0 : 1
+                let bv = b.type == .video ? 0 : 1
+                if av != bv { return av < bv }
+                return a.index < b.index
+            }
         let sr = Double(session.sampleRate) ?? 48000.0
         // Leave ~180 px for the collapsible sections below the overview.
         let maxH = max(100, availableHeight - 180)
