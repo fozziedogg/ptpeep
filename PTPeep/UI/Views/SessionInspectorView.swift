@@ -1548,7 +1548,8 @@ private struct AudioFilesTableView: View {
                     }
                 }
         }
-        .frame(width: width, height: 18, alignment: .leading)
+        .frame(width: width, height: 18)
+        .clipped()
     }
 
     @ViewBuilder
