@@ -1276,44 +1276,139 @@ private struct AudioFilesTableView: View {
     @Binding var followClipSelection: Bool
     @Binding var bwfFieldsRaw: String
     @State private var showOptions: Bool = false
+    @State private var sortColumn: SortColumn = .none
+    @State private var sortAscending: Bool = true
+
+    private enum SortColumn: Equatable {
+        case none
+        case name
+        case field(BWFFieldKey)
+    }
 
     static let statusW: CGFloat = 20
-    static let nameW:   CGFloat = 180
-    static let fieldW:  CGFloat = 90
-    static let rowFont  = Font.system(size: 10).monospacedDigit()
+    private static let colPad: CGFloat = 12
+    private static let rowFont  = Font.system(size: 10).monospacedDigit()
     private static let headerFont = Font.system(size: 9, weight: .semibold)
 
-    var body: some View {
-        VStack(spacing: 0) {
-            // Fixed column header
-            HStack(spacing: 0) {
-                Text("")
-                    .frame(width: Self.statusW)
-                Text("Name")
-                    .font(Self.headerFont)
-                    .foregroundStyle(.secondary)
-                    .frame(width: Self.nameW, alignment: .leading)
-                ForEach(selectedFields) { key in
-                    Text(key.label.uppercased())
-                        .font(Self.headerFont)
-                        .foregroundStyle(.secondary)
-                        .frame(width: Self.fieldW, alignment: .leading)
-                        .lineLimit(1)
+    /// Measure the approximate width needed for a string at 10pt monospaced.
+    private static func textWidth(_ s: String) -> CGFloat {
+        CGFloat(s.count) * 6.2 + colPad
+    }
+
+    /// Compute column widths from actual data. Name column fits the longest name;
+    /// each field column fits the longest value or the header label, whichever is wider.
+    private var columnWidths: (name: CGFloat, fields: [CGFloat]) {
+        // Name column: measure all names, clamp to 100…400
+        let maxName = audioFileNames.reduce("Name") { longest, n in n.count > longest.count ? n : longest }
+        let nameW = min(400, max(100, Self.textWidth(maxName)))
+
+        // Field columns: measure header + all values
+        var fieldWidths: [CGFloat] = []
+        for key in selectedFields {
+            var longest = key.label.uppercased()
+            for name in audioFileNames {
+                if let meta = bwfCache[name],
+                   let val = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate),
+                   val.count > longest.count {
+                    longest = val
                 }
-                Spacer()
+            }
+            fieldWidths.append(min(300, max(50, Self.textWidth(longest))))
+        }
+        return (nameW, fieldWidths)
+    }
+
+    /// Pre-compute all display values + apply sorting.
+    private var sortedRows: [(index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?])] {
+        var rows = audioFileNames.enumerated().map { i, name -> (index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?]) in
+            let meta = bwfCache[name]
+            let vals = selectedFields.map { key in
+                meta?.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate)
+            }
+            return (i, name, resolvedLookup[name], vals)
+        }
+
+        switch sortColumn {
+        case .none:
+            break
+        case .name:
+            rows.sort { a, b in
+                sortAscending ? a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+                              : a.name.localizedCaseInsensitiveCompare(b.name) == .orderedDescending
+            }
+        case .field(let key):
+            if let fi = selectedFields.firstIndex(of: key) {
+                rows.sort { a, b in
+                    let va = a.values[fi] ?? ""
+                    let vb = b.values[fi] ?? ""
+                    return sortAscending ? va.localizedCaseInsensitiveCompare(vb) == .orderedAscending
+                                         : va.localizedCaseInsensitiveCompare(vb) == .orderedDescending
+                }
+            }
+        }
+        return rows
+    }
+
+    private func toggleSort(_ col: SortColumn) {
+        if sortColumn == col {
+            sortAscending.toggle()
+        } else {
+            sortColumn = col
+            sortAscending = true
+        }
+    }
+
+    private func sortIndicator(for col: SortColumn) -> String? {
+        guard sortColumn == col else { return nil }
+        return sortAscending ? "chevron.up" : "chevron.down"
+    }
+
+    var body: some View {
+        let widths = columnWidths
+
+        VStack(spacing: 0) {
+            // Fixed column header — scrolls horizontally with rows
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    Text("")
+                        .frame(width: Self.statusW)
+
+                    // Name header
+                    headerCell(label: "NAME", width: widths.name, col: .name)
+
+                    // Field headers
+                    ForEach(Array(selectedFields.enumerated()), id: \.offset) { fi, key in
+                        headerCell(label: key.label.uppercased(),
+                                   width: widths.fields[fi],
+                                   col: .field(key))
+                            .contextMenu {
+                                fieldContextMenu
+                            }
+                    }
+                }
+                .padding(.horizontal, 12)
+            }
+            .padding(.vertical, 4)
+            .background(Color(nsColor: .windowBackgroundColor).opacity(0.6))
+            // Right-click on header background for field selector
+            .contextMenu {
+                fieldContextMenu
+            }
+
+            // Options button in top-right corner
+            .overlay(alignment: .topTrailing) {
                 Button { showOptions = true } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
                 .popover(isPresented: $showOptions, arrowEdge: .bottom) {
                     audioFilesOptionsPopover
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .background(Color(nsColor: .windowBackgroundColor).opacity(0.6))
 
             Divider()
 
@@ -1335,21 +1430,19 @@ private struct AudioFilesTableView: View {
                 }
                 Spacer()
             } else {
-                ScrollView {
+                let rows = sortedRows
+                ScrollView([.horizontal, .vertical]) {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(audioFileNames.enumerated()), id: \.offset) { i, name in
-                            let resolved = resolvedLookup[name]
-                            let meta = bwfCache[name]
-                            let values = selectedFields.map { key in
-                                meta?.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate)
-                            }
+                        ForEach(Array(rows.enumerated()), id: \.offset) { displayIdx, row in
                             AudioFileMetadataRow(
-                                name: name,
-                                isOnline: resolved?.url != nil,
-                                fileURL: resolved?.url,
-                                isHighlighted: highlightedFiles.contains(name),
-                                fieldValues: values,
-                                index: i
+                                name: row.name,
+                                isOnline: row.resolved?.url != nil,
+                                fileURL: row.resolved?.url,
+                                isHighlighted: highlightedFiles.contains(row.name),
+                                fieldValues: row.values,
+                                fieldWidths: widths.fields,
+                                nameWidth: widths.name,
+                                index: displayIdx
                             )
                         }
                     }
@@ -1358,9 +1451,49 @@ private struct AudioFilesTableView: View {
         }
     }
 
+    private func headerCell(label: String, width: CGFloat, col: SortColumn) -> some View {
+        Button { toggleSort(col) } label: {
+            HStack(spacing: 2) {
+                Text(label)
+                    .font(Self.headerFont)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                if let arrow = sortIndicator(for: col) {
+                    Image(systemName: arrow)
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: width, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var fieldContextMenu: some View {
+        ForEach(BWFFieldKey.allCases) { key in
+            let isOn = selectedFields.contains(key)
+            Button {
+                var current = selectedFields
+                if let idx = current.firstIndex(of: key) {
+                    current.remove(at: idx)
+                } else {
+                    current.append(key)
+                }
+                bwfFieldsRaw = current.map(\.rawValue).joined(separator: ",")
+            } label: {
+                if isOn {
+                    Label(key.label, systemImage: "checkmark")
+                } else {
+                    Text(key.label)
+                }
+            }
+        }
+    }
+
     private var audioFilesOptionsPopover: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Follow clip selection toggle
             Button {
                 followClipSelection.toggle()
             } label: {
@@ -1381,7 +1514,6 @@ private struct AudioFilesTableView: View {
 
             Divider().padding(.vertical, 4)
 
-            // BWF field selector
             BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
         }
         .frame(width: 200)
@@ -1394,27 +1526,31 @@ private struct AudioFileMetadataRow: View {
     let fileURL: URL?
     let isHighlighted: Bool
     let fieldValues: [String?]
+    let fieldWidths: [CGFloat]
+    let nameWidth: CGFloat
     let index: Int
+
+    private static let statusW: CGFloat = AudioFilesTableView.statusW
+    private static let rowFont = Font.system(size: 10).monospacedDigit()
 
     var body: some View {
         HStack(spacing: 0) {
             Image(systemName: isOnline ? "checkmark.circle" : "circle.dashed")
                 .foregroundStyle(isOnline ? .green : .secondary)
                 .font(.system(size: 10))
-                .frame(width: AudioFilesTableView.statusW)
+                .frame(width: Self.statusW)
             Text(name)
                 .font(.system(size: 10))
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .frame(width: AudioFilesTableView.nameW, alignment: .leading)
-            ForEach(Array(fieldValues.enumerated()), id: \.offset) { _, value in
+                .frame(width: nameWidth, alignment: .leading)
+            ForEach(Array(fieldValues.enumerated()), id: \.offset) { fi, value in
                 Text(value ?? "—")
-                    .font(AudioFilesTableView.rowFont)
+                    .font(Self.rowFont)
                     .foregroundStyle(value != nil ? Color.primary : Color.secondary.opacity(0.4))
                     .lineLimit(1)
-                    .frame(width: AudioFilesTableView.fieldW, alignment: .leading)
+                    .frame(width: fi < fieldWidths.count ? fieldWidths[fi] : 80, alignment: .leading)
             }
-            Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 3)
