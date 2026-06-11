@@ -91,35 +91,16 @@ struct SessionInspectorView: View {
         Dictionary(session.resolvedAudioFiles.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
     }
 
-    /// The same filtered/sorted track list that the timeline uses.
-    private var timelineTracks: [PTXTrack] {
-        session.tracks
-            .filter {
-                (showHiddenTracks   || !$0.isHidden   || (showInactiveTracks && $0.isInactive))
-                && (showInactiveTracks || !$0.isInactive || (showHiddenTracks   && $0.isHidden))
-                && (showVideoTrack     || $0.type != .video)
-                && (showEmptyTracks    || !$0.clips.isEmpty)
-            }
-            .sorted { a, b in
-                let av = a.type == .video ? 0 : 1
-                let bv = b.type == .video ? 0 : 1
-                if av != bv { return av < bv }
-                return a.index < b.index
-            }
-    }
-
     private func updateHighlightedFiles() {
         guard followClipSelection else { return }
-        // Use the same total the timeline uses for fraction→sample conversion
-        let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
-        let tracks = timelineTracks
+        let total = totalSamples
+        let tracks = session.tracks.filter { $0.type == .audio }
         guard let start = tc.selStart else { highlightedAudioFiles = []; return }
 
-        let startSamp = Int64((start * total).rounded())
-        AppLog.shared.log("[AF-SEL] start=\(start) startSamp=\(startSamp) total=\(total) tracks=\(tracks.count)")
-
         if let end = tc.selEnd {
-            let endSamp = Int64((end * total).rounded())
+            // Range selection — collect all source files from clips in range
+            let startSamp = Int64((start * total).rounded())
+            let endSamp   = Int64((end * total).rounded())
             let lo = min(startSamp, endSamp)
             let hi = max(startSamp, endSamp)
             let tLo = min(tc.selTrack ?? 0, tc.selTrackEnd ?? tc.selTrack ?? 0)
@@ -133,20 +114,14 @@ struct SessionInspectorView: View {
                     }
                 }
             }
-            AppLog.shared.log("[AF-SEL] range: \(files.count) files")
             highlightedAudioFiles = files
         } else {
+            // Single click — find clip at cursor
+            let samp = Int64((start * total).rounded())
             guard let idx = tc.selTrack, idx < tracks.count else { highlightedAudioFiles = []; return }
-            let trackClips = tracks[idx].clips.filter { !$0.isGroup }
-            if let clip = trackClips.first(where: {
-                $0.startSample <= startSamp && (startSamp < $0.startSample + $0.lengthSamples)
-            }), !clip.sourceFile.isEmpty {
-                AppLog.shared.log("[AF-SEL] HIT: '\(clip.sourceFile)'")
+            if let clip = tracks[idx].clips.first(where: { $0.startSample == samp }), !clip.isGroup, !clip.sourceFile.isEmpty {
                 highlightedAudioFiles = [clip.sourceFile]
             } else {
-                if let nearest = trackClips.min(by: { abs($0.startSample - startSamp) < abs($1.startSample - startSamp) }) {
-                    AppLog.shared.log("[AF-SEL] MISS: nearest '\(nearest.sourceFile)' at \(nearest.startSample)...\(nearest.startSample + nearest.lengthSamples) cursor=\(startSamp)")
-                }
                 highlightedAudioFiles = []
             }
         }
@@ -289,7 +264,6 @@ struct SessionInspectorView: View {
                         frameRate: session.frameRate,
                         highlightedFiles: highlightedAudioFiles,
                         isBWFLoading: isBWFLoading,
-                        onClearFilter: { highlightedAudioFiles.removeAll() },
                         followClipSelection: $followClipSelection,
                         bwfFieldsRaw: $bwfFieldsRaw
                     )
@@ -1317,7 +1291,6 @@ private struct AudioFilesTableView: View {
     let frameRate: Double
     let highlightedFiles: Set<String>
     let isBWFLoading: Bool
-    var onClearFilter: () -> Void = {}
     @Binding var followClipSelection: Bool
     @Binding var bwfFieldsRaw: String
     @State private var showOptions: Bool = false
@@ -1443,21 +1416,10 @@ private struct AudioFilesTableView: View {
 
     // MARK: - Body
 
-    /// Single highlighted file → scroll to it. Multiple → filter list.
-    private var isFiltering: Bool { highlightedFiles.count > 1 }
-
-    private func displayRows(from rows: [(index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?])]) -> [(index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?])] {
-        if isFiltering {
-            return rows.filter { highlightedFiles.contains($0.name) }
-        }
-        return rows
-    }
-
     var body: some View {
         let nw = nameWidth()
         let fw = allFieldWidths
-        let allRows = sortedRows
-        let rows = displayRows(from: allRows)
+        let rows = sortedRows
 
         VStack(spacing: 0) {
             if audioFileNames.isEmpty {
@@ -1467,26 +1429,6 @@ private struct AudioFilesTableView: View {
                     .foregroundStyle(.tertiary)
                 Spacer()
             } else {
-                // Filter indicator
-                if isFiltering {
-                    HStack(spacing: 4) {
-                        Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.secondary)
-                        Text("Showing \(rows.count) of \(allRows.count) files")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Button("Show All") { onClearFilter() }
-                            .font(.system(size: 9))
-                            .buttonStyle(.plain)
-                            .foregroundStyle(Color.accentColor)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 3)
-                    .background(Color.accentColor.opacity(0.06))
-                }
-
                 ScrollView(.horizontal) {
                     VStack(alignment: .leading, spacing: 0) {
                         // Column header row
@@ -1525,31 +1467,20 @@ private struct AudioFilesTableView: View {
 
                         Divider()
 
-                        // Vertically-scrollable rows with scroll-to support
-                        ScrollViewReader { proxy in
-                            ScrollView(.vertical) {
-                                LazyVStack(alignment: .leading, spacing: 0) {
-                                    ForEach(rows, id: \.name) { row in
-                                        AudioFileMetadataRow(
-                                            name: row.name,
-                                            isOnline: row.resolved?.url != nil,
-                                            fileURL: row.resolved?.url,
-                                            isHighlighted: highlightedFiles.contains(row.name),
-                                            fieldValues: row.values,
-                                            fieldWidths: fw,
-                                            nameWidth: nw,
-                                            index: row.index
-                                        )
-                                        .id(row.name)
-                                    }
-                                }
-                            }
-                            .onChange(of: highlightedFiles) { files in
-                                // Single selection: scroll to the file
-                                if files.count == 1, let target = files.first {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        proxy.scrollTo(target, anchor: .center)
-                                    }
+                        // Vertically-scrollable rows
+                        ScrollView(.vertical) {
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                ForEach(Array(rows.enumerated()), id: \.offset) { displayIdx, row in
+                                    AudioFileMetadataRow(
+                                        name: row.name,
+                                        isOnline: row.resolved?.url != nil,
+                                        fileURL: row.resolved?.url,
+                                        isHighlighted: highlightedFiles.contains(row.name),
+                                        fieldValues: row.values,
+                                        fieldWidths: fw,
+                                        nameWidth: nw,
+                                        index: displayIdx
+                                    )
                                 }
                             }
                         }
