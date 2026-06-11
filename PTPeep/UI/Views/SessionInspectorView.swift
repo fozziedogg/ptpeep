@@ -287,8 +287,9 @@ struct SessionInspectorView: View {
                         selectedFields: bwfSelectedFields,
                         sampleRate: Double(session.sampleRate) ?? 48000,
                         frameRate: session.frameRate,
-                        highlightedFiles: $highlightedAudioFiles,
+                        highlightedFiles: highlightedAudioFiles,
                         isBWFLoading: isBWFLoading,
+                        onClearFilter: { highlightedAudioFiles.removeAll() },
                         followClipSelection: $followClipSelection,
                         bwfFieldsRaw: $bwfFieldsRaw
                     )
@@ -1314,8 +1315,9 @@ private struct AudioFilesTableView: View {
     let selectedFields: [BWFFieldKey]
     let sampleRate: Double
     let frameRate: Double
-    @Binding var highlightedFiles: Set<String>
+    let highlightedFiles: Set<String>
     let isBWFLoading: Bool
+    var onClearFilter: () -> Void = {}
     @Binding var followClipSelection: Bool
     @Binding var bwfFieldsRaw: String
     @State private var showOptions: Bool = false
@@ -1475,7 +1477,7 @@ private struct AudioFilesTableView: View {
                             .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Button("Show All") { highlightedFiles.removeAll() }
+                        Button("Show All") { onClearFilter() }
                             .font(.system(size: 9))
                             .buttonStyle(.plain)
                             .foregroundStyle(Color.accentColor)
