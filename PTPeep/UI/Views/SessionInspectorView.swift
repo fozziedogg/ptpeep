@@ -91,17 +91,15 @@ struct SessionInspectorView: View {
         Dictionary(session.resolvedAudioFiles.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
     }
 
-    /// Shared filter/sort logic for the timeline track list.
-    private static func filteredTracks(
-        from tracks: [PTXTrack],
-        showHidden: Bool, showInactive: Bool, showVideo: Bool, showEmpty: Bool
-    ) -> [PTXTrack] {
-        tracks
+    private func updateHighlightedFiles() {
+        guard followClipSelection else { return }
+        let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
+        let tracks = session.tracks
             .filter {
-                (showHidden   || !$0.isHidden   || (showInactive && $0.isInactive))
-                && (showInactive || !$0.isInactive || (showHidden   && $0.isHidden))
-                && (showVideo    || $0.type != .video)
-                && (showEmpty    || !$0.clips.isEmpty)
+                (showHiddenTracks   || !$0.isHidden   || (showInactiveTracks && $0.isInactive))
+                && (showInactiveTracks || !$0.isInactive || (showHiddenTracks   && $0.isHidden))
+                && (showVideoTrack     || $0.type != .video)
+                && (showEmptyTracks    || !$0.clips.isEmpty)
             }
             .sorted { a, b in
                 let av = a.type == .video ? 0 : 1
@@ -109,16 +107,6 @@ struct SessionInspectorView: View {
                 if av != bv { return av < bv }
                 return a.index < b.index
             }
-    }
-
-    private func updateHighlightedFiles() {
-        guard followClipSelection else { return }
-        let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
-        let tracks = Self.filteredTracks(
-            from: session.tracks,
-            showHidden: showHiddenTracks, showInactive: showInactiveTracks,
-            showVideo: showVideoTrack, showEmpty: showEmptyTracks
-        )
         guard let start = tc.selStart else { highlightedAudioFiles = []; return }
 
         let startSamp = Int64((start * total).rounded())
@@ -280,7 +268,7 @@ struct SessionInspectorView: View {
 
                 // Tab content
                 if selectedDetailTab == .audioFiles {
-                    AudioFilesTableView(
+                    AnyView(AudioFilesTableView(
                         audioFileNames: session.audioFileNames,
                         resolvedLookup: resolvedLookup,
                         bwfCache: bwfCache,
@@ -289,9 +277,10 @@ struct SessionInspectorView: View {
                         frameRate: session.frameRate,
                         highlightedFiles: highlightedAudioFiles,
                         isBWFLoading: isBWFLoading,
+                        onClearFilter: { highlightedAudioFiles.removeAll() },
                         followClipSelection: $followClipSelection,
                         bwfFieldsRaw: $bwfFieldsRaw
-                    )
+                    ))
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0) {
