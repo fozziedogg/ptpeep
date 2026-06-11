@@ -129,7 +129,11 @@ struct SessionInspectorView: View {
 
     private func startBWFParse() {
         let files = session.resolvedAudioFiles.filter { $0.url != nil }
-        guard !files.isEmpty, bwfCache.isEmpty else { return }
+        guard !files.isEmpty, bwfCache.isEmpty else {
+            AppLog.shared.log("[BWF] startBWFParse skipped: \(files.count) resolved, cache has \(bwfCache.count) entries")
+            return
+        }
+        AppLog.shared.log("[BWF] Starting parse of \(files.count) resolved audio files")
         isBWFLoading = true
         Task.detached(priority: .utility) {
             var cache: [String: BWFMetadata] = [:]
@@ -138,9 +142,18 @@ struct SessionInspectorView: View {
                     cache[file.name] = meta
                 }
             }
-            await MainActor.run {
-                bwfCache = cache
-                isBWFLoading = false
+            AppLog.shared.log("[BWF] Parse complete: \(cache.count)/\(files.count) files had BWF metadata")
+            if let first = cache.first {
+                AppLog.shared.log("[BWF] Sample cache key: '\(first.key)'")
+            }
+            await MainActor.run { [cache] in
+                self.bwfCache = cache
+                self.isBWFLoading = false
+                // Check if audioFileNames match cache keys
+                let afNames = self.session.audioFileNames.prefix(3).map { "'\($0)'" }.joined(separator: ", ")
+                let cacheKeys = cache.keys.prefix(3).map { "'\($0)'" }.joined(separator: ", ")
+                AppLog.shared.log("[BWF] First audioFileNames: \(afNames)")
+                AppLog.shared.log("[BWF] First cache keys: \(cacheKeys)")
             }
         }
     }
@@ -1365,86 +1378,75 @@ private struct AudioFilesTableView: View {
 
     var body: some View {
         let widths = columnWidths
+        let rows = sortedRows
 
         VStack(spacing: 0) {
-            // Fixed column header — scrolls horizontally with rows
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    Text("")
-                        .frame(width: Self.statusW)
-
-                    // Name header
-                    headerCell(label: "NAME", width: widths.name, col: .name)
-
-                    // Field headers
-                    ForEach(Array(selectedFields.enumerated()), id: \.offset) { fi, key in
-                        headerCell(label: key.label.uppercased(),
-                                   width: widths.fields[fi],
-                                   col: .field(key))
-                            .contextMenu {
-                                fieldContextMenu
-                            }
-                    }
-                }
-                .padding(.horizontal, 12)
-            }
-            .padding(.vertical, 4)
-            .background(Color(nsColor: .windowBackgroundColor).opacity(0.6))
-            // Right-click on header background for field selector
-            .contextMenu {
-                fieldContextMenu
-            }
-
-            // Options button in top-right corner
-            .overlay(alignment: .topTrailing) {
-                Button { showOptions = true } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                .popover(isPresented: $showOptions, arrowEdge: .bottom) {
-                    audioFilesOptionsPopover
-                }
-            }
-
-            Divider()
-
-            // Scrollable rows
             if audioFileNames.isEmpty {
                 Spacer()
                 Text("No audio files found")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                 Spacer()
-            } else if isBWFLoading {
-                Spacer()
-                VStack(spacing: 8) {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                    Text("Parsing metadata…")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                Spacer()
             } else {
-                let rows = sortedRows
-                ScrollView([.horizontal, .vertical]) {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(rows.enumerated()), id: \.offset) { displayIdx, row in
-                            AudioFileMetadataRow(
-                                name: row.name,
-                                isOnline: row.resolved?.url != nil,
-                                fileURL: row.resolved?.url,
-                                isHighlighted: highlightedFiles.contains(row.name),
-                                fieldValues: row.values,
-                                fieldWidths: widths.fields,
-                                nameWidth: widths.name,
-                                index: displayIdx
-                            )
+                // Single horizontal scroll wraps header + rows so columns stay aligned
+                ScrollView(.horizontal) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Column header row
+                        HStack(spacing: 0) {
+                            Text("")
+                                .frame(width: Self.statusW)
+                            headerCell(label: "NAME", width: widths.name, col: .name)
+                            ForEach(Array(selectedFields.enumerated()), id: \.offset) { fi, key in
+                                headerCell(label: key.label.uppercased(),
+                                           width: widths.fields[fi],
+                                           col: .field(key))
+                                    .contextMenu { fieldContextMenu }
+                            }
+                            if isBWFLoading {
+                                ProgressView()
+                                    .scaleEffect(0.5)
+                                    .frame(width: 20, height: 14)
+                                    .padding(.leading, 4)
+                            }
                         }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(Color(nsColor: .windowBackgroundColor).opacity(0.6))
+                        .contextMenu { fieldContextMenu }
+
+                        Divider()
+
+                        // Vertically-scrollable rows
+                        ScrollView(.vertical) {
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                ForEach(Array(rows.enumerated()), id: \.offset) { displayIdx, row in
+                                    AudioFileMetadataRow(
+                                        name: row.name,
+                                        isOnline: row.resolved?.url != nil,
+                                        fileURL: row.resolved?.url,
+                                        isHighlighted: highlightedFiles.contains(row.name),
+                                        fieldValues: row.values,
+                                        fieldWidths: widths.fields,
+                                        nameWidth: widths.name,
+                                        index: displayIdx
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                // Options button floats top-right
+                .overlay(alignment: .topTrailing) {
+                    Button { showOptions = true } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .popover(isPresented: $showOptions, arrowEdge: .bottom) {
+                        audioFilesOptionsPopover
                     }
                 }
             }
