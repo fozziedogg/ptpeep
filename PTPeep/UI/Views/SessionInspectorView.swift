@@ -91,16 +91,41 @@ struct SessionInspectorView: View {
         Dictionary(session.resolvedAudioFiles.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
     }
 
+    /// Shared filter/sort logic for the timeline track list. Static to avoid computed-property
+    /// pressure on the view body type checker.
+    private static func filteredTracks(
+        from tracks: [PTXTrack],
+        showHidden: Bool, showInactive: Bool, showVideo: Bool, showEmpty: Bool
+    ) -> [PTXTrack] {
+        tracks
+            .filter {
+                (showHidden   || !$0.isHidden   || (showInactive && $0.isInactive))
+                && (showInactive || !$0.isInactive || (showHidden   && $0.isHidden))
+                && (showVideo    || $0.type != .video)
+                && (showEmpty    || !$0.clips.isEmpty)
+            }
+            .sorted { a, b in
+                let av = a.type == .video ? 0 : 1
+                let bv = b.type == .video ? 0 : 1
+                if av != bv { return av < bv }
+                return a.index < b.index
+            }
+    }
+
     private func updateHighlightedFiles() {
         guard followClipSelection else { return }
-        let total = totalSamples
-        let tracks = session.tracks.filter { $0.type == .audio }
+        let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
+        let tracks = Self.filteredTracks(
+            from: session.tracks,
+            showHidden: showHiddenTracks, showInactive: showInactiveTracks,
+            showVideo: showVideoTrack, showEmpty: showEmptyTracks
+        )
         guard let start = tc.selStart else { highlightedAudioFiles = []; return }
 
+        let startSamp = Int64((start * total).rounded())
+
         if let end = tc.selEnd {
-            // Range selection — collect all source files from clips in range
-            let startSamp = Int64((start * total).rounded())
-            let endSamp   = Int64((end * total).rounded())
+            let endSamp = Int64((end * total).rounded())
             let lo = min(startSamp, endSamp)
             let hi = max(startSamp, endSamp)
             let tLo = min(tc.selTrack ?? 0, tc.selTrackEnd ?? tc.selTrack ?? 0)
@@ -116,10 +141,11 @@ struct SessionInspectorView: View {
             }
             highlightedAudioFiles = files
         } else {
-            // Single click — find clip at cursor
-            let samp = Int64((start * total).rounded())
             guard let idx = tc.selTrack, idx < tracks.count else { highlightedAudioFiles = []; return }
-            if let clip = tracks[idx].clips.first(where: { $0.startSample == samp }), !clip.isGroup, !clip.sourceFile.isEmpty {
+            let trackClips = tracks[idx].clips.filter { !$0.isGroup }
+            if let clip = trackClips.first(where: {
+                $0.startSample <= startSamp && (startSamp < $0.startSample + $0.lengthSamples)
+            }), !clip.sourceFile.isEmpty {
                 highlightedAudioFiles = [clip.sourceFile]
             } else {
                 highlightedAudioFiles = []
@@ -264,6 +290,7 @@ struct SessionInspectorView: View {
                         frameRate: session.frameRate,
                         highlightedFiles: highlightedAudioFiles,
                         isBWFLoading: isBWFLoading,
+                        onClearFilter: { highlightedAudioFiles.removeAll() },
                         followClipSelection: $followClipSelection,
                         bwfFieldsRaw: $bwfFieldsRaw
                     )
@@ -457,22 +484,11 @@ struct SessionInspectorView: View {
         let hasMuted    = session.tracks.contains { $0.clips.contains { $0.isMuted } }
         let hasGroups   = session.tracks.contains { $0.clips.contains { $0.isGroup } }
         let hasMarkers  = session.memoryLocations.contains { $0.samplePosition > 0 }
-        let clippedTracks = session.tracks
-            .filter {
-                // Either toggle can reveal a track that is both hidden and inactive.
-                (showHiddenTracks   || !$0.isHidden   || (showInactiveTracks && $0.isInactive))
-                && (showInactiveTracks || !$0.isInactive || (showHiddenTracks   && $0.isHidden))
-                && (showVideoTrack     || $0.type != .video)
-                && (showEmptyTracks    || !$0.clips.isEmpty)
-            }
-            .sorted { a, b in
-                // Video tracks always appear first (they anchor the timeline).
-                // Everything else keeps PT mixer order (index was reset to 0…N after reorder).
-                let av = a.type == .video ? 0 : 1
-                let bv = b.type == .video ? 0 : 1
-                if av != bv { return av < bv }
-                return a.index < b.index
-            }
+        let clippedTracks = Self.filteredTracks(
+            from: session.tracks,
+            showHidden: showHiddenTracks, showInactive: showInactiveTracks,
+            showVideo: showVideoTrack, showEmpty: showEmptyTracks
+        )
         let sr = Double(session.sampleRate) ?? 48000.0
         // Leave ~180 px for the collapsible sections below the overview.
         let maxH = max(100, availableHeight - 180)
@@ -1280,400 +1296,8 @@ private struct TrackRow: View {
     }
 }
 
-// MARK: - Audio Files Table View
-
-private struct AudioFilesTableView: View {
-    let audioFileNames: [String]
-    let resolvedLookup: [String: ResolvedAudioFile]
-    let bwfCache: [String: BWFMetadata]
-    let selectedFields: [BWFFieldKey]
-    let sampleRate: Double
-    let frameRate: Double
-    let highlightedFiles: Set<String>
-    let isBWFLoading: Bool
-    @Binding var followClipSelection: Bool
-    @Binding var bwfFieldsRaw: String
-    @State private var showOptions: Bool = false
-    @State private var sortColumn: SortColumn = .none
-    @State private var sortAscending: Bool = true
-    @State private var widthOverrides: [String: CGFloat] = [:]  // "name" or field rawValue → width
-    @State private var autoWidthCache: [String: CGFloat] = [:] // cached auto-sized widths
-    @State private var autoWidthCacheGen: Int = 0              // invalidation token
-    @State private var dragColumnKey: String? = nil  // field being dragged for reorder
-
-    private enum SortColumn: Equatable {
-        case none
-        case name
-        case field(BWFFieldKey)
-    }
-
-    static let statusW: CGFloat = 20
-    private static let colPad: CGFloat = 12
-    private static let minColW: CGFloat = 40
-    private static let rowFont  = Font.system(size: 10).monospacedDigit()
-    private static let headerFont = Font.system(size: 9, weight: .semibold)
-
-    private static func textWidth(_ s: String) -> CGFloat {
-        CGFloat(s.count) * 6.2 + colPad
-    }
-
-    /// Auto-size width for a column; user overrides take precedence, then cached auto-width.
-    private func nameWidth() -> CGFloat {
-        if let w = widthOverrides["name"] { return w }
-        if let w = autoWidthCache["name"] { return w }
-        let maxName = audioFileNames.reduce("Name") { longest, n in n.count > longest.count ? n : longest }
-        return min(400, max(100, Self.textWidth(maxName)))
-    }
-
-    private func fieldWidth(for key: BWFFieldKey) -> CGFloat {
-        if let w = widthOverrides[key.rawValue] { return w }
-        if let w = autoWidthCache[key.rawValue] { return w }
-        // Fallback: header label width only (fast). Full data scan happens in rebuildAutoWidths().
-        return max(50, Self.textWidth(key.label.uppercased()))
-    }
-
-    private var allFieldWidths: [CGFloat] {
-        selectedFields.map { fieldWidth(for: $0) }
-    }
-
-    /// Recompute auto-widths from data. Called once when bwfCache changes, not per render.
-    private func rebuildAutoWidths() {
-        var cache: [String: CGFloat] = [:]
-        // Name column
-        let maxName = audioFileNames.reduce("Name") { longest, n in n.count > longest.count ? n : longest }
-        cache["name"] = min(400, max(100, Self.textWidth(maxName)))
-        // Field columns
-        for key in BWFFieldKey.allCases {
-            var longest = key.label.uppercased()
-            for name in audioFileNames {
-                if let meta = bwfCache[name],
-                   let val = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate),
-                   val.count > longest.count {
-                    longest = val
-                }
-            }
-            cache[key.rawValue] = min(300, max(50, Self.textWidth(longest)))
-        }
-        autoWidthCache = cache
-    }
-
-    /// Pre-compute all display values + apply sorting.
-    private var sortedRows: [(index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?])] {
-        var rows = audioFileNames.enumerated().map { i, name -> (index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?]) in
-            let meta = bwfCache[name]
-            let vals = selectedFields.map { key in
-                meta?.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate)
-            }
-            return (i, name, resolvedLookup[name], vals)
-        }
-
-        switch sortColumn {
-        case .none:
-            break
-        case .name:
-            rows.sort { a, b in
-                sortAscending ? a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
-                              : a.name.localizedCaseInsensitiveCompare(b.name) == .orderedDescending
-            }
-        case .field(let key):
-            if let fi = selectedFields.firstIndex(of: key) {
-                rows.sort { a, b in
-                    let va = a.values[fi] ?? ""
-                    let vb = b.values[fi] ?? ""
-                    return sortAscending ? va.localizedCaseInsensitiveCompare(vb) == .orderedAscending
-                                         : va.localizedCaseInsensitiveCompare(vb) == .orderedDescending
-                }
-            }
-        }
-        return rows
-    }
-
-    private func toggleSort(_ col: SortColumn) {
-        if sortColumn == col {
-            sortAscending.toggle()
-        } else {
-            sortColumn = col
-            sortAscending = true
-        }
-    }
-
-    private func sortIndicator(for col: SortColumn) -> String? {
-        guard sortColumn == col else { return nil }
-        return sortAscending ? "chevron.up" : "chevron.down"
-    }
-
-    // MARK: - Reorder helpers
-
-    private func moveField(from src: String, to dest: String) {
-        var fields = selectedFields
-        guard let si = fields.firstIndex(where: { $0.rawValue == src }),
-              let di = fields.firstIndex(where: { $0.rawValue == dest }),
-              si != di else { return }
-        let moved = fields.remove(at: si)
-        fields.insert(moved, at: di)
-        bwfFieldsRaw = fields.map(\.rawValue).joined(separator: ",")
-    }
-
-    // MARK: - Body
-
-    var body: some View {
-        let nw = nameWidth()
-        let fw = allFieldWidths
-        let rows = sortedRows
-
-        VStack(spacing: 0) {
-            if audioFileNames.isEmpty {
-                Spacer()
-                Text("No audio files found")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                Spacer()
-            } else {
-                ScrollView(.horizontal) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        // Column header row
-                        HStack(spacing: 0) {
-                            Text("")
-                                .frame(width: Self.statusW)
-                            resizableHeaderCell(label: "NAME", width: nw, col: .name, widthKey: "name")
-                            ForEach(Array(selectedFields.enumerated()), id: \.element) { fi, key in
-                                resizableHeaderCell(
-                                    label: key.label.uppercased(),
-                                    width: fw[fi],
-                                    col: .field(key),
-                                    widthKey: key.rawValue
-                                )
-                                .onDrag {
-                                    dragColumnKey = key.rawValue
-                                    return NSItemProvider(object: key.rawValue as NSString)
-                                }
-                                .onDrop(of: [.text], delegate: FieldDropDelegate(
-                                    targetKey: key.rawValue,
-                                    dragColumnKey: $dragColumnKey,
-                                    moveField: moveField
-                                ))
-                            }
-                            if isBWFLoading {
-                                ProgressView()
-                                    .scaleEffect(0.5)
-                                    .frame(width: 20, height: 14)
-                                    .padding(.leading, 4)
-                            }
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(Color(nsColor: .windowBackgroundColor).opacity(0.6))
-                        .contextMenu { fieldContextMenu }
-
-                        Divider()
-
-                        // Vertically-scrollable rows
-                        ScrollView(.vertical) {
-                            LazyVStack(alignment: .leading, spacing: 0) {
-                                ForEach(Array(rows.enumerated()), id: \.offset) { displayIdx, row in
-                                    AudioFileMetadataRow(
-                                        name: row.name,
-                                        isOnline: row.resolved?.url != nil,
-                                        fileURL: row.resolved?.url,
-                                        isHighlighted: highlightedFiles.contains(row.name),
-                                        fieldValues: row.values,
-                                        fieldWidths: fw,
-                                        nameWidth: nw,
-                                        index: displayIdx
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                .overlay(alignment: .topTrailing) {
-                    Button { showOptions = true } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .popover(isPresented: $showOptions, arrowEdge: .bottom) {
-                        audioFilesOptionsPopover
-                    }
-                }
-            }
-        }
-        .onChange(of: bwfCache.count) { _ in rebuildAutoWidths() }
-        .onAppear { rebuildAutoWidths() }
-    }
-
-    // MARK: - Header cell with resize handle
-
-    private func resizableHeaderCell(label: String, width: CGFloat, col: SortColumn, widthKey: String) -> some View {
-        HStack(spacing: 0) {
-            Button { toggleSort(col) } label: {
-                HStack(spacing: 2) {
-                    Text(label)
-                        .font(Self.headerFont)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    if let arrow = sortIndicator(for: col) {
-                        Image(systemName: arrow)
-                            .font(.system(size: 7, weight: .bold))
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .contextMenu { fieldContextMenu }
-
-            // Drag handle for resizing — padding widens hit area without inflating height
-            Color.secondary.opacity(0.3)
-                .frame(width: 1)
-                .padding(.vertical, 2)
-                .padding(.horizontal, 4)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 1)
-                        .onChanged { drag in
-                            let newW = max(Self.minColW, width + drag.translation.width)
-                            widthOverrides[widthKey] = newW
-                        }
-                )
-                .onHover { hovering in
-                    if hovering {
-                        NSCursor.resizeLeftRight.push()
-                    } else {
-                        NSCursor.pop()
-                    }
-                }
-        }
-        .frame(width: width, height: 18)
-        .clipped()
-    }
-
-    @ViewBuilder
-    private var fieldContextMenu: some View {
-        ForEach(BWFFieldKey.allCases) { key in
-            let isOn = selectedFields.contains(key)
-            Button {
-                var current = selectedFields
-                if let idx = current.firstIndex(of: key) {
-                    current.remove(at: idx)
-                } else {
-                    current.append(key)
-                }
-                bwfFieldsRaw = current.map(\.rawValue).joined(separator: ",")
-            } label: {
-                if isOn {
-                    Label(key.label, systemImage: "checkmark")
-                } else {
-                    Text(key.label)
-                }
-            }
-        }
-    }
-
-    private var audioFilesOptionsPopover: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                followClipSelection.toggle()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: followClipSelection ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(followClipSelection ? Color.accentColor : Color.secondary.opacity(0.7))
-                        .font(.system(size: 12))
-                    Text("Follow clip selection")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.primary)
-                    Spacer()
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            Divider().padding(.vertical, 4)
-
-            BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
-        }
-        .frame(width: 200)
-    }
-}
-
-/// Drop delegate for reordering field columns by dragging headers.
-private struct FieldDropDelegate: DropDelegate {
-    let targetKey: String
-    @Binding var dragColumnKey: String?
-    let moveField: (String, String) -> Void
-
-    func performDrop(info: DropInfo) -> Bool {
-        guard let src = dragColumnKey, src != targetKey else { return false }
-        moveField(src, targetKey)
-        dragColumnKey = nil
-        return true
-    }
-
-    func dropEntered(info: DropInfo) {}
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-    func dropExited(info: DropInfo) {}
-    func validateDrop(info: DropInfo) -> Bool { dragColumnKey != nil }
-}
-
-private struct AudioFileMetadataRow: View {
-    let name: String
-    let isOnline: Bool
-    let fileURL: URL?
-    let isHighlighted: Bool
-    let fieldValues: [String?]
-    let fieldWidths: [CGFloat]
-    let nameWidth: CGFloat
-    let index: Int
-
-    private static let statusW: CGFloat = AudioFilesTableView.statusW
-    private static let rowFont = Font.system(size: 10).monospacedDigit()
-
-    var body: some View {
-        HStack(spacing: 0) {
-            Image(systemName: isOnline ? "checkmark.circle" : "circle.dashed")
-                .foregroundStyle(isOnline ? .green : .secondary)
-                .font(.system(size: 10))
-                .frame(width: Self.statusW)
-            Text(name)
-                .font(.system(size: 10))
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(width: nameWidth, alignment: .leading)
-            ForEach(Array(fieldValues.enumerated()), id: \.offset) { fi, value in
-                Text(value ?? "—")
-                    .font(Self.rowFont)
-                    .foregroundStyle(value != nil ? Color.primary : Color.secondary.opacity(0.4))
-                    .lineLimit(1)
-                    .frame(width: fi < fieldWidths.count ? fieldWidths[fi] : 80, alignment: .leading)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 3)
-        .background(rowBackground)
-        .contextMenu {
-            if let url = fileURL {
-                Button("Reveal in Finder") {
-                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                }
-            }
-        }
-    }
-
-    private var rowBackground: Color {
-        if isHighlighted {
-            return Color.accentColor.opacity(0.15)
-        }
-        return index % 2 == 0 ? Color.clear : Color.primary.opacity(0.03)
-    }
-}
+// AudioFilesTableView, FieldDropDelegate, AudioFileMetadataRow
+// moved to AudioFilesTableView.swift
 
 // MARK: - Plugin row (with optional availability badge)
 
@@ -3639,7 +3263,7 @@ private extension PTXTrackType {
 
 // MARK: - BWF Settings Popover
 
-private struct BWFSettingsPopover: View {
+struct BWFSettingsPopover: View {
     @Binding var selectedRaw: String
 
     private var selected: [BWFFieldKey] {
