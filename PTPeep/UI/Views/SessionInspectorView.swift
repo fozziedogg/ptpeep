@@ -136,11 +136,17 @@ struct SessionInspectorView: View {
         AppLog.shared.log("[BWF] Starting parse of \(files.count) resolved audio files")
         isBWFLoading = true
         let audioNames = session.audioFileNames
-        Task.detached(priority: .utility) {
+        // Background priority + yielding so playback/UI stays responsive
+        Task.detached(priority: .background) {
             var cache: [String: BWFMetadata] = [:]
-            for file in files {
+            let batchSize = 50
+            for (i, file) in files.enumerated() {
                 if let url = file.url, let meta = BWFParser.parse(url: url) {
                     cache[file.name] = meta
+                }
+                // Yield every batch to let higher-priority work run
+                if i % batchSize == batchSize - 1 {
+                    await Task.yield()
                 }
             }
             AppLog.shared.log("[BWF] Parse complete: \(cache.count)/\(files.count) files had BWF metadata")
@@ -1291,6 +1297,8 @@ private struct AudioFilesTableView: View {
     @State private var sortColumn: SortColumn = .none
     @State private var sortAscending: Bool = true
     @State private var widthOverrides: [String: CGFloat] = [:]  // "name" or field rawValue → width
+    @State private var autoWidthCache: [String: CGFloat] = [:] // cached auto-sized widths
+    @State private var autoWidthCacheGen: Int = 0              // invalidation token
     @State private var dragColumnKey: String? = nil  // field being dragged for reorder
 
     private enum SortColumn: Equatable {
@@ -1309,28 +1317,44 @@ private struct AudioFilesTableView: View {
         CGFloat(s.count) * 6.2 + colPad
     }
 
-    /// Auto-size width for a column; overrides take precedence.
+    /// Auto-size width for a column; user overrides take precedence, then cached auto-width.
     private func nameWidth() -> CGFloat {
         if let w = widthOverrides["name"] { return w }
+        if let w = autoWidthCache["name"] { return w }
         let maxName = audioFileNames.reduce("Name") { longest, n in n.count > longest.count ? n : longest }
         return min(400, max(100, Self.textWidth(maxName)))
     }
 
     private func fieldWidth(for key: BWFFieldKey) -> CGFloat {
         if let w = widthOverrides[key.rawValue] { return w }
-        var longest = key.label.uppercased()
-        for name in audioFileNames {
-            if let meta = bwfCache[name],
-               let val = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate),
-               val.count > longest.count {
-                longest = val
-            }
-        }
-        return min(300, max(50, Self.textWidth(longest)))
+        if let w = autoWidthCache[key.rawValue] { return w }
+        // Fallback: header label width only (fast). Full data scan happens in rebuildAutoWidths().
+        return max(50, Self.textWidth(key.label.uppercased()))
     }
 
     private var allFieldWidths: [CGFloat] {
         selectedFields.map { fieldWidth(for: $0) }
+    }
+
+    /// Recompute auto-widths from data. Called once when bwfCache changes, not per render.
+    private func rebuildAutoWidths() {
+        var cache: [String: CGFloat] = [:]
+        // Name column
+        let maxName = audioFileNames.reduce("Name") { longest, n in n.count > longest.count ? n : longest }
+        cache["name"] = min(400, max(100, Self.textWidth(maxName)))
+        // Field columns
+        for key in BWFFieldKey.allCases {
+            var longest = key.label.uppercased()
+            for name in audioFileNames {
+                if let meta = bwfCache[name],
+                   let val = meta.displayValue(for: key, sampleRate: sampleRate, frameRate: frameRate),
+                   val.count > longest.count {
+                    longest = val
+                }
+            }
+            cache[key.rawValue] = min(300, max(50, Self.textWidth(longest)))
+        }
+        autoWidthCache = cache
     }
 
     /// Pre-compute all display values + apply sorting.
@@ -1477,6 +1501,8 @@ private struct AudioFilesTableView: View {
                 }
             }
         }
+        .onChange(of: bwfCache.count) { _ in rebuildAutoWidths() }
+        .onAppear { rebuildAutoWidths() }
     }
 
     // MARK: - Header cell with resize handle
