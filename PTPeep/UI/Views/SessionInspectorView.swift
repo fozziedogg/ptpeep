@@ -217,9 +217,9 @@ struct SessionInspectorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            AnyView(header)
             Divider()
-            overviewSection
+            AnyView(overviewSection)
             Divider()
             // ── Detail pane with tab bar ─────────────────────────────────────
             VStack(spacing: 0) {
@@ -286,7 +286,7 @@ struct SessionInspectorView: View {
                         LazyVStack(alignment: .leading, spacing: 0) {
                             switch selectedDetailTab {
                             case .tracks:
-                                VStack(spacing: 0) {
+                                AnyView(VStack(spacing: 0) {
                                     // Options bar for tracks
                                     HStack(spacing: 0) {
                                         Spacer()
@@ -306,20 +306,20 @@ struct SessionInspectorView: View {
                                     }
                                     trackColumnHeader
                                     tracksContent
-                                }
+                                })
                             case .plugins:
-                                VStack(alignment: .leading, spacing: 0) {
+                                AnyView(VStack(alignment: .leading, spacing: 0) {
                                     // Options bar for plugins
                                     HStack(spacing: 0) {
                                         Spacer()
                                         pluginOptionsBar
                                     }
                                     pluginsContent
-                                }
+                                })
                             case .memLocations:
-                                memoryLocationsContent
-                                    .padding(.top, 4)
-                            default: EmptyView()
+                                AnyView(memoryLocationsContent
+                                    .padding(.top, 4))
+                            default: AnyView(EmptyView())
                             }
                         }
                     }
