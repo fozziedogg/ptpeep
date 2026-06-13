@@ -707,18 +707,20 @@ struct SessionInspectorView: View {
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder
-    private var tracksContent: some View {
+    /// Filter + sort for the tracks tab. Plain method — keep this out of the
+    /// @ViewBuilder property: an immediately-invoked closure there pins the
+    /// main thread during view-value construction on some machines
+    /// (Tests/ptpeep_sample2.txt, macOS 26.5.1).
+    private func visibleTracksList() -> [PTXTrack] {
         let filtered = session.tracks.filter {
             !hiddenTrackTypes.contains($0.type)
             && (tlShowHiddenTracks   || !$0.isHidden)
             && (tlShowInactiveTracks || !$0.isInactive)
         }
-        let visibleTracks: [PTXTrack] = {
-            let asc = trackSortAscending
-            switch trackSortColumn {
-            case .none:
-                return filtered
+        let asc = trackSortAscending
+        switch trackSortColumn {
+        case .none:
+            return filtered
             case .name:
                 return filtered.sorted {
                     let c = $0.name.localizedCaseInsensitiveCompare($1.name)
@@ -747,8 +749,12 @@ struct SessionInspectorView: View {
                     let b = $1.atmosRendererInput == 0 ? Int.max : $1.atmosRendererInput
                     return a == b ? $0.index < $1.index : asc ? a < b : a > b
                 }
-            }
-        }()
+        }
+    }
+
+    @ViewBuilder
+    private var tracksContent: some View {
+        let visibleTracks = visibleTracksList()
         let totalCount   = session.tracks.count
         let visibleCount = visibleTracks.count
         if session.tracks.isEmpty {
