@@ -45,6 +45,8 @@
 		C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */; };
 		BF000001BF000001BF000001 /* BWFParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF000000BF000000BF000000 /* BWFParser.swift */; };
 		BF000002BF000002BF000002 /* BWFParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF000000BF000000BF000000 /* BWFParser.swift */; };
+		MP000001MP000001MP000001 /* MetadataProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = MP000000MP000000MP000000 /* MetadataProfile.swift */; };
+		MP000002MP000002MP000002 /* MetadataProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = MP000000MP000000MP000000 /* MetadataProfile.swift */; };
 		B02452675BFE6D1BA8A2228C /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
 		F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */; };
 		AA01BB11CC22DD33EE44FF56 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA01BB11CC22DD33EE44FF55 /* Assets.xcassets */; };
@@ -76,6 +78,7 @@
 		46BF2988BB03A6D06142C1AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4B29D7A6E14B870EF3F9366B /* PTXParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXParser.swift; sourceTree = "<group>"; };
 		BF000000BF000000BF000000 /* BWFParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BWFParser.swift; sourceTree = "<group>"; };
+		MP000000MP000000MP000000 /* MetadataProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataProfile.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXBlockDecoder.swift; sourceTree = "<group>"; };
 		61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeepQLExtension.swift; sourceTree = "<group>"; };
 		DD22EE33FF44AA55BB666601 /* PTPeepQL.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PTPeepQL.entitlements; sourceTree = "<group>"; };
@@ -138,6 +141,7 @@
 				1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */,
 				BF000000BF000000BF000000 /* BWFParser.swift */,
+				MP000000MP000000MP000000 /* MetadataProfile.swift */,
 			);
 			name = Parser;
 			path = PTPeep/Parser;
@@ -333,6 +337,7 @@
 				TR01TB02TR01TB02TR01TB02 /* TracksTabView.swift in Sources */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* PTXBlockDecoder.swift in Sources */,
 				BF000001BF000001BF000001 /* BWFParser.swift in Sources */,
+				MP000001MP000001MP000001 /* MetadataProfile.swift in Sources */,
 				AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */,
 				BB00CC11DD22EE33FF445511 /* AppLog.swift in Sources */,
 				BB00CC11DD22EE33FF445513 /* PluginScanner.swift in Sources */,
@@ -359,6 +364,7 @@
 				TR01TB03TR01TB03TR01TB03 /* TracksTabView.swift in Sources */,
 				C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */,
 				BF000002BF000002BF000002 /* BWFParser.swift in Sources */,
+				MP000002MP000002MP000002 /* MetadataProfile.swift in Sources */,
 				AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */,
 				BB00CC11DD22EE33FF445512 /* AppLog.swift in Sources */,
 				BB00CC11DD22EE33FF445514 /* PluginScanner.swift in Sources */,

@@ -82,6 +82,38 @@ enum BWFFieldKey: String, CaseIterable, Identifiable {
     static let defaults: [BWFFieldKey] = [
         .ixmlScene, .ixmlTake, .ixmlTrackNames, .bextTimeReference, .bextDescription
     ]
+
+    var group: FieldGroup {
+        switch self {
+        case .ixmlScene, .ixmlTake, .ixmlTape, .ixmlNote, .ixmlCircled, .ixmlTrackNames:
+            return .ixml
+        case .ixmlProject, .ixmlFileUID, .ixmlUbits, .ixmlWildTrack,
+             .ixmlNoGood, .ixmlFalseStart, .ixmlSyncPoint:
+            return .production
+        case .ixmlMasterSpeed, .ixmlTimecodeRate, .ixmlTimecodeFlag,
+             .ixmlFileSampleRate, .ixmlDigitizerRate:
+            return .speedTC
+        case .bextDescription, .bextOriginator, .bextOriginatorRef, .bextDate,
+             .bextTime, .bextTimeReference, .bextVersion, .bextUMID, .bextLoudness,
+             .bextLoudnessRange, .bextMaxTruePeak, .bextMaxMomentary,
+             .bextMaxShortTerm, .bextCodingHistory:
+            return .bext
+        }
+    }
+}
+
+/// Source-based grouping for the field picker UI.
+enum FieldGroup: String, CaseIterable, Identifiable {
+    case ixml       = "iXML"
+    case production = "Production"
+    case speedTC    = "Speed / Timecode"
+    case bext       = "Broadcast WAV (bext)"
+
+    var id: String { rawValue }
+    var title: String { rawValue }
+
+    /// Fields belonging to this group, in declaration order.
+    var fields: [BWFFieldKey] { BWFFieldKey.allCases.filter { $0.group == self } }
 }
 
 // MARK: - Metadata model
