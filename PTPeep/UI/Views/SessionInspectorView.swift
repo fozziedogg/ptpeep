@@ -177,15 +177,7 @@ struct SessionInspectorView: View {
         }
     }
 
-    private enum TrackSortColumn {
-        case none, name, format, input, output, atmos
-        var index: Int {
-            switch self { case .none: 0; case .name: 1; case .format: 2; case .input: 3; case .output: 4; case .atmos: 5 }
-        }
-        init(index: Int) {
-            switch index { case 1: self = .name; case 2: self = .format; case 3: self = .input; case 4: self = .output; case 5: self = .atmos; default: self = .none }
-        }
-    }
+    // TrackSortColumn moved to TracksTabView.swift
     private enum DetailTab: String, CaseIterable {
         case tracks       = "Tracks"
         case plugins      = "Plug-Ins"
@@ -286,27 +278,16 @@ struct SessionInspectorView: View {
                         LazyVStack(alignment: .leading, spacing: 0) {
                             switch selectedDetailTab {
                             case .tracks:
-                                AnyView(VStack(spacing: 0) {
-                                    // Options bar for tracks
-                                    HStack(spacing: 0) {
-                                        Spacer()
-                                        let optionsActive = !hiddenTrackTypes.isEmpty || showTrackSends || showTrackPlugins
-                                                         || tlShowHiddenTracks || !tlShowInactiveTracks
-                                        Button { showTrackOptions.toggle() } label: {
-                                            Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
-                                                .font(.caption)
-                                                .foregroundStyle(optionsActive ? Color.accentColor : Color.secondary)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .popover(isPresented: $showTrackOptions, arrowEdge: .bottom) {
-                                            trackOptionsPopover
-                                        }
-                                    }
-                                    trackColumnHeader
-                                    tracksContent
-                                })
+                                AnyView(TracksTabView(
+                                    tracks: session.tracks,
+                                    pluginSecondStrings: session.pluginSecondStrings,
+                                    sortColumn: $trackSortColumn,
+                                    sortAscending: $trackSortAscending,
+                                    hiddenTrackTypes: $hiddenTrackTypes,
+                                    showTrackPlugins: $showTrackPlugins,
+                                    showTrackSends: $showTrackSends,
+                                    showTrackOptions: $showTrackOptions
+                                ))
                             case .plugins:
                                 AnyView(VStack(alignment: .leading, spacing: 0) {
                                     // Options bar for plugins
@@ -553,244 +534,7 @@ struct SessionInspectorView: View {
         }
     }
 
-    // MARK: - Tracks
-
-    // MARK: - Tracks header (custom — includes pane options menu)
-
-    private var tracksHeader: some View {
-        HStack(spacing: 0) {
-            // Left: tap to expand/collapse
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) { trackSectionExpanded.toggle() }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "slider.horizontal.3")
-                        .foregroundStyle(.secondary)
-                        .frame(width: 16)
-                    Text("Tracks")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                    Text("(\(session.tracks.count))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.leading, 16)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            // Right: pane options + chevron
-            let optionsActive = !hiddenTrackTypes.isEmpty || showTrackSends || showTrackPlugins
-                             || tlShowHiddenTracks || !tlShowInactiveTracks
-            Button { showTrackOptions.toggle() } label: {
-                Image(systemName: optionsActive ? "ellipsis.circle.fill" : "ellipsis.circle")
-                    .font(.caption)
-                    .foregroundStyle(optionsActive ? Color.accentColor : Color.secondary)
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 8)
-            .popover(isPresented: $showTrackOptions, arrowEdge: .bottom) {
-                trackOptionsPopover
-            }
-
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) { trackSectionExpanded.toggle() }
-            } label: {
-                Image(systemName: trackSectionExpanded ? "chevron.down" : "chevron.right")
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
-            }
-            .buttonStyle(.plain)
-            .padding(.trailing, 16)
-            .padding(.vertical, 8)
-        }
-        .background(Color(nsColor: .separatorColor).opacity(0.1))
-    }
-
-    @ViewBuilder private var trackOptionsPopover: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Visibility")
-                .font(.system(size: 10).weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 2)
-            if hasHiddenTracks   { Toggle("Show Hidden Tracks",   isOn: $tlShowHiddenTracks).toggleStyle(.checkbox) }
-            if hasInactiveTracks { Toggle("Show Inactive Tracks", isOn: $tlShowInactiveTracks).toggleStyle(.checkbox) }
-            ForEach(presentTrackTypes, id: \.self) { type in
-                Toggle(isOn: Binding(
-                    get: { !hiddenTrackTypes.contains(type) },
-                    set: { show in
-                        if show { hiddenTrackTypes.remove(type) }
-                        else    { hiddenTrackTypes.insert(type) }
-                    }
-                )) {
-                    Label(type.filterLabel, systemImage: type.systemImage)
-                }
-                .toggleStyle(.checkbox)
-            }
-            if hasSendsData  { Toggle("Sends",    isOn: $showTrackSends).toggleStyle(.checkbox) }
-            if hasPlugins    { Toggle("Plug-ins", isOn: $showTrackPlugins).toggleStyle(.checkbox) }
-            if !hiddenTrackTypes.isEmpty {
-                Button("Show All") { hiddenTrackTypes.removeAll() }
-                    .buttonStyle(.borderless)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .font(.system(size: 12))
-        .padding(12)
-        .frame(minWidth: 180)
-    }
-
-    private var presentTrackTypes: [PTXTrackType] {
-        let order: [PTXTrackType] = [.audio, .instrument, .midi, .aux, .vca, .master, .folder, .video, .unknown]
-        return order.filter { t in session.tracks.contains { $0.type == t } }
-    }
-
-    private var hasAtmosData: Bool {
-        session.tracks.contains { $0.isAtmosObject || $0.isAtmosBed }
-    }
-
-    private var trackColumnHeader: some View {
-        HStack(spacing: 0) {
-            Color.clear.frame(width: 24)  // icon (16) + gap (8)
-            sortableColumnHeader("Name",   col: .name,   width: 200, alignment: .leading)
-            sortableColumnHeader("Format", col: .format, width: 55)
-            if hasRoutingData {
-                sortableColumnHeader("Input",  col: .input,  width: 110)
-                sortableColumnHeader("Output", col: .output, width: 110)
-            }
-            if hasAtmosData {
-                sortableColumnHeader("Atmos",  col: .atmos,  width: 65)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 4)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .overlay(alignment: .bottom) {
-            Divider().opacity(0.5)
-        }
-    }
-
-    private func sortableColumnHeader(_ title: String, col: TrackSortColumn,
-                                      width: CGFloat, alignment: Alignment = .center) -> some View {
-        Button {
-            if col == .none { return }
-            if trackSortColumn == col { trackSortAscending.toggle() }
-            else { trackSortColumn = col; trackSortAscending = true }
-        } label: {
-            HStack(spacing: 2) {
-                if alignment == .leading {
-                    Text(title).font(.caption2)
-                    if trackSortColumn == col {
-                        Image(systemName: trackSortAscending ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 7, weight: .bold))
-                    }
-                    Spacer(minLength: 0)
-                } else {
-                    Spacer(minLength: 0)
-                    Text(title).font(.caption2)
-                    if trackSortColumn == col {
-                        Image(systemName: trackSortAscending ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 7, weight: .bold))
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
-            .foregroundStyle(trackSortColumn == col ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
-            .frame(width: width)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Filter + sort for the tracks tab. Plain method — keep this out of the
-    /// @ViewBuilder property: an immediately-invoked closure there pins the
-    /// main thread during view-value construction on some machines
-    /// (Tests/ptpeep_sample2.txt, macOS 26.5.1).
-    private func visibleTracksList() -> [PTXTrack] {
-        let filtered = session.tracks.filter {
-            !hiddenTrackTypes.contains($0.type)
-            && (tlShowHiddenTracks   || !$0.isHidden)
-            && (tlShowInactiveTracks || !$0.isInactive)
-        }
-        let asc = trackSortAscending
-        switch trackSortColumn {
-        case .none:
-            return filtered
-            case .name:
-                return filtered.sorted {
-                    let c = $0.name.localizedCaseInsensitiveCompare($1.name)
-                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
-                }
-            case .format:
-                return filtered.sorted {
-                    let c = $0.channelFormat.localizedCaseInsensitiveCompare($1.channelFormat)
-                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
-                }
-            case .input:
-                return filtered.sorted {
-                    let a = $0.inputPath ?? "", b = $1.inputPath ?? ""
-                    let c = a.localizedCaseInsensitiveCompare(b)
-                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
-                }
-            case .output:
-                return filtered.sorted {
-                    let a = $0.outputPath ?? "", b = $1.outputPath ?? ""
-                    let c = a.localizedCaseInsensitiveCompare(b)
-                    return c == .orderedSame ? $0.index < $1.index : asc ? c == .orderedAscending : c == .orderedDescending
-                }
-            case .atmos:
-                return filtered.sorted {
-                    let a = $0.atmosRendererInput == 0 ? Int.max : $0.atmosRendererInput
-                    let b = $1.atmosRendererInput == 0 ? Int.max : $1.atmosRendererInput
-                    return a == b ? $0.index < $1.index : asc ? a < b : a > b
-                }
-        }
-    }
-
-    @ViewBuilder
-    private var tracksContent: some View {
-        let visibleTracks = visibleTracksList()
-        let totalCount   = session.tracks.count
-        let visibleCount = visibleTracks.count
-        if session.tracks.isEmpty {
-            PlaceholderRow(text: "No tracks found")
-        } else {
-            if visibleCount < totalCount || trackSortColumn != .none {
-                HStack(spacing: 8) {
-                    if visibleCount < totalCount {
-                        Text("Showing \(visibleCount) of \(totalCount) tracks")
-                            .font(.caption2).foregroundStyle(.tertiary)
-                    }
-                    if trackSortColumn != .none {
-                        Button("Session Order") {
-                            trackSortColumn = .none
-                            trackSortAscending = true
-                        }
-                        .buttonStyle(.borderless)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 2)
-            }
-            // ── Track rows ─────────────────────────────────────────────────
-            ForEach(visibleTracks, id: \.index) { track in
-                TrackRow(track: track, index: track.index, showPlugins: showTrackPlugins,
-                         pluginInstalled: { name in
-                             guard pluginScanner.scanCompleted else { return nil }
-                             return pluginScanner.index?.contains(name, secondString: session.pluginSecondStrings[name])
-                         },
-                         showRouting: hasRoutingData, showSends: showTrackSends,
-                         showAtmos: hasAtmosData, indentDepth: track.indentDepth)
-            }
-        }
-    }
+    // MARK: - Tracks (moved to TracksTabView.swift)
 
     // MARK: - Plugins
 
@@ -1115,7 +859,7 @@ private struct SectionHeader: View {
 
 // MARK: - Row types
 
-private struct TrackRow: View {
+struct TrackRow: View {
     let track: PTXTrack
     let index: Int
     let showPlugins: Bool
@@ -1391,7 +1135,7 @@ private struct OverviewResizeHandle: View {
     }
 }
 
-private struct PlaceholderRow: View {
+struct PlaceholderRow: View {
     let text: String
     var body: some View {
         Text(text)
@@ -3222,7 +2966,7 @@ private extension Double {
 
 // MARK: - PTXTrackType convenience
 
-private extension PTXTrackType {
+extension PTXTrackType {
     var systemImage: String {
         switch self {
         case .audio:      return "waveform"

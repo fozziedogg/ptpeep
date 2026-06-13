@@ -11,6 +11,8 @@
 		39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */; };
 		AF01TB02AF01TB02AF01TB02 /* AudioFilesTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */; };
 		AF01TB03AF01TB03AF01TB03 /* AudioFilesTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */; };
+		TR01TB02TR01TB02TR01TB02 /* TracksTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TR01TB01TR01TB01TR01TB01 /* TracksTabView.swift */; };
+		TR01TB03TR01TB03TR01TB03 /* TracksTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TR01TB01TR01TB01TR01TB01 /* TracksTabView.swift */; };
 		3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */; };
 		AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */; };
 		BB00CC11DD22EE33FF445511 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00CC11DD22EE33FF445501 /* AppLog.swift */; };
@@ -81,6 +83,7 @@
 		7DE1A0204EA264D8B2859DC0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionInspectorView.swift; sourceTree = "<group>"; };
 		AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilesTableView.swift; sourceTree = "<group>"; };
+		TR01TB01TR01TB01TR01TB01 /* TracksTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracksTabView.swift; sourceTree = "<group>"; };
 		CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLookPreviewView.swift; sourceTree = "<group>"; };
 		AA11BB22CC33DD44EE55FF66 /* TimelineNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeep/UI/TimelineNav.swift; sourceTree = SOURCE_ROOT; };
 		BB00CC11DD22EE33FF445501 /* AppLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLog.swift; sourceTree = "<group>"; };
@@ -154,6 +157,7 @@
 			children = (
 				7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */,
 				AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */,
+				TR01TB01TR01TB01TR01TB01 /* TracksTabView.swift */,
 				CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */,
 			);
 			path = Views;
@@ -326,6 +330,7 @@
 				F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */,
 				3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */,
 				AF01TB02AF01TB02AF01TB02 /* AudioFilesTableView.swift in Sources */,
+				TR01TB02TR01TB02TR01TB02 /* TracksTabView.swift in Sources */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* PTXBlockDecoder.swift in Sources */,
 				BF000001BF000001BF000001 /* BWFParser.swift in Sources */,
 				AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */,
@@ -351,6 +356,7 @@
 				444F7D5A52DE9378417AB54D /* PreviewViewController.swift in Sources */,
 				39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */,
 				AF01TB03AF01TB03AF01TB03 /* AudioFilesTableView.swift in Sources */,
+				TR01TB03TR01TB03TR01TB03 /* TracksTabView.swift in Sources */,
 				C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */,
 				BF000002BF000002BF000002 /* BWFParser.swift in Sources */,
 				AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */,
