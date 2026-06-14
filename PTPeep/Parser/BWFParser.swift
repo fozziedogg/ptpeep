@@ -39,6 +39,27 @@ enum BWFFieldKey: String, CaseIterable, Identifiable {
     case bextMaxMomentary  = "bext.maxMomentary"
     case bextMaxShortTerm  = "bext.maxShortTerm"
     case bextCodingHistory = "bext.codingHistory"
+    case bextTimeReferenceSamples = "bext.timeReferenceSamples"
+    // iXML file family / location
+    case ixmlFamilyName   = "ixml.familyName"
+    case ixmlFamilyUID    = "ixml.familyUID"
+    case ixmlFileSetIndex = "ixml.fileSetIndex"
+    case ixmlTotalFiles   = "ixml.totalFiles"
+    case ixmlLocationName = "ixml.locationName"
+    case ixmlLocationGPS  = "ixml.locationGPS"
+    // RIFF LIST/INFO
+    case infoTitle      = "info.title"
+    case infoArtist     = "info.artist"
+    case infoComment    = "info.comment"
+    case infoCopyright  = "info.copyright"
+    case infoGenre      = "info.genre"
+    case infoCreated    = "info.created"
+    case infoSoftware   = "info.software"
+    case infoEngineer   = "info.engineer"
+    case infoSource     = "info.source"
+    case infoProduct    = "info.product"
+    case infoSubject    = "info.subject"
+    case infoTechnician = "info.technician"
 
     var id: String { rawValue }
 
@@ -76,6 +97,25 @@ enum BWFFieldKey: String, CaseIterable, Identifiable {
         case .bextMaxMomentary:  return "Max Momentary"
         case .bextMaxShortTerm:  return "Max Short-Term"
         case .bextCodingHistory: return "Coding History"
+        case .bextTimeReferenceSamples: return "TC Ref (samples)"
+        case .ixmlFamilyName:   return "Family Name"
+        case .ixmlFamilyUID:    return "Family UID"
+        case .ixmlFileSetIndex: return "File Set Index"
+        case .ixmlTotalFiles:   return "Total Files"
+        case .ixmlLocationName: return "Location"
+        case .ixmlLocationGPS:  return "GPS"
+        case .infoTitle:      return "Title"
+        case .infoArtist:     return "Artist"
+        case .infoComment:    return "Comment"
+        case .infoCopyright:  return "Copyright"
+        case .infoGenre:      return "Genre"
+        case .infoCreated:    return "Created"
+        case .infoSoftware:   return "Software"
+        case .infoEngineer:   return "Engineer"
+        case .infoSource:     return "Source"
+        case .infoProduct:    return "Album/Product"
+        case .infoSubject:    return "Subject"
+        case .infoTechnician: return "Technician"
         }
     }
 
@@ -96,8 +136,15 @@ enum BWFFieldKey: String, CaseIterable, Identifiable {
         case .bextDescription, .bextOriginator, .bextOriginatorRef, .bextDate,
              .bextTime, .bextTimeReference, .bextVersion, .bextUMID, .bextLoudness,
              .bextLoudnessRange, .bextMaxTruePeak, .bextMaxMomentary,
-             .bextMaxShortTerm, .bextCodingHistory:
+             .bextMaxShortTerm, .bextCodingHistory, .bextTimeReferenceSamples:
             return .bext
+        case .ixmlFamilyName, .ixmlFamilyUID, .ixmlFileSetIndex, .ixmlTotalFiles,
+             .ixmlLocationName, .ixmlLocationGPS:
+            return .fileFamily
+        case .infoTitle, .infoArtist, .infoComment, .infoCopyright, .infoGenre,
+             .infoCreated, .infoSoftware, .infoEngineer, .infoSource, .infoProduct,
+             .infoSubject, .infoTechnician:
+            return .info
         }
     }
 }
@@ -107,7 +154,9 @@ enum FieldGroup: String, CaseIterable, Identifiable {
     case ixml       = "iXML"
     case production = "Production"
     case speedTC    = "Speed / Timecode"
+    case fileFamily = "File / Location"
     case bext       = "Broadcast WAV (bext)"
+    case info       = "RIFF INFO"
 
     var id: String { rawValue }
     var title: String { rawValue }
@@ -140,6 +189,26 @@ struct BWFMetadata {
     var timecodeFlag:   String?       // "DF" / "NDF"
     var fileSampleRate: String?
     var digitizerRate:  String?
+    // iXML file family / location
+    var familyName:   String?
+    var familyUID:    String?
+    var fileSetIndex: String?
+    var totalFiles:   String?
+    var locationName: String?
+    var locationGPS:  String?
+    // RIFF LIST/INFO
+    var infoTitle:      String?
+    var infoArtist:     String?
+    var infoComment:    String?
+    var infoCopyright:  String?
+    var infoGenre:      String?
+    var infoCreated:    String?
+    var infoSoftware:   String?
+    var infoEngineer:   String?
+    var infoSource:     String?
+    var infoProduct:    String?
+    var infoSubject:    String?
+    var infoTechnician: String?
     // bext
     var description:   String?
     var originator:    String?
@@ -199,6 +268,25 @@ struct BWFMetadata {
         case .bextMaxMomentary:  return maxMomentary.map  { String(format: "%.1f LUFS", $0) }
         case .bextMaxShortTerm:  return maxShortTerm.map  { String(format: "%.1f LUFS", $0) }
         case .bextCodingHistory: return codingHistory
+        case .bextTimeReferenceSamples: return timeReference.map { String($0) }
+        case .ixmlFamilyName:   return familyName
+        case .ixmlFamilyUID:    return familyUID
+        case .ixmlFileSetIndex: return fileSetIndex
+        case .ixmlTotalFiles:   return totalFiles
+        case .ixmlLocationName: return locationName
+        case .ixmlLocationGPS:  return locationGPS
+        case .infoTitle:      return infoTitle
+        case .infoArtist:     return infoArtist
+        case .infoComment:    return infoComment
+        case .infoCopyright:  return infoCopyright
+        case .infoGenre:      return infoGenre
+        case .infoCreated:    return infoCreated
+        case .infoSoftware:   return infoSoftware
+        case .infoEngineer:   return infoEngineer
+        case .infoSource:     return infoSource
+        case .infoProduct:    return infoProduct
+        case .infoSubject:    return infoSubject
+        case .infoTechnician: return infoTechnician
         }
     }
 }
@@ -271,6 +359,13 @@ enum BWFParser {
             case "iXML":
                 parseIXML(data: data, start: dataStart, size: size, into: &meta)
                 hasBWF = true
+            case "LIST":
+                // Only the INFO form carries metadata (others: adtl, etc.)
+                if dataStart + 4 <= data.count,
+                   String(bytes: data[dataStart..<dataStart+4], encoding: .ascii) == "INFO" {
+                    parseInfoList(data: data, start: dataStart + 4, size: size - 4, into: &meta)
+                    hasBWF = true
+                }
             default:
                 break
             }
@@ -468,6 +563,16 @@ enum BWFParser {
         meta.fileSampleRate = tag(in: xml, "FILE_SAMPLE_RATE")
         meta.digitizerRate  = tag(in: xml, "DIGITIZER_SAMPLE_RATE")
 
+        // File family / set (poly-WAV grouping)
+        meta.familyName   = tag(in: xml, "FAMILY_NAME")
+        meta.familyUID    = tag(in: xml, "FAMILY_UID")
+        meta.fileSetIndex = tag(in: xml, "FILE_SET_INDEX")
+        meta.totalFiles   = tag(in: xml, "TOTAL_FILES")
+
+        // Location block
+        meta.locationName = tag(in: xml, "LOCATION_NAME")
+        meta.locationGPS  = tag(in: xml, "LOCATION_GPS")
+
         // Sync points — 64-bit sample position split across LOW/HIGH
         var spFrom = xml.startIndex
         while let p1 = xml.range(of: "<SYNC_POINT>", range: spFrom..<xml.endIndex),
@@ -500,6 +605,42 @@ enum BWFParser {
         else { return nil }
         let v = String(xml[r1.upperBound..<r2.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
         return v.isEmpty ? nil : v
+    }
+
+    // MARK: RIFF LIST/INFO
+
+    /// Walk the INFO sub-chunks (after the "INFO" form id) and map standard
+    /// 4-char IDs to fields. Values are null-terminated, word-aligned strings.
+    private static func parseInfoList(data: Data, start: Int, size: Int, into meta: inout BWFMetadata) {
+        var p = start
+        let end = min(start + size, data.count)
+        while p + 8 <= end {
+            let id   = String(bytes: data[p..<p+4], encoding: .ascii) ?? ""
+            let len  = Int(data.readUInt32LE(at: p + 4))
+            let vs   = p + 8, ve = min(vs + len, data.count)
+            guard vs <= ve else { break }
+            let trimmed = data[vs..<ve].prefix(while: { $0 != 0 })
+            let value = String(bytes: trimmed, encoding: .utf8)
+                     ?? String(bytes: trimmed, encoding: .isoLatin1)
+            if let value, !value.isEmpty {
+                switch id {
+                case "INAM": meta.infoTitle      = value
+                case "IART": meta.infoArtist     = value
+                case "ICMT": meta.infoComment    = value
+                case "ICOP": meta.infoCopyright  = value
+                case "IGNR": meta.infoGenre      = value
+                case "ICRD": meta.infoCreated    = value
+                case "ISFT": meta.infoSoftware   = value
+                case "IENG": meta.infoEngineer   = value
+                case "ISRC": meta.infoSource     = value
+                case "IPRD": meta.infoProduct    = value
+                case "ISBJ": meta.infoSubject    = value
+                case "ITCH": meta.infoTechnician = value
+                default: break
+                }
+            }
+            p = vs + len + (len & 1)   // word-aligned
+        }
     }
 }
 
