@@ -18,6 +18,7 @@ struct AudioFilesTableView: View {
     @AppStorage("bwf.profiles")        private var profilesRaw: String = ""
     @AppStorage("bwf.activeProfileID") private var activeProfileIDRaw: String = ""
     @State private var showOptions: Bool = false
+    @State private var searchText: String = ""
     @State private var sortColumn: SortColumn = .none
     @State private var sortAscending: Bool = true
     @State private var widthOverrides: [String: CGFloat] = [:]  // "name" or field rawValue → width
@@ -140,12 +141,27 @@ struct AudioFilesTableView: View {
 
     // MARK: - Filtering
 
-    private var isFiltering: Bool { highlightedFiles.count > 1 }
+    private var isHighlightFiltering: Bool { highlightedFiles.count > 1 }
+    private var isSearching: Bool { !searchText.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var isFiltering: Bool { isHighlightFiltering || isSearching }
 
     private func displayRows(
         from rows: [(index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?])]
     ) -> [(index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?])] {
-        isFiltering ? rows.filter { highlightedFiles.contains($0.name) } : rows
+        var out = isHighlightFiltering ? rows.filter { highlightedFiles.contains($0.name) } : rows
+        let term = searchText.trimmingCharacters(in: .whitespaces)
+        if !term.isEmpty {
+            out = out.filter { row in
+                if row.name.localizedCaseInsensitiveContains(term) { return true }
+                return row.values.contains { ($0 ?? "").localizedCaseInsensitiveContains(term) }
+            }
+        }
+        return out
+    }
+
+    private func clearFilters() {
+        searchText = ""
+        onClearFilter?()
     }
 
     // MARK: - Body
@@ -164,6 +180,8 @@ struct AudioFilesTableView: View {
                     .foregroundStyle(.tertiary)
                 Spacer()
             } else {
+                searchBar
+
                 if isFiltering {
                     HStack(spacing: 4) {
                         Image(systemName: "line.3.horizontal.decrease.circle.fill")
@@ -173,7 +191,7 @@ struct AudioFilesTableView: View {
                             .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Button("Show All") { onClearFilter?() }
+                        Button("Show All") { clearFilters() }
                             .font(.system(size: 9))
                             .buttonStyle(.plain)
                             .foregroundStyle(Color.accentColor)
@@ -337,6 +355,30 @@ struct AudioFilesTableView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Search bar
+
+    private var searchBar: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+            TextField("Search audio files", text: $searchText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 11))
+            if !searchText.isEmpty {
+                Button { searchText = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.5))
     }
 
     // MARK: - Options popover (follow-selection + profile switcher)
