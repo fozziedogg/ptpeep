@@ -115,6 +115,15 @@ private struct SettingsView: View {
     @State private var outputDevices: [AudioOutputDevice] = []
 
     var body: some View {
+        TabView {
+            generalTab
+                .tabItem { Label("General", systemImage: "gearshape") }
+            ProfilesSettingsView()
+                .tabItem { Label("Metadata Profiles", systemImage: "tablecells") }
+        }
+    }
+
+    private var generalTab: some View {
         Form {
             Section("Appearance") {
                 Picker("Theme", selection: $colorMode) {
