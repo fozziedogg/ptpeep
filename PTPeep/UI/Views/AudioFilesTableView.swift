@@ -353,6 +353,10 @@ struct AudioFilesTableView: View {
         return Menu {
             ForEach(profiles) { p in
                 Button {
+                    // Set columns directly (we hold the binding) so the switch is
+                    // immediate — don't wait on cross-view @AppStorage onChange,
+                    // which can miss the first switch.
+                    bwfFieldsRaw = p.fields.map(\.rawValue).joined(separator: ",")
                     activeProfileIDRaw = p.id.uuidString
                 } label: {
                     if p.id.uuidString == activeProfileIDRaw {
