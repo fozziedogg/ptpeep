@@ -77,7 +77,11 @@ struct SessionInspectorView: View {
     @State private var trackSortAscending: Bool = true
 
     // BWF metadata (background-parsed for Audio Files tab)
+    // `bwfFieldsRaw` is the live column string; it mirrors the active metadata
+    // profile's fields (synced both ways in seedAndSyncProfiles / writeColumns).
     @AppStorage("bwf.selectedFields")   private var bwfFieldsRaw: String = BWFFieldKey.defaults.map(\.rawValue).joined(separator: ",")
+    @AppStorage("bwf.profiles")         private var profilesRaw: String = ""
+    @AppStorage("bwf.activeProfileID")  private var activeProfileIDRaw: String = ""
     @AppStorage("af.followSelection")   private var followClipSelection: Bool = true
     @State private var bwfCache: [String: BWFMetadata] = [:]
     @State private var isBWFLoading: Bool = false
@@ -86,6 +90,59 @@ struct SessionInspectorView: View {
 
     private var bwfSelectedFields: [BWFFieldKey] {
         bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
+    }
+
+    private static func columnString(_ fields: [BWFFieldKey]) -> String {
+        fields.map(\.rawValue).joined(separator: ",")
+    }
+
+    /// Seed built-in presets on first run, resolve the active profile, and push
+    /// its fields into the live column string. Preserves the user's existing
+    /// columns as a "Custom" profile on first migration.
+    private func seedAndSyncProfiles() {
+        var list = MetadataProfileStore.decode(profilesRaw)
+        if list.isEmpty {
+            list = MetadataProfile.builtInPresets
+            // Preserve the user's exact current columns across migration: reuse a
+            // preset if it matches, else keep them as a "Custom" profile.
+            let current = bwfSelectedFields
+            if let match = list.first(where: { $0.fields == current }) {
+                activeProfileIDRaw = match.id.uuidString
+            } else if !current.isEmpty {
+                let custom = MetadataProfile(name: "Custom", fields: current)
+                list.insert(custom, at: 0)
+                activeProfileIDRaw = custom.id.uuidString
+            }
+            profilesRaw = MetadataProfileStore.encode(list)
+        }
+        let active = list.first { $0.id.uuidString == activeProfileIDRaw } ?? list.first
+        guard let active else { return }
+        if activeProfileIDRaw != active.id.uuidString { activeProfileIDRaw = active.id.uuidString }
+        let raw = Self.columnString(active.fields)
+        if bwfFieldsRaw != raw { bwfFieldsRaw = raw }
+    }
+
+    /// Push the active profile's fields into the live column string (used when
+    /// the profile list changes elsewhere, e.g. the Settings tab, or the active
+    /// profile is switched in the toolbar).
+    private func syncColumnsFromActiveProfile() {
+        guard let active = MetadataProfileStore.decode(profilesRaw)
+            .first(where: { $0.id.uuidString == activeProfileIDRaw }) else { return }
+        let raw = Self.columnString(active.fields)
+        if bwfFieldsRaw != raw { bwfFieldsRaw = raw }
+    }
+
+    /// Write inline column edits (reorder/show/hide in the table) back into the
+    /// active profile so they persist with it.
+    private func writeColumnsToActiveProfile() {
+        var list = MetadataProfileStore.decode(profilesRaw)
+        guard let idx = list.firstIndex(where: { $0.id.uuidString == activeProfileIDRaw })
+        else { return }
+        let cols = bwfSelectedFields
+        if list[idx].fields != cols {
+            list[idx].fields = cols
+            profilesRaw = MetadataProfileStore.encode(list)
+        }
     }
     private var resolvedLookup: [String: ResolvedAudioFile] {
         Dictionary(session.resolvedAudioFiles.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
@@ -337,10 +394,15 @@ struct SessionInspectorView: View {
             showTrackOptions         = s.showTrackOptions
             trackSortColumn          = TrackSortColumn(index: s.trackSortIndex)
             trackSortAscending       = s.trackSortAscending
+            seedAndSyncProfiles()
         }
         .task(id: session.resolvedAudioFiles.count) {
             startBWFParse(resolvedFiles: session.resolvedAudioFiles)
         }
+        // Metadata profile ⇄ live columns sync (all guarded by equality → no loop)
+        .onChange(of: activeProfileIDRaw) { _ in syncColumnsFromActiveProfile() }
+        .onChange(of: profilesRaw)        { _ in syncColumnsFromActiveProfile() }
+        .onChange(of: bwfFieldsRaw)       { _ in writeColumnsToActiveProfile() }
         .onChange(of: tc.selStart) { _ in updateHighlightedFiles() }
         .onChange(of: tc.selTrack) { _ in updateHighlightedFiles() }
         .onChange(of: tc.selEnd)   { _ in updateHighlightedFiles() }

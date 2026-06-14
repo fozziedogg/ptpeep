@@ -1,0 +1,36 @@
+{
+  "" : {
+    "const-values" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Logging-primary.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Logging-primary.d",
+    "diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Logging-primary.dia",
+    "emit-module-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Logging-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Logging-primary-emit-module.dia",
+    "pch" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Logging-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Logging-primary.swiftdeps"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/Sources/Logging/Locks.swift" : {
+    "index-unit-output-path" : "/swift-log.build/Release/Logging.build/Objects-normal/arm64/Locks.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Locks.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Locks.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/Sources/Logging/LogEvent.swift" : {
+    "index-unit-output-path" : "/swift-log.build/Release/Logging.build/Objects-normal/arm64/LogEvent.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/LogEvent.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/LogEvent.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/Sources/Logging/LogHandler.swift" : {
+    "index-unit-output-path" : "/swift-log.build/Release/Logging.build/Objects-normal/arm64/LogHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/LogHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/LogHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/Sources/Logging/Logging.swift" : {
+    "index-unit-output-path" : "/swift-log.build/Release/Logging.build/Objects-normal/arm64/Logging.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Logging.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/Logging.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/Sources/Logging/MetadataProvider.swift" : {
+    "index-unit-output-path" : "/swift-log.build/Release/Logging.build/Objects-normal/arm64/MetadataProvider.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/MetadataProvider.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-log/build/swift-log.build/Release/Logging.build/Objects-normal/arm64/MetadataProvider.o"
+  }
+}

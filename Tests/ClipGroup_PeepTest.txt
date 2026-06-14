@@ -1,0 +1,45 @@
+SESSION NAME:	ClipGroup_PeepTest
+SAMPLE RATE:	48000.000000
+BIT DEPTH:	24-bit
+SESSION START TIMECODE:	00:00:00:00
+TIMECODE FORMAT:	23.976 Frame
+# OF AUDIO TRACKS:	1
+# OF AUDIO CLIPS:	3
+# OF AUDIO FILES:	3
+
+
+O N L I N E  F I L E S  I N  S E S S I O N
+Filename             	Location
+WORK 3-HushMix_08.wav	Macintosh HD:Users:matthewchan:Desktop:ClipGroup_PeepTest:Audio Files:
+WORK 3-HushMix_16.wav	Macintosh HD:Users:matthewchan:Desktop:ClipGroup_PeepTest:Audio Files:
+WORK 3-HushMix_18.wav	Macintosh HD:Users:matthewchan:Desktop:ClipGroup_PeepTest:Audio Files:
+
+
+O F F L I N E  F I L E S  I N  S E S S I O N
+Filename             	Location
+
+
+O N L I N E  C L I P S  I N  S E S S I O N
+CLIP NAME        	Source File
+WORK 3-HushMix_08	WORK 3-HushMix_08.wav
+WORK 3-HushMix_16	WORK 3-HushMix_16.wav
+WORK 3-HushMix_18	WORK 3-HushMix_18.wav
+
+
+P L U G - I N S  L I S T I N G
+MANUFACTURER            	PLUG-IN NAME            	VERSION         	FORMAT          	STEMS                   	NUMBER OF INSTANCES
+
+
+T R A C K  L I S T I N G
+TRACK NAME:	TEST
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+1       	1       	TEST.grp                      	   01:00:00:00	   01:00:24:06	   00:00:24:06	Unmuted
+
+
+M A R K E R S  L I S T I N G
+#   	LOCATION     	TIME REFERENCE    	UNITS    	NAME                             	TRACK NAME                       	TRACK TYPE   	COMMENTS
+1   	01:00:00:00  	172972800         	Samples  	Location 1                       	Markers                          	Ruler                            	

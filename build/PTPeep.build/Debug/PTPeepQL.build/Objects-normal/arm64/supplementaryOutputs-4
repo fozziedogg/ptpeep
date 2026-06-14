@@ -1,0 +1,23 @@
+{
+  "/Users/fozzie/developer/ptpeep/PTPeep/Parser/PTXParser.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTXParser.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTXParser.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTXParser.dia",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTXParser.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTXParser.swiftdeps"
+  },
+  "/Users/fozzie/developer/ptpeep/PTPeep/Parser/PTXSession.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTXSession.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTXSession.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTXSession.dia",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTXSession.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTXSession.swiftdeps"
+  },
+  "/Users/fozzie/developer/ptpeep/PTPeepQL/PreviewViewController.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PreviewViewController.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PreviewViewController.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PreviewViewController.dia",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PreviewViewController.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PreviewViewController.swiftdeps"
+  }
+}

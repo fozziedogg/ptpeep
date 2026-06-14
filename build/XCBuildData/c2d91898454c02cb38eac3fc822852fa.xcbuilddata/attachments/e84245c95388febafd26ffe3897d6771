@@ -1,0 +1,4 @@
+module CNIOLLHTTP {
+umbrella header "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/CNIOLLHTTP/include/CNIOLLHTTP.h"
+export *
+}

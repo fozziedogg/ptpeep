@@ -1,0 +1,106 @@
+{
+  "" : {
+    "const-values" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOExtras-primary.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOExtras-primary.d",
+    "diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOExtras-primary.dia",
+    "emit-module-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOExtras-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOExtras-primary-emit-module.dia",
+    "pch" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOExtras-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOExtras-primary.swiftdeps"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/DebugInboundEventsHandler.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/DebugInboundEventsHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/DebugInboundEventsHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/DebugInboundEventsHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/DebugOutboundEventsHandler.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/DebugOutboundEventsHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/DebugOutboundEventsHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/DebugOutboundEventsHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/FixedLengthFrameDecoder.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/FixedLengthFrameDecoder.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/FixedLengthFrameDecoder.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/FixedLengthFrameDecoder.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/HTTP1ProxyConnectHandler.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/HTTP1ProxyConnectHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/HTTP1ProxyConnectHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/HTTP1ProxyConnectHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/JSONRPCFraming+ContentLengthHeader.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/JSONRPCFraming+ContentLengthHeader.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/JSONRPCFraming+ContentLengthHeader.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/JSONRPCFraming+ContentLengthHeader.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/JSONRPCFraming.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/JSONRPCFraming.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/JSONRPCFraming.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/JSONRPCFraming.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/LengthFieldBasedFrameDecoder.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/LengthFieldBasedFrameDecoder.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/LengthFieldBasedFrameDecoder.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/LengthFieldBasedFrameDecoder.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/LengthFieldPrepender.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/LengthFieldPrepender.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/LengthFieldPrepender.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/LengthFieldPrepender.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/LineBasedFrameDecoder.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/LineBasedFrameDecoder.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/LineBasedFrameDecoder.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/LineBasedFrameDecoder.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/MarkedCircularBuffer+PopFirstCheckMarked.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/MarkedCircularBuffer+PopFirstCheckMarked.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/MarkedCircularBuffer+PopFirstCheckMarked.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/MarkedCircularBuffer+PopFirstCheckMarked.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/NIOExtrasError.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOExtrasError.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOExtrasError.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOExtrasError.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/NIOLengthFieldBitLength.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOLengthFieldBitLength.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOLengthFieldBitLength.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIOLengthFieldBitLength.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/NIORequestIdentifiable.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIORequestIdentifiable.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIORequestIdentifiable.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/NIORequestIdentifiable.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/PCAPRingBuffer.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/PCAPRingBuffer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/PCAPRingBuffer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/PCAPRingBuffer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/QuiescingHelper.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/QuiescingHelper.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/QuiescingHelper.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/QuiescingHelper.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/RequestResponseHandler.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/RequestResponseHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/RequestResponseHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/RequestResponseHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/RequestResponseHandlers+State.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/RequestResponseHandlers+State.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/RequestResponseHandlers+State.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/RequestResponseHandlers+State.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/RequestResponseWithIDHandler.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/RequestResponseWithIDHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/RequestResponseWithIDHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/RequestResponseWithIDHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/Sources/NIOExtras/WritePCAPHandler.swift" : {
+    "index-unit-output-path" : "/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/WritePCAPHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/WritePCAPHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio-extras/build/swift-nio-extras.build/Release/NIOExtras.build/Objects-normal/x86_64/WritePCAPHandler.o"
+  }
+}

@@ -1,0 +1,726 @@
+{
+  "" : {
+    "const-values" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPC-primary.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPC-primary.d",
+    "diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPC-primary.dia",
+    "emit-module-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPC-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPC-primary-emit-module.dia",
+    "pch" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPC-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPC-primary.swiftdeps"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Array+BoundsCheck.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Array+BoundsCheck.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Array+BoundsCheck.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Array+BoundsCheck.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerHandlerStateMachine/ServerHandlerStateMachine+Actions.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Actions.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Actions.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Actions.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerHandlerStateMachine/ServerHandlerStateMachine+Draining.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Draining.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Draining.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Draining.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerHandlerStateMachine/ServerHandlerStateMachine+Finished.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Finished.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Finished.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Finished.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerHandlerStateMachine/ServerHandlerStateMachine+Handling.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Handling.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Handling.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Handling.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerHandlerStateMachine/ServerHandlerStateMachine+Idle.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Idle.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Idle.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine+Idle.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerHandlerStateMachine/ServerHandlerStateMachine.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerStateMachine.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerInterceptorStateMachine/ServerInterceptorStateMachine+Actions.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine+Actions.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine+Actions.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine+Actions.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerInterceptorStateMachine/ServerInterceptorStateMachine+Finished.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine+Finished.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine+Finished.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine+Finished.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerInterceptorStateMachine/ServerInterceptorStateMachine+Intercepting.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine+Intercepting.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine+Intercepting.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine+Intercepting.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerInterceptorStateMachine/ServerInterceptorStateMachine.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorStateMachine.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/AsyncServerHandler/ServerInterceptorStateMachine/StreamState.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamState.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamState.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamState.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/Call+AsyncRequestStreamWriter.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Call+AsyncRequestStreamWriter.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Call+AsyncRequestStreamWriter.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Call+AsyncRequestStreamWriter.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/CancellationError+GRPCStatusTransformable.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CancellationError+GRPCStatusTransformable.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CancellationError+GRPCStatusTransformable.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CancellationError+GRPCStatusTransformable.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncBidirectionalStreamingCall.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncBidirectionalStreamingCall.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncBidirectionalStreamingCall.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncBidirectionalStreamingCall.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncClientStreamingCall.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncClientStreamingCall.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncClientStreamingCall.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncClientStreamingCall.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncRequestStream.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncRequestStream.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncRequestStream.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncRequestStream.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncRequestStreamWriter.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncRequestStreamWriter.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncRequestStreamWriter.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncRequestStreamWriter.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncResponseStream.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncResponseStream.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncResponseStream.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncResponseStream.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncResponseStreamWriter.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncResponseStreamWriter.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncResponseStreamWriter.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncResponseStreamWriter.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncSequenceProducerDelegate.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncSequenceProducerDelegate.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncSequenceProducerDelegate.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncSequenceProducerDelegate.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncServerCallContext.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncServerCallContext.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncServerCallContext.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncServerCallContext.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncServerHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncServerHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncServerHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncServerHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncServerStreamingCall.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncServerStreamingCall.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncServerStreamingCall.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncServerStreamingCall.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncUnaryCall.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncUnaryCall.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncUnaryCall.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncUnaryCall.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCAsyncWriterSinkDelegate.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncWriterSinkDelegate.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncWriterSinkDelegate.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCAsyncWriterSinkDelegate.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCChannel+AsyncAwaitSupport.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannel+AsyncAwaitSupport.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannel+AsyncAwaitSupport.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannel+AsyncAwaitSupport.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCClient+AsyncAwaitSupport.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClient+AsyncAwaitSupport.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClient+AsyncAwaitSupport.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClient+AsyncAwaitSupport.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/GRPCSendable.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCSendable.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCSendable.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCSendable.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/AsyncAwaitSupport/NIOAsyncWrappers.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/NIOAsyncWrappers.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/NIOAsyncWrappers.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/NIOAsyncWrappers.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/CallHandlers/BidirectionalStreamingServerHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/BidirectionalStreamingServerHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/BidirectionalStreamingServerHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/BidirectionalStreamingServerHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/CallHandlers/ClientStreamingServerHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientStreamingServerHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientStreamingServerHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientStreamingServerHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/CallHandlers/ServerHandlerProtocol.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerProtocol.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerProtocol.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerHandlerProtocol.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/CallHandlers/ServerStreamingServerHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerStreamingServerHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerStreamingServerHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerStreamingServerHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/CallHandlers/UnaryServerHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UnaryServerHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UnaryServerHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UnaryServerHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/CallOptions.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CallOptions.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CallOptions.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CallOptions.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientCalls/BidirectionalStreamingCall.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/BidirectionalStreamingCall.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/BidirectionalStreamingCall.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/BidirectionalStreamingCall.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientCalls/Call.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Call.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Call.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Call.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientCalls/CallDetails.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CallDetails.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CallDetails.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CallDetails.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientCalls/ClientCall.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientCall.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientCall.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientCall.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientCalls/ClientStreamingCall.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientStreamingCall.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientStreamingCall.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientStreamingCall.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientCalls/LazyEventLoopPromise.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/LazyEventLoopPromise.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/LazyEventLoopPromise.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/LazyEventLoopPromise.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientCalls/ResponseContainers.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ResponseContainers.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ResponseContainers.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ResponseContainers.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientCalls/ResponsePartContainer.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ResponsePartContainer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ResponsePartContainer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ResponsePartContainer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientCalls/ServerStreamingCall.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerStreamingCall.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerStreamingCall.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerStreamingCall.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientCalls/UnaryCall.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UnaryCall.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UnaryCall.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UnaryCall.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientConnection.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnection.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnection.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnection.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientConnectionConfiguration+NIOSSL.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnectionConfiguration+NIOSSL.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnectionConfiguration+NIOSSL.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnectionConfiguration+NIOSSL.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ClientErrorDelegate.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientErrorDelegate.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientErrorDelegate.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientErrorDelegate.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/CoalescingLengthPrefixedMessageWriter.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CoalescingLengthPrefixedMessageWriter.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CoalescingLengthPrefixedMessageWriter.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CoalescingLengthPrefixedMessageWriter.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Compression/CompressionAlgorithm.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CompressionAlgorithm.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CompressionAlgorithm.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/CompressionAlgorithm.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Compression/DecompressionLimit.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/DecompressionLimit.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/DecompressionLimit.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/DecompressionLimit.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Compression/MessageEncoding.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/MessageEncoding.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/MessageEncoding.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/MessageEncoding.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Compression/Zlib.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Zlib.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Zlib.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Zlib.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionBackoff.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionBackoff.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionBackoff.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionBackoff.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionKeepalive.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionKeepalive.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionKeepalive.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionKeepalive.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionManager+Delegates.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManager+Delegates.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManager+Delegates.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManager+Delegates.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionManager.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManager.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManager.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManager.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionManagerChannelProvider.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManagerChannelProvider.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManagerChannelProvider.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManagerChannelProvider.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/ConnectionManagerID.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManagerID.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManagerID.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionManagerID.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/ConnectionPool+PerConnectionState.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPool+PerConnectionState.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPool+PerConnectionState.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPool+PerConnectionState.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/ConnectionPool+Waiter.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPool+Waiter.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPool+Waiter.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPool+Waiter.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/ConnectionPool.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPool.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPool.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPool.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/ConnectionPoolIDs.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPoolIDs.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPoolIDs.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectionPoolIDs.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/GRPCChannelPool.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannelPool.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannelPool.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannelPool.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/PoolManager.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PoolManager.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PoolManager.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PoolManager.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/PoolManagerStateMachine+PerPoolState.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PoolManagerStateMachine+PerPoolState.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PoolManagerStateMachine+PerPoolState.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PoolManagerStateMachine+PerPoolState.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/PoolManagerStateMachine.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PoolManagerStateMachine.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PoolManagerStateMachine.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PoolManagerStateMachine.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/PooledChannel.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PooledChannel.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PooledChannel.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PooledChannel.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectionPool/StreamLender.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamLender.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamLender.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamLender.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ConnectivityState.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectivityState.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectivityState.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ConnectivityState.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/DebugOnly.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/DebugOnly.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/DebugOnly.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/DebugOnly.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/DelegatingErrorHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/DelegatingErrorHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/DelegatingErrorHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/DelegatingErrorHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Error+NIOSSL.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Error+NIOSSL.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Error+NIOSSL.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Error+NIOSSL.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/EventLoopFuture+RecoverFromUncleanShutdown.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/EventLoopFuture+RecoverFromUncleanShutdown.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/EventLoopFuture+RecoverFromUncleanShutdown.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/EventLoopFuture+RecoverFromUncleanShutdown.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/FakeChannel.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/FakeChannel.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/FakeChannel.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/FakeChannel.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCChannel/ClientConnection+NIOSSL.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnection+NIOSSL.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnection+NIOSSL.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnection+NIOSSL.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCChannel/ClientConnection+NWTLS.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnection+NWTLS.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnection+NWTLS.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientConnection+NWTLS.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCChannel/GRPCChannel.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannel.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannel.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannel.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCChannel/GRPCChannelBuilder.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannelBuilder.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannelBuilder.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCChannelBuilder.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCClient.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClient.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClient.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClient.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCClientChannelHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClientChannelHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClientChannelHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClientChannelHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCClientStateMachine.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClientStateMachine.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClientStateMachine.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCClientStateMachine.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCContentType.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCContentType.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCContentType.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCContentType.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCError.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCError.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCError.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCError.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCHeaderName.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCHeaderName.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCHeaderName.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCHeaderName.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCIdleHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCIdleHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCIdleHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCIdleHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCIdleHandlerStateMachine.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCIdleHandlerStateMachine.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCIdleHandlerStateMachine.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCIdleHandlerStateMachine.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCKeepaliveHandlers.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCKeepaliveHandlers.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCKeepaliveHandlers.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCKeepaliveHandlers.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCPayload.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCPayload.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCPayload.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCPayload.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCServerPipelineConfigurator.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCServerPipelineConfigurator.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCServerPipelineConfigurator.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCServerPipelineConfigurator.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCServerRequestRoutingHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCServerRequestRoutingHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCServerRequestRoutingHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCServerRequestRoutingHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCServiceDescription.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCServiceDescription.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCServiceDescription.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCServiceDescription.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCStatus.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCStatus.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCStatus.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCStatus.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCStatusAndMetadata.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCStatusAndMetadata.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCStatusAndMetadata.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCStatusAndMetadata.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCStatusMessageMarshaller.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCStatusMessageMarshaller.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCStatusMessageMarshaller.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCStatusMessageMarshaller.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCTLSConfiguration.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCTLSConfiguration.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCTLSConfiguration.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCTLSConfiguration.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCTimeout.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCTimeout.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCTimeout.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCTimeout.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/GRPCWebToHTTP2ServerCodec.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCWebToHTTP2ServerCodec.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCWebToHTTP2ServerCodec.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/GRPCWebToHTTP2ServerCodec.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/HTTP2ToRawGRPCServerCodec.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/HTTP2ToRawGRPCServerCodec.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/HTTP2ToRawGRPCServerCodec.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/HTTP2ToRawGRPCServerCodec.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/HTTP2ToRawGRPCStateMachine.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/HTTP2ToRawGRPCStateMachine.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/HTTP2ToRawGRPCStateMachine.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/HTTP2ToRawGRPCStateMachine.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Interceptor/ClientInterceptorContext.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptorContext.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptorContext.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptorContext.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Interceptor/ClientInterceptorPipeline.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptorPipeline.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptorPipeline.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptorPipeline.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Interceptor/ClientInterceptorProtocol.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptorProtocol.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptorProtocol.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptorProtocol.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Interceptor/ClientInterceptors.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptors.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptors.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientInterceptors.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Interceptor/ClientTransport.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientTransport.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientTransport.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientTransport.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Interceptor/ClientTransportFactory.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientTransportFactory.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientTransportFactory.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ClientTransportFactory.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Interceptor/MessageParts.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/MessageParts.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/MessageParts.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/MessageParts.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Interceptor/ServerInterceptorContext.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorContext.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorContext.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorContext.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Interceptor/ServerInterceptorPipeline.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorPipeline.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorPipeline.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptorPipeline.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Interceptor/ServerInterceptors.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptors.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptors.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerInterceptors.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/InterceptorContextList.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/InterceptorContextList.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/InterceptorContextList.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/InterceptorContextList.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/LengthPrefixedMessageReader.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/LengthPrefixedMessageReader.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/LengthPrefixedMessageReader.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/LengthPrefixedMessageReader.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Logger.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Logger.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Logger.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Logger.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/LoggingServerErrorDelegate.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/LoggingServerErrorDelegate.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/LoggingServerErrorDelegate.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/LoggingServerErrorDelegate.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/MessageEncodingHeaderValidator.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/MessageEncodingHeaderValidator.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/MessageEncodingHeaderValidator.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/MessageEncodingHeaderValidator.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/PlatformSupport.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PlatformSupport.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PlatformSupport.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/PlatformSupport.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ReadWriteStates.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ReadWriteStates.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ReadWriteStates.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ReadWriteStates.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Ref.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Ref.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Ref.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Ref.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Serialization.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Serialization.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Serialization.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Serialization.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Server+NIOSSL.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Server+NIOSSL.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Server+NIOSSL.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Server+NIOSSL.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Server.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Server.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Server.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Server.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ServerBuilder+NIOSSL.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerBuilder+NIOSSL.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerBuilder+NIOSSL.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerBuilder+NIOSSL.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ServerBuilder.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerBuilder.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerBuilder.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerBuilder.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ServerCallContexts/ServerCallContext.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerCallContext.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerCallContext.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerCallContext.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ServerCallContexts/StreamingResponseCallContext.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamingResponseCallContext.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamingResponseCallContext.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamingResponseCallContext.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ServerCallContexts/UnaryResponseCallContext.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UnaryResponseCallContext.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UnaryResponseCallContext.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UnaryResponseCallContext.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ServerChannelErrorHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerChannelErrorHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerChannelErrorHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerChannelErrorHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ServerErrorDelegate.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerErrorDelegate.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerErrorDelegate.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerErrorDelegate.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/ServerErrorProcessor.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerErrorProcessor.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerErrorProcessor.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/ServerErrorProcessor.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Stopwatch.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Stopwatch.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Stopwatch.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Stopwatch.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/StreamEvent.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamEvent.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamEvent.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/StreamEvent.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/TLSVerificationHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/TLSVerificationHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/TLSVerificationHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/TLSVerificationHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/TLSVersion.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/TLSVersion.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/TLSVersion.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/TLSVersion.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/TimeLimit.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/TimeLimit.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/TimeLimit.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/TimeLimit.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/UserInfo.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UserInfo.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UserInfo.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/UserInfo.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/Version.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Version.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Version.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/Version.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/WebCORSHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/WebCORSHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/WebCORSHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/WebCORSHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/WriteCapturingHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/WriteCapturingHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/WriteCapturingHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/WriteCapturingHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/_EmbeddedThroughput.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_EmbeddedThroughput.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_EmbeddedThroughput.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_EmbeddedThroughput.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/_FakeResponseStream.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_FakeResponseStream.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_FakeResponseStream.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_FakeResponseStream.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/_GRPCClientCodecHandler.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_GRPCClientCodecHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_GRPCClientCodecHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_GRPCClientCodecHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/GRPC/_MessageContext.swift" : {
+    "index-unit-output-path" : "/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_MessageContext.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_MessageContext.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/build/grpc-swift.build/Release/GRPC.build/Objects-normal/x86_64/_MessageContext.o"
+  }
+}

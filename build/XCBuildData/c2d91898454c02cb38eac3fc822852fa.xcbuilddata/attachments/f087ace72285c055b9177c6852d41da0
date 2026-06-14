@@ -1,0 +1,366 @@
+{
+  "" : {
+    "const-values" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCore-primary.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCore-primary.d",
+    "diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCore-primary.dia",
+    "emit-module-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCore-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCore-primary-emit-module.dia",
+    "pch" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCore-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCore-primary.swiftdeps"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/AddressedEnvelope.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AddressedEnvelope.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AddressedEnvelope.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AddressedEnvelope.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/AsyncAwaitSupport.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncAwaitSupport.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncAwaitSupport.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncAwaitSupport.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/AsyncChannel/AsyncChannel.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannel.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannel.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannel.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/AsyncChannel/AsyncChannelHandler.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannelHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannelHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannelHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/AsyncChannel/AsyncChannelInboundStream.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannelInboundStream.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannelInboundStream.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannelInboundStream.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/AsyncChannel/AsyncChannelOutboundWriter.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannelOutboundWriter.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannelOutboundWriter.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/AsyncChannelOutboundWriter.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/AsyncSequences/NIOAsyncSequenceProducer.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAsyncSequenceProducer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAsyncSequenceProducer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAsyncSequenceProducer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/AsyncSequences/NIOAsyncSequenceProducerStrategies.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAsyncSequenceProducerStrategies.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAsyncSequenceProducerStrategies.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAsyncSequenceProducerStrategies.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/AsyncSequences/NIOAsyncWriter.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAsyncWriter.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAsyncWriter.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAsyncWriter.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/AsyncSequences/NIOThrowingAsyncSequenceProducer.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOThrowingAsyncSequenceProducer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOThrowingAsyncSequenceProducer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOThrowingAsyncSequenceProducer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/BSDSocketAPI.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/BSDSocketAPI.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/BSDSocketAPI.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/BSDSocketAPI.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ByteBuffer-aux.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-aux.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-aux.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-aux.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ByteBuffer-binaryEncodedLengthPrefix.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-binaryEncodedLengthPrefix.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-binaryEncodedLengthPrefix.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-binaryEncodedLengthPrefix.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ByteBuffer-conversions.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-conversions.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-conversions.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-conversions.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ByteBuffer-core.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-core.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-core.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-core.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ByteBuffer-hex.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-hex.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-hex.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-hex.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ByteBuffer-int.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-int.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-int.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-int.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ByteBuffer-lengthPrefix.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-lengthPrefix.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-lengthPrefix.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-lengthPrefix.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ByteBuffer-multi-int.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-multi-int.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-multi-int.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-multi-int.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ByteBuffer-quicBinaryEncodingStrategy.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-quicBinaryEncodingStrategy.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-quicBinaryEncodingStrategy.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-quicBinaryEncodingStrategy.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ByteBuffer-views.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-views.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-views.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ByteBuffer-views.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/Channel.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Channel.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Channel.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Channel.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ChannelHandler.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ChannelHandlers.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelHandlers.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelHandlers.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelHandlers.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ChannelInvoker.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelInvoker.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelInvoker.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelInvoker.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ChannelOption.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelOption.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelOption.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelOption.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ChannelPipeline.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelPipeline.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelPipeline.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ChannelPipeline.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/CircularBuffer.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/CircularBuffer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/CircularBuffer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/CircularBuffer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/Codec.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Codec.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Codec.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Codec.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/ConvenienceOptionSupport.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ConvenienceOptionSupport.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ConvenienceOptionSupport.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/ConvenienceOptionSupport.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/DeadChannel.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/DeadChannel.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/DeadChannel.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/DeadChannel.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/DispatchQueue+WithFuture.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/DispatchQueue+WithFuture.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/DispatchQueue+WithFuture.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/DispatchQueue+WithFuture.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/EventLoop+Deprecated.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoop+Deprecated.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoop+Deprecated.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoop+Deprecated.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/EventLoop+SerialExecutor.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoop+SerialExecutor.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoop+SerialExecutor.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoop+SerialExecutor.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/EventLoop.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoop.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoop.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoop.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/EventLoopFuture+AssumeIsolated.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture+AssumeIsolated.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture+AssumeIsolated.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture+AssumeIsolated.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/EventLoopFuture+Deprecated.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture+Deprecated.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture+Deprecated.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture+Deprecated.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/EventLoopFuture+WithEventLoop.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture+WithEventLoop.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture+WithEventLoop.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture+WithEventLoop.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/EventLoopFuture.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/EventLoopFuture.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/FileDescriptor.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/FileDescriptor.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/FileDescriptor.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/FileDescriptor.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/FileHandle.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/FileHandle.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/FileHandle.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/FileHandle.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/FileRegion.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/FileRegion.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/FileRegion.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/FileRegion.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/GlobalSingletons.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/GlobalSingletons.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/GlobalSingletons.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/GlobalSingletons.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/IO.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IO.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IO.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IO.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/IOData.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IOData.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IOData.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IOData.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/IPProtocol.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IPProtocol.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IPProtocol.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IPProtocol.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/IntegerBitPacking.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IntegerBitPacking.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IntegerBitPacking.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IntegerBitPacking.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/IntegerTypes.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IntegerTypes.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IntegerTypes.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/IntegerTypes.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/Interfaces.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Interfaces.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Interfaces.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Interfaces.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/Linux.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Linux.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Linux.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Linux.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/MarkedCircularBuffer.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/MarkedCircularBuffer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/MarkedCircularBuffer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/MarkedCircularBuffer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/MulticastChannel.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/MulticastChannel.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/MulticastChannel.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/MulticastChannel.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/NIOAny.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAny.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAny.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOAny.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/NIOCloseOnErrorHandler.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCloseOnErrorHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCloseOnErrorHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCloseOnErrorHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/NIOCoreSendableMetatype.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCoreSendableMetatype.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCoreSendableMetatype.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOCoreSendableMetatype.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/NIODecodedAsyncSequence.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIODecodedAsyncSequence.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIODecodedAsyncSequence.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIODecodedAsyncSequence.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/NIOLoopBound.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOLoopBound.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOLoopBound.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOLoopBound.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/NIOPooledRecvBufferAllocator.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOPooledRecvBufferAllocator.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOPooledRecvBufferAllocator.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOPooledRecvBufferAllocator.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/NIOScheduledCallback.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOScheduledCallback.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOScheduledCallback.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOScheduledCallback.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/NIOSendable.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOSendable.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOSendable.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOSendable.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/NIOSplitLinesMessageDecoder.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOSplitLinesMessageDecoder.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOSplitLinesMessageDecoder.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOSplitLinesMessageDecoder.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/NIOTransportAccessibleChannelCore.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOTransportAccessibleChannelCore.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOTransportAccessibleChannelCore.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/NIOTransportAccessibleChannelCore.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/RecvByteBufferAllocator.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/RecvByteBufferAllocator.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/RecvByteBufferAllocator.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/RecvByteBufferAllocator.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/SingleStepByteToMessageDecoder.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SingleStepByteToMessageDecoder.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SingleStepByteToMessageDecoder.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SingleStepByteToMessageDecoder.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/SocketAddresses.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SocketAddresses.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SocketAddresses.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SocketAddresses.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/SocketOptionProvider.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SocketOptionProvider.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SocketOptionProvider.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SocketOptionProvider.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/SystemCallHelpers.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SystemCallHelpers.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SystemCallHelpers.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/SystemCallHelpers.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/TimeAmount+Duration.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/TimeAmount+Duration.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/TimeAmount+Duration.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/TimeAmount+Duration.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/TypeAssistedChannelHandler.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/TypeAssistedChannelHandler.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/TypeAssistedChannelHandler.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/TypeAssistedChannelHandler.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/UniversalBootstrapSupport.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/UniversalBootstrapSupport.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/UniversalBootstrapSupport.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/UniversalBootstrapSupport.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIOCore/Utilities.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Utilities.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Utilities.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIOCore.build/Objects-normal/x86_64/Utilities.o"
+  }
+}

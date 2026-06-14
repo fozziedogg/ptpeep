@@ -1,0 +1,29 @@
+=== ClipGroup_PeepTestC  |  2026-05-30T00:44:37Z ===
+Sample Rate : 48000 Hz
+Tracks      : 4
+Total Clips : 17
+
+── TEST [Mono] ───────────────────────────────────────────── (5 clips)
+  [01] TEST.grp-04                                         start=1:00:03:14    len=0:00:24:07    file=—  [172972800]
+  [02] WORK 3-HushMix_08                                   start=1:00:03:14    len=0:00:05:11    file=WORK 3-HushMix_08  [172972800]
+  [03] WORK 3-HushMix_16                                   start=1:00:13:15    len=0:00:06:03    file=WORK 3-HushMix_16  [173453280]
+  [04] '72FrdCstmStrtsD ASE-02-14.2                        start=1:00:33:15    len=0:00:14:05    file='72FrdCstmStrtsD ASE-02-14.2.R  [174414240]
+  [05] TEST.grp-05                                         start=1:03:27:22    len=0:00:06:13    file=—  [182779904]
+
+── Audio 6 [Mono] ────────────────────────────────────────── (5 clips)
+  [01] Audio 5.grp-02                                      start=0:59:40:22    len=0:02:23:00    file=—  [171884544]  Muted
+  [02] WORK 3-HushMix_08                                   start=0:59:40:22    len=0:00:05:11    file=WORK 3-HushMix_08  [171884544]  Muted
+  [03] WORK 3-HushMix_16                                   start=0:59:50:23    len=0:00:06:03    file=WORK 3-HushMix_16  [172365024]  Muted
+  [04] '72FrdCstmStrtsD ASE-02-14.2                        start=1:00:10:23    len=0:00:14:05    file='72FrdCstmStrtsD ASE-02-14.2.R  [173325984]  Muted
+  [05] TEST.grp-07                                         start=1:03:06:06    len=0:00:08:17    file=—  [181739520]
+
+── Audio 6.dup1 [Mono] ───────────────────────────────────── (2 clips)
+  [01] TEST.grp-08                                         start=1:00:03:14    len=0:00:44:06    file=—  [172972800]
+  [02] TEST.grp-07                                         start=1:03:06:06    len=0:00:08:17    file=—  [181739520]
+
+── Audio 6.dup2 [Mono] ───────────────────────────────────── (5 clips)
+  [01] Audio 5.grp-01                                      start=1:00:43:05    len=0:00:26:11    file=—  [174874624]  Muted
+  [02] WORK 3-HushMix_08                                   start=1:00:43:05    len=0:00:05:11    file=WORK 3-HushMix_08  [174874624]  Muted
+  [03] WORK 3-HushMix_16                                   start=1:00:53:06    len=0:00:06:03    file=WORK 3-HushMix_16  [175355104]  Muted
+  [04] '72FrdCstmStrtsD ASE-02-14.2                        start=1:01:13:06    len=0:00:14:05    file='72FrdCstmStrtsD ASE-02-14.2.R  [176316064]  Muted
+  [05] TEST.grp-07                                         start=1:03:06:06    len=0:00:08:17    file=—  [181739520]

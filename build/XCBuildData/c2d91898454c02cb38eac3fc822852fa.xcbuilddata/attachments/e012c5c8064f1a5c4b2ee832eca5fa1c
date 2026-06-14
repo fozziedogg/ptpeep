@@ -1,0 +1,206 @@
+{
+  "" : {
+    "const-values" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/ContainersPreview-primary.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/ContainersPreview-primary.d",
+    "diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/ContainersPreview-primary.dia",
+    "emit-module-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/ContainersPreview-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/ContainersPreview-primary-emit-module.dia",
+    "pch" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/ContainersPreview-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/ContainersPreview-primary.swiftdeps"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Extensions/OutputSpan+Extras.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/OutputSpan+Extras.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/OutputSpan+Extras.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/OutputSpan+Extras.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Extensions/TemporaryAllocation.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/TemporaryAllocation.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/TemporaryAllocation.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/TemporaryAllocation.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingIteratorProtocol+Copy.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Copy.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Copy.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Copy.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingIteratorProtocol+ElementsEqual.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+ElementsEqual.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+ElementsEqual.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+ElementsEqual.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingIteratorProtocol+Filter.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Filter.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Filter.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Filter.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingIteratorProtocol+Map.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Map.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Map.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Map.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingIteratorProtocol+Reduce.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Reduce.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Reduce.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+Reduce.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingIteratorProtocol+SpanwiseZip.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+SpanwiseZip.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+SpanwiseZip.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol+SpanwiseZip.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingIteratorProtocol.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingIteratorProtocol.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingSequence+Algorithms.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence+Algorithms.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence+Algorithms.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence+Algorithms.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingSequence+Standard Conformances.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence+Standard Conformances.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence+Standard Conformances.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence+Standard Conformances.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingSequence+Utilities.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence+Utilities.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence+Utilities.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence+Utilities.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/BorrowingSequence.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BorrowingSequence.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/BidirectionalContainer.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BidirectionalContainer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BidirectionalContainer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/BidirectionalContainer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/Container+Filter.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Container+Filter.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Container+Filter.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Container+Filter.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/Container+SpanwiseZip.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Container+SpanwiseZip.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Container+SpanwiseZip.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Container+SpanwiseZip.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/Container.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Container.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Container.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Container.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/ContainerIterator.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/ContainerIterator.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/ContainerIterator.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/ContainerIterator.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/DynamicContainer.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/DynamicContainer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/DynamicContainer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/DynamicContainer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/MutableContainer.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/MutableContainer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/MutableContainer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/MutableContainer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/PermutableContainer.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/PermutableContainer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/PermutableContainer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/PermutableContainer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/RandomAccessContainer.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/RandomAccessContainer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/RandomAccessContainer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/RandomAccessContainer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/RangeExpression2.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/RangeExpression2.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/RangeExpression2.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/RangeExpression2.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/RangeReplaceableContainer.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/RangeReplaceableContainer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/RangeReplaceableContainer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/RangeReplaceableContainer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Container/Strideable+Limits.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Strideable+Limits.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Strideable+Limits.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Strideable+Limits.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Drain+Map.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Drain+Map.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Drain+Map.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Drain+Map.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Drain+Reduce.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Drain+Reduce.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Drain+Reduce.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Drain+Reduce.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Drain.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Drain.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Drain.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Drain.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Producer+Collect.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Collect.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Collect.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Collect.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Producer+Filter.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Filter.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Filter.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Filter.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Producer+Map.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Map.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Map.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Map.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Producer+Reduce.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Reduce.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Reduce.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer+Reduce.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Protocols/Producer.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Producer.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Types/InputSpan.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/InputSpan.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/InputSpan.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/InputSpan.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Types/MutableRef.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/MutableRef.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/MutableRef.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/MutableRef.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Types/Ref.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Ref.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Ref.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Ref.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Types/Shared.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Shared.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Shared.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/Shared.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Types/SpanIterator.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/SpanIterator.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/SpanIterator.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/SpanIterator.o"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/Sources/ContainersPreview/Types/UniqueBox.swift" : {
+    "index-unit-output-path" : "/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/UniqueBox.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/UniqueBox.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-collections/build/swift-collections.build/Release/ContainersPreview.build/Objects-normal/arm64/UniqueBox.o"
+  }
+}

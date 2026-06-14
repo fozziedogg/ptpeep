@@ -1,0 +1,10 @@
+=== ClipGroup_PeepTest  |  2026-05-30T00:44:37Z ===
+Sample Rate : 48000 Hz
+Tracks      : 1
+Total Clips : 4
+
+── TEST [Mono] ───────────────────────────────────────────── (4 clips)
+  [01] WORK 3-HushMix_08                                   start=1:00:03:14    len=0:00:05:11    file=WORK 3-HushMix_08  [172972800]
+  [02] TEST.grp                                            start=1:00:03:14    len=0:00:24:07    file=—  [172972800]
+  [03] WORK 3-HushMix_16                                   start=1:00:13:15    len=0:00:06:03    file=WORK 3-HushMix_16  [173453280]
+  [04] WORK 3-HushMix_18                                   start=1:00:23:15    len=0:00:04:06    file=WORK 3-HushMix_18  [173933760]

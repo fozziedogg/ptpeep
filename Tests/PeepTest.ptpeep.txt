@@ -1,0 +1,315 @@
+SESSION NAME:	PeepTest
+SAMPLE RATE:	48000.000000
+BIT DEPTH:	24-bit
+SESSION START TIMECODE:	00:00:00:00.00
+TIMECODE FORMAT:	24 Frame
+# OF AUDIO TRACKS:	11
+# OF AUDIO CLIPS:	76
+# OF AUDIO FILES:	41
+
+
+O N L I N E  F I L E S  I N  S E S S I O N
+Filename	                                                                                                            Location
+PART ONE.wav                                                                                                    	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART TWO.wav                                                                                                    	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1.wav 	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-HushMix_01.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-HushMix_02.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-HushMix_03.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-HushMix_04.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-HushMix_05.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-HushMix_06.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART TWO-HushMix_07.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART TWO-HushMix_08.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-HushMix_07.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART TWO-HushMix_09.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-HushMix_10.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-HushMix_11.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART TWO-HushMix_10.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Dcrk_01.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Dcrk_02.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Dcrk_03.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Dcrk_04.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Dcrk_05.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Dcrk_06.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART TWO-RX9Dcrk_07.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART TWO-RX9Dcrk_08.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Dcrk_07.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART TWO-RX9Dcrk_10.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Dcrk_11.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Dcrk_12.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Cnct_01.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Cnct_12.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Cnct_05.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+PART ONE-RX9Cnct_06.wav                                                                                         	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+Printmaster_01.wav                                                                                              	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+Printmaster-ProL2_01.wav                                                                                        	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+SVB_102_2.0 SFX_Final_01.L.wav                                                                                  	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+SVB_102_2.0 MUS_Final_01.L.wav                                                                                  	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+SVB_102_2.0 DIA_Final_01.L.wav                                                                                  	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+SVB_102_2.0 MUS_Final_01.R.wav                                                                                  	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+SVB_102_2.0 DIA_Final_01.R.wav                                                                                  	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+SVB_102_2.0 SFX_Final_01.R.wav                                                                                  	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.wav   	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+
+
+O F F L I N E  F I L E S  I N  S E S S I O N
+Filename	                                                                                                            Location
+
+
+O N L I N E  C L I P S  I N  S E S S I O N
+CLIP NAME	                                                                                                       Source File
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-38  	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1.wav
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-39  	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1.wav
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-40  	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1.wav
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-41  	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1.wav
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-43  	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1.wav
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-44  	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1.wav
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-45  	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1.wav
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-17  	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1.wav
+Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-36  	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1.wav
+SVB_BTS_InstagramMix_2026Apr28                                                                                  	Printmaster-ProL2_01.wav
+Printmaster_01                                                                                                  	Printmaster_01.wav
+SVB_102_2.0 DIA_Final_01-02                                                                                     	SVB_102_2.0 DIA_Final_01.L.wav
+SVB_102_2.0 DIA_Final_01-04                                                                                     	SVB_102_2.0 DIA_Final_01.L.wav
+SVB_102_2.0 DIA_Final_01-05                                                                                     	SVB_102_2.0 DIA_Final_01.L.wav
+SVB_102_2.0 DIA_Final_01-08                                                                                     	SVB_102_2.0 DIA_Final_01.L.wav
+SVB_102_2.0 DIA_Final_01-09                                                                                     	SVB_102_2.0 DIA_Final_01.L.wav
+SVB_102_2.0 MUS_Final_01-02                                                                                     	SVB_102_2.0 MUS_Final_01.L.wav
+SVB_102_2.0 MUS_Final_01-04                                                                                     	SVB_102_2.0 MUS_Final_01.L.wav
+SVB_102_2.0 MUS_Final_01-05                                                                                     	SVB_102_2.0 MUS_Final_01.L.wav
+SVB_102_2.0 MUS_Final_01-07                                                                                     	SVB_102_2.0 MUS_Final_01.L.wav
+SVB_102_2.0 SFX_Final_01-02                                                                                     	SVB_102_2.0 SFX_Final_01.L.wav
+SVB_102_2.0 SFX_Final_01-07                                                                                     	SVB_102_2.0 SFX_Final_01.L.wav
+SVB_102_2.0 SFX_Final_01-08                                                                                     	SVB_102_2.0 SFX_Final_01.L.wav
+SVB_102_2.0 SFX_Final_01-05                                                                                     	SVB_102_2.0 SFX_Final_01.L.wav
+SVB_102_2.0 SFX_Final_01-06                                                                                     	SVB_102_2.0 SFX_Final_01.L.wav
+PART ONE-RX9Cnct_01-02                                                                                          	PART ONE-RX9Cnct_01.wav
+PART ONE-RX9Cnct_01-03                                                                                          	PART ONE-RX9Cnct_01.wav
+PART ONE-RX9Cnct_01-04                                                                                          	PART ONE-RX9Cnct_01.wav
+PART ONE-RX9Dcrk_04-01                                                                                          	PART ONE-RX9Dcrk_04.wav
+PART TWO-RX9Dcrk_10-01                                                                                          	PART TWO-RX9Dcrk_10.wav
+PART ONE-RX9Cnct_05-01                                                                                          	PART ONE-RX9Cnct_05.wav
+PART ONE-RX9Dcrk_05-03                                                                                          	PART ONE-RX9Dcrk_05.wav
+PART ONE-RX9Dcrk_06-02                                                                                          	PART ONE-RX9Dcrk_06.wav
+PART ONE-RX9Cnct_06-01                                                                                          	PART ONE-RX9Cnct_06.wav
+PART TWO-RX9Dcrk_07-01                                                                                          	PART TWO-RX9Dcrk_07.wav
+PART TWO-RX9Dcrk_08-01                                                                                          	PART TWO-RX9Dcrk_08.wav
+PART TWO-07                                                                                                     	PART TWO.wav
+PART TWO-09                                                                                                     	PART TWO.wav
+PART TWO-10                                                                                                     	PART TWO.wav
+PART TWO-16                                                                                                     	PART TWO.wav
+PART TWO-17                                                                                                     	PART TWO.wav
+PART TWO-18                                                                                                     	PART TWO.wav
+PART TWO-21                                                                                                     	PART TWO.wav
+PART ONE-RX9Dcrk_07-01                                                                                          	PART ONE-RX9Dcrk_07.wav
+PART ONE-RX9Dcrk_11-01                                                                                          	PART ONE-RX9Dcrk_11.wav
+PART ONE-RX9Dcrk_12-02                                                                                          	PART ONE-RX9Dcrk_12.wav
+PART ONE-RX9Cnct_12-01                                                                                          	PART ONE-RX9Cnct_12.wav
+PART ONE-RX9Dcrk_04-04                                                                                          	PART ONE-RX9Dcrk_04.wav
+PART TWO-30                                                                                                     	PART TWO.wav
+PART ONE-HushMix_01-01                                                                                          	PART ONE-HushMix_01.wav
+PART ONE-HushMix_02-01                                                                                          	PART ONE-HushMix_02.wav
+PART ONE-HushMix_03-01                                                                                          	PART ONE-HushMix_03.wav
+PART ONE-HushMix_04-01                                                                                          	PART ONE-HushMix_04.wav
+PART ONE-HushMix_05-01                                                                                          	PART ONE-HushMix_05.wav
+PART ONE-HushMix_06-01                                                                                          	PART ONE-HushMix_06.wav
+PART TWO-HushMix_07-01                                                                                          	PART TWO-HushMix_07.wav
+PART TWO-HushMix_08-01                                                                                          	PART TWO-HushMix_08.wav
+PART ONE-HushMix_07-01                                                                                          	PART ONE-HushMix_07.wav
+PART TWO-HushMix_10-01                                                                                          	PART TWO-HushMix_10.wav
+PART ONE-HushMix_10-01                                                                                          	PART ONE-HushMix_10.wav
+PART ONE-HushMix_11-01                                                                                          	PART ONE-HushMix_11.wav
+PART TWO-25                                                                                                     	PART TWO.wav
+PART ONE-33                                                                                                     	PART ONE.wav
+PART ONE-34                                                                                                     	PART ONE.wav
+PART ONE-38                                                                                                     	PART ONE.wav
+PART ONE-39                                                                                                     	PART ONE.wav
+PART ONE-40                                                                                                     	PART ONE.wav
+PART TWO                                                                                                        	PART TWO.wav
+
+
+P L U G - I N S  L I S T I N G
+MANUFACTURER            	PLUG-IN NAME            	VERSION         	FORMAT          	STEMS                   	NUMBER OF INSTANCES
+                        	FabFilter Pro-C 2       	                	                	                        	
+                        	FabFilter Pro-DS        	                	                	                        	
+                        	FabFilter Pro-Q 3       	                	                	                        	
+                        	Polyphonic              	                	                	                        	
+                        	RX 9 Monitor            	                	                	                        	
+                        	Youlean Loudness Meter 2	                	                	                        	
+
+
+T R A C K  L I S T I N G
+TRACK NAME:	GT PIX (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: Inactive 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-38	00:12:29:07.00	00:12:37:21.00	00:00:08:14.00	    00:00:00:00.00	Unmuted
+1       	2       	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-39	00:12:37:21.00	00:12:47:04.00	00:00:09:07.00	    00:00:00:00.00	Unmuted
+1       	3       	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-40	00:12:47:04.00	00:13:17:23.00	00:00:30:19.00	    00:00:00:00.00	Unmuted
+1       	4       	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-41	00:13:17:23.00	00:14:31:20.00	00:01:13:21.00	    00:00:00:00.00	Unmuted
+1       	5       	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-43	00:14:31:20.00	00:17:09:20.00	00:02:38:00.00	    00:00:00:00.00	Unmuted
+1       	6       	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-44	00:17:09:20.00	00:17:16:16.00	00:00:06:20.00	    00:00:00:00.00	Unmuted
+1       	7       	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-45	00:17:16:16.00	00:17:29:00.00	00:00:12:08.00	    00:00:00:00.00	Unmuted
+1       	8       	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-17	01:00:00:00.00	01:00:09:07.00	00:00:09:07.00	    00:00:00:00.00	Unmuted
+1       	9       	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-36	01:00:09:07.00	01:01:23:04.00	00:01:13:21.00	    00:00:00:00.00	Unmuted
+1       	10      	Something_Very_Bad_Is_Going_to_Happen_Season_1_Episode_2_BrideShaped_Hole_81733583_00122907_00172823_en_2.1-44	01:01:23:04.00	01:01:30:00.00	00:00:06:20.00	    00:00:00:00.00	Unmuted
+
+
+TRACK NAME:	SVB_BTS_InstagramMix (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	SVB_BTS_InstagramMix_2026Apr28	01:00:00:00.00	01:01:30:00.00	00:01:30:00.00	    00:00:00:00.00	Unmuted
+
+
+TRACK NAME:	Printmaster (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	Printmaster_01                	01:00:00:00.00	01:01:30:00.00	00:01:30:00.00	    00:00:00:00.00	Unmuted
+
+
+TRACK NAME:	SVB_102_2.0 DIA_Final_01 (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	SVB_102_2.0 DIA_Final_01-02   	00:12:29:07.00	00:17:29:00.00	00:04:59:17.00	    00:00:00:00.00	Unmuted
+1       	2       	SVB_102_2.0 DIA_Final_01-04   	01:00:00:00.00	01:00:09:07.00	00:00:09:07.00	    00:00:00:00.00	Unmuted
+1       	3       	SVB_102_2.0 DIA_Final_01-05   	01:00:09:07.00	01:01:22:04.61	00:01:12:21.61	    00:00:00:00.00	Unmuted
+1       	4       	SVB_102_2.0 DIA_Final_01-08   	01:01:22:04.61	01:01:28:16.13	00:00:06:11.52	    00:00:00:00.00	Unmuted
+1       	5       	SVB_102_2.0 DIA_Final_01-09   	01:01:28:16.13	01:01:30:00.00	00:00:01:07.87	    00:00:00:00.00	Muted
+
+
+TRACK NAME:	SVB_102_2.0 MUS_Final_01 (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	SVB_102_2.0 MUS_Final_01-02   	00:12:29:07.00	00:17:29:00.00	00:04:59:17.00	    00:00:00:00.00	Unmuted
+1       	2       	SVB_102_2.0 MUS_Final_01-04   	01:00:00:00.00	01:00:08:01.02	00:00:08:01.02	    00:00:00:00.00	Unmuted
+1       	3       	SVB_102_2.0 MUS_Final_01-05   	01:00:08:01.02	01:01:23:04.00	00:01:15:02.98	    00:00:00:00.00	Unmuted
+1       	4       	SVB_102_2.0 MUS_Final_01-07   	01:01:23:04.00	01:01:27:18.37	00:00:04:14.37	    00:00:00:00.00	Unmuted
+
+
+TRACK NAME:	SVB_102_2.0 SFX_Final_01 (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	SVB_102_2.0 SFX_Final_01-02   	00:12:29:07.00	00:17:29:00.00	00:04:59:17.00	    00:00:00:00.00	Unmuted
+1       	2       	SVB_102_2.0 SFX_Final_01-07   	01:00:00:00.00	01:00:00:21.70	00:00:00:21.70	    00:00:00:00.00	Unmuted
+1       	3       	SVB_102_2.0 SFX_Final_01-08   	01:00:00:21.70	01:00:09:07.00	00:00:08:09.30	    00:00:00:00.00	Unmuted
+1       	4       	SVB_102_2.0 SFX_Final_01-05   	01:00:09:07.00	01:01:23:04.00	00:01:13:21.00	    00:00:00:00.00	Unmuted
+1       	5       	SVB_102_2.0 SFX_Final_01-06   	01:01:23:04.00	01:01:30:00.00	00:00:06:20.00	    00:00:00:00.00	Unmuted
+
+
+TRACK NAME:	Haley 1
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	FabFilter Pro-C 2 (mono)	FabFilter Pro-DS (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	PART ONE-RX9Cnct_01-02        	01:00:09:23.00	01:00:29:17.18	00:00:19:18.18	    00:00:00:00.00	Unmuted
+1       	2       	PART ONE-RX9Cnct_01-03        	01:00:29:17.18	01:00:29:18.20	00:00:00:01.02	    00:00:00:00.00	Unmuted
+1       	3       	PART ONE-RX9Cnct_01-04        	01:00:29:18.20	01:00:31:18.14	00:00:01:23.94	    00:00:00:00.00	Unmuted
+1       	4       	PART ONE-RX9Dcrk_04-01        	01:00:46:10.05	01:00:49:04.13	00:00:02:18.08	    00:00:00:00.00	Unmuted
+1       	5       	PART TWO-RX9Dcrk_10-01        	01:00:49:07.79	01:00:51:09.79	00:00:02:02.00	    00:00:00:00.00	Unmuted
+1       	6       	PART ONE-RX9Cnct_05-01        	01:01:00:23.70	01:01:03:06.22	00:00:02:06.53	    00:00:00:00.00	Unmuted
+1       	7       	PART ONE-RX9Dcrk_05-03        	01:01:03:06.22	01:01:05:15.00	00:00:02:08.78	    00:00:00:00.00	Unmuted
+1       	8       	PART ONE-RX9Dcrk_06-02        	01:01:05:15.00	01:01:07:06.99	00:00:01:15.99	    00:00:00:00.00	Unmuted
+1       	9       	PART ONE-RX9Cnct_06-01        	01:01:07:06.99	01:01:13:09.23	00:00:06:02.24	    00:00:00:00.00	Unmuted
+1       	10      	PART TWO-RX9Dcrk_07-01        	01:01:20:05.70	01:01:22:23.42	00:00:02:17.73	    00:00:00:00.00	Unmuted
+1       	11      	PART TWO-RX9Dcrk_08-01        	01:01:23:15.00	01:01:24:23.00	00:00:01:08.00	    00:00:00:00.00	Unmuted
+
+
+TRACK NAME:	Haley 2
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	FabFilter Pro-C 2 (mono)	FabFilter Pro-DS (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	PART TWO-07                   	00:14:39:16.00	00:14:40:11.00	00:00:00:19.00	    00:00:00:00.00	Muted
+1       	2       	PART TWO-09                   	00:14:40:11.00	00:14:43:01.00	00:00:02:14.00	    00:00:00:00.00	Muted
+1       	3       	PART TWO-10                   	00:14:43:01.00	00:14:45:18.16	00:00:02:17.16	    00:00:00:00.00	Muted
+1       	4       	PART TWO-16                   	00:14:53:06.00	00:14:58:22.00	00:00:05:16.00	    00:00:00:00.00	Muted
+1       	5       	PART TWO-17                   	00:14:58:22.00	00:15:01:00.00	00:00:02:02.00	    00:00:00:00.00	Muted
+1       	6       	PART TWO-18                   	00:15:01:00.00	00:15:02:17.00	00:00:01:17.00	    00:00:00:00.00	Muted
+1       	7       	PART TWO-21                   	00:15:02:17.00	00:15:06:11.00	00:00:03:18.00	    00:00:00:00.00	Muted
+1       	8       	PART ONE-RX9Dcrk_07-01        	01:00:45:00.79	01:00:46:11.61	00:00:01:10.82	    00:00:00:00.00	Unmuted
+1       	9       	PART ONE-RX9Dcrk_11-01        	01:00:51:07.88	01:00:53:13.32	00:00:02:05.44	    00:00:00:00.00	Unmuted
+1       	10      	PART ONE-RX9Dcrk_12-02        	01:00:53:13.32	01:00:56:05.22	00:00:02:15.90	    00:00:00:00.00	Unmuted
+1       	11      	PART ONE-RX9Cnct_12-01        	01:00:56:05.22	01:01:00:12.94	00:00:04:07.72	    00:00:00:00.00	Unmuted
+1       	12      	PART ONE-RX9Dcrk_04-04        	01:01:19:18.94	01:01:20:06.78	00:00:00:11.84	    00:00:00:00.00	Unmuted
+1       	13      	PART TWO-30                   	01:01:26:14.00	01:01:31:00.00	00:00:04:10.00	    00:00:00:00.00	Muted
+
+
+TRACK NAME:	Haley 1.dup1
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: Hidden Inactive 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	FabFilter Pro-C 2 (mono)	FabFilter Pro-DS (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	PART ONE-HushMix_01-01        	01:00:10:08.00	01:00:16:06.98	00:00:05:22.98	    00:00:00:00.00	Unmuted
+1       	2       	PART ONE-HushMix_02-01        	01:00:16:06.98	01:00:30:23.49	00:00:14:16.51	    00:00:00:00.00	Unmuted
+1       	3       	PART ONE-HushMix_03-01        	01:00:30:23.49	01:00:32:03.14	00:00:01:03.65	    00:00:00:00.00	Unmuted
+1       	4       	PART ONE-HushMix_04-01        	01:00:43:22.05	01:00:46:16.13	00:00:02:18.08	    00:00:00:00.00	Unmuted
+1       	5       	PART ONE-HushMix_05-01        	01:01:01:05.70	01:01:05:21.00	00:00:04:15.30	    00:00:00:00.00	Unmuted
+1       	6       	PART ONE-HushMix_06-01        	01:01:05:21.00	01:01:13:15.23	00:00:07:18.23	    00:00:00:00.00	Unmuted
+1       	7       	PART TWO-HushMix_07-01        	01:01:19:22.00	01:01:22:23.42	00:00:03:01.42	    00:00:00:00.00	Unmuted
+1       	8       	PART TWO-HushMix_08-01        	01:01:23:15.00	01:01:24:23.00	00:00:01:08.00	    00:00:00:00.00	Unmuted
+
+
+TRACK NAME:	Haley 2.dup1
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: Hidden Inactive 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	FabFilter Pro-C 2 (mono)	FabFilter Pro-DS (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	PART TWO-07                   	00:14:39:16.00	00:14:40:11.00	00:00:00:19.00	    00:00:00:00.00	Muted
+1       	2       	PART TWO-09                   	00:14:40:11.00	00:14:43:01.00	00:00:02:14.00	    00:00:00:00.00	Muted
+1       	3       	PART TWO-10                   	00:14:43:01.00	00:14:45:18.16	00:00:02:17.16	    00:00:00:00.00	Muted
+1       	4       	PART TWO-16                   	00:14:53:06.00	00:14:58:22.00	00:00:05:16.00	    00:00:00:00.00	Muted
+1       	5       	PART TWO-17                   	00:14:58:22.00	00:15:01:00.00	00:00:02:02.00	    00:00:00:00.00	Muted
+1       	6       	PART TWO-18                   	00:15:01:00.00	00:15:02:17.00	00:00:01:17.00	    00:00:00:00.00	Muted
+1       	7       	PART TWO-21                   	00:15:02:17.00	00:15:06:11.00	00:00:03:18.00	    00:00:00:00.00	Muted
+1       	8       	PART ONE-HushMix_07-01        	01:00:42:12.79	01:00:43:23.61	00:00:01:10.82	    00:00:00:00.00	Unmuted
+1       	9       	PART TWO-HushMix_10-01        	01:00:46:19.79	01:00:48:21.79	00:00:02:02.00	    00:00:00:00.00	Unmuted
+1       	10      	PART ONE-HushMix_10-01        	01:00:48:21.79	01:00:51:01.32	00:00:02:03.53	    00:00:00:00.00	Unmuted
+1       	11      	PART ONE-HushMix_11-01        	01:00:51:01.32	01:00:58:00.94	00:00:06:23.62	    00:00:00:00.00	Unmuted
+1       	12      	PART TWO-25                   	01:01:26:14.00	01:01:31:00.00	00:00:04:10.00	    00:00:00:00.00	Muted
+
+
+TRACK NAME:	PART ONE.dup1
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: Inactive 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	PART ONE-33                   	01:00:03:14.40	01:00:06:08.83	00:00:02:18.43	    00:00:00:00.00	Unmuted
+1       	2       	PART ONE-34                   	01:00:06:08.83	01:00:06:17.79	00:00:00:08.96	    00:00:00:00.00	Unmuted
+1       	3       	PART ONE-38                   	01:00:06:17.79	01:00:46:05.57	00:00:39:11.78	    00:00:00:00.00	Unmuted
+1       	4       	PART ONE-39                   	01:00:46:05.57	01:00:46:09.86	00:00:00:04.29	    00:00:00:00.00	Unmuted
+1       	5       	PART ONE-40                   	01:00:46:09.86	01:02:32:14.69	00:01:46:04.83	    00:00:00:00.00	Unmuted
+1       	6       	PART TWO                      	01:02:40:19.17	01:03:18:14.91	00:00:37:19.74	    00:00:00:00.00	Unmuted
+
+
+M A R K E R S  L I S T I N G
+#   	LOCATION     	TIME REFERENCE    	UNITS    	NAME                             	TRACK NAME                       	TRACK TYPE   	COMMENTS
+2   	00:13:51:00.96	39889920          	Samples  	Location 2                       	Markers                          	Ruler                            	
+3   	00:14:23:15.23	41454461          	Samples  	Location 3                       	Markers                          	Ruler                            	
+1   	00:14:44:22.00	42476000          	Samples  	Location 1                       	Markers                          	Ruler                            	
+5   	01:00:00:00.00	172800000         	Samples  	START                            	Markers                          	Ruler                            	
+6   	01:00:09:07.00	173246000         	Samples  	CUT 1                            	Markers                          	Ruler                            	
+7   	01:01:23:04.00	176792000         	Samples  	CUT 2                            	Markers                          	Ruler                            	
+4   	01:01:30:00.00	177120000         	Samples  	Location 4                       	Markers                          	Ruler                            	

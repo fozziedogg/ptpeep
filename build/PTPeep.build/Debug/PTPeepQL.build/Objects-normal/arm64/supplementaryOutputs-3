@@ -1,0 +1,23 @@
+{
+  "/Users/fozzie/developer/ptpeep/PTPeep/ProTools/PTAppleEventSpot.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTAppleEventSpot.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTAppleEventSpot.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTAppleEventSpot.dia",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTAppleEventSpot.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTAppleEventSpot.swiftdeps"
+  },
+  "/Users/fozzie/developer/ptpeep/PTPeep/ProTools/PTSLSessionInfo.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTSLSessionInfo.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTSLSessionInfo.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTSLSessionInfo.dia",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTSLSessionInfo.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTSLSessionInfo.swiftdeps"
+  },
+  "/Users/fozzie/developer/ptpeep/PTPeepQL/PTPeepQLExtension.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTPeepQLExtension.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTPeepQLExtension.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTPeepQLExtension.dia",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTPeepQLExtension.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/PTPeepQLExtension.swiftdeps"
+  }
+}

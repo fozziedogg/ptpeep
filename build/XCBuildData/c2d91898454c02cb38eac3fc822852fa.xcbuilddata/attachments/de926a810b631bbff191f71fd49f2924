@@ -1,0 +1,16 @@
+{
+  "" : {
+    "const-values" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIO.build/Objects-normal/x86_64/NIO-primary.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIO.build/Objects-normal/x86_64/NIO-primary.d",
+    "diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIO.build/Objects-normal/x86_64/NIO-primary.dia",
+    "emit-module-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIO.build/Objects-normal/x86_64/NIO-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIO.build/Objects-normal/x86_64/NIO-primary-emit-module.dia",
+    "pch" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIO.build/Objects-normal/x86_64/NIO-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIO.build/Objects-normal/x86_64/NIO-primary.swiftdeps"
+  },
+  "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/Sources/NIO/Exports.swift" : {
+    "index-unit-output-path" : "/swift-nio.build/Release/NIO.build/Objects-normal/x86_64/Exports.o",
+    "llvm-bc" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIO.build/Objects-normal/x86_64/Exports.bc",
+    "object" : "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/swift-nio/build/swift-nio.build/Release/NIO.build/Objects-normal/x86_64/Exports.o"
+  }
+}

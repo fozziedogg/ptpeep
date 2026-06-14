@@ -1,0 +1,4 @@
+module CGRPCZlib {
+umbrella header "/Users/fozzie/Library/Developer/Xcode/DerivedData/PTPeep-hccpwtwtdaaauwdvybgehbhymaak/SourcePackages/checkouts/grpc-swift/Sources/CGRPCZlib/include/CGRPCZlib.h"
+export *
+}

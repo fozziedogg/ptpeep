@@ -1,0 +1,84 @@
+SESSION NAME:	Copy of JOE SCRATCH MIX
+SAMPLE RATE:	48000.000000
+BIT DEPTH:	24-bit
+SESSION START TIMECODE:	00:00:00:00.00
+TIMECODE FORMAT:	23.976 Frame
+# OF AUDIO TRACKS:	5
+# OF AUDIO CLIPS:	5
+# OF AUDIO FILES:	1
+
+
+O N L I N E  F I L E S  I N  S E S S I O N
+Filename	                                                                                                            Location
+006-20A-002.wav                                                                                                 	Macintosh HD:Users:fozzie:developer:ptpeep:Tests:Audio Files:
+
+
+O F F L I N E  F I L E S  I N  S E S S I O N
+Filename	                                                                                                            Location
+
+
+O N L I N E  C L I P S  I N  S E S S I O N
+CLIP NAME	                                                                                                       Source File
+006-20A-002.A2                                                                                                  	006-20A-002.wav
+006-20A-002.A3                                                                                                  	006-20A-002.wav
+006-20A-002.A4                                                                                                  	006-20A-002.wav
+006-20A-002.A7                                                                                                  	006-20A-002.wav
+006-20A-002.A8                                                                                                  	006-20A-002.wav
+
+
+P L U G - I N S  L I S T I N G
+MANUFACTURER            	PLUG-IN NAME            	VERSION         	FORMAT          	STEMS                   	NUMBER OF INSTANCES
+                        	Channel Strip           	                	                	                        	
+                        	FabFilter Pro-C 2       	                	                	                        	
+                        	Polyphonic              	                	                	                        	
+                        	FabFilter Pro-R 2       	                	                	                        	
+
+
+T R A C K  L I S T I N G
+TRACK NAME:	006-20A-002.1
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	006-20A-002.A2                	00:00:00:00.00	00:05:05:20.88	00:05:05:20.88	    00:00:00:00.00	Muted
+
+
+TRACK NAME:	006-20A-002.2
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	006-20A-002.A3                	00:00:04:23.88	00:05:10:20.76	00:05:05:20.88	    00:00:00:00.00	Muted
+
+
+TRACK NAME:	006-20A-002.3
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	006-20A-002.A4                	00:00:04:23.88	00:05:10:20.76	00:05:05:20.88	    00:00:00:00.00	Muted
+
+
+TRACK NAME:	006-20A-002.4
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	006-20A-002.A7                	00:00:04:23.88	00:05:10:20.76	00:05:05:20.88	    00:00:00:00.00	Unmuted
+
+
+TRACK NAME:	006-20A-002.5
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE:  
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	TIMESTAMP         	STATE
+1       	1       	006-20A-002.A8                	00:00:04:23.88	00:05:10:20.76	00:05:05:20.88	    00:00:00:00.00	Unmuted
+
+
+M A R K E R S  L I S T I N G
+#   	LOCATION     	TIME REFERENCE    	UNITS    	NAME                             	TRACK NAME                       	TRACK TYPE   	COMMENTS
