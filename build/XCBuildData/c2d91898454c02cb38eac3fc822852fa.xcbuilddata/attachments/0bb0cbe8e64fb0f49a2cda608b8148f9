@@ -1,4 +1,0 @@
-module NIOExtras {
-header "NIOExtras-Swift.h"
-export *
-}

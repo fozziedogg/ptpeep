@@ -432,6 +432,9 @@ private struct ManageProfilesButton: View {
     }
 
     private func openSettings() {
+        // Deep-link to the Metadata Profiles tab (the Settings TabView observes
+        // this key). Set it before opening so the window appears on that tab.
+        UserDefaults.standard.set(SettingsTab.metadataProfiles.rawValue, forKey: SettingsTab.storageKey)
         NSApp.activate(ignoringOtherApps: true)
         if NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) { return }
         NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)

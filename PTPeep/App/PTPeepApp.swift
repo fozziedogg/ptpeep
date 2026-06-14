@@ -112,14 +112,18 @@ private struct SettingsView: View {
     @AppStorage("colorMode")            private var colorMode:   ColorMode = .dark
     @AppStorage("audioOutputDeviceUID") private var deviceUID:   String    = ""
 
+    @AppStorage("settings.selectedTab") private var selectedTab: String = SettingsTab.general.rawValue
+
     @State private var outputDevices: [AudioOutputDevice] = []
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             generalTab
                 .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(SettingsTab.general.rawValue)
             ProfilesSettingsView()
                 .tabItem { Label("Metadata Profiles", systemImage: "tablecells") }
+                .tag(SettingsTab.metadataProfiles.rawValue)
         }
     }
 

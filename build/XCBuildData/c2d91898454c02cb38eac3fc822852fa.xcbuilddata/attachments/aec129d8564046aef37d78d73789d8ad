@@ -1,4 +1,0 @@
-module NIOHTTP2 {
-header "NIOHTTP2-Swift.h"
-export *
-}

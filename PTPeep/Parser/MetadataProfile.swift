@@ -39,6 +39,17 @@ extension MetadataProfile {
     }
 }
 
+// MARK: - Settings tabs
+
+/// Tabs in the Settings window. Backed by @AppStorage("settings.selectedTab")
+/// so other views (e.g. "Manage Profiles…") can deep-link to a tab.
+enum SettingsTab: String {
+    case general          = "general"
+    case metadataProfiles = "metadataProfiles"
+
+    static let storageKey = "settings.selectedTab"
+}
+
 // MARK: - Built-in presets
 
 extension MetadataProfile {
