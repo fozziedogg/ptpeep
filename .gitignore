@@ -1,0 +1,9 @@
+# Xcode build output (was custom-located at ./build — must NOT be tracked;
+# XCBuildData embeds machine-specific absolute paths that break other machines)
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
