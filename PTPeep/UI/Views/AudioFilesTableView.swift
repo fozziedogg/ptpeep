@@ -405,40 +405,62 @@ struct AudioFilesTableView: View {
 
 // MARK: - Manage Profiles button
 
-/// Opens the Settings window. Uses the AppKit Settings action (works on
-/// macOS 13+); falls back to the older Preferences selector just in case.
+/// Opens the Settings window on the Metadata Profiles tab. macOS 14+ requires
+/// the `openSettings` environment action — the old showSettingsWindow: selector
+/// is blocked (SwiftUI logs "Please use SettingsLink…"). macOS 13 falls back to
+/// the AppKit selector.
 private struct ManageProfilesButton: View {
     var onTap: () -> Void
 
     var body: some View {
+        if #available(macOS 14.0, *) {
+            ModernManageProfilesButton(onTap: onTap)
+        } else {
+            Button {
+                onTap()
+                selectProfilesTab()
+                NSApp.activate(ignoringOtherApps: true)
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            } label: { manageProfilesLabel }
+                .buttonStyle(.plain)
+        }
+    }
+}
+
+@available(macOS 14.0, *)
+private struct ModernManageProfilesButton: View {
+    var onTap: () -> Void
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
         Button {
             onTap()
+            selectProfilesTab()
             openSettings()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                Text("Manage Profiles…")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.primary)
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 5)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        } label: { manageProfilesLabel }
+            .buttonStyle(.plain)
     }
+}
 
-    private func openSettings() {
-        // Deep-link to the Metadata Profiles tab (the Settings TabView observes
-        // this key). Set it before opening so the window appears on that tab.
-        UserDefaults.standard.set(SettingsTab.metadataProfiles.rawValue, forKey: SettingsTab.storageKey)
-        NSApp.activate(ignoringOtherApps: true)
-        if NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) { return }
-        NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+/// Pre-select the Metadata Profiles tab before the Settings window appears
+/// (the Settings TabView selection observes this @AppStorage key).
+private func selectProfilesTab() {
+    UserDefaults.standard.set(SettingsTab.metadataProfiles.rawValue, forKey: SettingsTab.storageKey)
+}
+
+private var manageProfilesLabel: some View {
+    HStack(spacing: 8) {
+        Image(systemName: "slider.horizontal.3")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+        Text("Manage Profiles…")
+            .font(.system(size: 11))
+            .foregroundStyle(Color.primary)
+        Spacer()
     }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 5)
+    .contentShape(Rectangle())
 }
 
 // MARK: - Drop delegate for reordering field columns

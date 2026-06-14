@@ -16,6 +16,16 @@
     "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/BWFParser.swiftdeps",
     "swiftmodule" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/BWFParser~partial.swiftmodule"
   },
+  "/Users/fozzie/developer/ptpeep/PTPeep/Parser/MetadataProfile.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/MetadataProfile.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/MetadataProfile.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/MetadataProfile.dia",
+    "index-unit-output-path" : "/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/MetadataProfile.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/MetadataProfile.bc",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/MetadataProfile.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/MetadataProfile.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/MetadataProfile~partial.swiftmodule"
+  },
   "/Users/fozzie/developer/ptpeep/PTPeep/Parser/PTXBlockDecoder.swift" : {
     "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTXBlockDecoder.swiftconstvalues",
     "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTXBlockDecoder.d",
@@ -45,6 +55,16 @@
     "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTXSession.o",
     "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTXSession.swiftdeps",
     "swiftmodule" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTXSession~partial.swiftmodule"
+  },
+  "/Users/fozzie/developer/ptpeep/PTPeep/ProTools/PTAppleEventSpot.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTAppleEventSpot.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTAppleEventSpot.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTAppleEventSpot.dia",
+    "index-unit-output-path" : "/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTAppleEventSpot.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTAppleEventSpot.bc",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTAppleEventSpot.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTAppleEventSpot.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTAppleEventSpot~partial.swiftmodule"
   },
   "/Users/fozzie/developer/ptpeep/PTPeep/ProTools/PTSLSessionInfo.swift" : {
     "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTSLSessionInfo.swiftconstvalues",
@@ -106,6 +126,16 @@
     "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/TimelineNav.swiftdeps",
     "swiftmodule" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/TimelineNav~partial.swiftmodule"
   },
+  "/Users/fozzie/developer/ptpeep/PTPeep/UI/Views/AudioFilesTableView.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/AudioFilesTableView.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/AudioFilesTableView.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/AudioFilesTableView.dia",
+    "index-unit-output-path" : "/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/AudioFilesTableView.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/AudioFilesTableView.bc",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/AudioFilesTableView.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/AudioFilesTableView.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/AudioFilesTableView~partial.swiftmodule"
+  },
   "/Users/fozzie/developer/ptpeep/PTPeep/UI/Views/QuickLookPreviewView.swift" : {
     "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/QuickLookPreviewView.swiftconstvalues",
     "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/QuickLookPreviewView.d",
@@ -125,6 +155,16 @@
     "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/SessionInspectorView.o",
     "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/SessionInspectorView.swiftdeps",
     "swiftmodule" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/SessionInspectorView~partial.swiftmodule"
+  },
+  "/Users/fozzie/developer/ptpeep/PTPeep/UI/Views/TracksTabView.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/TracksTabView.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/TracksTabView.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/TracksTabView.dia",
+    "index-unit-output-path" : "/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/TracksTabView.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/TracksTabView.bc",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/TracksTabView.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/TracksTabView.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/TracksTabView~partial.swiftmodule"
   },
   "/Users/fozzie/developer/ptpeep/PTPeepQL/PTPeepQLExtension.swift" : {
     "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/x86_64/PTPeepQLExtension.swiftconstvalues",
