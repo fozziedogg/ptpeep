@@ -15,6 +15,8 @@ struct AudioFilesTableView: View {
     var onClearFilter: (() -> Void)? = nil
     @Binding var followClipSelection: Bool
     @Binding var bwfFieldsRaw: String
+    @AppStorage("bwf.profiles")        private var profilesRaw: String = ""
+    @AppStorage("bwf.activeProfileID") private var activeProfileIDRaw: String = ""
     @State private var showOptions: Bool = false
     @State private var sortColumn: SortColumn = .none
     @State private var sortAscending: Bool = true
@@ -250,17 +252,23 @@ struct AudioFilesTableView: View {
                     }
                 }
                 .overlay(alignment: .topTrailing) {
-                    Button { showOptions = true } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        profileSwitcher
+                        Button { showOptions = true } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showOptions, arrowEdge: .bottom) {
+                            audioFilesOptionsPopover
+                        }
                     }
-                    .buttonStyle(.plain)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .popover(isPresented: $showOptions, arrowEdge: .bottom) {
-                        audioFilesOptionsPopover
-                    }
+                    .padding(.vertical, 5)
+                    .background(Color(nsColor: .windowBackgroundColor).opacity(0.92), in: Capsule())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
                 }
             }
         }
@@ -335,6 +343,43 @@ struct AudioFilesTableView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Quick profile switcher
+
+    private var profileSwitcher: some View {
+        let profiles = MetadataProfileStore.decode(profilesRaw)
+        let activeName = profiles.first { $0.id.uuidString == activeProfileIDRaw }?.name
+        return Menu {
+            ForEach(profiles) { p in
+                Button {
+                    activeProfileIDRaw = p.id.uuidString
+                } label: {
+                    if p.id.uuidString == activeProfileIDRaw {
+                        Label(p.name, systemImage: "checkmark")
+                    } else {
+                        Text(p.name)
+                    }
+                }
+            }
+            Divider()
+            Button("Manage Profiles…") { openSettings() }
+        } label: {
+            HStack(spacing: 3) {
+                Image(systemName: "tablecells")
+                    .font(.system(size: 10))
+                Text(activeName ?? "Profile")
+                    .font(.system(size: 11))
+            }
+            .foregroundStyle(.secondary)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
+    private func openSettings() {
+        // macOS 13+: the Settings scene responds to this AppKit action.
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 
     private var audioFilesOptionsPopover: some View {
