@@ -252,23 +252,17 @@ struct AudioFilesTableView: View {
                     }
                 }
                 .overlay(alignment: .topTrailing) {
-                    HStack(spacing: 8) {
-                        profileSwitcher
-                        Button { showOptions = true } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                        .popover(isPresented: $showOptions, arrowEdge: .bottom) {
-                            audioFilesOptionsPopover
-                        }
+                    Button { showOptions = true } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
                     }
+                    .buttonStyle(.plain)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(Color(nsColor: .windowBackgroundColor).opacity(0.92), in: Capsule())
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 6)
+                    .popover(isPresented: $showOptions, arrowEdge: .bottom) {
+                        audioFilesOptionsPopover
+                    }
                 }
             }
         }
@@ -345,49 +339,11 @@ struct AudioFilesTableView: View {
         }
     }
 
-    // MARK: - Quick profile switcher
-
-    private var profileSwitcher: some View {
-        let profiles = MetadataProfileStore.decode(profilesRaw)
-        let activeName = profiles.first { $0.id.uuidString == activeProfileIDRaw }?.name
-        return Menu {
-            ForEach(profiles) { p in
-                Button {
-                    // Set columns directly (we hold the binding) so the switch is
-                    // immediate — don't wait on cross-view @AppStorage onChange,
-                    // which can miss the first switch.
-                    bwfFieldsRaw = p.fields.map(\.rawValue).joined(separator: ",")
-                    activeProfileIDRaw = p.id.uuidString
-                } label: {
-                    if p.id.uuidString == activeProfileIDRaw {
-                        Label(p.name, systemImage: "checkmark")
-                    } else {
-                        Text(p.name)
-                    }
-                }
-            }
-            Divider()
-            Button("Manage Profiles…") { openSettings() }
-        } label: {
-            HStack(spacing: 3) {
-                Image(systemName: "tablecells")
-                    .font(.system(size: 10))
-                Text(activeName ?? "Profile")
-                    .font(.system(size: 11))
-            }
-            .foregroundStyle(.secondary)
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-    }
-
-    private func openSettings() {
-        // macOS 13+: the Settings scene responds to this AppKit action.
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-    }
+    // MARK: - Options popover (follow-selection + profile switcher)
 
     private var audioFilesOptionsPopover: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let profiles = MetadataProfileStore.decode(profilesRaw)
+        return VStack(alignment: .leading, spacing: 0) {
             Button {
                 followClipSelection.toggle()
             } label: {
@@ -408,9 +364,77 @@ struct AudioFilesTableView: View {
 
             Divider().padding(.vertical, 4)
 
-            BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
+            Text("PROFILE")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.tertiary)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 2)
+
+            ForEach(profiles) { p in
+                Button {
+                    // Set columns directly (we hold the binding) so the switch is
+                    // immediate; persist the active id for the checkmark + Settings.
+                    bwfFieldsRaw = p.fields.map(\.rawValue).joined(separator: ",")
+                    activeProfileIDRaw = p.id.uuidString
+                    showOptions = false
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: p.id.uuidString == activeProfileIDRaw ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(p.id.uuidString == activeProfileIDRaw ? Color.accentColor : Color.secondary.opacity(0.7))
+                            .font(.system(size: 12))
+                        Text(p.name)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.primary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+
+            Divider().padding(.vertical, 4)
+
+            ManageProfilesButton { showOptions = false }
         }
         .frame(width: 200)
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Manage Profiles button
+
+/// Opens the Settings window. Uses the AppKit Settings action (works on
+/// macOS 13+); falls back to the older Preferences selector just in case.
+private struct ManageProfilesButton: View {
+    var onTap: () -> Void
+
+    var body: some View {
+        Button {
+            onTap()
+            openSettings()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Text("Manage Profiles…")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.primary)
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func openSettings() {
+        NSApp.activate(ignoringOtherApps: true)
+        if NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) { return }
+        NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
     }
 }
 
