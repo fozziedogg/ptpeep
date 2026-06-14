@@ -1256,7 +1256,10 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
         // Scroll wheel: horizontal = pan, Cmd+vertical = zoom
         scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
-            guard let self, self.isHovering || self.isFocused else { return event }
+            // Scroll/pinch are pointer gestures: act only when the pointer is over
+            // the timeline (isHovering), NOT merely when it's focused — otherwise
+            // horizontal scrolling over the Audio Files list pans the timeline.
+            guard let self, self.isHovering else { return event }
             guard !(event.window is NSPanel) else { return event }  // never consume panel/open-dialog events
             let mods = event.modifierFlags
             if mods.contains(.command) {
@@ -1282,7 +1285,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
         // Trackpad pinch → horizontal zoom centred on cursor
         magnifyMonitor = NSEvent.addLocalMonitorForEvents(matching: .magnify) { [weak self] event in
-            guard let self, self.isHovering || self.isFocused else { return event }
+            guard let self, self.isHovering else { return event }
             guard !(event.window is NSPanel) else { return event }
             let factor = 1.0 + Double(event.magnification)
             let anchor = self.hoverAbsFrac ?? (self.viewStart + self.window / 2)
