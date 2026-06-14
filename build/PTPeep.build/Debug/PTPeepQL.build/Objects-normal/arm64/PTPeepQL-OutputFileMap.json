@@ -126,6 +126,16 @@
     "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/TimelineNav.swiftdeps",
     "swiftmodule" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/TimelineNav~partial.swiftmodule"
   },
+  "/Users/fozzie/developer/ptpeep/PTPeep/UI/Views/AudioFilesModel.swift" : {
+    "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/AudioFilesModel.swiftconstvalues",
+    "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/AudioFilesModel.d",
+    "diagnostics" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/AudioFilesModel.dia",
+    "index-unit-output-path" : "/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/AudioFilesModel.o",
+    "llvm-bc" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/AudioFilesModel.bc",
+    "object" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/AudioFilesModel.o",
+    "swift-dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/AudioFilesModel.swiftdeps",
+    "swiftmodule" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/AudioFilesModel~partial.swiftmodule"
+  },
   "/Users/fozzie/developer/ptpeep/PTPeep/UI/Views/AudioFilesTableView.swift" : {
     "const-values" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/AudioFilesTableView.swiftconstvalues",
     "dependencies" : "/Users/fozzie/developer/ptpeep/build/PTPeep.build/Debug/PTPeepQL.build/Objects-normal/arm64/AudioFilesTableView.d",

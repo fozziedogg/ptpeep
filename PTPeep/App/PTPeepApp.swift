@@ -19,6 +19,13 @@ struct PTPeepApp: App {
                     appState.open(url: url)
                 }
         }
+        // Detached Audio Files pane — one window per tab id.
+        WindowGroup(id: "audioFilesWindow", for: UUID.self) { $tabID in
+            AudioFilesWindow(tabID: tabID)
+                .environmentObject(appState)
+                .frame(minWidth: 480, minHeight: 320)
+        }
+
         Settings {
             SettingsView()
         }
@@ -314,10 +321,25 @@ final class AppState: ObservableObject {
         }
     }
 
+    // Per-tab Audio Files model, shared between the inline pane and the detached
+    // floating window. Lazily created; not @Published (views hold the instance).
+    private var audioModels: [UUID: AudioFilesModel] = [:]
+
+    func audioModel(for tabID: UUID, session: PTXSession) -> AudioFilesModel {
+        if let m = audioModels[tabID] { return m }
+        let m = AudioFilesModel(tabID: tabID, session: session)
+        audioModels[tabID] = m
+        return m
+    }
+
+    /// Existing model only (no creation) — used by the detached floating window.
+    func existingAudioModel(for tabID: UUID) -> AudioFilesModel? { audioModels[tabID] }
+
     func closeTab(id: UUID) {
         guard let idx = tabs.firstIndex(where: { $0.id == id }) else { return }
         openTasks[id]?.cancel()
         openTasks[id] = nil
+        audioModels[id] = nil
         tabs.remove(at: idx)
         if tabs.isEmpty {
             selectedTabID = nil
@@ -330,6 +352,7 @@ final class AppState: ObservableObject {
     func closeAllTabs() {
         for id in tabs.map(\.id) { openTasks[id]?.cancel() }
         openTasks.removeAll()
+        audioModels.removeAll()
         tabs.removeAll()
         selectedTabID = nil
         updateWindowTitle()
@@ -485,6 +508,8 @@ struct AppContentView: View {
             SessionInspectorView(
                 session:              session,
                 sessionURL:           url,
+                tabID:                tab.id,
+                audioModel:           appState.audioModel(for: tab.id, session: session),
                 isResolvingFiles:     tab.isResolvingFiles,
                 initialViewState:     tab.viewState,
                 onViewStateChanged:   { state in appState.saveTabViewState(tabID: tab.id, state: state) },

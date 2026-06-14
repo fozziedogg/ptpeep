@@ -43,6 +43,8 @@ struct TabViewState {
 struct SessionInspectorView: View {
     let session: PTXSession
     let sessionURL: URL
+    let tabID: UUID
+    @ObservedObject var audioModel: AudioFilesModel
     var isResolvingFiles: Bool = false
     var initialViewState:     TabViewState = TabViewState()
     var onViewStateChanged:   ((TabViewState) -> Void)? = nil
@@ -83,10 +85,8 @@ struct SessionInspectorView: View {
     @AppStorage("bwf.profiles")         private var profilesRaw: String = ""
     @AppStorage("bwf.activeProfileID")  private var activeProfileIDRaw: String = ""
     @AppStorage("af.followSelection")   private var followClipSelection: Bool = true
-    @State private var bwfCache: [String: BWFMetadata] = [:]
-    @State private var isBWFLoading: Bool = false
-    @State private var highlightedAudioFiles: Set<String> = []
     @State private var showAFOptions: Bool = false
+    @Environment(\.openWindow) private var openWindow
 
     private var bwfSelectedFields: [BWFFieldKey] {
         bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
@@ -144,10 +144,6 @@ struct SessionInspectorView: View {
             profilesRaw = MetadataProfileStore.encode(list)
         }
     }
-    private var resolvedLookup: [String: ResolvedAudioFile] {
-        Dictionary(session.resolvedAudioFiles.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
-    }
-
     private func updateHighlightedFiles() {
         guard followClipSelection else { return }
         let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
@@ -164,7 +160,7 @@ struct SessionInspectorView: View {
                 if av != bv { return av < bv }
                 return a.index < b.index
             }
-        guard let start = tc.selStart else { highlightedAudioFiles = []; return }
+        guard let start = tc.selStart else { audioModel.highlightedFiles = []; return }
 
         let startSamp = Int64((start * total).rounded())
 
@@ -183,53 +179,16 @@ struct SessionInspectorView: View {
                     }
                 }
             }
-            highlightedAudioFiles = files
+            audioModel.highlightedFiles = files
         } else {
-            guard let idx = tc.selTrack, idx < tracks.count else { highlightedAudioFiles = []; return }
+            guard let idx = tc.selTrack, idx < tracks.count else { audioModel.highlightedFiles = []; return }
             let trackClips = tracks[idx].clips.filter { !$0.isGroup }
             if let clip = trackClips.first(where: {
                 $0.startSample <= startSamp && (startSamp < $0.startSample + $0.lengthSamples)
             }), !clip.sourceFile.isEmpty {
-                highlightedAudioFiles = [clip.sourceFile]
+                audioModel.highlightedFiles = [clip.sourceFile]
             } else {
-                highlightedAudioFiles = []
-            }
-        }
-    }
-
-    private func startBWFParse(resolvedFiles: [ResolvedAudioFile]) {
-        let files = resolvedFiles.filter { $0.url != nil }
-        guard !files.isEmpty, bwfCache.isEmpty else {
-            AppLog.shared.log("[BWF] startBWFParse skipped: \(files.count) resolved, cache has \(bwfCache.count) entries")
-            return
-        }
-        AppLog.shared.log("[BWF] Starting parse of \(files.count) resolved audio files")
-        isBWFLoading = true
-        let audioNames = session.audioFileNames
-        // Background priority + yielding so playback/UI stays responsive
-        Task.detached(priority: .background) {
-            var cache: [String: BWFMetadata] = [:]
-            let batchSize = 50
-            for (i, file) in files.enumerated() {
-                if let url = file.url, let meta = BWFParser.parse(url: url) {
-                    cache[file.name] = meta
-                }
-                // Yield every batch to let higher-priority work run
-                if i % batchSize == batchSize - 1 {
-                    await Task.yield()
-                }
-            }
-            AppLog.shared.log("[BWF] Parse complete: \(cache.count)/\(files.count) files had BWF metadata")
-            if let first = cache.first {
-                AppLog.shared.log("[BWF] Sample cache key: '\(first.key)'")
-            }
-            await MainActor.run {
-                bwfCache = cache
-                isBWFLoading = false
-                let afNames = audioNames.prefix(3).map { "'\($0)'" }.joined(separator: ", ")
-                let cacheKeys = cache.keys.prefix(3).map { "'\($0)'" }.joined(separator: ", ")
-                AppLog.shared.log("[BWF] First audioFileNames: \(afNames)")
-                AppLog.shared.log("[BWF] First cache keys: \(cacheKeys)")
+                audioModel.highlightedFiles = []
             }
         }
     }
@@ -242,6 +201,11 @@ struct SessionInspectorView: View {
         case audioFiles   = "Audio Files"
     }
     @State private var selectedDetailTab: DetailTab = .tracks
+
+    /// Audio Files tab is hidden from the bar while the pane is detached.
+    private var visibleDetailTabs: [DetailTab] {
+        DetailTab.allCases.filter { $0 != .audioFiles || !audioModel.isDetached }
+    }
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
     @StateObject private var audioPlayer = AudioPlayer()
@@ -274,7 +238,7 @@ struct SessionInspectorView: View {
             VStack(spacing: 0) {
                 // Tab bar
                 HStack(spacing: 0) {
-                    ForEach(DetailTab.allCases, id: \.self) { tab in
+                    ForEach(visibleDetailTabs, id: \.self) { tab in
                         let isSelected = selectedDetailTab == tab
                         let count: Int = {
                             switch tab {
@@ -318,15 +282,19 @@ struct SessionInspectorView: View {
                 // Tab content
                 if selectedDetailTab == .audioFiles {
                     AnyView(AudioFilesTableView(
-                        audioFileNames: session.audioFileNames,
-                        resolvedLookup: resolvedLookup,
-                        bwfCache: bwfCache,
+                        audioFileNames: audioModel.audioFileNames,
+                        resolvedLookup: audioModel.resolvedLookup,
+                        bwfCache: audioModel.bwfCache,
                         selectedFields: bwfSelectedFields,
-                        sampleRate: Double(session.sampleRate) ?? 48000,
-                        frameRate: session.frameRate,
-                        highlightedFiles: highlightedAudioFiles,
-                        isBWFLoading: isBWFLoading,
-                        onClearFilter: { highlightedAudioFiles.removeAll() },
+                        sampleRate: audioModel.sampleRate,
+                        frameRate: audioModel.frameRate,
+                        highlightedFiles: audioModel.highlightedFiles,
+                        isBWFLoading: audioModel.isLoading,
+                        onClearFilter: { audioModel.highlightedFiles.removeAll() },
+                        onDetach: {
+                            audioModel.isDetached = true
+                            openWindow(id: "audioFilesWindow", value: tabID)
+                        },
                         followClipSelection: $followClipSelection,
                         bwfFieldsRaw: $bwfFieldsRaw
                     ))
@@ -397,7 +365,11 @@ struct SessionInspectorView: View {
             seedAndSyncProfiles()
         }
         .task(id: session.resolvedAudioFiles.count) {
-            startBWFParse(resolvedFiles: session.resolvedAudioFiles)
+            audioModel.updateResolved(session.resolvedAudioFiles)
+        }
+        // If the Audio Files tab is detached while selected, fall back to Tracks.
+        .onChange(of: audioModel.isDetached) { detached in
+            if detached, selectedDetailTab == .audioFiles { selectedDetailTab = .tracks }
         }
         // Metadata profile ⇄ live columns sync (all guarded by equality → no loop)
         .onChange(of: activeProfileIDRaw) { _ in syncColumnsFromActiveProfile() }

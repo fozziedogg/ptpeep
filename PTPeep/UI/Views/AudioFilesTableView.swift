@@ -13,6 +13,8 @@ struct AudioFilesTableView: View {
     let highlightedFiles: Set<String>
     let isBWFLoading: Bool
     var onClearFilter: (() -> Void)? = nil
+    /// When set, shows a "pop out into a floating window" button in the toolbar.
+    var onDetach: (() -> Void)? = nil
     @Binding var followClipSelection: Bool
     @Binding var bwfFieldsRaw: String
     @AppStorage("bwf.profiles")        private var profilesRaw: String = ""
@@ -270,17 +272,28 @@ struct AudioFilesTableView: View {
                     }
                 }
                 .overlay(alignment: .topTrailing) {
-                    Button { showOptions = true } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 10) {
+                        if let onDetach {
+                            Button(action: onDetach) {
+                                Image(systemName: "macwindow.on.rectangle")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Pop out into a floating window")
+                        }
+                        Button { showOptions = true } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showOptions, arrowEdge: .bottom) {
+                            audioFilesOptionsPopover
+                        }
                     }
-                    .buttonStyle(.plain)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .popover(isPresented: $showOptions, arrowEdge: .bottom) {
-                        audioFilesOptionsPopover
-                    }
                 }
             }
         }
