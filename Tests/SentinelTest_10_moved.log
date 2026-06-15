@@ -1,0 +1,30 @@
+=== SentinelTest_10_moved  |  2026-06-10T18:00:52Z ===
+Sample Rate : 48000 Hz
+Tracks      : 6
+Total Clips : 14
+
+── Apple [Mono] ──────────────────────────────────────────── (2 clips)
+  [01] ABC-01                                              start=1:00:00:00    len=0:00:34:15    file=—  [172972800]
+  [02] 08-03T01 - Farah MCU-AtAlgnP_04.A6                  start=1:00:00:00    len=0:00:13:16    file=08-03T01 - Farah MCU-AtAlgnP_04  [172972800]
+
+── Banana [Mono] ─────────────────────────────────────────── (4 clips)
+  [01] ABC-01                                              start=1:00:00:00    len=0:00:34:15    file=—  [172972800]
+  [02] 9-1T06.A3.A3                                        start=1:00:24:04    len=0:00:10:10    file=9-1T06.A3  [174135712]
+  [03] ABC-02                                              start=1:00:49:15    len=0:00:41:17    file=—  [175357776]
+  [04] 9-1T06.A3.A3                                        start=1:00:49:15    len=0:00:22:20    file=9-1T06.A3  [175357776]
+
+── Cherry [Mono] ─────────────────────────────────────────── (2 clips)
+  [01] ABC-02                                              start=1:00:49:15    len=0:00:41:17    file=—  [175357776]
+  [02] 09-04T01 - Homer CU-AtAlgnP_15.A4                   start=1:01:18:18    len=0:00:12:14    file=09-04T01 - Homer CU-AtAlgnP_15  [176756624]
+
+── Dog [Mono] ────────────────────────────────────────────── (2 clips)
+  [01] DE                                                  start=1:01:25:05    len=0:00:44:10    file=—  [177067744]
+  [02] 09-05T02 - Diana MS-AtAlgnP_01.A5                   start=1:01:25:05    len=0:00:11:18    file=09-05T02 - Diana MS-AtAlgnP_01  [177067744]
+
+── Eagle [Mono] ──────────────────────────────────────────── (2 clips)
+  [01] DE                                                  start=1:01:25:05    len=0:00:44:10    file=—  [177067744]
+  [02] 9A-05T01 - Delwyn MS-AtAlgnP_38.A7                  start=1:01:54:04    len=0:00:15:10    file=9A-05T01 - Delwyn MS-AtAlgnP_38  [178460032]
+
+── Fox [Mono] ────────────────────────────────────────────── (2 clips)
+  [01] F_solo                                              start=1:02:20:10    len=0:00:07:00    file=—  [179721248]
+  [02] 9A-06T01 - Homer MS-HushMix_01                      start=1:02:20:10    len=0:00:07:00    file=9A-06T01 - Homer MS-HushMix_01  [179721248]

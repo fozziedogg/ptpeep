@@ -1,0 +1,34 @@
+=== PeepFolderTest  |  2026-05-24T16:26:23Z ===
+Sample Rate : 48000 (assumed) Hz
+Tracks      : 4
+Total Clips : 0
+
+── Solo_A [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ƒ BASIC_OUTER [] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── OuterMember [Mono] ────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ƒ BASIC_Inner [] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── InnerMember [Mono] ────────────────────────────────────── (0 clips)
+   (no clips)
+
+── Aux_Top [Stereo] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── AuxMember [Mono] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── Aux_Nested [Stereo] ───────────────────────────────────── (0 clips)
+   (no clips)
+
+── AuxNestedMember [Mono] ────────────────────────────────── (0 clips)
+   (no clips)
+
+── Solo_B [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)

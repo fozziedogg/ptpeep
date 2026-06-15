@@ -43,6 +43,11 @@ struct TabViewState {
 struct SessionInspectorView: View {
     let session: PTXSession
     let sessionURL: URL
+    @ObservedObject var audioModel: AudioFilesModel
+    /// Global "pane is popped out" flag (owned by AppState). Hides the inline
+    /// Audio Files tab while true.
+    var audioPaneDetached: Bool = false
+    var onDetach: (() -> Void)? = nil
     var isResolvingFiles: Bool = false
     var initialViewState:     TabViewState = TabViewState()
     var onViewStateChanged:   ((TabViewState) -> Void)? = nil
@@ -77,20 +82,70 @@ struct SessionInspectorView: View {
     @State private var trackSortAscending: Bool = true
 
     // BWF metadata (background-parsed for Audio Files tab)
+    // `bwfFieldsRaw` is the live column string; it mirrors the active metadata
+    // profile's fields (synced both ways in seedAndSyncProfiles / writeColumns).
     @AppStorage("bwf.selectedFields")   private var bwfFieldsRaw: String = BWFFieldKey.defaults.map(\.rawValue).joined(separator: ",")
+    @AppStorage("bwf.profiles")         private var profilesRaw: String = ""
+    @AppStorage("bwf.activeProfileID")  private var activeProfileIDRaw: String = ""
     @AppStorage("af.followSelection")   private var followClipSelection: Bool = true
-    @State private var bwfCache: [String: BWFMetadata] = [:]
-    @State private var isBWFLoading: Bool = false
-    @State private var highlightedAudioFiles: Set<String> = []
     @State private var showAFOptions: Bool = false
 
     private var bwfSelectedFields: [BWFFieldKey] {
         bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
     }
-    private var resolvedLookup: [String: ResolvedAudioFile] {
-        Dictionary(session.resolvedAudioFiles.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
+
+    private static func columnString(_ fields: [BWFFieldKey]) -> String {
+        fields.map(\.rawValue).joined(separator: ",")
     }
 
+    /// Seed built-in presets on first run, resolve the active profile, and push
+    /// its fields into the live column string. Preserves the user's existing
+    /// columns as a "Custom" profile on first migration.
+    private func seedAndSyncProfiles() {
+        var list = MetadataProfileStore.decode(profilesRaw)
+        if list.isEmpty {
+            list = MetadataProfile.builtInPresets
+            // Preserve the user's exact current columns across migration: reuse a
+            // preset if it matches, else keep them as a "Custom" profile.
+            let current = bwfSelectedFields
+            if let match = list.first(where: { $0.fields == current }) {
+                activeProfileIDRaw = match.id.uuidString
+            } else if !current.isEmpty {
+                let custom = MetadataProfile(name: "Custom", fields: current)
+                list.insert(custom, at: 0)
+                activeProfileIDRaw = custom.id.uuidString
+            }
+            profilesRaw = MetadataProfileStore.encode(list)
+        }
+        let active = list.first { $0.id.uuidString == activeProfileIDRaw } ?? list.first
+        guard let active else { return }
+        if activeProfileIDRaw != active.id.uuidString { activeProfileIDRaw = active.id.uuidString }
+        let raw = Self.columnString(active.fields)
+        if bwfFieldsRaw != raw { bwfFieldsRaw = raw }
+    }
+
+    /// Push the active profile's fields into the live column string (used when
+    /// the profile list changes elsewhere, e.g. the Settings tab, or the active
+    /// profile is switched in the toolbar).
+    private func syncColumnsFromActiveProfile() {
+        guard let active = MetadataProfileStore.decode(profilesRaw)
+            .first(where: { $0.id.uuidString == activeProfileIDRaw }) else { return }
+        let raw = Self.columnString(active.fields)
+        if bwfFieldsRaw != raw { bwfFieldsRaw = raw }
+    }
+
+    /// Write inline column edits (reorder/show/hide in the table) back into the
+    /// active profile so they persist with it.
+    private func writeColumnsToActiveProfile() {
+        var list = MetadataProfileStore.decode(profilesRaw)
+        guard let idx = list.firstIndex(where: { $0.id.uuidString == activeProfileIDRaw })
+        else { return }
+        let cols = bwfSelectedFields
+        if list[idx].fields != cols {
+            list[idx].fields = cols
+            profilesRaw = MetadataProfileStore.encode(list)
+        }
+    }
     private func updateHighlightedFiles() {
         guard followClipSelection else { return }
         let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
@@ -107,7 +162,7 @@ struct SessionInspectorView: View {
                 if av != bv { return av < bv }
                 return a.index < b.index
             }
-        guard let start = tc.selStart else { highlightedAudioFiles = []; return }
+        guard let start = tc.selStart else { audioModel.highlightedFiles = []; return }
 
         let startSamp = Int64((start * total).rounded())
 
@@ -126,53 +181,16 @@ struct SessionInspectorView: View {
                     }
                 }
             }
-            highlightedAudioFiles = files
+            audioModel.highlightedFiles = files
         } else {
-            guard let idx = tc.selTrack, idx < tracks.count else { highlightedAudioFiles = []; return }
+            guard let idx = tc.selTrack, idx < tracks.count else { audioModel.highlightedFiles = []; return }
             let trackClips = tracks[idx].clips.filter { !$0.isGroup }
             if let clip = trackClips.first(where: {
                 $0.startSample <= startSamp && (startSamp < $0.startSample + $0.lengthSamples)
             }), !clip.sourceFile.isEmpty {
-                highlightedAudioFiles = [clip.sourceFile]
+                audioModel.highlightedFiles = [clip.sourceFile]
             } else {
-                highlightedAudioFiles = []
-            }
-        }
-    }
-
-    private func startBWFParse(resolvedFiles: [ResolvedAudioFile]) {
-        let files = resolvedFiles.filter { $0.url != nil }
-        guard !files.isEmpty, bwfCache.isEmpty else {
-            AppLog.shared.log("[BWF] startBWFParse skipped: \(files.count) resolved, cache has \(bwfCache.count) entries")
-            return
-        }
-        AppLog.shared.log("[BWF] Starting parse of \(files.count) resolved audio files")
-        isBWFLoading = true
-        let audioNames = session.audioFileNames
-        // Background priority + yielding so playback/UI stays responsive
-        Task.detached(priority: .background) {
-            var cache: [String: BWFMetadata] = [:]
-            let batchSize = 50
-            for (i, file) in files.enumerated() {
-                if let url = file.url, let meta = BWFParser.parse(url: url) {
-                    cache[file.name] = meta
-                }
-                // Yield every batch to let higher-priority work run
-                if i % batchSize == batchSize - 1 {
-                    await Task.yield()
-                }
-            }
-            AppLog.shared.log("[BWF] Parse complete: \(cache.count)/\(files.count) files had BWF metadata")
-            if let first = cache.first {
-                AppLog.shared.log("[BWF] Sample cache key: '\(first.key)'")
-            }
-            await MainActor.run {
-                bwfCache = cache
-                isBWFLoading = false
-                let afNames = audioNames.prefix(3).map { "'\($0)'" }.joined(separator: ", ")
-                let cacheKeys = cache.keys.prefix(3).map { "'\($0)'" }.joined(separator: ", ")
-                AppLog.shared.log("[BWF] First audioFileNames: \(afNames)")
-                AppLog.shared.log("[BWF] First cache keys: \(cacheKeys)")
+                audioModel.highlightedFiles = []
             }
         }
     }
@@ -185,6 +203,11 @@ struct SessionInspectorView: View {
         case audioFiles   = "Audio Files"
     }
     @State private var selectedDetailTab: DetailTab = .tracks
+
+    /// Audio Files tab is hidden from the bar while the pane is detached.
+    private var visibleDetailTabs: [DetailTab] {
+        DetailTab.allCases.filter { $0 != .audioFiles || !audioPaneDetached }
+    }
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
     @StateObject private var audioPlayer = AudioPlayer()
@@ -217,7 +240,7 @@ struct SessionInspectorView: View {
             VStack(spacing: 0) {
                 // Tab bar
                 HStack(spacing: 0) {
-                    ForEach(DetailTab.allCases, id: \.self) { tab in
+                    ForEach(visibleDetailTabs, id: \.self) { tab in
                         let isSelected = selectedDetailTab == tab
                         let count: Int = {
                             switch tab {
@@ -261,15 +284,16 @@ struct SessionInspectorView: View {
                 // Tab content
                 if selectedDetailTab == .audioFiles {
                     AnyView(AudioFilesTableView(
-                        audioFileNames: session.audioFileNames,
-                        resolvedLookup: resolvedLookup,
-                        bwfCache: bwfCache,
+                        audioFileNames: audioModel.audioFileNames,
+                        resolvedLookup: audioModel.resolvedLookup,
+                        bwfCache: audioModel.bwfCache,
                         selectedFields: bwfSelectedFields,
-                        sampleRate: Double(session.sampleRate) ?? 48000,
-                        frameRate: session.frameRate,
-                        highlightedFiles: highlightedAudioFiles,
-                        isBWFLoading: isBWFLoading,
-                        onClearFilter: { highlightedAudioFiles.removeAll() },
+                        sampleRate: audioModel.sampleRate,
+                        frameRate: audioModel.frameRate,
+                        highlightedFiles: audioModel.highlightedFiles,
+                        isBWFLoading: audioModel.isLoading,
+                        onClearFilter: { audioModel.highlightedFiles.removeAll() },
+                        onDetach: onDetach,
                         followClipSelection: $followClipSelection,
                         bwfFieldsRaw: $bwfFieldsRaw
                     ))
@@ -337,10 +361,24 @@ struct SessionInspectorView: View {
             showTrackOptions         = s.showTrackOptions
             trackSortColumn          = TrackSortColumn(index: s.trackSortIndex)
             trackSortAscending       = s.trackSortAscending
+            seedAndSyncProfiles()
         }
         .task(id: session.resolvedAudioFiles.count) {
-            startBWFParse(resolvedFiles: session.resolvedAudioFiles)
+            audioModel.updateResolved(session.resolvedAudioFiles)
         }
+        // Detaching hides the Audio Files tab (fall back to Tracks); reattaching
+        // (window closed/re-docked) brings it back and re-selects it.
+        .onChange(of: audioPaneDetached) { detached in
+            if detached {
+                if selectedDetailTab == .audioFiles { selectedDetailTab = .tracks }
+            } else {
+                selectedDetailTab = .audioFiles
+            }
+        }
+        // Metadata profile ⇄ live columns sync (all guarded by equality → no loop)
+        .onChange(of: activeProfileIDRaw) { _ in syncColumnsFromActiveProfile() }
+        .onChange(of: profilesRaw)        { _ in syncColumnsFromActiveProfile() }
+        .onChange(of: bwfFieldsRaw)       { _ in writeColumnsToActiveProfile() }
         .onChange(of: tc.selStart) { _ in updateHighlightedFiles() }
         .onChange(of: tc.selTrack) { _ in updateHighlightedFiles() }
         .onChange(of: tc.selEnd)   { _ in updateHighlightedFiles() }
@@ -1194,7 +1232,10 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
         // Scroll wheel: horizontal = pan, Cmd+vertical = zoom
         scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
-            guard let self, self.isHovering || self.isFocused else { return event }
+            // Scroll/pinch are pointer gestures: act only when the pointer is over
+            // the timeline (isHovering), NOT merely when it's focused — otherwise
+            // horizontal scrolling over the Audio Files list pans the timeline.
+            guard let self, self.isHovering else { return event }
             guard !(event.window is NSPanel) else { return event }  // never consume panel/open-dialog events
             let mods = event.modifierFlags
             if mods.contains(.command) {
@@ -1220,7 +1261,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
         // Trackpad pinch → horizontal zoom centred on cursor
         magnifyMonitor = NSEvent.addLocalMonitorForEvents(matching: .magnify) { [weak self] event in
-            guard let self, self.isHovering || self.isFocused else { return event }
+            guard let self, self.isHovering else { return event }
             guard !(event.window is NSPanel) else { return event }
             let factor = 1.0 + Double(event.magnification)
             let anchor = self.hoverAbsFrac ?? (self.viewStart + self.window / 2)

@@ -1,0 +1,42 @@
+TITLE: honeybunch_PeepTestD
+FCM: NON-DROP FRAME
+
+* TRACK: 1 split
+* PLUGINS: FabFilter Pro-Q 3, Pro Compressor
+001  AX       A     C        00:00:00:00 00:00:09:04 01:05:31:04 01:05:40:08
+* FROM CLIP NAME: 1 split.grp-06 (MUTED)
+
+002  0405T01_ A     C        00:00:00:00 00:00:00:20 01:05:40:08 01:05:41:04
+* FROM CLIP NAME: 04-05T01 - Diana & Homer MWS-MS-RX9Cnct_02-05
+* SOURCE FILE: 04-05T01 - Diana & Homer MWS-MS-RX9Cnct_02.wav
+
+* TRACK: 2 split
+* PLUGINS: FabFilter Pro-Q 3, Pro Compressor
+003  AX       A     C        00:00:00:00 00:00:09:04 01:05:31:04 01:05:40:08
+* FROM CLIP NAME: 2 split.grp-04 (MUTED)
+
+004  0405T01_ A     C        00:00:00:00 00:00:00:20 01:05:40:08 01:05:41:04
+* FROM CLIP NAME: 04-05T01 - Diana & Homer MWS-HushMix_12-04
+* SOURCE FILE: 04-05T01 - Diana & Homer MWS-HushMix_12.wav
+
+* TRACK: 3 split
+* PLUGINS: FabFilter Pro-Q 3, Pro Compressor
+005  AX       A     C        00:00:00:00 00:00:11:02 01:05:31:04 01:05:42:06
+* FROM CLIP NAME: 3 split.grp-03 (MUTED)
+
+006  0405T01_ A     C        00:00:00:00 00:00:01:17 01:05:38:01 01:05:39:18
+* FROM CLIP NAME: 04-05T01 - Diana & Homer MWS-HushMix_12-02 (MUTED)
+* SOURCE FILE: 04-05T01 - Diana & Homer MWS-HushMix_12.wav
+
+007  0405T01_ A     C        00:00:00:00 00:00:00:12 01:05:39:18 01:05:40:07
+* FROM CLIP NAME: 04-05T01 - Diana & Homer MWS-RX9Dcrk_12-01 (MUTED)
+* SOURCE FILE: 04-05T01 - Diana & Homer MWS-RX9Dcrk_12.wav
+
+* TRACK: 4 split
+* PLUGINS: FabFilter Pro-Q 3, Pro Compressor
+008  AX       A     C        00:00:00:00 00:00:11:02 01:05:31:04 01:05:42:06
+* FROM CLIP NAME: 4 split.grp-02 (MUTED)
+
+009  0405T03_ A     C        00:00:00:00 00:00:00:10 01:05:31:18 01:05:32:04
+* FROM CLIP NAME: 04-05T03 - Diana & Homer MWS-HushMix_03-01 (MUTED)
+* SOURCE FILE: 04-05T03 - Diana & Homer MWS-HushMix_03.wav

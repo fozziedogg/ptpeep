@@ -1,0 +1,99 @@
+SESSION NAME:	SentinelTest_06_regroup
+SAMPLE RATE:	48000.000000
+BIT DEPTH:	24-bit
+SESSION START TIMECODE:	00:00:00:00
+TIMECODE FORMAT:	23.976 Frame
+# OF AUDIO TRACKS:	6
+# OF AUDIO CLIPS:	7
+# OF AUDIO FILES:	6
+
+
+O N L I N E  F I L E S  I N  S E S S I O N
+Filename                           	Location
+08-03T01 - Farah MCU-AtAlgnP_04.wav	Macintosh HD:Users:matthewchan:Desktop:SentinelTest_01_baseline:Audio Files:
+9-1T06.A3.wav                      	Macintosh HD:Users:matthewchan:Desktop:SentinelTest_01_baseline:Audio Files:
+09-04T01 - Homer CU-AtAlgnP_15.wav 	Macintosh HD:Users:matthewchan:Desktop:SentinelTest_01_baseline:Audio Files:
+09-05T02 - Diana MS-AtAlgnP_01.wav 	Macintosh HD:Users:matthewchan:Desktop:SentinelTest_01_baseline:Audio Files:
+9A-05T01 - Delwyn MS-AtAlgnP_38.wav	Macintosh HD:Users:matthewchan:Desktop:SentinelTest_01_baseline:Audio Files:
+9A-06T01 - Homer MS-HushMix_01.wav 	Macintosh HD:Users:matthewchan:Desktop:SentinelTest_01_baseline:Audio Files:
+
+
+O F F L I N E  F I L E S  I N  S E S S I O N
+Filename                           	Location
+
+
+O N L I N E  C L I P S  I N  S E S S I O N
+CLIP NAME                         	Source File
+08-03T01 - Farah MCU-AtAlgnP_04.A6	08-03T01 - Farah MCU-AtAlgnP_04.wav
+09-04T01 - Homer CU-AtAlgnP_15.A4 	09-04T01 - Homer CU-AtAlgnP_15.wav
+09-05T02 - Diana MS-AtAlgnP_01.A5 	09-05T02 - Diana MS-AtAlgnP_01.wav
+9-1T06.A3-01.A3                   	9-1T06.A3.wav
+9-1T06.A3.A3                      	9-1T06.A3.wav
+9A-05T01 - Delwyn MS-AtAlgnP_38.A7	9A-05T01 - Delwyn MS-AtAlgnP_38.wav
+9A-06T01 - Homer MS-HushMix_01    	9A-06T01 - Homer MS-HushMix_01.wav
+
+
+P L U G - I N S  L I S T I N G
+MANUFACTURER            	PLUG-IN NAME            	VERSION         	FORMAT          	STEMS                   	NUMBER OF INSTANCES
+
+
+T R A C K  L I S T I N G
+TRACK NAME:	Apple
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+1       	1       	Apple.grp-03                  	   01:00:00:00	   01:00:34:15	   00:00:34:15	Unmuted
+1       	2       	Apple.grp-02                  	   01:00:34:15	   01:01:16:08	   00:00:41:17	Unmuted
+
+
+TRACK NAME:	Banana
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+1       	1       	Banana.grp-03                 	   01:00:00:00	   01:00:34:15	   00:00:34:15	Unmuted
+1       	2       	Banana.grp-02                 	   01:00:34:15	   01:01:16:08	   00:00:41:17	Unmuted
+1       	3       	EmptySlot                     	   01:02:42:12	   01:03:26:03	   00:00:43:15	Unmuted
+
+
+TRACK NAME:	Cherry
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+1       	1       	Cherry.grp-02                 	   01:00:34:15	   01:01:16:08	   00:00:41:17	Unmuted
+
+
+TRACK NAME:	Dog
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+1       	1       	Dog.grp                       	   01:01:25:05	   01:02:09:15	   00:00:44:10	Unmuted
+
+
+TRACK NAME:	Eagle
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+1       	1       	Eagle.grp                     	   01:01:25:05	   01:02:09:15	   00:00:44:10	Unmuted
+
+
+TRACK NAME:	Fox
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+1       	1       	F_solo                        	   01:02:20:10	   01:02:27:11	   00:00:07:00	Unmuted
+
+
+M A R K E R S  L I S T I N G
+#   	LOCATION     	TIME REFERENCE    	UNITS    	NAME                             	TRACK NAME                       	TRACK TYPE   	COMMENTS

@@ -13,9 +13,14 @@ struct AudioFilesTableView: View {
     let highlightedFiles: Set<String>
     let isBWFLoading: Bool
     var onClearFilter: (() -> Void)? = nil
+    /// When set, shows a "pop out into a floating window" button in the toolbar.
+    var onDetach: (() -> Void)? = nil
     @Binding var followClipSelection: Bool
     @Binding var bwfFieldsRaw: String
+    @AppStorage("bwf.profiles")        private var profilesRaw: String = ""
+    @AppStorage("bwf.activeProfileID") private var activeProfileIDRaw: String = ""
     @State private var showOptions: Bool = false
+    @State private var searchText: String = ""
     @State private var sortColumn: SortColumn = .none
     @State private var sortAscending: Bool = true
     @State private var widthOverrides: [String: CGFloat] = [:]  // "name" or field rawValue → width
@@ -138,12 +143,27 @@ struct AudioFilesTableView: View {
 
     // MARK: - Filtering
 
-    private var isFiltering: Bool { highlightedFiles.count > 1 }
+    private var isHighlightFiltering: Bool { highlightedFiles.count > 1 }
+    private var isSearching: Bool { !searchText.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var isFiltering: Bool { isHighlightFiltering || isSearching }
 
     private func displayRows(
         from rows: [(index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?])]
     ) -> [(index: Int, name: String, resolved: ResolvedAudioFile?, values: [String?])] {
-        isFiltering ? rows.filter { highlightedFiles.contains($0.name) } : rows
+        var out = isHighlightFiltering ? rows.filter { highlightedFiles.contains($0.name) } : rows
+        let term = searchText.trimmingCharacters(in: .whitespaces)
+        if !term.isEmpty {
+            out = out.filter { row in
+                if row.name.localizedCaseInsensitiveContains(term) { return true }
+                return row.values.contains { ($0 ?? "").localizedCaseInsensitiveContains(term) }
+            }
+        }
+        return out
+    }
+
+    private func clearFilters() {
+        searchText = ""
+        onClearFilter?()
     }
 
     // MARK: - Body
@@ -162,6 +182,8 @@ struct AudioFilesTableView: View {
                     .foregroundStyle(.tertiary)
                 Spacer()
             } else {
+                searchBar
+
                 if isFiltering {
                     HStack(spacing: 4) {
                         Image(systemName: "line.3.horizontal.decrease.circle.fill")
@@ -171,7 +193,7 @@ struct AudioFilesTableView: View {
                             .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Button("Show All") { onClearFilter?() }
+                        Button("Show All") { clearFilters() }
                             .font(.system(size: 9))
                             .buttonStyle(.plain)
                             .foregroundStyle(Color.accentColor)
@@ -249,19 +271,6 @@ struct AudioFilesTableView: View {
                         }
                     }
                 }
-                .overlay(alignment: .topTrailing) {
-                    Button { showOptions = true } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .popover(isPresented: $showOptions, arrowEdge: .bottom) {
-                        audioFilesOptionsPopover
-                    }
-                }
             }
         }
         .onChange(of: bwfCache.count) { _ in rebuildAutoWidths() }
@@ -337,8 +346,55 @@ struct AudioFilesTableView: View {
         }
     }
 
+    // MARK: - Search bar
+
+    private var searchBar: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+            TextField("Search audio files", text: $searchText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 11))
+            if !searchText.isEmpty {
+                Button { searchText = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Trailing controls live in the header row (not floating over columns)
+            if let onDetach {
+                Button(action: onDetach) {
+                    Image(systemName: "macwindow.on.rectangle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Pop out into a floating window")
+            }
+            Button { showOptions = true } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showOptions, arrowEdge: .bottom) {
+                audioFilesOptionsPopover
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.5))
+    }
+
+    // MARK: - Options popover (follow-selection + profile switcher)
+
     private var audioFilesOptionsPopover: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let profiles = MetadataProfileStore.decode(profilesRaw)
+        return VStack(alignment: .leading, spacing: 0) {
             Button {
                 followClipSelection.toggle()
             } label: {
@@ -359,10 +415,103 @@ struct AudioFilesTableView: View {
 
             Divider().padding(.vertical, 4)
 
-            BWFSettingsPopover(selectedRaw: $bwfFieldsRaw)
+            Text("PROFILE")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.tertiary)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 2)
+
+            ForEach(profiles) { p in
+                Button {
+                    // Set columns directly (we hold the binding) so the switch is
+                    // immediate; persist the active id for the checkmark + Settings.
+                    bwfFieldsRaw = p.fields.map(\.rawValue).joined(separator: ",")
+                    activeProfileIDRaw = p.id.uuidString
+                    showOptions = false
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: p.id.uuidString == activeProfileIDRaw ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(p.id.uuidString == activeProfileIDRaw ? Color.accentColor : Color.secondary.opacity(0.7))
+                            .font(.system(size: 12))
+                        Text(p.name)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.primary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+
+            Divider().padding(.vertical, 4)
+
+            ManageProfilesButton { showOptions = false }
         }
         .frame(width: 200)
+        .padding(.vertical, 4)
     }
+}
+
+// MARK: - Manage Profiles button
+
+/// Opens the Settings window on the Metadata Profiles tab. macOS 14+ requires
+/// the `openSettings` environment action — the old showSettingsWindow: selector
+/// is blocked (SwiftUI logs "Please use SettingsLink…"). macOS 13 falls back to
+/// the AppKit selector.
+private struct ManageProfilesButton: View {
+    var onTap: () -> Void
+
+    var body: some View {
+        if #available(macOS 14.0, *) {
+            ModernManageProfilesButton(onTap: onTap)
+        } else {
+            Button {
+                onTap()
+                selectProfilesTab()
+                NSApp.activate(ignoringOtherApps: true)
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            } label: { manageProfilesLabel }
+                .buttonStyle(.plain)
+        }
+    }
+}
+
+@available(macOS 14.0, *)
+private struct ModernManageProfilesButton: View {
+    var onTap: () -> Void
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        Button {
+            onTap()
+            selectProfilesTab()
+            openSettings()
+        } label: { manageProfilesLabel }
+            .buttonStyle(.plain)
+    }
+}
+
+/// Pre-select the Metadata Profiles tab before the Settings window appears
+/// (the Settings TabView selection observes this @AppStorage key).
+private func selectProfilesTab() {
+    UserDefaults.standard.set(SettingsTab.metadataProfiles.rawValue, forKey: SettingsTab.storageKey)
+}
+
+private var manageProfilesLabel: some View {
+    HStack(spacing: 8) {
+        Image(systemName: "slider.horizontal.3")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+        Text("Manage Profiles…")
+            .font(.system(size: 11))
+            .foregroundStyle(Color.primary)
+        Spacer()
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 5)
+    .contentShape(Rectangle())
 }
 
 // MARK: - Drop delegate for reordering field columns

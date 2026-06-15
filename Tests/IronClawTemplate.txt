@@ -1,0 +1,1235 @@
+SESSION NAME:	IronClawTemplate
+SAMPLE RATE:	48000.000000
+BIT DEPTH:	24-bit
+SESSION START TIMECODE:	00:00:00:00
+TIMECODE FORMAT:	24 Frame
+# OF AUDIO TRACKS:	136
+# OF AUDIO CLIPS:	0
+# OF AUDIO FILES:	0
+
+
+O N L I N E  F I L E S  I N  S E S S I O N
+Filename	Location
+
+
+O F F L I N E  F I L E S  I N  S E S S I O N
+Filename	Location
+
+
+P L U G - I N S  L I S T I N G
+MANUFACTURER            	PLUG-IN NAME            	VERSION         	FORMAT          	STEMS                   	NUMBER OF INSTANCES
+Unknown (not available) 	CEDAR DNS One           	(unknown)       	AAX Native      	Mono / Mono             	9 inactive
+                        	Slapper                 	(unknown)       	AAX Native      	7.1.2 / 7.1.2           	2 inactive
+                        	Spanner                 	(unknown)       	AAX Native      	7.1.2 / 7.1.2           	1 inactive
+                        	Spanner                 	(unknown)       	AAX Native      	7.1 / 7.1               	1 inactive
+                        	NUGEN Halo Upmix        	(unknown)       	AAX Native      	Stereo / 7.1.2          	1 inactive
+                        	S1 Imager               	(unknown)       	AAX Native      	Stereo / Stereo         	4 inactive
+Audio Ease              	Altiverb 8              	8.2.7           	AAX Native      	Stereo / Stereo         	5 active
+                        	Altiverb 8              	8.2.7           	AAX Native      	Mono / Mono             	4 active
+                        	Indoor                  	(unknown)       	AAX Native      	7.1 / 7.1               	4 inactive
+Avid                    	Pro Limiter             	22.12.0d7       	AAX Native      	Mono / Mono             	30 inactive
+                        	Pro Compressor          	22.12.0d7       	AAX Native      	Mono / Mono             	96 inactive
+                        	Pro Compressor          	22.12.0d7       	AAX Native      	Stereo / Stereo         	10 inactive
+                        	Pro Subharmonic         	22.12.0d7       	AAX DSP         	Mono / Mono             	1 inactive
+                        	EQ3 7-Band              	24.10.0d197     	AAX Native      	Mono / Mono             	8 bypassed
+                        	Lo-Fi                   	24.10.0d197     	AAX Native      	Mono / Mono             	8 bypassed
+Exponential Audio       	Stratus3D               	3.2.0           	AAX Native      	7.1.2 / 7.1.2           	4 active
+                        	Stratus3D               	3.2.0           	AAX Native      	Stereo / Stereo         	1 active
+                        	Stratus3D               	3.2.0           	AAX Native      	7.1 / 7.1               	1 active
+                        	Symphony3D              	3.2.0           	AAX Native      	7.1 / 7.1               	1 active
+FabFilter               	FabFilter Pro-DS        	1.30            	AAX Native      	Mono / Mono             	9 active
+                        	FabFilter Pro-Q 3       	3.23            	AAX Native      	7.1.2 / 7.1.2           	4 active
+                        	FabFilter Pro-Q 3       	3.23            	AAX Native      	Mono / Mono             	105 active
+                        	FabFilter Pro-Q 3       	3.23            	AAX Native      	Stereo / Stereo         	38 active
+                        	FabFilter Pro-Q 3       	3.23            	AAX Native      	7.1 / 7.1               	1 active
+McDSP                   	FutzBox                 	6.8.7           	AAX Native      	Mono / Mono             	4 active, 1 bypassed
+                        	FutzBox                 	6.8.7           	AAX Native      	Stereo / Stereo         	6 bypassed
+Plugin Alliance         	Maag EQ2                	1.10.1          	AAX Native      	Mono / Mono             	9 active
+
+
+T R A C K  L I S T I N G
+TRACK NAME:	7.1 Bed (7.1)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TRACK NAME:	LCR Bed (LCR)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+
+
+TRACK NAME:	1 vo
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 vo
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 vo
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 vo
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 pfx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 pfx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 pfx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 pfx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 ftz
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	FutzBox (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 ftz
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	FutzBox (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 ftz
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	FutzBox (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 ftz
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	FutzBox (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	5 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	6 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	7 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	8 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	9 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	10 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	11 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	12 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	13 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	14 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	15 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	16 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	17 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	18 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	19 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	20 dx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 split
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 split
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 split
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 split
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	5 split
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	6 split
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	7 split
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	8 split
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 dxobA
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 dxobA
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 dxobA
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 dxobA
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 dxobB
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 dxobB
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 dxobB
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 dxobB
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 dxobC
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 dxobC
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 dxobC
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 dxobC
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 dxobD
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 dxobD
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 dxobD
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 dxobD
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 adr
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	Lo-Fi (mono)	EQ3 7-Band (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 adr
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	Lo-Fi (mono)	EQ3 7-Band (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 adr
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	Lo-Fi (mono)	EQ3 7-Band (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 adr
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	Lo-Fi (mono)	EQ3 7-Band (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	5 adr
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	Lo-Fi (mono)	EQ3 7-Band (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	6 adr
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	Lo-Fi (mono)	EQ3 7-Band (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	7 adr
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	Lo-Fi (mono)	EQ3 7-Band (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	8 adr
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)	Lo-Fi (mono)	EQ3 7-Band (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 pcrwd
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 pcrwd
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 pcrwd
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 pcrwd
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	5 pcrwd
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	6 pcrwd
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	7 pcrwd
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	8 pcrwd
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 ms-pcrwd (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)	Pro Compressor (stereo)	S1 Imager (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	2 ms-pcrwd (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)	Pro Compressor (stereo)	S1 Imager (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	3 ms-pcrwd (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)	Pro Compressor (stereo)	S1 Imager (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	4 ms-pcrwd (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)	Pro Compressor (stereo)	S1 Imager (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	1 sp lg OBJ
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 sp lg OBJ
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 sp lg OBJ
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 sp lg OBJ
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	5 sp lg OBJ
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	6 sp lg OBJ
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	7 sp lg OBJ
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	8 sp lg OBJ
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 lg
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 lg
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 lg
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 lg
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	5 lg
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	6 lg
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	7 lg
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	8 lg
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	1 A mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	2 A mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	3 A mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	4 A mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	5 A mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	6 A mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	7 A mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	8 A mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	9 A mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	10 A mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	11 A mx-h (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	12 A mx-h (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	MX OB 89|90 (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	MX OB 91|92 (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	1 B mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	2 B mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	3 B mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	4 B mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	5 B mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	6 B mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	7 B mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	8 B mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	9 B mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	10 B mx (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	11 B mx-h (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	12 B mx-h (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	MX OB 93|94 (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	MX OB 95|96 (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	1 src (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)	Pro Compressor (stereo)	FutzBox (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	2 src (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)	Pro Compressor (stereo)	FutzBox (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	3 src (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)	Pro Compressor (stereo)	FutzBox (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	4 src (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)	Pro Compressor (stereo)	FutzBox (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	5 src-h (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)	Pro Compressor (stereo)	FutzBox (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	6 src-h (Stereo)
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (stereo)	Pro Compressor (stereo)	FutzBox (stereo)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+
+
+TRACK NAME:	1 pmx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	2 pmx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	3 pmx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	4 pmx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	5 pmx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	6 pmx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	7 pmx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+TRACK NAME:	8 pmx
+COMMENTS:	
+USER DELAY:	0 Samples
+STATE: 
+PLUG-INS: 	FabFilter Pro-Q 3 (mono)	Pro Compressor (mono)
+CHANNEL 	EVENT   	CLIP NAME                     	START TIME    	END TIME      	DURATION      	STATE
+
+
+M A R K E R S  L I S T I N G
+#   	LOCATION     	TIME REFERENCE    	UNITS    	NAME                             	TRACK NAME                       	TRACK TYPE   	COMMENTS
+1   	00:25:00:00  	72000000          	Samples  	Automation                       	Markers                          	Ruler                            	

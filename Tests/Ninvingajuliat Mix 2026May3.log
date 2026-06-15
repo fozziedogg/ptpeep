@@ -1,0 +1,1199 @@
+=== Ninvingajuliat Mix 2026May3  |  2026-05-24T16:26:23Z ===
+Sample Rate : 48000 Hz
+Tracks      : 110
+Total Clips : 765
+
+── GT [Stereo] ───────────────────────────────────────────── (1 clips)
+  [01] Nivingajuliat - sound for Matt.1-01                 start=0:59:58:00    len=0:11:50:03    file=Nivingajuliat - sound for Matt.1.L  [172876704]
+
+── METER [5.1] ───────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── Nivingajuliat Mix LoRo Cleanup 2026Apr13 [Stereo] ─────── (1 clips)
+  [01] Nivingajuliat Mix LoRo V2 2026May3                  start=0:59:58:00    len=0:11:50:03    file=Nivingajuliat Mix LoRo V2 2026May3.L  [172876704]
+
+── Downix [5.1] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── DX Bus [5.1] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── MX Bus [5.1] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── FX Bus [5.1] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── HALO [Stereo] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── vPFX [] ───────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── vFTZ [] ───────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── vDX [] ────────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── vSPLT [] ──────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── vADR [] ───────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── vSRC [] ───────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── A [Mono] ──────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── B [Mono] ──────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── C [Mono] ──────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── D [Mono] ──────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── NOTES 1 [Mono] ────────────────────────────────────────── (7 clips)
+  [01] Photo handling                                      start=1:00:18:19    len=0:00:13:22    file=—  [173875702]
+  [02] FABRIC, IRON, TAPE MEASURE                          start=1:01:13:15    len=0:00:24:07    file=—  [176510334]
+  [03] NEEDLE RULER                                        start=1:01:49:05    len=0:00:00:22    file=—  [178220042]
+  [04] CHALK                                               start=1:02:25:06    len=0:00:02:16    file=—  [179951772]
+  [05] RULER DOWN                                          start=1:02:30:08    len=0:00:04:22    file=—  [180196016]
+  [06] Bankers Box                                         start=1:06:16:11    len=0:00:07:07    file=—  [191060870]
+  [07] SEWING                                              start=1:06:47:22    len=0:00:11:09    file=—  [192572380]
+
+── NOTES 2 [Mono] ────────────────────────────────────────── (1 clips)
+  [01] WIND REPLACE?                                       start=1:07:54:20    len=0:00:14:06    file=—  [195787592]
+
+── NOTES 3 [Mono] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ƒ PROD [] ─────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 1 pfx [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 2 pfx [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 1 ftz [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 2 ftz [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── WORK 1 [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── WORK 2 [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── WORK 3 [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── WORK 4 [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 1 dx [Mono] ───────────────────────────────────────────── (165 clips)
+  [01] 1 pfx_01-01                                         start=0:59:58:00    len=0:00:00:01    file=1 pfx_01  [172876704]
+  [02] 240829_BR_ACAM0315.MXF-HushMix_02-01                start=1:00:10:00    len=0:00:03:11    file=240829_BR_ACAM0315.MXF-HushMix_02  [173453280]
+  [03] 240829_BR_ACAM0315.MXF-HushMix_03-01                start=1:00:16:13    len=0:00:01:15    file=240829_BR_ACAM0315.MXF-HushMix_03  [173767594]
+  [04] 240829_BR_ACAM0315.MXF-HushMix_04-01                start=1:00:18:04    len=0:00:00:03    file=240829_BR_ACAM0315.MXF-HushMix_04  [173845015]
+  [05] 240829_BR_ACAM0315.MXF-HushMix_05-01                start=1:00:18:06    len=0:00:02:16    file=240829_BR_ACAM0315.MXF-HushMix_05  [173850356]
+  [06] 240314_GAYLE_A0058.MXF-RX9Dcrk_01-01                start=1:01:12:09    len=0:00:03:08    file=240314_GAYLE_A0058.MXF-RX9Dcrk_01  [176450229]
+  [07] 240314_GAYLE_A0051.MXF-RX9Dcrk_02-01                start=1:01:16:22    len=0:00:03:02    file=240314_GAYLE_A0051.MXF-RX9Dcrk_02  [176668492]
+  [08] 240314_GAYLE_A0048.MXF-RX9Dcrk_03-01                start=1:01:21:14    len=0:00:01:01    file=240314_GAYLE_A0048.MXF-RX9Dcrk_03  [176892716]
+  [09] 240314_GAYLE_A0051.MXF-RX9Dcrk_04-01                start=1:01:22:15    len=0:00:03:07    file=240314_GAYLE_A0051.MXF-RX9Dcrk_04  [176942766]
+  [10] 240314_GAYLE_A0051.MXF-RX9Dcrk_05-01                start=1:01:25:22    len=0:00:00:18    file=240314_GAYLE_A0051.MXF-RX9Dcrk_05  [177100924]
+  [11] 240314_GAYLE_A0051.MXF-RX9Dcrk_06-01                start=1:01:26:16    len=0:00:00:17    file=240314_GAYLE_A0051.MXF-RX9Dcrk_06  [177136960]
+  [12] 240314_GAYLE_A0051.MXF-RX9Dcrk_07-01                start=1:01:27:09    len=0:00:01:09    file=240314_GAYLE_A0051.MXF-RX9Dcrk_07  [177170604]
+  [13] WORK 3-RX9Dcrk_08-01                                start=1:01:28:18    len=0:00:01:09    file=WORK 3-RX9Dcrk_08  [177236705]
+  [14] 240314_GAYLE_A0051.MXF-RX9Dcrk_09-01                start=1:01:30:03    len=0:00:02:17    file=240314_GAYLE_A0051.MXF-RX9Dcrk_09  [177303126]
+  [15] 240314_GAYLE_A0051.MXF-RX9Dcrk_10-01                start=1:01:32:20    len=0:00:02:01    file=240314_GAYLE_A0051.MXF-RX9Dcrk_10  [177433256]
+  [16] 240314_GAYLE_A0051.MXF-RX9Dcrk_11-01                start=1:01:34:21    len=0:00:02:12    file=240314_GAYLE_A0051.MXF-RX9Dcrk_11  [177531354]
+  [17] 240314_GAYLE_A0051.MXF-RX9Dcrk_12-01                start=1:01:37:09    len=0:00:01:21    file=240314_GAYLE_A0051.MXF-RX9Dcrk_12  [177651474]
+  [18] 240314_GAYLE_A0051.MXF-RX9Dcrk_13-01                start=1:01:39:06    len=0:00:00:09    file=240314_GAYLE_A0051.MXF-RX9Dcrk_13  [177741564]
+  [19] 240314_GAYLE_A0051.MXF-RX9Dcrk_14-01                start=1:01:39:15    len=0:00:00:18    file=240314_GAYLE_A0051.MXF-RX9Dcrk_14  [177759582]
+  [20] 240314_GAYLE_A0051.MXF-RX9Dcrk_15-01                start=1:01:40:09    len=0:00:01:07    file=240314_GAYLE_A0051.MXF-RX9Dcrk_15  [177795618]
+  [21] WORK 3-RX9Dcrk_16-01                                start=1:01:41:16    len=0:00:01:22    file=WORK 3-RX9Dcrk_16  [177856846]
+  [22] 240314_GAYLE_A0051.MXF-RX9Dcrk_17-01                start=1:01:43:13    len=0:00:00:21    file=240314_GAYLE_A0051.MXF-RX9Dcrk_17  [177948613]
+  [23] WORK 3-RX9Dcrk_18-01                                start=1:01:44:11    len=0:00:00:06    file=WORK 3-RX9Dcrk_18  [177990925]
+  [24] 240314_GAYLE_A0051.MXF-RX9Dcrk_19-01                start=1:01:44:16    len=0:00:00:10    file=240314_GAYLE_A0051.MXF-RX9Dcrk_19  [178002522]  Muted
+  [25] 240314_GAYLE_A0051.MXF-HushMix_26-01                start=1:01:53:21    len=0:00:13:13    file=240314_GAYLE_A0051.MXF-HushMix_26  [178444266]
+  [26] 240314_GAYLE_A0051.MXF-HushMix_27-01                start=1:02:07:10    len=0:00:01:13    file=240314_GAYLE_A0051.MXF-HushMix_27  [179094916]
+  [27] 240314_GAYLE_A0048.MXF-HushMix_28-01                start=1:02:08:23    len=0:00:00:22    file=240314_GAYLE_A0048.MXF-HushMix_28  [179168990]
+  [28] 240314_GAYLE_A0055.MXF-HushMix_29-01                start=1:02:09:21    len=0:00:01:13    file=240314_GAYLE_A0055.MXF-HushMix_29  [179214024]
+  [29] 240314_GAYLE_A0055.MXF-HushMix_30-01                start=1:02:11:11    len=0:00:01:02    file=240314_GAYLE_A0055.MXF-HushMix_30  [179288912]
+  [30] 240314_GAYLE_A0055.MXF-HushMix_31-01                start=1:02:12:13    len=0:00:00:19    file=240314_GAYLE_A0055.MXF-HushMix_31  [179341162]
+  [31] 240314_GAYLE_A0055.MXF-HushMix_32-01                start=1:02:13:08    len=0:00:00:22    file=240314_GAYLE_A0055.MXF-HushMix_32  [179379200]
+  [32] 240314_GAYLE_A0055.MXF-HushMix_33-01                start=1:02:14:06    len=0:00:00:22    file=240314_GAYLE_A0055.MXF-HushMix_33  [179423244]
+  [33] 240314_GAYLE_A0055.MXF-HushMix_34-01                start=1:02:15:04    len=0:00:06:04    file=240314_GAYLE_A0055.MXF-HushMix_34  [179467288]
+  [34] 240314_GAYLE_A0060.MXF-HushMix_35-01                start=1:02:21:08    len=0:00:00:16    file=240314_GAYLE_A0060.MXF-HushMix_35  [179763584]
+  [35] 240314_GAYLE_A0060.MXF-HushMix_36-01                start=1:02:22:00    len=0:00:00:09    file=240314_GAYLE_A0060.MXF-HushMix_36  [179795616]
+  [36] 240314_GAYLE_A0048.MXF-HushMix_37-01                start=1:02:22:09    len=0:00:00:06    file=240314_GAYLE_A0048.MXF-HushMix_37  [179814504]
+  [37] 240314_GAYLE_A0056.MXF-HushMix_43-01                start=1:02:22:15    len=0:00:00:14    file=240314_GAYLE_A0056.MXF-HushMix_43  [179825646]
+  [38] 240314_GAYLE_A0056.MXF-HushMix_46-01                start=1:02:23:05    len=0:00:00:04    file=240314_GAYLE_A0056.MXF-HushMix_46  [179854040]
+  [39] 240314_GAYLE_A0056.MXF-HushMix_47-01                start=1:02:23:09    len=0:00:00:06    file=240314_GAYLE_A0056.MXF-HushMix_47  [179861682]
+  [40] 240314_GAYLE_A0056.MXF-HushMix_48-01                start=1:02:23:15    len=0:00:00:09    file=240314_GAYLE_A0056.MXF-HushMix_48  [179873694]
+  [41] 240314_GAYLE_A0056.MXF-HushMix_49-01                start=1:02:24:00    len=0:00:00:13    file=240314_GAYLE_A0056.MXF-HushMix_49  [179891457]
+  [42] 240314_GAYLE_A0058.MXF-HushMix_59-01                start=1:02:24:13    len=0:00:00:07    file=240314_GAYLE_A0058.MXF-HushMix_59  [179918159]
+  [43] 240314_GAYLE_A0056.MXF-HushMix_60-01                start=1:02:24:20    len=0:00:00:08    file=240314_GAYLE_A0056.MXF-HushMix_60  [179931752]
+  [44] 240314_GAYLE_A0056.MXF-HushMix_61-01                start=1:02:25:04    len=0:00:02:19    file=240314_GAYLE_A0056.MXF-HushMix_61  [179946816]
+  [45] 240314_GAYLE_A0056.MXF-HushMix_62-01                start=1:02:27:23    len=0:00:03:13    file=240314_GAYLE_A0056.MXF-HushMix_62  [180081902]
+  [46] 240314_GAYLE_A0056.MXF-HushMix_63-01                start=1:02:31:12    len=0:00:01:14    file=240314_GAYLE_A0056.MXF-HushMix_63  [180252072]
+  [47] 240314_GAYLE_A0056.MXF-HushMix_64-01                start=1:02:33:02    len=0:00:04:10    file=240314_GAYLE_A0056.MXF-HushMix_64  [180328148]
+  [48] 240314_GAYLE_A0048.MXF-HushMix_65-01                start=1:02:37:12    len=0:00:01:09    file=240314_GAYLE_A0048.MXF-HushMix_65  [180540360]
+  [49] 240314_GAYLE_A0056.MXF-HushMix_66-01                start=1:02:44:00    len=0:00:02:21    file=240314_GAYLE_A0056.MXF-HushMix_66  [180852672]
+  [50] 240314_GAYLE_A0056.MXF-HushMix_67-01                start=1:02:46:21    len=0:00:01:05    file=240314_GAYLE_A0056.MXF-HushMix_67  [180990153]
+  [51] 240601_BR_ACAM_C1101.MXF-HushMix_47-01              start=1:02:54:04    len=0:00:03:07    file=240601_BR_ACAM_C1101.MXF-HushMix_47  [181340297]
+  [52] 240314_GAYLE_A0058.MXF-HushMix_60-01                start=1:03:00:11    len=0:00:00:18    file=240314_GAYLE_A0058.MXF-HushMix_60  [181643616]
+  [53] 240314_GAYLE_A0058.MXF-HushMix_61-01                start=1:03:01:05    len=0:00:01:05    file=240314_GAYLE_A0058.MXF-HushMix_61  [181679129]
+  [54] 240314_GAYLE_A0058.MXF-HushMix_62-01                start=1:03:02:10    len=0:00:00:15    file=240314_GAYLE_A0058.MXF-HushMix_62  [181737450]
+  [55] 240314_GAYLE_A0058.MXF-HushMix_63-01                start=1:03:03:01    len=0:00:00:16    file=240314_GAYLE_A0058.MXF-HushMix_63  [181767199]
+  [56] 240314_GAYLE_A0058.MXF-RX9Dcrk_51-01                start=1:03:15:17    len=0:00:00:10    file=240314_GAYLE_A0058.MXF-RX9Dcrk_51  [182376194]
+  [57] 240314_GAYLE_A0058.MXF-RX9Dcrk_52-01                start=1:03:16:03    len=0:00:00:11    file=240314_GAYLE_A0058.MXF-RX9Dcrk_52  [182396214]
+  [58] 240314_GAYLE_A0058.MXF-RX9Dcrk_53-01                start=1:03:16:14    len=0:00:00:08    file=240314_GAYLE_A0058.MXF-RX9Dcrk_53  [182418236]
+  [59] 240314_GAYLE_A0058.MXF-RX9Dcrk_54-01                start=1:03:16:22    len=0:00:02:17    file=240314_GAYLE_A0058.MXF-RX9Dcrk_54  [182434252]
+  [60] 240314_GAYLE_A0058.MXF-RX9Dcrk_55-01                start=1:03:19:15    len=0:00:00:06    file=240314_GAYLE_A0058.MXF-RX9Dcrk_55  [182563403]  Muted
+  [61] 240314_GAYLE_A0058.MXF-RX9Dcrk_56-01                start=1:03:20:01    len=0:00:01:03    file=240314_GAYLE_A0058.MXF-RX9Dcrk_56  [182584402]
+  [62] 240314_GAYLE_A0058.MXF-RX9Dcrk_57-01                start=1:03:21:04    len=0:00:00:17    file=240314_GAYLE_A0058.MXF-RX9Dcrk_57  [182638703]
+  [63] 240314_GAYLE_A0058.MXF-RX9Dcrk_58-01                start=1:03:21:21    len=0:00:01:20    file=240314_GAYLE_A0058.MXF-RX9Dcrk_58  [182672510]
+  [64] 240314_GAYLE_A0057.MXF-RX9Dcrk_01-01                start=1:05:24:15    len=0:00:00:19    file=240314_GAYLE_A0057.MXF-RX9Dcrk_01  [188570382]
+  [65] 240314_GAYLE_A0057.MXF-RX9Dcrk_02-01                start=1:05:25:10    len=0:00:03:10    file=240314_GAYLE_A0057.MXF-RX9Dcrk_02  [188608420]
+  [66] 240314_GAYLE_A0058.MXF-RX9Dcrk_14-01                start=1:05:31:03    len=0:00:01:22    file=240314_GAYLE_A0058.MXF-RX9Dcrk_14  [188882694]
+  [67] 240314_GAYLE_A0058.MXF-RX9Dcrk_15-01                start=1:05:33:01    len=0:00:02:00    file=240314_GAYLE_A0058.MXF-RX9Dcrk_15  [188974786]
+  [68] 240314_GAYLE_A0060.MXF-RX9Dcrk_16-01                start=1:05:35:01    len=0:00:01:06    file=240314_GAYLE_A0060.MXF-RX9Dcrk_16  [189070740]
+  [69] 240829_BR_ACAM0315.MXF-RX9Dcrk_18-01                start=1:05:49:08    len=0:00:00:09    file=240829_BR_ACAM0315.MXF-RX9Dcrk_18  [189757890]
+  [70] 240829_BR_ACAM0315.MXF-RX9Dcrk_19-01                start=1:05:49:18    len=0:00:01:00    file=240829_BR_ACAM0315.MXF-RX9Dcrk_19  [189776733]
+  [71] 240829_BR_ACAM0315.MXF-RX9Dcrk_20-01                start=1:05:50:18    len=0:00:01:13    file=240829_BR_ACAM0315.MXF-RX9Dcrk_20  [189825254]
+  [72] 240829_BR_ACAM0315.MXF-RX9Dcrk_21-01                start=1:05:52:07    len=0:00:01:11    file=240829_BR_ACAM0315.MXF-RX9Dcrk_21  [189899710]
+  [73] 240829_BR_ACAM0315.MXF-RX9Dcrk_22-01                start=1:05:54:07    len=0:00:00:06    file=240829_BR_ACAM0315.MXF-RX9Dcrk_22  [189995806]
+  [74] 240829_BR_ACAM0315.MXF-RX9Dcrk_23-01                start=1:05:54:13    len=0:00:05:05    file=240829_BR_ACAM0315.MXF-RX9Dcrk_23  [190007818]
+  [75] 240829_BR_ACAM0315.MXF-RX9Dcrk_24-01                start=1:05:59:18    len=0:00:00:23    file=240829_BR_ACAM0315.MXF-RX9Dcrk_24  [190258068]
+  [76] 240829_BR_ACAM0315.MXF-RX9Dcrk_25-01                start=1:06:00:18    len=0:00:00:03    file=240829_BR_ACAM0315.MXF-RX9Dcrk_25  [190305585]
+  [77] 240829_BR_ACAM0315.MXF-RX9Dcrk_26-01                start=1:06:00:21    len=0:00:00:12    file=240829_BR_ACAM0315.MXF-RX9Dcrk_26  [190312066]
+  [78] 240829_BR_ACAM0315.MXF-RX9Dcrk_27-01                start=1:06:01:09    len=0:00:01:13    file=240829_BR_ACAM0315.MXF-RX9Dcrk_27  [190336399]
+  [79] 240829_BR_ACAM0315.MXF-RX9Dcrk_28-01                start=1:06:02:22    len=0:00:06:13    file=240829_BR_ACAM0315.MXF-RX9Dcrk_28  [190410220]
+  [80] 240829_BR_ACAM0315.MXF-RX9Dcrk_29-01                start=1:06:09:11    len=0:00:03:06    file=240829_BR_ACAM0315.MXF-RX9Dcrk_29  [190724534]
+  [81] 240829_BR_ACAM0315.MXF-HushMix_30-01                start=1:06:47:07    len=0:00:01:15    file=240829_BR_ACAM0315.MXF-HushMix_30  [192542130]
+  [82] 240829_BR_ACAM0315.MXF-RX9Dcrk_31-01                start=1:06:51:15    len=0:00:01:05    file=240829_BR_ACAM0315.MXF-RX9Dcrk_31  [192751156]
+  [83] 240829_BR_ACAM0315.MXF-RX9Dcrk_32-01                start=1:06:52:20    len=0:00:00:16    file=240829_BR_ACAM0315.MXF-RX9Dcrk_32  [192808616]
+  [84] 240829_BR_ACAM0315.MXF-RX9Dcrk_33-01                start=1:06:53:12    len=0:00:00:11    file=240829_BR_ACAM0315.MXF-RX9Dcrk_33  [192841043]
+  [85] 240829_BR_ACAM0315.MXF-RX9Dcrk_34-01                start=1:06:53:23    len=0:00:01:16    file=240829_BR_ACAM0315.MXF-RX9Dcrk_34  [192862610]
+  [86] 240829_BR_ACAM0315.MXF-RX9Dcrk_35-01                start=1:06:56:04    len=0:00:00:14    file=240829_BR_ACAM0315.MXF-RX9Dcrk_35  [192968776]
+  [87] 240829_BR_ACAM0315.MXF-RX9Dcrk_36-01                start=1:06:56:18    len=0:00:01:15    file=240829_BR_ACAM0315.MXF-RX9Dcrk_36  [192996395]
+  [88] 240829_BR_ACAM0315.MXF-RX9Dcrk_37-01                start=1:06:58:09    len=0:00:00:22    file=240829_BR_ACAM0315.MXF-RX9Dcrk_37  [193074882]
+  [89] 240829_BR_ACAM0315.MXF-RX9Dcrk_38-01                start=1:06:59:07    len=0:00:01:22    file=240829_BR_ACAM0315.MXF-RX9Dcrk_38  [193119423]
+  [90] 240829_BR_ACAM0315.MXF-RX9Dcrk_39-01                start=1:07:01:05    len=0:00:00:07    file=240829_BR_ACAM0315.MXF-RX9Dcrk_39  [193211190]
+  [91] 240829_BR_ACAM0315.MXF-RX9Dcrk_40-01                start=1:07:01:12    len=0:00:00:06    file=240829_BR_ACAM0315.MXF-RX9Dcrk_40  [193224342]
+  [92] 240829_BR_ACAM0315.MXF-RX9Dcrk_41-01                start=1:07:01:18    len=0:00:02:21    file=240829_BR_ACAM0315.MXF-RX9Dcrk_41  [193236861]
+  [93] 240829_BR_ACAM0315.MXF-RX9Dcrk_42-01                start=1:07:04:15    len=0:00:01:16    file=240829_BR_ACAM0315.MXF-RX9Dcrk_42  [193375182]
+  [94] 240829_BR_ACAM0315.MXF-RX9Dcrk_43-01                start=1:07:12:09    len=0:00:00:16    file=240829_BR_ACAM0315.MXF-RX9Dcrk_43  [193747554]
+  [95] 240829_BR_ACAM0315.MXF-RX9Dcrk_44-01                start=1:07:13:01    len=0:00:00:12    file=240829_BR_ACAM0315.MXF-RX9Dcrk_44  [193779440]
+  [96] 240829_BR_ACAM0315.MXF-RX9Dcrk_45-01                start=1:07:13:13    len=0:00:03:10    file=240829_BR_ACAM0315.MXF-RX9Dcrk_45  [193803610]
+  [97] 240829_BR_ACAM0315.MXF-RX9Dcrk_46-01                start=1:07:16:23    len=0:00:03:00    file=240829_BR_ACAM0315.MXF-RX9Dcrk_46  [193967774]
+  [98] 240829_BR_ACAM0315.MXF-RX9Dcrk_47-01                start=1:07:19:23    len=0:00:00:15    file=240829_BR_ACAM0315.MXF-RX9Dcrk_47  [194111918]
+  [99] 240829_BR_ACAM0315.MXF-RX9Dcrk_48-01                start=1:07:20:14    len=0:00:03:21    file=240829_BR_ACAM0315.MXF-RX9Dcrk_48  [194141948]
+  [100] 240829_BR_ACAM0315.MXF-RX9Dcrk_49-01                start=1:07:26:04    len=0:00:00:14    file=240829_BR_ACAM0315.MXF-RX9Dcrk_49  [194410216]
+  [101] 240829_BR_ACAM0315.MXF-RX9Dcrk_50-01                start=1:07:26:18    len=0:00:02:04    file=240829_BR_ACAM0315.MXF-RX9Dcrk_50  [194438244]
+  [102] 240829_BR_ACAM0315.MXF-RX9Dcrk_51-01                start=1:07:28:22    len=0:00:02:09    file=240829_BR_ACAM0315.MXF-RX9Dcrk_51  [194542348]
+  [103] 240829_BR_ACAM0315.MXF-RX9Dcrk_52-01                start=1:07:32:19    len=0:00:00:16    file=240829_BR_ACAM0315.MXF-RX9Dcrk_52  [194729008]
+  [104] 240829_BR_ACAM0315.MXF-RX9Dcrk_53-01                start=1:07:33:11    len=0:00:01:16    file=240829_BR_ACAM0315.MXF-RX9Dcrk_53  [194760566]
+  [105] 240829_BR_ACAM0315.MXF-RX9Dcrk_54-01                start=1:07:35:03    len=0:00:00:17    file=240829_BR_ACAM0315.MXF-RX9Dcrk_54  [194840646]
+  [106] 240829_BR_ACAM0315.MXF-RX9Dcrk_55-01                start=1:07:35:20    len=0:00:00:12    file=240829_BR_ACAM0315.MXF-RX9Dcrk_55  [194874680]
+  [107] 240829_BR_ACAM0315.MXF-RX9Dcrk_56-01                start=1:07:36:08    len=0:00:01:10    file=240829_BR_ACAM0315.MXF-RX9Dcrk_56  [194898704]
+  [108] 240829_BR_ACAM0315.MXF-RX9Dcrk_57-01                start=1:07:37:18    len=0:00:00:10    file=240829_BR_ACAM0315.MXF-RX9Dcrk_57  [194966772]
+  [109] 240829_BR_ACAM0315.MXF-RX9Dcrk_58-01                start=1:07:38:04    len=0:00:02:14    file=240829_BR_ACAM0315.MXF-RX9Dcrk_58  [194986792]
+  [110] 240829_BR_ACAM0315.MXF-RX9Dcrk_59-01                start=1:07:40:18    len=0:00:03:01    file=240829_BR_ACAM0315.MXF-RX9Dcrk_59  [195110916]
+  [111] 240829_BR_ACAM0315.MXF-RX9Dcrk_60-01                start=1:07:43:19    len=0:00:00:12    file=240829_BR_ACAM0315.MXF-RX9Dcrk_60  [195257062]
+  [112] 240829_BR_ACAM0315.MXF-RX9Dcrk_61-01                start=1:07:44:07    len=0:00:00:20    file=240829_BR_ACAM0315.MXF-RX9Dcrk_61  [195281086]
+  [113] 240829_BR_ACAM0315.MXF-RX9Dcrk_62-01                start=1:07:45:03    len=0:00:04:09    file=240829_BR_ACAM0315.MXF-RX9Dcrk_62  [195321126]
+  [114] 240829_BR_ACAM0315.MXF-RX9Dcrk_63-01                start=1:07:49:12    len=0:00:02:03    file=240829_BR_ACAM0315.MXF-RX9Dcrk_63  [195531754]
+  [115] 240829_BR_ACAM0315.MXF-RX9Dcrk_64-01                start=1:07:51:15    len=0:00:03:21    file=240829_BR_ACAM0315.MXF-RX9Dcrk_64  [195633438]
+  [116] 240829_BR_ACAM0319.MXF-RX9Dcrk_65-01                start=1:08:01:11    len=0:00:04:21    file=240829_BR_ACAM0319.MXF-RX9Dcrk_65  [196106223]
+  [117] 240829_BR_ACAM0319.MXF-RX9Dcrk_66-01                start=1:08:06:21    len=0:00:03:04    file=240829_BR_ACAM0319.MXF-RX9Dcrk_66  [196366230]
+  [118] 240829_BR_ACAM0319.MXF-RX9Dcrk_67-01                start=1:08:11:05    len=0:00:01:15    file=240829_BR_ACAM0319.MXF-RX9Dcrk_67  [196574722]
+  [119] 240829_BR_ACAM0319.MXF-RX9Dcrk_68-01                start=1:08:14:20    len=0:00:00:15    file=240829_BR_ACAM0319.MXF-RX9Dcrk_68  [196748537]
+  [120] 240829_BR_ACAM0319.MXF-RX9Dcrk_69-01                start=1:08:15:11    len=0:00:00:16    file=240829_BR_ACAM0319.MXF-RX9Dcrk_69  [196777993]
+  [121] 240829_BR_ACAM0319.MXF-RX9Dcrk_70-01                start=1:08:16:03    len=0:00:02:22    file=240829_BR_ACAM0319.MXF-RX9Dcrk_70  [196810614]
+  [122] 240829_BR_ACAM0319.MXF-RX9Dcrk_71-01                start=1:08:19:01    len=0:00:01:07    file=240829_BR_ACAM0319.MXF-RX9Dcrk_71  [196950754]
+  [123] 240829_BR_ACAM0319.MXF-RX9Dcrk_72-01                start=1:08:27:06    len=0:00:03:17    file=240829_BR_ACAM0319.MXF-RX9Dcrk_72  [197346087]
+  [124] 240829_BR_ACAM0319.MXF-RX9Dcrk_73-01                start=1:08:30:23    len=0:00:02:08    file=240829_BR_ACAM0319.MXF-RX9Dcrk_73  [197523326]
+  [125] 240829_BR_ACAM0319.MXF-RX9Dcrk_74-01                start=1:08:33:15    len=0:00:03:14    file=240829_BR_ACAM0319.MXF-RX9Dcrk_74  [197651454]
+  [126] 240829_BR_ACAM0319.MXF-RX9Dcrk_75-01                start=1:08:37:05    len=0:00:04:11    file=240829_BR_ACAM0319.MXF-RX9Dcrk_75  [197823626]
+  [127] 240829_BR_ACAM0319.MXF-RX9Dcrk_76-01                start=1:08:44:17    len=0:00:03:00    file=240829_BR_ACAM0319.MXF-RX9Dcrk_76  [198183986]
+  [128] 240829_BR_ACAM0319.MXF-RX9Dcrk_77-01                start=1:08:48:07    len=0:00:01:12    file=240829_BR_ACAM0319.MXF-RX9Dcrk_77  [198356158]
+  [129] 240829_BR_ACAM0319.MXF-RX9Dcrk_78-01                start=1:08:49:19    len=0:00:02:20    file=240829_BR_ACAM0319.MXF-RX9Dcrk_78  [198428230]
+  [130] 240829_BR_ACAM0319.MXF-RX9Dcrk_79-01                start=1:08:56:14    len=0:00:03:06    file=240829_BR_ACAM0319.MXF-RX9Dcrk_79  [198755367]
+  [131] 240829_BR_ACAM0319.MXF-RX9Dcrk_80-01                start=1:09:00:22    len=0:00:03:07    file=240829_BR_ACAM0319.MXF-RX9Dcrk_80  [198962764]
+  [132] 240829_BR_ACAM0319.MXF-RX9Dcrk_81-01                start=1:09:04:05    len=0:00:03:22    file=240829_BR_ACAM0319.MXF-RX9Dcrk_81  [199120922]
+  [133] 240829_BR_ACAM0319.MXF-RX9Dcrk_82-01                start=1:09:09:05    len=0:00:01:03    file=240829_BR_ACAM0319.MXF-RX9Dcrk_82  [199360760]
+  [134] 240829_BR_ACAM0319.MXF-RX9Dcrk_83-01                start=1:09:10:08    len=0:00:01:01    file=240829_BR_ACAM0319.MXF-RX9Dcrk_83  [199415216]
+  [135] 240829_BR_ACAM0319.MXF-RX9Dcrk_84-01                start=1:09:11:09    len=0:00:01:16    file=240829_BR_ACAM0319.MXF-RX9Dcrk_84  [199465266]
+  [136] 240829_BR_ACAM0319.MXF-RX9Dcrk_85-01                start=1:09:13:21    len=0:00:01:11    file=240829_BR_ACAM0319.MXF-RX9Dcrk_85  [199585472]
+  [137] 240829_BR_ACAM0319.MXF-RX9Dcrk_86-01                start=1:09:15:08    len=0:00:02:11    file=240829_BR_ACAM0319.MXF-RX9Dcrk_86  [199654981]
+  [138] 240829_BR_ACAM0319.MXF-RX9Dcrk_87-01                start=1:09:18:19    len=0:00:02:20    file=240829_BR_ACAM0319.MXF-RX9Dcrk_87  [199821445]
+  [139] 240829_BR_ACAM0319.MXF-RX9Dcrk_88-01                start=1:09:21:15    len=0:00:00:20    file=240829_BR_ACAM0319.MXF-RX9Dcrk_88  [199957758]
+  [140] 240829_BR_ACAM0319.MXF-RX9Dcrk_89-01                start=1:09:23:12    len=0:00:02:03    file=240829_BR_ACAM0319.MXF-RX9Dcrk_89  [200047848]
+  [141] 240829_BR_ACAM0319.MXF-RX9Dcrk_90-01                start=1:09:27:08    len=0:00:05:02    file=240829_BR_ACAM0319.MXF-RX9Dcrk_90  [200231371]
+  [142] 240829_BR_ACAM0319.MXF-RX9Dcrk_91-01                start=1:09:33:04    len=0:00:02:15    file=240829_BR_ACAM0319.MXF-RX9Dcrk_91  [200512312]
+  [143] 240829_BR_ACAM0319.MXF-RX9Dcrk_92-01                start=1:09:37:04    len=0:00:02:09    file=240829_BR_ACAM0319.MXF-RX9Dcrk_92  [200704504]
+  [144] 240829_BR_ACAM0319.MXF-RX9Dcrk_93-01                start=1:09:39:13    len=0:00:01:03    file=240829_BR_ACAM0319.MXF-RX9Dcrk_93  [200819453]
+  [145] 240829_BR_ACAM0319.MXF-RX9Dcrk_94-01                start=1:09:42:17    len=0:00:04:16    file=240829_BR_ACAM0319.MXF-RX9Dcrk_94  [200970214]
+  [146] 240829_BR_ACAM0319.MXF-RX9Dcrk_95-01                start=1:09:47:09    len=0:00:03:13    file=240829_BR_ACAM0319.MXF-RX9Dcrk_95  [201194994]
+  [147] 240829_BR_ACAM0319.MXF-RX9Dcrk_96-01                start=1:09:51:22    len=0:00:02:23    file=240829_BR_ACAM0319.MXF-RX9Dcrk_96  [201412242]
+  [148] 240829_BR_ACAM0319.MXF-RX9Dcrk_97-01                start=1:09:54:21    len=0:00:02:16    file=240829_BR_ACAM0319.MXF-RX9Dcrk_97  [201555354]
+  [149] 240829_BR_ACAM0319.MXF-RX9Dcrk_98-02                start=1:09:57:13    len=0:00:00:03    file=240829_BR_ACAM0319.MXF-RX9Dcrk_98  [201683482]
+  [150] 240829_BR_ACAM0319.MXF-RX9Dcrk_98-03                start=1:09:57:22    len=0:00:02:09    file=240829_BR_ACAM0319.MXF-RX9Dcrk_98  [201700900]
+  [151] 240829_BR_ACAM0319.MXF-RX9Dcrk_99-01                start=1:10:00:07    len=0:00:01:15    file=240829_BR_ACAM0319.MXF-RX9Dcrk_99  [201815614]
+  [152] 240829_BR_ACAM0319.MXF-RX9Dcrk_100-01               start=1:10:03:06    len=0:00:20:21    file=240829_BR_ACAM0319.MXF-RX9Dcrk_100  [201958474]
+  [153] 240829_BR_ACAM0312.MXF-RX9Dcrk_101-01               start=1:10:28:13    len=0:00:03:07    file=240829_BR_ACAM0312.MXF-RX9Dcrk_101  [203172970]
+  [154] 240829_BR_ACAM0312.MXF-RX9Dcrk_102-01               start=1:10:31:20    len=0:00:02:14    file=240829_BR_ACAM0312.MXF-RX9Dcrk_102  [203331128]
+  [155] 240829_BR_ACAM0312.MXF-RX9Dcrk_103-01               start=1:10:34:10    len=0:00:00:23    file=240829_BR_ACAM0312.MXF-RX9Dcrk_103  [203455252]
+  [156] 240829_BR_ACAM0315.MXF-RX9Dcrk_104-01               start=1:10:35:09    len=0:00:03:04    file=240829_BR_ACAM0315.MXF-RX9Dcrk_104  [203501298]
+  [157] 240829_BR_ACAM0315.MXF-RX9Dcrk_105-01               start=1:10:38:13    len=0:00:04:00    file=240829_BR_ACAM0315.MXF-RX9Dcrk_105  [203653450]
+  [158] 240829_BR_ACAM0315.MXF-RX9Dcrk_106-01               start=1:10:42:13    len=0:00:02:01    file=240829_BR_ACAM0315.MXF-RX9Dcrk_106  [203845642]
+  [159] 240829_BR_ACAM0315.MXF-RX9Dcrk_107-01               start=1:10:48:13    len=0:00:01:06    file=240829_BR_ACAM0315.MXF-RX9Dcrk_107  [204133930]
+  [160] 240829_BR_ACAM0315.MXF-RX9Dcrk_108-01               start=1:10:49:19    len=0:00:01:21    file=240829_BR_ACAM0315.MXF-RX9Dcrk_108  [204193990]
+  [161] 240829_BR_ACAM0315.MXF-RX9Dcrk_109-01               start=1:10:51:16    len=0:00:00:08    file=240829_BR_ACAM0315.MXF-RX9Dcrk_109  [204284080]
+  [162] 240829_BR_ACAM0315.MXF-RX9Dcrk_110-01               start=1:10:52:00    len=0:00:00:18    file=240829_BR_ACAM0315.MXF-RX9Dcrk_110  [204300096]
+  [163] 240829_BR_ACAM0315.MXF-RX9Dcrk_111-01               start=1:10:52:18    len=0:00:00:12    file=240829_BR_ACAM0315.MXF-RX9Dcrk_111  [204336132]
+  [164] 240829_BR_ACAM0315.MXF-RX9Dcrk_112-01               start=1:10:53:06    len=0:00:01:01    file=240829_BR_ACAM0315.MXF-RX9Dcrk_112  [204360156]
+  [165] 240829_BR_ACAM0315.MXF-RX9Dcrk_113-01               start=1:11:01:06    len=0:00:02:17    file=240829_BR_ACAM0315.MXF-RX9Dcrk_113  [204745101]
+
+── 2 dx [Mono] ───────────────────────────────────────────── (26 clips)
+  [01] 240313_GAYLE_A0028.MXF-RX9Dcrk_02-01                start=1:00:27:01    len=0:00:04:04    file=240313_GAYLE_A0028.MXF-RX9Dcrk_02  [174272098]
+  [02] 240313_GAYLE_A0028.MXF-RX9Dcrk_03-01                start=1:00:31:05    len=0:00:01:21    file=240313_GAYLE_A0028.MXF-RX9Dcrk_03  [174472053]
+  [03] 240313_GAYLE_A0028.MXF-RX9Dcrk_04-01                start=1:00:33:02    len=0:00:00:20    file=240313_GAYLE_A0028.MXF-RX9Dcrk_04  [174562388]
+  [04] 240313_GAYLE_A0028.MXF-RX9Dcrk_05-01                start=1:00:33:22    len=0:00:04:04    file=240313_GAYLE_A0028.MXF-RX9Dcrk_05  [174602428]
+  [05] 240313_GAYLE_A0028.MXF-RX9Dcrk_06-01                start=1:00:38:02    len=0:00:00:17    file=240313_GAYLE_A0028.MXF-RX9Dcrk_06  [174803322]
+  [06] 240313_GAYLE_A0028.MXF-RX9Dcrk_07-01                start=1:00:38:19    len=0:00:01:20    file=240313_GAYLE_A0028.MXF-RX9Dcrk_07  [174836662]
+  [07] 240313_GAYLE_A0028.MXF-RX9Dcrk_08-01                start=1:00:40:15    len=0:00:01:13    file=240313_GAYLE_A0028.MXF-RX9Dcrk_08  [174924418]
+  [08] 240313_GAYLE_A0028.MXF-RX9Dcrk_09-01                start=1:00:42:04    len=0:00:03:12    file=240313_GAYLE_A0028.MXF-RX9Dcrk_09  [174998789]
+  [09] 240313_GAYLE_A0028.MXF-RX9Dcrk_10-01                start=1:00:45:16    len=0:00:00:16    file=240313_GAYLE_A0028.MXF-RX9Dcrk_10  [175167029]
+  [10] 240313_GAYLE_A0028.MXF-RX9Dcrk_11-01                start=1:00:46:08    len=0:00:04:22    file=240313_GAYLE_A0028.MXF-RX9Dcrk_11  [175199635]
+  [11] 240313_GAYLE_A0028.MXF-RX9Dcrk_12-01                start=1:00:51:06    len=0:00:00:18    file=240313_GAYLE_A0028.MXF-RX9Dcrk_12  [175435284]
+  [12] 240313_GAYLE_A0028.MXF-RX9Dcrk_13-01                start=1:00:52:00    len=0:00:00:05    file=240313_GAYLE_A0028.MXF-RX9Dcrk_13  [175470566]
+  [13] 240313_GAYLE_A0028.MXF-RX9Dcrk_14-01                start=1:00:52:05    len=0:00:03:11    file=240313_GAYLE_A0028.MXF-RX9Dcrk_14  [175481154]
+  [14] 240313_GAYLE_A0028.MXF-RX9Dcrk_15-01                start=1:00:55:16    len=0:00:04:10    file=240313_GAYLE_A0028.MXF-RX9Dcrk_15  [175647472]
+  [15] 240314_GAYLE_A0051.MXF-RX9Dcrk_22-01                start=1:01:41:06    len=0:00:01:11    file=240314_GAYLE_A0051.MXF-RX9Dcrk_22  [177837660]
+  [16] 240314_GAYLE_A0051.MXF-RX9Dcrk_23-01                start=1:01:42:17    len=0:00:00:23    file=240314_GAYLE_A0051.MXF-RX9Dcrk_23  [177907730]
+  [17] 240314_GAYLE_A0051.MXF-RX9Dcrk_24-01                start=1:01:44:09    len=0:00:01:11    file=240314_GAYLE_A0051.MXF-RX9Dcrk_24  [177987942]
+  [18] 240314_GAYLE_A0051.MXF-RX9Dcrk_25-01                start=1:01:45:20    len=0:00:00:23    file=240314_GAYLE_A0051.MXF-RX9Dcrk_25  [178057880]
+  [19] 240829_BR_ACAM0315.MXF-HushMix_67-01                start=1:02:42:23    len=0:00:01:01    file=240829_BR_ACAM0315.MXF-HushMix_67  [180803196]
+  [20] 2 dx-HushMix_68-01                                  start=1:02:59:12    len=0:00:01:02    file=2 dx-HushMix_68  [181597825]
+  [21] 240314_GAYLE_A0058.MXF-RX9Dcrk_68-01                start=1:03:19:14    len=0:00:00:12    file=240314_GAYLE_A0058.MXF-RX9Dcrk_68  [182562120]
+  [22] 240601_BR_ACAM_C1098.MXF-RX9Dcrk_05-01              start=1:05:36:05    len=0:00:01:10    file=240601_BR_ACAM_C1098.MXF-RX9Dcrk_05  [189126938]
+  [23] 240601_BR_ACAM_C1098.MXF-RX9Dcrk_06-01              start=1:05:37:15    len=0:00:04:13    file=240601_BR_ACAM_C1098.MXF-RX9Dcrk_06  [189195006]
+  [24] 240829_BR_ACAM0315.MXF_67-02                        start=1:06:02:22    len=0:00:06:13    file=4390eb53-0d0c-01c7-2044-f94800000083  [190410220]  Muted
+  [25] 240829_BR_ACAM0315.MXF_68-02                        start=1:06:09:11    len=0:00:03:06    file=5a53e8f9-7d82-3018-54c1-979900000083  [190724534]  Muted
+  [26] 240601_BR_ACAM_C1121.MXF-HushMix_02-01              start=1:06:48:18    len=0:00:01:22    file=240601_BR_ACAM_C1121.MXF-HushMix_02  [192612084]
+
+── 3 dx [Mono] ───────────────────────────────────────────── (73 clips)
+  [01] 240601_BR_ACAM_C1098.MXF-RX9Dcrk_02-01              start=1:01:01:11    len=0:00:01:13    file=240601_BR_ACAM_C1098.MXF-RX9Dcrk_02  [175925750]
+  [02] 240601_BR_ACAM_C1098.MXF-RX9Dcrk_03-01              start=1:01:06:04    len=0:00:00:10    file=240601_BR_ACAM_C1098.MXF-RX9Dcrk_03  [176152787]
+  [03] 240601_BR_ACAM_C1098.MXF-RX9Dcrk_04-01              start=1:01:06:15    len=0:00:02:18    file=240601_BR_ACAM_C1098.MXF-RX9Dcrk_04  [176173300]
+  [04] 240829_BR_ACAM0315.MXF-HushMix_07-01                start=1:01:46:02    len=0:00:01:09    file=240829_BR_ACAM0315.MXF-HushMix_07  [178069135]
+  [05] 240829_BR_ACAM0312.MXF-HushMix_08-01                start=1:01:47:11    len=0:00:00:16    file=240829_BR_ACAM0312.MXF-HushMix_08  [178135109]
+  [06] 240829_BR_ACAM0315.MXF-HushMix_13-01                start=1:01:48:03    len=0:00:01:20    file=240829_BR_ACAM0315.MXF-HushMix_13  [178167990]
+  [07] 240829_BR_ACAM0315.MXF-HushMix_14-01                start=1:01:49:23    len=0:00:00:08    file=240829_BR_ACAM0315.MXF-HushMix_14  [178256078]
+  [08] 240829_BR_ACAM0315.MXF-HushMix_15-01                start=1:01:50:07    len=0:00:00:09    file=240829_BR_ACAM0315.MXF-HushMix_15  [178272094]
+  [09] 240829_BR_ACAM0315.MXF-HushMix_16-01                start=1:01:50:16    len=0:00:00:18    file=240829_BR_ACAM0315.MXF-HushMix_16  [178289987]
+  [10] 240829_BR_ACAM0315.MXF-HushMix_17-01                start=1:01:51:10    len=0:00:01:12    file=240829_BR_ACAM0315.MXF-HushMix_17  [178326148]
+  [11] JB_ACAM_2310220057.MXF-HushMix_95-01                start=1:03:27:01    len=0:00:07:16    file=JB_ACAM_2310220057.MXF-HushMix_95  [182921489]
+  [12] JB_ACAM_2310220057.MXF-HushMix_96-01                start=1:03:34:17    len=0:00:04:07    file=JB_ACAM_2310220057.MXF-HushMix_96  [183289106]
+  [13] JB_ACAM_2310220057.MXF-HushMix_97-01                start=1:03:45:09    len=0:00:02:06    file=JB_ACAM_2310220057.MXF-HushMix_97  [183801618]
+  [14] JB_ACAM_2310220057.MXF-HushMix_98-01                start=1:03:47:15    len=0:00:01:18    file=JB_ACAM_2310220057.MXF-HushMix_98  [183909726]
+  [15] JB_ACAM_2310220057.MXF-HushMix_99-01                start=1:03:49:09    len=0:00:03:11    file=JB_ACAM_2310220057.MXF-HushMix_99  [183993810]
+  [16] JB_ACAM_2310220057.MXF-HushMix_100-01               start=1:03:56:14    len=0:00:03:02    file=JB_ACAM_2310220057.MXF-HushMix_100  [184340156]
+  [17] JB_ACAM_2310220057.MXF-HushMix_101-01               start=1:04:02:05    len=0:00:00:11    file=JB_ACAM_2310220057.MXF-HushMix_101  [184610992]
+  [18] JB_ACAM_2310220057.MXF-HushMix_102-01               start=1:04:02:17    len=0:00:00:05    file=JB_ACAM_2310220057.MXF-HushMix_102  [184633838]
+  [19] JB_ACAM_2310220057.MXF-HushMix_103-01               start=1:04:02:21    len=0:00:00:22    file=JB_ACAM_2310220057.MXF-HushMix_103  [184642920]
+  [20] JB_ACAM_2310220057.MXF-HushMix_104-01               start=1:04:03:20    len=0:00:00:03    file=JB_ACAM_2310220057.MXF-HushMix_104  [184687807]
+  [21] JB_ACAM_2310220057.MXF-HushMix_105-01               start=1:04:03:23    len=0:00:01:13    file=JB_ACAM_2310220057.MXF-HushMix_105  [184694510]
+  [22] JB_ACAM_2310220057.MXF-HushMix_106-01               start=1:04:08:15    len=0:00:02:11    file=JB_ACAM_2310220057.MXF-HushMix_106  [184918634]
+  [23] JB_ACAM_2310220057.MXF-HushMix_107-01               start=1:04:11:02    len=0:00:01:00    file=JB_ACAM_2310220057.MXF-HushMix_107  [185036852]
+  [24] JB_ACAM_2310220057.MXF-HushMix_108-01               start=1:04:12:02    len=0:00:02:01    file=JB_ACAM_2310220057.MXF-HushMix_108  [185084900]
+  [25] JB_ACAM_2310220057.MXF-HushMix_109-01               start=1:04:14:03    len=0:00:01:14    file=JB_ACAM_2310220057.MXF-HushMix_109  [185182998]
+  [26] JB_ACAM_2310220057.MXF-HushMix_110-01               start=1:04:15:17    len=0:00:04:12    file=JB_ACAM_2310220057.MXF-HushMix_110  [185258850]
+  [27] JB_ACAM_2310220057.MXF-HushMix_111-01               start=1:04:20:05    len=0:00:09:01    file=JB_ACAM_2310220057.MXF-HushMix_111  [185475290]
+  [28] JB_ACAM_2310220057.MXF-HushMix_112-01               start=1:04:29:06    len=0:00:10:20    file=JB_ACAM_2310220057.MXF-HushMix_112  [185909040]
+  [29] JB_ACAM_2310220057.MXF-HushMix_113-01               start=1:04:40:02    len=0:00:01:02    file=JB_ACAM_2310220057.MXF-HushMix_113  [186430244]
+  [30] JB_ACAM_2310220057.MXF-HushMix_114-01               start=1:04:41:04    len=0:00:00:13    file=JB_ACAM_2310220057.MXF-HushMix_114  [186482296]
+  [31] JB_ACAM_2310220057.MXF-HushMix_115-01               start=1:04:41:17    len=0:00:00:21    file=JB_ACAM_2310220057.MXF-HushMix_115  [186507495]
+  [32] JB_ACAM_2310220057.MXF-HushMix_116-01               start=1:04:42:14    len=0:00:00:15    file=JB_ACAM_2310220057.MXF-HushMix_116  [186550071]
+  [33] JB_ACAM_2310220057.MXF-HushMix_117-01               start=1:04:43:05    len=0:00:01:04    file=JB_ACAM_2310220057.MXF-HushMix_117  [186580394]
+  [34] JB_ACAM_2310220057.MXF-HushMix_118-01               start=1:04:44:09    len=0:00:01:05    file=JB_ACAM_2310220057.MXF-HushMix_118  [186636450]
+  [35] JB_ACAM_2310220057.MXF-HushMix_119-01               start=1:04:45:14    len=0:00:04:19    file=JB_ACAM_2310220057.MXF-HushMix_119  [186693563]
+  [36] JB_ACAM_2310220057.MXF-HushMix_120-01               start=1:04:50:09    len=0:00:00:19    file=JB_ACAM_2310220057.MXF-HushMix_120  [186924738]
+  [37] JB_ACAM_2310220057.MXF-HushMix_121-01               start=1:04:51:04    len=0:00:00:20    file=JB_ACAM_2310220057.MXF-HushMix_121  [186962776]
+  [38] JB_ACAM_2310220057.MXF-HushMix_122-01               start=1:04:52:00    len=0:00:03:02    file=JB_ACAM_2310220057.MXF-HushMix_122  [187002816]
+  [39] JB_ACAM_2310220057.MXF-HushMix_123-01               start=1:04:55:02    len=0:00:02:00    file=JB_ACAM_2310220057.MXF-HushMix_123  [187150852]
+  [40] JB_ACAM_2310220057.MXF-HushMix_124-01               start=1:04:57:02    len=0:00:01:22    file=JB_ACAM_2310220057.MXF-HushMix_124  [187247060]
+  [41] JB_ACAM_2310220057.MXF-HushMix_125-01               start=1:04:59:00    len=0:00:00:18    file=JB_ACAM_2310220057.MXF-HushMix_125  [187339152]
+  [42] JB_ACAM_2310220057.MXF-HushMix_126-01               start=1:04:59:18    len=0:00:00:11    file=JB_ACAM_2310220057.MXF-HushMix_126  [187375188]
+  [43] JB_ACAM_2310220057.MXF-HushMix_127-01               start=1:05:00:05    len=0:00:02:06    file=JB_ACAM_2310220057.MXF-HushMix_127  [187397210]
+  [44] JB_ACAM_2310220057.MXF-HushMix_128-01               start=1:05:02:11    len=0:00:00:14    file=JB_ACAM_2310220057.MXF-HushMix_128  [187505318]
+  [45] JB_ACAM_2310220057.MXF-HushMix_129-01               start=1:05:03:01    len=0:00:00:19    file=JB_ACAM_2310220057.MXF-HushMix_129  [187533346]
+  [46] JB_ACAM_2310220057.MXF-HushMix_130-01               start=1:05:03:20    len=0:00:00:08    file=JB_ACAM_2310220057.MXF-HushMix_130  [187571631]
+  [47] JB_ACAM_2310220057.MXF-HushMix_131-01               start=1:05:04:04    len=0:00:01:03    file=JB_ACAM_2310220057.MXF-HushMix_131  [187587400]
+  [48] JB_ACAM_2310220057.MXF-HushMix_132-01               start=1:05:05:07    len=0:00:02:16    file=JB_ACAM_2310220057.MXF-HushMix_132  [187641454]
+  [49] JB_ACAM_2310220057.MXF-HushMix_133-01               start=1:05:13:02    len=0:00:01:06    file=JB_ACAM_2310220057.MXF-HushMix_133  [188015828]
+  [50] JB_ACAM_2310220057.MXF-HushMix_134-01               start=1:05:14:08    len=0:00:03:19    file=JB_ACAM_2310220057.MXF-HushMix_134  [188075888]
+  [51] JB_ACAM_2310220057.MXF-HushMix_135-01               start=1:05:18:03    len=0:00:00:16    file=JB_ACAM_2310220057.MXF-HushMix_135  [188258521]
+  [52] JB_ACAM_2310220057.MXF-HushMix_136-01               start=1:05:18:19    len=0:00:01:04    file=JB_ACAM_2310220057.MXF-HushMix_136  [188290102]
+  [53] JB_ACAM_2310220057.MXF-HushMix_137-01               start=1:05:19:23    len=0:00:00:13    file=JB_ACAM_2310220057.MXF-HushMix_137  [188346158]
+  [54] JB_ACAM_2310220057.MXF-HushMix_138-01               start=1:05:20:12    len=0:00:02:21    file=JB_ACAM_2310220057.MXF-HushMix_138  [188372184]
+  [55] JB_ACAM_2310220057.MXF-HushMix_139-01               start=1:05:23:09    len=0:00:00:09    file=JB_ACAM_2310220057.MXF-HushMix_139  [188510322]
+  [56] JB_ACAM_2310220057.MXF-HushMix_77-01                start=1:06:14:02    len=0:00:02:08    file=JB_ACAM_2310220057.MXF-HushMix_77  [190946756]
+  [57] JB_ACAM_2310220057.MXF-HushMix_78-01                start=1:06:17:13    len=0:00:01:19    file=JB_ACAM_2310220057.MXF-HushMix_78  [191112922]
+  [58] JB_ACAM_2310220057.MXF-HushMix_79-01                start=1:06:19:08    len=0:00:00:22    file=JB_ACAM_2310220057.MXF-HushMix_79  [191199008]
+  [59] JB_ACAM_2310220057.MXF-HushMix_80-01                start=1:06:20:06    len=0:00:00:17    file=JB_ACAM_2310220057.MXF-HushMix_80  [191242562]
+  [60] JB_ACAM_2310220057.MXF-HushMix_81-01                start=1:06:20:23    len=0:00:01:09    file=JB_ACAM_2310220057.MXF-HushMix_81  [191276775]
+  [61] JB_ACAM_2310220057.MXF-HushMix_82-01                start=1:06:22:08    len=0:00:00:17    file=JB_ACAM_2310220057.MXF-HushMix_82  [191342655]
+  [62] JB_ACAM_2310220057.MXF-HushMix_83-01                start=1:06:23:01    len=0:00:01:21    file=JB_ACAM_2310220057.MXF-HushMix_83  [191377186]
+  [63] JB_ACAM_2310220057.MXF-HushMix_84-01                start=1:06:24:22    len=0:00:04:15    file=JB_ACAM_2310220057.MXF-HushMix_84  [191467800]
+  [64] JB_ACAM_2310220057.MXF-HushMix_85-01                start=1:06:29:13    len=0:00:00:10    file=JB_ACAM_2310220057.MXF-HushMix_85  [191689470]
+  [65] JB_ACAM_2310220057.MXF-HushMix_86-01                start=1:06:29:23    len=0:00:00:16    file=JB_ACAM_2310220057.MXF-HushMix_86  [191709573]
+  [66] JB_ACAM_2310220057.MXF-HushMix_87-01                start=1:06:30:15    len=0:00:01:19    file=JB_ACAM_2310220057.MXF-HushMix_87  [191742120]
+  [67] JB_ACAM_2310220057.MXF-HushMix_88-01                start=1:06:32:10    len=0:00:04:03    file=JB_ACAM_2310220057.MXF-HushMix_88  [191827585]
+  [68] JB_ACAM_2310220057.MXF-HushMix_89-01                start=1:06:36:13    len=0:00:00:18    file=JB_ACAM_2310220057.MXF-HushMix_89  [192026700]
+  [69] JB_ACAM_2310220057.MXF-HushMix_90-01                start=1:06:37:07    len=0:00:01:14    file=JB_ACAM_2310220057.MXF-HushMix_90  [192061800]
+  [70] JB_ACAM_2310220057.MXF-HushMix_91-01                start=1:06:38:21    len=0:00:01:01    file=JB_ACAM_2310220057.MXF-HushMix_91  [192137946]
+  [71] JB_ACAM_2310220057.MXF-HushMix_92-01                start=1:06:39:22    len=0:00:01:15    file=JB_ACAM_2310220057.MXF-HushMix_92  [192187996]
+  [72] JB_ACAM_2310220057.MXF-HushMix_93-01                start=1:06:41:13    len=0:00:00:13    file=JB_ACAM_2310220057.MXF-HushMix_93  [192266074]
+  [73] JB_ACAM_2310220057.MXF-HushMix_94-01                start=1:06:42:02    len=0:00:01:09    file=JB_ACAM_2310220057.MXF-HushMix_94  [192292100]
+
+── 4 dx [Mono] ───────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 1 nat [Mono] ──────────────────────────────────────────── (17 clips)
+  [01] 240313_GAYLE_A0031.MXF_02-02                        start=1:00:00:00    len=0:00:09:08    file=e82bf2b6-6b9d-958c-2051-4b5800000090  [172972800]
+  [02] 240313_GAYLE_A0028.MXF_11-02                        start=1:00:09:08    len=0:00:19:18    file=90281d4a-d695-d73e-2479-1aee0000009d  [173421248]
+  [03] 240314_GAYLE_A0048.MXF_06-02                        start=1:01:33:13    len=0:00:04:04    file=5b44c274-9252-86cb-683c-982800000090  [177467290]
+  [04] 240314_GAYLE_A0049.MXF_02-02                        start=1:01:37:17    len=0:00:05:23    file=3e7e978f-d785-23ed-fdb9-964e00000090  [177667490]
+  [05] 240314_GAYLE_A0051.MXF_23-02                        start=1:02:07:19    len=0:00:04:22    file=4f09a3d1-eadd-8579-6d11-5e200000009d  [179112934]
+  [06] 240314_GAYLE_A0049.MXF_03-02                        start=1:02:21:06    len=0:00:11:18    file=704f837c-611e-50b5-65fa-854f00000083  [179759580]
+  [07] JB_ACAM_2310220057.MXF-HushMix_64-01                start=1:02:48:00    len=0:00:05:03    file=JB_ACAM_2310220057.MXF-HushMix_64  [181044864]  Muted
+  [08] JB_ACAM_2310220057.MXF-RX9Vd_65-01                  start=1:02:53:03    len=0:00:24:05    file=JB_ACAM_2310220057.MXF-RX9Vd_65  [181292060]
+  [09] JB_ACAM_2310220057.MXF-HushMix_74-01                start=1:03:17:08    len=0:00:02:04    file=JB_ACAM_2310220057.MXF-HushMix_74  [182455200]  Muted
+  [10] 240313_GAYLE_A0033.MXF_02-02                        start=1:05:42:19    len=0:00:08:22    file=a48eca06-2c3a-6ec5-a398-75f100000083  [189443254]
+  [11] 240313_GAYLE_A0033.MXF_03-02                        start=1:05:51:17    len=0:00:03:21    file=27356c80-93d1-fe6e-e8fc-e87600000083  [189871682]
+  [12] 240313_GAYLE_A0033.MXF_04-02                        start=1:05:55:14    len=0:00:04:18    file=04decd70-a8e6-a375-2c42-8ccc00000083  [190057868]
+  [13] 240313_GAYLE_A0033.MXF_05-02                        start=1:06:00:08    len=0:00:05:13    file=fbdb37c1-9178-0ef2-9851-119100000083  [190286096]
+  [14] 240313_GAYLE_A0033.MXF_06-02                        start=1:06:05:21    len=0:00:06:16    file=1f023d15-4168-6e96-eedc-448200000083  [190552362]
+  [15] 240314_GAYLE_A0049.MXF_04-02                        start=1:09:29:16    len=0:00:05:21    file=05c5776c-45ba-061c-3d13-923d0000009d  [200344144]
+  [16] 240601_BR_ACAM_C1121.MXF_03-02                      start=1:09:41:08    len=0:00:10:16    file=642a8477-54e1-7671-9988-4c4d00000090  [200904704]
+  [17] 240601_BR_ACAM_C1121.MXF_04-02                      start=1:09:53:03    len=0:00:05:10    file=4f5ce601-db38-c647-47a4-e7820000009d  [201471270]
+
+── 2 nat [Mono] ──────────────────────────────────────────── (4 clips)
+  [01] 240314_GAYLE_A0055.MXF_07-02                        start=1:02:09:13    len=0:00:00:22    file=5a3a8f9d-0f61-8638-3567-235f0000009d  [179197018]
+  [02] 240313_GAYLE_A0033.MXF_07-03                        start=1:05:55:18    len=0:00:20:13    file=e73188f8-1a67-4f0d-444d-44bd00000090  [190065876]
+  [03] 240313_GAYLE_A0033.MXF_07-04                        start=1:06:16:07    len=0:00:01:05    file=e73188f8-1a67-4f0d-444d-44bd00000090  [191053080]
+  [04] 240313_GAYLE_A0033.MXF_07-05                        start=1:06:17:12    len=0:00:05:20    file=e73188f8-1a67-4f0d-444d-44bd00000090  [191111130]
+
+── vScore A [] ───────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ƒ SCORE A [] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 1 A mx [Stereo] ───────────────────────────────────────── (1 clips)
+  [01] Bars and Tone - Rec 709_L-02                        start=0:59:58:00    len=0:00:00:01    file=4173480c-34e5-a5ce-79be-d3d60000007b  [172876704]
+
+── 2 A mx [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 3 A mx [Stereo] ───────────────────────────────────────── (5 clips)
+  [01] Light Marimba.wav_L-02                              start=1:00:18:21    len=0:00:48:12    file=f6baabd6-79e9-6373-810f-bff300000090  [173879706]
+  [02] Light Marimba.wav_L_01-02                           start=1:01:07:09    len=0:00:04:02    file=c17499b5-6357-bd61-c5c3-936200000083  [176210034]
+  [03] Light Marimba.wav_L_02-02                           start=1:01:11:11    len=0:00:07:19    file=11e4c919-3f98-b4fc-4078-77fb00000090  [176406230]
+  [04] Light Marimba.wav_L_03-02                           start=1:01:19:06    len=0:00:01:07    file=5d18145e-9e4b-b05b-037b-abef0000009d  [176780604]
+  [05] Light Marimba.wav_L-CnmtcRP_03-01                   start=1:01:20:13    len=0:00:10:02    file=Light Marimba.wav_L-CnmtcRP_03.L  [176842666]
+
+── 4 A mx [Stereo] ───────────────────────────────────────── (1 clips)
+  [01] Cymbal Scape.wav_L-02                               start=1:07:56:18    len=0:03:07:14    file=a4c9fe0b-c75e-a15c-19bb-51df00000090  [195879684]
+
+── 5 A mx [Stereo] ───────────────────────────────────────── (1 clips)
+  [01] Landscape 1.wav_L-02                                start=1:08:35:20    len=0:02:33:13    file=924d0c80-ba66-f72d-4856-19b200000090  [197757560]
+
+── 6 A mx [Stereo] ───────────────────────────────────────── (2 clips)
+  [01] Landscape 1.wav_L_01-02                             start=1:10:39:02    len=0:00:45:07    file=0b19e606-5fa0-11a2-5d45-aa5500000090  [203679476]
+  [02] Landscape 1.wav_L_02-02                             start=1:11:24:09    len=0:00:21:22    file=1ea90e33-a743-861f-8df4-fcff0000009d  [205855650]
+
+── 7 A mx [Stereo] ───────────────────────────────────────── (4 clips)
+  [01] Light Marimba.wav_L_04-02                           start=1:02:18:08    len=0:01:16:09    file=a0fc3bf9-dbf7-0fc4-2830-7f1e00000090  [179619440]
+  [02] Light Marimba.wav_L_05-02                           start=1:03:34:17    len=0:00:42:04    file=53d00b78-ff32-9f21-ded4-ef8d00000083  [183289106]
+  [03] Light Marimba.wav_L_06-02                           start=1:04:59:18    len=0:00:58:15    file=d908840d-d436-93f2-3883-2f2a00000090  [187375188]
+  [04] Light Marimba.wav_L_07-03                           start=1:06:36:05    len=0:01:25:19    file=0c3d06fd-c17b-1729-65ba-817700000083  [192009818]
+
+── 8 A mx [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 9 A mx [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 10 A mx [Stereo] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 11 A mx-h [Stereo] ────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 12 A mx-h [Stereo] ────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ƒ SOURCE [] ───────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 1 src [Stereo] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 2 src [Stereo] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 3 src [Stereo] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 4 src [Stereo] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 5 src [Stereo] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 6 src [Stereo] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 7 src-h [Stereo] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 8 src-h [Stereo] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ƒ BGA [5.1] ───────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 1 BG A [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 2 BG A [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 3 BG A [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 4 BG A [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 5 BG A [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 6 BG A [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 7 BG A [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 8 BG A [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 9 bg a [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 10 bg a [Mono] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 11 bg a [Mono] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 12 bg a [Mono] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ƒ BG B [5.1] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 1 BG B [Stereo] ───────────────────────────────────────── (35 clips)
+  [01] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:00:00:00    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [172972800]
+  [02] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:00:11:13    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [173527556]
+  [03] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:00:23:02    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [174082312]
+  [04] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:00:34:15    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [174637068]
+  [05] RmTnMdmMdmCnfrncRmV 7007-12                         start=1:00:46:04    len=0:00:15:18    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [175191824]
+  [06] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:01:13:01    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [176482306]
+  [07] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:01:24:14    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [177037062]
+  [08] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:01:36:03    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [177591818]
+  [09] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:01:47:16    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [178146574]
+  [10] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:01:59:05    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [178701330]
+  [11] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:02:10:19    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [179256086]
+  [12] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:02:22:08    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [179810842]
+  [13] RmTnMdmMdmCnfrncRmV 7007-10                         start=1:02:33:21    len=0:00:06:10    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [180365598]
+  [14] RmTnMdmMdmCnfrncRmV 7007-32                         start=1:05:42:18    len=0:00:15:15    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [189441514]
+  [15] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:05:58:09    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [190192204]
+  [16] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:06:09:22    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [190746960]
+  [17] RmTnMdmMdmCnfrncRmV 7007-13                         start=1:06:21:11    len=0:00:03:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [191301716]
+  [18] RmTnMdmMdmCnfrncRmV 7007-15                         start=1:06:47:19    len=0:00:07:22    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [192566374]
+  [19] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:06:55:17    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [192946956]
+  [20] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:07:07:06    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [193501712]
+  [21] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:07:18:19    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [194056468]
+  [22] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:07:30:08    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [194611224]
+  [23] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:07:41:22    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [195165980]
+  [24] RmTnMdmMdmCnfrncRmV 7007-28                         start=1:07:53:11    len=0:00:11:01    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [195720736]
+  [25] RmTnMdmMdmCnfrncRmV 7007-29                         start=1:08:05:00    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [196275252]  Muted
+  [26] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:08:16:13    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [196830248]  Muted
+  [27] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:08:28:02    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [197385004]  Muted
+  [28] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:08:39:15    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [197939760]  Muted
+  [29] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:08:51:04    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [198494516]  Muted
+  [30] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:09:02:17    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [199049272]  Muted
+  [31] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:09:14:06    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [199604028]  Muted
+  [32] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:09:25:19    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [200158784]  Muted
+  [33] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:09:37:09    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [200713540]  Muted
+  [34] RmTnMdmMdmCnfrncRmV 7007-06                         start=1:09:48:22    len=0:00:11:13    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [201268296]  Muted
+  [35] RmTnMdmMdmCnfrncRmV 7007-14                         start=1:10:00:11    len=0:00:04:18    file=RmTnMdmMdmCnfrncRmV 7007-4.L  [201823052]  Muted
+
+── 2 BG B [Stereo] ───────────────────────────────────────── (6 clips)
+  [01] RmTnMdmMdmCnfrncRmV 7007-18                         start=1:00:58:07    len=0:00:16:20    file=RmTnMdmMdmCnfrncRmV 7007-4.1.L  [175773598]  Muted
+  [02] RmTnMdmMdmCnfrncRmV 7007-25                         start=1:02:53:02    len=0:00:46:19    file=RmTnMdmMdmCnfrncRmV 7007-4.1.L  [181288699]
+  [03] RmTnMdmMdmCnfrncRmV 7007-26                         start=1:03:39:21    len=0:00:27:05    file=RmTnMdmMdmCnfrncRmV 7007-4.1.L  [183536824]  Muted
+  [04] RmTnMdmMdmCnfrncRmV 7007-27                         start=1:04:07:02    len=0:00:54:13    file=RmTnMdmMdmCnfrncRmV 7007-4.1.L  [184843748]
+  [05] RmTnMdmMdmCnfrncRmV 7007-21                         start=1:05:01:15    len=0:00:45:06    file=RmTnMdmMdmCnfrncRmV 7007-4.1.L  [187465278]
+  [06] RmTnMdmMdmCnfrncRmV 7007-23                         start=1:06:24:23    len=0:00:22:21    file=RmTnMdmMdmCnfrncRmV 7007-4.1.L  [191469278]
+
+── 3 BG B [Stereo] ───────────────────────────────────────── (15 clips)
+  [01] RmTnLbbyInOffcBldn PE48-32                          start=1:00:58:07    len=0:00:16:20    file=RmTnLbbyInOffcBldn PE48-30.L  [175773598]  Muted
+  [02] RmTnLbbyInOffcBldn PE48-33                          start=1:02:53:02    len=0:00:37:05    file=RmTnLbbyInOffcBldn PE48-30.L  [181288699]
+  [03] RmTnLbbyInOffcBldn PE48-42                          start=1:03:30:07    len=0:00:09:14    file=RmTnLbbyInOffcBldn PE48-30.L  [183076894]
+  [04] RmTnLbbyInOffcBldn PE48-43                          start=1:03:39:21    len=0:00:27:05    file=RmTnLbbyInOffcBldn PE48-30.L  [183536824]  Muted
+  [05] RmTnLbbyInOffcBldn PE48-44                          start=1:04:07:02    len=0:00:12:11    file=RmTnLbbyInOffcBldn PE48-30.L  [184843748]
+  [06] RmTnLbbyInOffcBldn PE48-35                          start=1:04:19:13    len=0:00:49:06    file=RmTnLbbyInOffcBldn PE48-30.L  [185443258]
+  [07] RmTnLbbyInOffcBldn PE48-36                          start=1:05:08:19    len=0:00:38:02    file=RmTnLbbyInOffcBldn PE48-30.L  [187809622]
+  [08] RmTnLbbyInOffcBldn PE48-40                          start=1:06:24:23    len=0:00:02:04    file=RmTnLbbyInOffcBldn PE48-30.L  [191469278]
+  [09] RmTnLbbyInOffcBldn PE48-41                          start=1:06:27:03    len=0:00:20:17    file=RmTnLbbyInOffcBldn PE48-30.L  [191573382]
+  [10] CldMntnNghtWnd SIG01-70                             start=1:10:03:22    len=0:00:19:21    file=CldMntnNghtWnd SIG01-66.3.L  [201990240]  Muted
+  [11] CldMntnNghtWnd SIG01-79                             start=1:10:23:19    len=0:00:16:16    file=CldMntnNghtWnd SIG01-66.3.L  [202944742]  Muted
+  [12] CldMntnNghtWnd SIG01-80                             start=1:10:40:11    len=0:00:16:16    file=CldMntnNghtWnd SIG01-66.3.L  [203745542]  Muted
+  [13] CldMntnNghtWnd SIG01-81                             start=1:10:57:03    len=0:00:16:16    file=CldMntnNghtWnd SIG01-66.3.L  [204546342]  Muted
+  [14] CldMntnNghtWnd SIG01-82                             start=1:11:13:19    len=0:00:16:16    file=CldMntnNghtWnd SIG01-66.3.L  [205347142]  Muted
+  [15] CldMntnNghtWnd SIG01-78                             start=1:11:30:11    len=0:00:15:20    file=CldMntnNghtWnd SIG01-66.3.L  [206147942]  Muted
+
+── 4 BG B [Stereo] ───────────────────────────────────────── (14 clips)
+  [01] IntrrBckgrndsArtGl BBC04-07                         start=1:00:58:07    len=0:00:16:20    file=IntrrBckgrndsArtGl BBC04-5.L  [175773598]  Muted
+  [02] IntrrBckgrndsArtGl BBC04-14                         start=1:02:53:02    len=0:00:46:19    file=IntrrBckgrndsArtGl BBC04-5.L  [181288699]
+  [03] IntrrBckgrndsArtGl BBC04-15                         start=1:03:39:21    len=0:00:27:05    file=IntrrBckgrndsArtGl BBC04-5.L  [183536824]  Muted
+  [04] IntrrBckgrndsArtGl BBC04-16                         start=1:04:07:02    len=0:00:43:19    file=IntrrBckgrndsArtGl BBC04-5.L  [184843748]
+  [05] IntrrBckgrndsArtGl BBC04-10                         start=1:04:50:21    len=0:00:56:00    file=IntrrBckgrndsArtGl BBC04-5.L  [186948762]
+  [06] IntrrBckgrndsArtGl BBC04-12                         start=1:06:24:23    len=0:00:22:21    file=IntrrBckgrndsArtGl BBC04-5.L  [191469278]
+  [07] Gsts;HvyCldWndHwln PE03-17                          start=1:10:03:22    len=0:00:09:04    file=Gsts;HvyCldWndHwln PE03-16.L  [201990240]  Muted
+  [08] Gsts;HvyCldWndHwln PE03-24                          start=1:10:13:02    len=0:00:24:07    file=Gsts;HvyCldWndHwln PE03-16.L  [202430228]  Muted
+  [09] Gsts;HvyCldWndHwln PE03-25                          start=1:10:37:09    len=0:00:06:13    file=Gsts;HvyCldWndHwln PE03-16.L  [203597394]  Muted
+  [10] Gsts;HvyCldWndHwln PE03-26                          start=1:10:43:22    len=0:00:24:07    file=Gsts;HvyCldWndHwln PE03-16.L  [203911708]  Muted
+  [11] Gsts;HvyCldWndHwln PE03-27                          start=1:11:08:05    len=0:00:06:13    file=Gsts;HvyCldWndHwln PE03-16.L  [205078874]  Muted
+  [12] Gsts;HvyCldWndHwln PE03-28                          start=1:11:14:18    len=0:00:24:07    file=Gsts;HvyCldWndHwln PE03-16.L  [205393188]  Muted
+  [13] Gsts;HvyCldWndHwln PE03-29                          start=1:11:39:01    len=0:00:06:13    file=Gsts;HvyCldWndHwln PE03-16.L  [206560354]  Muted
+  [14] Gsts;HvyCldWndHwln PE03-23                          start=1:11:45:14    len=0:00:00:17    file=Gsts;HvyCldWndHwln PE03-16.L  [206874668]  Muted
+
+── 5 BG B [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 6 BG B [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 7 BG B [Stereo] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 8 BG B [Stereo] ───────────────────────────────────────── (1 clips)
+  [01] RmTnAryRmWthLghtTr PE48-16                          start=1:02:32:14    len=0:00:37:08    file=RmTnAryRmWthLghtTr PE48-16.L  [180304124]  Muted
+
+── 9 bg b [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 10 bg b [Mono] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 11 bg b [Mono] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 12 bg b [Mono] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── Aux 1 [Stereo] ────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ƒ FX A [5.1] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 1 fx a [Mono] ─────────────────────────────────────────── (12 clips)
+  [01] WlfHwlWthRvrbFrDst AHS04-09                         start=1:04:08:23    len=0:00:06:17    file=WlfHwlWthRvrbFrDst AHS04-8.L  [184935179]
+  [02] BrdSgll;FrSnglCrsC PE02-XForm_01-05                 start=1:08:41:11    len=0:00:01:22    file=BrdSgll;FrSnglCrsC PE02-XForm_01.L  [198027830]
+  [03] WngFlpsBrds4Vrsns SS 01-XForm_01-01                 start=1:09:04:15    len=0:00:04:15    file=WngFlpsBrds4Vrsns SS 01-XForm_01.L  [199140942]  Muted
+  [04] Stab_Punch_Hack_PSEF.296-05                         start=1:09:30:13    len=0:00:00:14    file=Stab_Punch_Hack_PSEF.296.L  [200385865]  Muted
+  [05] Stab_Punch_Hack_PSEF.296-06                         start=1:09:31:12    len=0:00:00:14    file=Stab_Punch_Hack_PSEF.296.L  [200432925]  Muted
+  [06] Stab_Punch_Hack_PSEF.296-06                         start=1:09:32:18    len=0:00:00:14    file=Stab_Punch_Hack_PSEF.296.L  [200492086]  Muted
+  [07] Stab_Punch_Hack_PSEF.296-07                         start=1:09:46:02    len=0:00:00:12    file=Stab_Punch_Hack_PSEF.296.L  [201132865]  Muted
+  [08] Stab_Punch_Hack_PSEF.296-08                         start=1:09:47:07    len=0:00:00:12    file=Stab_Punch_Hack_PSEF.296.L  [201191690]  Muted
+  [09] Stab_Punch_Hack_PSEF.296-09                         start=1:09:48:18    len=0:00:00:12    file=Stab_Punch_Hack_PSEF.296.L  [201260629]  Muted
+  [10] Stab_Punch_Hack_PSEF.296-10                         start=1:09:55:06    len=0:00:00:13    file=Stab_Punch_Hack_PSEF.296.L  [201572783]
+  [11] Stab_Punch_Hack_PSEF.296-11                         start=1:09:56:09    len=0:00:00:13    file=Stab_Punch_Hack_PSEF.296.L  [201627570]
+  [12] Stab_Punch_Hack_PSEF.296-12                         start=1:09:57:14    len=0:00:00:13    file=Stab_Punch_Hack_PSEF.296.L  [201684710]
+
+── 2 fx a [Mono] ─────────────────────────────────────────── (10 clips)
+  [01] DgsHsks;RstlssB 2004-80                             start=1:03:53:21    len=0:00:09:02    file=DgsHsks;RstlssB 2004-78.L  [184209110]
+  [02] AxIntWdSnglChp;Fst BB01-53                          start=1:09:30:17    len=0:00:00:05    file=AxIntWdSnglChp;Fst BB01-49.L  [200393514]  Muted
+  [03] AxIntWdSnglChp;Fst BB01-54                          start=1:09:31:16    len=0:00:00:05    file=AxIntWdSnglChp;Fst BB01-49.L  [200440574]  Muted
+  [04] AxIntWdSnglChp;Fst BB01-54                          start=1:09:32:22    len=0:00:00:05    file=AxIntWdSnglChp;Fst BB01-49.L  [200499735]  Muted
+  [05] AxIntWdSnglChp;Fst BB01-55                          start=1:09:46:04    len=0:00:00:03    file=AxIntWdSnglChp;Fst BB01-49.L  [201136912]  Muted
+  [06] AxIntWdSnglChp;Fst BB01-56                          start=1:09:47:09    len=0:00:00:03    file=AxIntWdSnglChp;Fst BB01-49.L  [201195737]  Muted
+  [07] AxIntWdSnglChp;Fst BB01-57                          start=1:09:48:20    len=0:00:00:03    file=AxIntWdSnglChp;Fst BB01-49.L  [201264676]  Muted
+  [08] AxIntWdSnglChp;Fst BB01-58                          start=1:09:55:07    len=0:00:00:08    file=AxIntWdSnglChp;Fst BB01-49.L  [201575158]
+  [09] AxIntWdSnglChp;Fst BB01-59                          start=1:09:56:10    len=0:00:00:08    file=AxIntWdSnglChp;Fst BB01-49.L  [201629945]
+  [10] AxIntWdSnglChp;Fst BB01-60                          start=1:09:57:15    len=0:00:00:08    file=AxIntWdSnglChp;Fst BB01-49.L  [201687085]
+
+── 3 fx a [Mono] ─────────────────────────────────────────── (8 clips)
+  [01] MkngUpThBdWthShtsA PE38-41                          start=1:01:19:06    len=0:00:00:15    file=MkngUpThBdWthShtsA PE38-22.L  [176780604]
+  [02] MkngUpThBdWthShtsA PE38-38                          start=1:01:20:06    len=0:00:00:09    file=MkngUpThBdWthShtsA PE38-22.L  [176828652]
+  [03] MkngUpThBdWthShtsA PE38-39                          start=1:01:21:00    len=0:00:00:10    file=MkngUpThBdWthShtsA PE38-22.L  [176864688]
+  [04] MkngUpThBdWthShtsA PE38-40                          start=1:01:21:19    len=0:00:00:13    file=MkngUpThBdWthShtsA PE38-22.L  [176902726]
+  [05] IrnngStmIrnPrssngC 6054-16                          start=1:01:24:02    len=0:00:05:16    file=IrnngStmIrnPrssngC 6054-14.L  [177012836]
+  [06] RrlAtmsphrsLkLtSp BBC15-20                          start=1:03:39:12    len=0:00:03:20    file=RrlAtmsphrsLkLtSp BBC15-15.L  [183518942]
+  [07] RrlAtmsphrsLkLtSp BBC15-17                          start=1:03:47:08    len=0:00:08:12    file=RrlAtmsphrsLkLtSp BBC15-15.L  [183896498]
+  [08] CnPddlng;SlwStdyPd BB01-XForm_01-01                 start=1:08:54:02    len=0:00:08:12    file=CnPddlng;SlwStdyPd BB01-XForm_01.L  [198634436]
+
+── 4 fx a [Mono] ─────────────────────────────────────────── (2 clips)
+  [01] Iron1_L-02                                          start=1:01:24:01    len=0:00:08:06    file=Iron1_L  [177010834]
+  [02] GrwlsAndHssFrWrWlf AHS04-07                         start=1:04:03:16    len=0:00:05:07    file=GrwlsAndHssFrWrWlf AHS04-6.L  [184681081]
+
+── 5 fx a [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 6 fx a [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── 7 FX A [Stereo] ───────────────────────────────────────── (7 clips)
+  [01] StmPmp;SftTLdHssMc PE27-67                          start=1:01:13:01    len=0:00:06:04    file=StmPmp;SftTLdHssMc PE27-65.L  [176482306]
+  [02] StmPmp;SftTLdHssMc PE27-68                          start=1:06:44:04    len=0:00:06:04    file=StmPmp;SftTLdHssMc PE27-65.L  [192391264]
+  [03] 546869__takkyi__atm-int-wind-howl-cold-winter-11-s  start=1:08:05:06    len=0:00:12:04    file=dbd206b5-ada5-b455-bdc9-15d40000009d  [196288092]
+  [04] 546869__takkyi__atm-int-wind-howl-cold-winter-11-s  start=1:08:17:10    len=0:00:14:06    file=cfac204a-1583-ea32-600a-5f720000009d  [196872676]
+  [05] 546869__takkyi__atm-int-wind-howl-cold-winter-11-s  start=1:08:31:16    len=0:00:20:18    file=07feda3f-d533-b4c7-7886-b86b0000009d  [197557360]
+  [06] 204845__timkahn__seaside-cove-waves.wav_L-02        start=1:09:05:22    len=0:00:45:00    file=19cc485e-4a37-213d-6c50-8e6e00000090  [199203782]
+  [07] 204845__timkahn__seaside-cove-waves.wav_L_01-02     start=1:09:50:22    len=0:00:14:15    file=0e639ab0-0b5f-2c55-acc5-2aaf00000090  [201365164]
+
+── 8 FX A [Stereo] ───────────────────────────────────────── (4 clips)
+  [01] WhshErGhstBrthBy SDT-03-33                          start=1:01:13:12    len=0:00:06:01    file=WhshErGhstBrthBy SDT-03-31.L  [176504328]
+  [02] WndMdmWndStrmWthGs PE46-48                          start=1:03:37:10    len=0:00:34:19    file=WndMdmWndStrmWthGs PE46-47.L  [183419846]
+  [03] WhshErGhstBrthBy SDT-03-34                          start=1:06:44:15    len=0:00:06:01    file=WhshErGhstBrthBy SDT-03-31.L  [192413286]
+  [04] 677795__klankbeeld__storm-wind-in-trees-1659-16022  start=1:08:17:10    len=0:00:58:20    file=1768a953-945a-603e-74ac-9b1c0000009d  [196872676]
+
+── 9 FX A [Stereo] ───────────────────────────────────────── (3 clips)
+  [01] Iron1_L-03                                          start=1:01:07:22    len=0:00:41:04    file=Iron1_L  [176236060]  Muted
+  [02] WndsAntrctcWhtOt BBC20-17                           start=1:03:37:10    len=0:00:34:19    file=WndsAntrctcWhtOt BBC20-16.L  [183419846]
+  [03] The Wind.wav_L-01                                   start=1:08:04:07    len=0:00:14:05    file=a1db6785-a5d9-e57b-e144-cf6d00000090  [196242783]
+
+── 10 FX A [Stereo] ──────────────────────────────────────── (8 clips)
+  [01] StmPmp;SftTLdHssMc PE27-66                          start=1:03:35:15    len=0:00:06:04    file=StmPmp;SftTLdHssMc PE27-65.L  [183333121]
+  [02] BssImpctLwDrmWth SDT-02-36                          start=1:06:16:03    len=0:00:03:08    file=BssImpctLwDrmWth SDT-02-25.L  [191044854]
+  [03] The Wind.wav_L_01-02                                start=1:08:00:18    len=0:00:45:19    file=b5f05d86-fc8f-39b4-eead-f2e600000090  [196072273]
+  [04] Wvs#2LrgCrshngWvsW TE04-93                          start=1:09:05:05    len=0:00:07:20    file=Wvs#2LrgCrshngWvsW TE04-90.1.L  [199169538]
+  [05] BssImpctLwDrmWth SDT-02-27                          start=1:09:32:22    len=0:00:01:08    file=BssImpctLwDrmWth SDT-02-25.L  [200499928]  Muted
+  [06] BssImpctLwDrmWth SDT-02-28                          start=1:09:48:20    len=0:00:01:08    file=BssImpctLwDrmWth SDT-02-25.L  [201265083]  Muted
+  [07] BssImpctLwDrmWth SDT-02-29                          start=1:09:57:15    len=0:00:02:02    file=BssImpctLwDrmWth SDT-02-25.L  [201687085]
+  [08] StmPmp;SftTLdHssMc PE27-66                          start=1:10:12:22    len=0:00:06:04    file=StmPmp;SftTLdHssMc PE27-65.L  [202422955]
+
+── 11 FX A [Stereo] ──────────────────────────────────────── (6 clips)
+  [01] WhshErGhstBrthBy SDT-03-32                          start=1:03:36:02    len=0:00:06:01    file=WhshErGhstBrthBy SDT-03-31.L  [183355143]
+  [02] BssImpctTnlSnr4V SDT-02-36                          start=1:06:16:00    len=0:00:03:19    file=BssImpctTnlSnr4V SDT-02-35.L  [191038848]
+  [03] DrkTnsLwStdyPlsOm AHS04-38                          start=1:07:58:12    len=0:00:34:13    file=DrkTnsLwStdyPlsOm AHS04-37.L  [195963362]  Muted
+  [04] Wvs#2LrgCrshngWvsW TE04-94                          start=1:09:05:06    len=0:00:11:21    file=Wvs#2LrgCrshngWvsW TE04-90.1.L  [199170503]
+  [05] Thunder Rain With Large Thunder Clap Rain Intensif  start=1:09:21:22    len=0:00:05:02    file=Thunder Rain With Large Thunder Clap Rain Intensifies THST2_HD_48.L  [199972541]
+  [06] WhshErGhstBrthBy SDT-03-32                          start=1:10:13:08    len=0:00:06:01    file=WhshErGhstBrthBy SDT-03-31.L  [202442961]
+
+── 12 FX A [Stereo] ──────────────────────────────────────── (6 clips)
+  [01] IcCrckngAndSqlngCl PE35-XForm_01-02                 start=1:03:42:06    len=0:00:03:04    file=IcCrckngAndSqlngCl PE35-XForm_01.L  [183651112]
+  [02] IcCrckngAndSqlngCl PE35-XForm_01-04                 start=1:04:00:05    len=0:00:05:14    file=IcCrckngAndSqlngCl PE35-XForm_01.L  [184515000]  Muted
+  [03] AmbncScFSpcSttnOrL 8005-31                          start=1:07:58:06    len=0:00:56:05    file=AmbncScFSpcSttnOrL 8005-30.L  [195952606]  Muted
+  [04] AmbncScFSpcSttnOrL 8005-34                          start=1:08:54:11    len=0:00:52:20    file=AmbncScFSpcSttnOrL 8005-30.L  [198652631]  Muted
+  [05] AmbncScFSpcSttnOrL 8005-35                          start=1:09:47:08    len=0:00:52:20    file=AmbncScFSpcSttnOrL 8005-30.L  [201192061]  Muted
+  [06] AmbncScFSpcSttnOrL 8005-36                          start=1:10:40:04    len=0:00:52:20    file=AmbncScFSpcSttnOrL 8005-30.L  [203731491]  Muted
+
+── ƒ FO [] ───────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── vMVS [] ───────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── vFT [] ────────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── vBGFT [] ──────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── vPROP [] ──────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── mvs 1 [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── mvs 2 [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ft 1 [Mono] ───────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ft 2 [Mono] ───────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── prp 1 [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── prp 2 [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── prp 3 [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── prp 4 [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── prp 5 [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── prp 6 [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── prp 7 [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── prp 8 [Mono] ──────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── ƒ VERBS [] ────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── D Alt 20 A [Stereo] ───────────────────────────────────── (0 clips)
+   (no clips)
+
+── D Alt 20 B [Stereo] ───────────────────────────────────── (0 clips)
+   (no clips)
+
+── D CPR 51 C [5.1] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── D CPR 51 D [5.1] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── D CPR 51 E [5.1] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── D Alt 20 F [Stereo] ───────────────────────────────────── (0 clips)
+   (no clips)
+
+── D Alt 20 G [Stereo] ───────────────────────────────────── (0 clips)
+   (no clips)
+
+── M Alt 20 A [Stereo] ───────────────────────────────────── (0 clips)
+   (no clips)
+
+── M CPR 20 B [Stereo] ───────────────────────────────────── (0 clips)
+   (no clips)
+
+── M CPR 51 C [5.1] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── M CPR 51 D [5.1] ──────────────────────────────────────── (0 clips)
+   (no clips)
+
+── M CPR HALO E [Stereo] ─────────────────────────────────── (0 clips)
+   (no clips)
+
+── SUB MX [Mono] ─────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── Verb FX A [5.1] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── Verb FX B [5.1] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── Verb FX C [5.1] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── Verb FX D [5.1] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── Verb FX E [5.1] ───────────────────────────────────────── (0 clips)
+   (no clips)
+
+── RX Monitor [Mono] ─────────────────────────────────────── (0 clips)
+   (no clips)
+
+── PIX [Video] ───────────────────────────────────────────── (1 clips)
+  [01] Nivingajuliat - sound for Matt                      start=0:59:54:10    len=0:11:49:10    file=—  [172704000]
+
+── ƒ AAF [] ──────────────────────────────────────────────── (0 clips)
+   (no clips)
+
+── Audio 2 [Mono] ────────────────────────────────────────── (146 clips)
+  [01] 240829_BR_ACAM0315.MXF_02-01                        start=1:00:10:00    len=0:00:03:11    file=a1317514-a943-2175-9228-7efd0000009d  [173453280]
+  [02] 240829_BR_ACAM0315.MXF_03-01                        start=1:00:16:13    len=0:00:01:14    file=506a6fce-05e4-b485-424b-22ee00000090  [173767594]
+  [03] 240829_BR_ACAM0315.MXF_04-01                        start=1:00:18:03    len=0:00:00:03    file=94aa926a-a8a9-efe8-550b-d1be0000009d  [173843670]
+  [04] 240829_BR_ACAM0315.MXF_05-01                        start=1:00:18:06    len=0:00:02:13    file=6caead25-6225-0d71-d8ec-24e30000009d  [173849676]
+  [05] 240313_GAYLE_A0028.MXF_02-01                        start=1:00:27:01    len=0:00:04:04    file=d821f9bb-a469-b689-c6b3-ecb20000009d  [174272098]
+  [06] 240313_GAYLE_A0028.MXF_03-01                        start=1:00:31:05    len=0:00:01:21    file=5e6a7fb8-203f-3290-d001-342b00000090  [174472298]
+  [07] 240313_GAYLE_A0028.MXF_04-01                        start=1:00:33:22    len=0:00:04:05    file=d8bc7222-36a7-674b-34a6-61ba00000090  [174602428]
+  [08] 240313_GAYLE_A0028.MXF_05-01                        start=1:00:38:03    len=0:00:00:16    file=51a9de13-5f84-56fc-860a-d6c50000009d  [174804630]
+  [09] 240313_GAYLE_A0028.MXF_06-01                        start=1:00:38:19    len=0:00:01:21    file=4ee5e6f0-a132-1a52-18ae-eb3400000090  [174836662]
+  [10] 240313_GAYLE_A0028.MXF_07-01                        start=1:00:42:03    len=0:00:03:14    file=986bfa62-09d2-a423-6c8e-f59400000083  [174996822]
+  [11] 240313_GAYLE_A0028.MXF_08-01                        start=1:00:46:08    len=0:00:05:19    file=79772c31-7fe4-ac79-1dcb-4c1700000083  [175199024]
+  [12] 240313_GAYLE_A0028.MXF_09-01                        start=1:00:52:03    len=0:00:03:13    file=1d722a85-0550-8bcc-a7fc-def400000083  [175477302]
+  [13] 240313_GAYLE_A0028.MXF_10-01                        start=1:00:55:16    len=0:00:03:13    file=cf157e04-5e8c-9eb9-f4fb-e2f100000090  [175647472]
+  [14] 240601_BR_ACAM_C1098.MXF_02-01                      start=1:01:01:11    len=0:00:01:12    file=fc8d1915-8963-5a7e-7da0-6ad30000009d  [175925750]
+  [15] 240601_BR_ACAM_C1098.MXF_03-01                      start=1:01:06:06    len=0:00:00:10    file=52c6888b-c731-7b13-615c-f6f70000009d  [176155980]
+  [16] 240601_BR_ACAM_C1098.MXF_04-01                      start=1:01:06:16    len=0:00:02:13    file=ab08d66d-3c49-6d49-1c52-4b890000009d  [176176000]
+  [17] 240314_GAYLE_A0048.MXF_01-01                        start=1:01:11:22    len=0:00:00:14    file=e1c72e7e-39eb-b1b6-d578-495f0000009d  [176428252]
+  [18] 240314_GAYLE_A0058.MXF-01                           start=1:01:12:12    len=0:00:03:05    file=e9b6dbbb-5034-a95a-07be-74270000009d  [176456280]
+  [19] 240314_GAYLE_A0051.MXF_02-01                        start=1:01:16:22    len=0:00:03:02    file=fd00d350-287f-56ff-0e28-4af80000009d  [176668492]
+  [20] 240314_GAYLE_A0048.MXF_02-01                        start=1:01:21:14    len=0:00:01:01    file=6d469c01-3129-7236-4c17-f30c0000009d  [176892716]
+  [21] 240314_GAYLE_A0051.MXF_03-01                        start=1:01:22:15    len=0:00:03:07    file=5ca6d92c-4827-b24b-9395-08450000009d  [176942766]
+  [22] 240314_GAYLE_A0051.MXF_04-01                        start=1:01:25:22    len=0:00:00:18    file=768dffd2-8538-fcb7-b15f-aad90000009d  [177100924]
+  [23] 240314_GAYLE_A0051.MXF_05-01                        start=1:01:26:16    len=0:00:00:15    file=4e37192f-f6fc-8c13-7b43-5ade0000009d  [177136960]
+  [24] 240314_GAYLE_A0051.MXF_06-01                        start=1:01:27:07    len=0:00:01:22    file=01ef8b45-6b62-d54f-56d3-114d0000009d  [177166990]
+  [25] 240314_GAYLE_A0051.MXF_07-01                        start=1:01:29:05    len=0:00:00:15    file=ee2174d6-35a0-04f9-dfff-a4480000009d  [177259082]
+  [26] 240314_GAYLE_A0051.MXF_08-01                        start=1:01:29:20    len=0:00:03:00    file=3765aab4-694c-a9d2-387a-94970000009d  [177289112]
+  [27] 240314_GAYLE_A0051.MXF_09-01                        start=1:01:32:20    len=0:00:02:01    file=c4655f25-392d-b648-637c-7bd200000090  [177433256]
+  [28] 240314_GAYLE_A0051.MXF_10-01                        start=1:01:34:21    len=0:00:02:12    file=f4cdd88a-acd1-f96c-ad68-ea9500000090  [177531354]
+  [29] 240314_GAYLE_A0051.MXF_11-01                        start=1:01:37:09    len=0:00:01:21    file=8fa6ea3e-25e1-3164-3d4c-0b0a0000009d  [177651474]
+  [30] 240314_GAYLE_A0051.MXF_12-01                        start=1:01:39:06    len=0:00:00:09    file=c4e72bc8-7ed3-f94f-80f0-8e0c0000009d  [177741564]
+  [31] 240314_GAYLE_A0051.MXF_13-01                        start=1:01:39:15    len=0:00:00:18    file=8803456c-37d9-63bb-9fd0-1d8d0000009d  [177759582]
+  [32] 240314_GAYLE_A0051.MXF_14-01                        start=1:01:40:09    len=0:00:02:08    file=06a1b2f7-de7c-7435-a92d-953d00000090  [177795618]
+  [33] 240314_GAYLE_A0051.MXF_15-01                        start=1:01:42:21    len=0:00:02:17    file=083d4ffb-84f5-66ee-583e-2d4e00000090  [177915738]
+  [34] 240314_GAYLE_A0051.MXF_16-01                        start=1:01:45:14    len=0:00:00:06    file=a53291e3-a010-05e9-1e71-1cc400000090  [178045868]
+  [35] 240829_BR_ACAM0315.MXF_06-01                        start=1:01:45:20    len=0:00:01:15    file=5d34b76c-cc0c-3c3e-7ff5-213400000090  [178057880]
+  [36] 240829_BR_ACAM0312.MXF-01                           start=1:01:47:11    len=0:00:00:16    file=20fa6cda-50ac-739a-fcc6-4f1b0000009d  [178135958]
+  [37] 240829_BR_ACAM0315.MXF_07-01                        start=1:01:48:03    len=0:00:01:20    file=7fc882b5-cb5b-929d-a21f-1ac30000009d  [178167990]
+  [38] 240829_BR_ACAM0315.MXF_08-01                        start=1:01:49:23    len=0:00:00:08    file=3fb13863-10b2-8c0e-9346-55f10000009d  [178256078]
+  [39] 240829_BR_ACAM0315.MXF_09-01                        start=1:01:50:07    len=0:00:00:08    file=0c3620b3-df48-2a00-7201-0bdf0000009d  [178272094]
+  [40] 240829_BR_ACAM0315.MXF_10-01                        start=1:01:50:15    len=0:00:00:19    file=5d2209e0-40db-1dbd-04be-ad5c0000009d  [178288110]
+  [41] 240829_BR_ACAM0315.MXF_11-01                        start=1:01:51:10    len=0:00:01:11    file=b283014c-d46e-d060-1a3a-56210000009d  [178326148]
+  [42] 240314_GAYLE_A0051.MXF_17-01                        start=1:01:52:21    len=0:00:14:13    file=191f6e6f-66e1-3c43-609c-889b0000009d  [178396218]
+  [43] 240314_GAYLE_A0051.MXF_18-01                        start=1:02:07:10    len=0:00:01:13    file=3fa25c88-f20b-a644-119c-34eb0000009d  [179094916]
+  [44] 240314_GAYLE_A0048.MXF_03-01                        start=1:02:08:23    len=0:00:00:22    file=581f6a4a-ff0f-5bf7-885a-d41c0000009d  [179168990]
+  [45] 240314_GAYLE_A0055.MXF_01-01                        start=1:02:09:21    len=0:00:01:16    file=3a5f0599-e28d-8689-696e-347a0000009d  [179213034]
+  [46] 240314_GAYLE_A0055.MXF_02-01                        start=1:02:11:13    len=0:00:01:00    file=bcf992c5-cddc-a21c-e3b4-52e00000009d  [179293114]
+  [47] 240314_GAYLE_A0055.MXF_03-01                        start=1:02:12:13    len=0:00:00:19    file=7ff8427e-dab9-5cfe-4e9a-c5ab0000009d  [179341162]
+  [48] 240314_GAYLE_A0055.MXF_04-01                        start=1:02:13:08    len=0:00:00:22    file=281602e0-b562-1c92-f420-baa100000090  [179379200]
+  [49] 240314_GAYLE_A0055.MXF_05-01                        start=1:02:14:06    len=0:00:00:22    file=87d6b941-1ed1-a191-0467-16c700000083  [179423244]
+  [50] 240314_GAYLE_A0055.MXF_06-01                        start=1:02:15:04    len=0:00:06:04    file=f0250830-0143-7ed0-1093-b4fa00000090  [179467288]
+  [51] 240314_GAYLE_A0060.MXF_01-01                        start=1:02:21:08    len=0:00:00:16    file=406afa86-13ab-16b4-5aed-463f0000009d  [179763584]
+  [52] 240314_GAYLE_A0060.MXF_02-01                        start=1:02:22:00    len=0:00:00:07    file=13980baa-8667-acd7-0ab2-9d830000009d  [179795616]
+  [53] 240314_GAYLE_A0048.MXF_04-01                        start=1:02:22:07    len=0:00:00:08    file=308e176f-03fc-5ef8-fc69-1f820000009d  [179809630]
+  [54] 240314_GAYLE_A0056.MXF_02-01                        start=1:02:22:15    len=0:00:00:18    file=9180491a-2504-fa1d-cbfd-56ee0000009d  [179825646]
+  [55] 240314_GAYLE_A0056.MXF_03-01                        start=1:02:23:09    len=0:00:00:06    file=9e608b74-2218-b848-0b49-75760000009d  [179861682]
+  [56] 240314_GAYLE_A0056.MXF_04-01                        start=1:02:23:15    len=0:00:00:09    file=a39581a5-e86a-5928-df92-45af0000009d  [179873694]
+  [57] 240314_GAYLE_A0056.MXF_05-01                        start=1:02:24:00    len=0:00:00:02    file=b0270c44-bc21-4e2c-6c72-87f60000009d  [179891712]
+  [58] 240314_GAYLE_A0056.MXF_06-01                        start=1:02:24:02    len=0:00:00:02    file=0df18558-0554-c406-9df8-02630000009d  [179895716]
+  [59] 240314_GAYLE_A0056.MXF_07-01                        start=1:02:24:04    len=0:00:00:09    file=134f39df-972a-0661-0c65-5cd10000009d  [179899720]
+  [60] 240314_GAYLE_A0058.MXF_01-01                        start=1:02:24:13    len=0:00:00:07    file=91916cc0-0b95-5137-9f84-fbea0000009d  [179917738]
+  [61] 240314_GAYLE_A0056.MXF_08-01                        start=1:02:24:20    len=0:00:03:03    file=bde6c621-3c99-911e-e72f-4e6800000090  [179931752]
+  [62] 240314_GAYLE_A0056.MXF_09-01                        start=1:02:27:23    len=0:00:03:13    file=e515c723-efaf-daf8-19b3-921f00000090  [180081902]
+  [63] 240314_GAYLE_A0056.MXF_10-01                        start=1:02:31:12    len=0:00:01:14    file=d53266e2-87ee-4ad6-5670-d4060000009d  [180252072]
+  [64] 240314_GAYLE_A0056.MXF_11-01                        start=1:02:33:02    len=0:00:04:10    file=4b70b4a1-f520-4510-0508-03a30000009d  [180328148]
+  [65] 240314_GAYLE_A0048.MXF_05-01                        start=1:02:37:12    len=0:00:01:07    file=ad279d0e-e881-6603-c855-a90c0000009d  [180540360]
+  [66] 240314_GAYLE_A0056.MXF_12-01                        start=1:02:44:00    len=0:00:02:20    file=7da7c480-40e4-677d-d498-b1eb00000090  [180852672]
+  [67] 240314_GAYLE_A0056.MXF_13-01                        start=1:02:46:20    len=0:00:01:04    file=d9897c0c-f738-76ef-d25b-899500000090  [180988808]
+  [68] 240601_BR_ACAM_C1101.MXF_02-01                      start=1:02:54:08    len=0:00:03:06    file=965e0229-53e6-899f-5423-3ed10000009d  [181349168]
+  [69] JB_ACAM_2310220057.MXF_02-01                        start=1:03:00:00    len=0:00:00:14    file=fd26767a-f60f-87b6-f67c-71e20000009d  [181621440]
+  [70] 240314_GAYLE_A0058.MXF_02-01                        start=1:03:00:14    len=0:00:00:15    file=f494da3f-4093-26b8-aaf0-ff0c0000009d  [181649468]
+  [71] 240314_GAYLE_A0058.MXF_03-01                        start=1:03:01:05    len=0:00:01:05    file=f6849afa-e02e-2cb2-4fc4-397a0000009d  [181679498]
+  [72] 240314_GAYLE_A0058.MXF_04-01                        start=1:03:02:10    len=0:00:00:15    file=8e1c1788-f429-27c6-46e1-7c240000009d  [181737556]
+  [73] 240314_GAYLE_A0058.MXF_05-01                        start=1:03:03:01    len=0:00:00:16    file=a159c56c-dd11-af59-7de1-ce590000009d  [181767586]
+  [74] 240314_GAYLE_A0058.MXF_06-01                        start=1:03:15:17    len=0:00:00:10    file=be40da46-a877-cfe6-e8a4-a3e600000083  [182376194]
+  [75] 240314_GAYLE_A0058.MXF_07-01                        start=1:03:16:03    len=0:00:00:11    file=a8730d05-64ce-4cec-681e-95e400000083  [182396214]
+  [76] 240314_GAYLE_A0058.MXF_08-01                        start=1:03:16:14    len=0:00:00:08    file=0d7df6a0-f9f8-130f-c600-f09400000083  [182418236]
+  [77] 240314_GAYLE_A0058.MXF_09-01                        start=1:03:16:22    len=0:00:02:17    file=6c211aa2-2199-1aec-18b6-352f00000090  [182434252]
+  [78] 240314_GAYLE_A0058.MXF_10-01                        start=1:03:19:15    len=0:00:00:10    file=6f8a5bf3-51ba-2765-e72f-823100000090  [182564382]
+  [79] 240314_GAYLE_A0058.MXF_11-01                        start=1:03:20:01    len=0:00:01:07    file=20a5a646-2c69-cd36-0758-4c1700000083  [182584402]
+  [80] 240314_GAYLE_A0058.MXF_12-01                        start=1:03:21:08    len=0:00:00:18    file=0a35f4ad-dd34-ef2c-2d60-29cc00000083  [182646464]
+  [81] 240314_GAYLE_A0058.MXF_13-01                        start=1:03:22:02    len=0:00:01:19    file=337ba467-b216-8590-396f-d84200000083  [182682500]
+  [82] 240314_GAYLE_A0057.MXF-01                           start=1:05:24:15    len=0:00:00:19    file=e56f9253-c9a4-4528-37e2-b63000000090  [188570382]
+  [83] 240314_GAYLE_A0057.MXF_01-01                        start=1:05:25:10    len=0:00:04:09    file=ed20be9e-f944-416a-9c1a-010200000090  [188608420]
+  [84] 240314_GAYLE_A0058.MXF_14-01                        start=1:05:31:05    len=0:00:01:20    file=bfef550a-452f-e372-68b5-3b6500000083  [188886698]
+  [85] 240314_GAYLE_A0058.MXF_15-01                        start=1:05:33:01    len=0:00:02:01    file=8aa99cf5-3d09-9b34-815f-8ab400000083  [188974786]
+  [86] 240314_GAYLE_A0060.MXF_03-01                        start=1:05:35:06    len=0:00:01:00    file=9be61534-d0b2-7ac5-6413-49760000009d  [189080892]
+  [87] 240601_BR_ACAM_C1098.MXF_05-01                      start=1:05:36:06    len=0:00:01:09    file=815dee14-b57d-3e2b-97b8-8b440000009d  [189128940]
+  [88] 240601_BR_ACAM_C1098.MXF_06-01                      start=1:05:37:15    len=0:00:04:13    file=718df5a4-3dca-957b-234d-a8b00000009d  [189195006]
+  [89] 240829_BR_ACAM0315.MXF_12-01                        start=1:05:49:08    len=0:00:00:12    file=0b825298-f9d1-ead0-ef66-2ba300000083  [189757568]
+  [90] 240829_BR_ACAM0315.MXF_13-01                        start=1:05:49:20    len=0:00:00:21    file=dae16802-fc64-3c29-4195-58e900000083  [189781592]
+  [91] 240829_BR_ACAM0315.MXF_14-01                        start=1:05:50:17    len=0:00:01:14    file=abd0f5d1-0c9f-ed5d-fcf1-731100000083  [189823634]
+  [92] 240829_BR_ACAM0315.MXF_15-01                        start=1:05:52:07    len=0:00:01:11    file=6d6e539a-9196-3398-0fa5-1c4d00000083  [189899710]
+  [93] 240829_BR_ACAM0315.MXF_16-01                        start=1:05:54:07    len=0:00:00:06    file=83ca8616-3a48-aa7b-7c0b-dc8d00000083  [189995806]
+  [94] 240829_BR_ACAM0315.MXF_17-01                        start=1:05:54:13    len=0:00:05:05    file=4b4bd952-11e5-20cc-56b1-92c200000083  [190007818]
+  [95] 240829_BR_ACAM0315.MXF_18-01                        start=1:05:59:18    len=0:00:01:13    file=1ec40d9b-448e-0e53-c98d-567a00000083  [190258068]
+  [96] 240829_BR_ACAM0315.MXF_19-01                        start=1:06:01:07    len=0:00:01:15    file=9cc9165f-c004-53e0-793b-dd1b00000083  [190332142]
+  [97] 240829_BR_ACAM0315.MXF_20-01                        start=1:06:02:22    len=0:00:06:13    file=d7e715bc-ed8a-4130-74ab-63f700000083  [190410220]
+  [98] 240829_BR_ACAM0315.MXF_21-01                        start=1:06:09:11    len=0:00:03:06    file=2f6bfaa6-296b-a129-aea4-1c8900000090  [190724534]
+  [99] 240829_BR_ACAM0315.MXF_22-01                        start=1:06:47:05    len=0:00:01:15    file=f35cad64-4c55-c918-40e0-40fd0000009d  [192538346]
+  [100] 240601_BR_ACAM_C1121.MXF_02-01                      start=1:06:48:20    len=0:00:01:20    file=82670d4e-0576-72df-1667-bf6a0000009d  [192616424]
+  [101] 240829_BR_ACAM0315.MXF_23-01                        start=1:06:51:14    len=0:00:01:08    file=aed5fc04-f090-4d23-cac1-54ba0000009d  [192748556]
+  [102] 240829_BR_ACAM0315.MXF_24-01                        start=1:06:52:22    len=0:00:00:16    file=9c243315-e795-c967-2849-b4310000009d  [192812620]
+  [103] 240829_BR_ACAM0315.MXF_25-01                        start=1:06:53:14    len=0:00:00:10    file=cd271d05-472e-ffc9-e19e-30960000009d  [192844652]
+  [104] 240829_BR_ACAM0315.MXF_26-01                        start=1:06:54:00    len=0:00:01:15    file=2bb42a2e-ec41-64ef-8eca-977b0000009d  [192864672]
+  [105] 240829_BR_ACAM0315.MXF_27-01                        start=1:06:56:04    len=0:00:00:14    file=329e2069-dba9-d6ea-9f55-96120000009d  [192968776]
+  [106] 240829_BR_ACAM0315.MXF_28-01                        start=1:06:56:18    len=0:00:01:15    file=75440c69-109e-3f36-c947-54b00000009d  [192996804]
+  [107] 240829_BR_ACAM0315.MXF_29-01                        start=1:06:58:09    len=0:00:00:23    file=97b1c2bf-7162-97a3-989f-87ca0000009d  [193074882]
+  [108] 240829_BR_ACAM0315.MXF_30-01                        start=1:06:59:08    len=0:00:01:22    file=034a87dd-0c37-4db2-fddc-c7860000009d  [193120928]
+  [109] 240829_BR_ACAM0315.MXF_31-01                        start=1:07:01:11    len=0:00:00:08    file=24b13157-eff0-9010-478f-ca850000009d  [193223030]
+  [110] 240829_BR_ACAM0315.MXF_32-01                        start=1:07:01:19    len=0:00:02:20    file=6d727148-b13e-3417-551d-1c3d00000090  [193239046]
+  [111] 240829_BR_ACAM0315.MXF_33-01                        start=1:07:04:15    len=0:00:01:16    file=5fd18a1b-3bf6-5c86-be4a-d3e800000090  [193375182]
+  [112] 240829_BR_ACAM0315.MXF_34-01                        start=1:07:12:09    len=0:00:00:15    file=b0667dc0-19e7-cdb9-bc14-fb640000009d  [193747554]
+  [113] 240829_BR_ACAM0315.MXF_35-01                        start=1:07:13:00    len=0:00:00:13    file=a9c7fb7b-41f0-904c-45ce-38ab0000009d  [193777584]
+  [114] 240829_BR_ACAM0315.MXF_36-01                        start=1:07:13:13    len=0:00:03:10    file=34db507c-eb33-ada1-ce34-22f50000009d  [193803610]
+  [115] 240829_BR_ACAM0315.MXF_37-01                        start=1:07:16:23    len=0:00:03:00    file=74173bfa-464c-b971-0310-eb280000009d  [193967774]
+  [116] 240829_BR_ACAM0315.MXF_38-01                        start=1:07:19:23    len=0:00:00:15    file=61e201ca-8d2d-9c16-6cd0-a69a0000009d  [194111918]
+  [117] 240829_BR_ACAM0315.MXF_39-01                        start=1:07:20:14    len=0:00:03:21    file=5fd8e693-b12f-82e2-bead-b9890000009d  [194141948]
+  [118] 240829_BR_ACAM0315.MXF_40-01                        start=1:07:26:04    len=0:00:00:14    file=850ddaa1-5ba2-a1d5-5ec1-3acc0000009d  [194410216]
+  [119] 240829_BR_ACAM0315.MXF_41-01                        start=1:07:26:18    len=0:00:02:04    file=ac6f28fe-dfab-a94a-9dc0-4a8c0000009d  [194438244]
+  [120] 240829_BR_ACAM0315.MXF_42-01                        start=1:07:28:22    len=0:00:02:09    file=4e339458-4962-e886-e6ad-e6130000009d  [194542348]
+  [121] 240829_BR_ACAM0315.MXF_43-01                        start=1:07:32:21    len=0:00:00:14    file=c831dcb0-c575-e842-706a-72cc0000009d  [194732538]
+  [122] 240829_BR_ACAM0315.MXF_44-01                        start=1:07:33:11    len=0:00:01:16    file=4e98d658-bd74-e7c5-0ba6-f06f00000090  [194760566]
+  [123] 240829_BR_ACAM0315.MXF_45-01                        start=1:07:35:03    len=0:00:00:17    file=df1c90b3-8202-7388-bf8b-6efb00000090  [194840646]
+  [124] 240829_BR_ACAM0315.MXF_46-01                        start=1:07:35:20    len=0:00:00:12    file=142928fe-c58e-9048-d317-a6050000009d  [194874680]
+  [125] 240829_BR_ACAM0315.MXF_47-01                        start=1:07:36:08    len=0:00:01:10    file=e2c5d32a-6410-9921-dd5e-76be00000090  [194898704]
+  [126] 240829_BR_ACAM0315.MXF_48-01                        start=1:07:37:18    len=0:00:00:10    file=62ff27d4-91b0-e13d-a109-7c7c00000083  [194966772]
+  [127] 240829_BR_ACAM0315.MXF_49-01                        start=1:07:38:04    len=0:00:02:14    file=aefa842a-2336-95ce-2d50-26a600000083  [194986792]
+  [128] 240829_BR_ACAM0315.MXF_50-01                        start=1:07:40:18    len=0:00:03:01    file=bcb3fffc-b297-9a50-9e1e-61d100000083  [195110916]
+  [129] 240829_BR_ACAM0315.MXF_51-01                        start=1:07:43:19    len=0:00:00:12    file=2995cddf-64e2-de94-179d-4bd800000083  [195257062]
+  [130] 240829_BR_ACAM0315.MXF_52-01                        start=1:07:44:07    len=0:00:00:20    file=e9934bb4-cf6c-c239-9dce-b18800000083  [195281086]
+  [131] 240829_BR_ACAM0315.MXF_53-01                        start=1:07:45:03    len=0:00:04:09    file=05be9787-b514-d019-57c4-0b6300000090  [195321126]
+  [132] 240829_BR_ACAM0315.MXF_54-01                        start=1:07:49:12    len=0:00:02:03    file=b5ae79d2-f819-74a7-d799-fba400000090  [195531336]
+  [133] 240829_BR_ACAM0315.MXF_55-01                        start=1:07:51:15    len=0:00:03:20    file=ef69f787-2737-9803-0f8e-cfae00000090  [195633438]
+  [134] 240829_BR_ACAM0312.MXF_01-01                        start=1:10:28:13    len=0:00:03:07    file=52a254a8-e885-c086-beeb-f14800000090  [203172970]
+  [135] 240829_BR_ACAM0312.MXF_02-01                        start=1:10:31:20    len=0:00:02:14    file=8f10f7c8-f025-e9c0-907b-597600000090  [203331128]
+  [136] 240829_BR_ACAM0312.MXF_03-01                        start=1:10:34:10    len=0:00:00:23    file=cb34c8c7-8a48-ea2f-9c71-76e600000090  [203455252]
+  [137] 240829_BR_ACAM0315.MXF_56-01                        start=1:10:35:09    len=0:00:03:04    file=fba8ee27-c80b-9ce6-4742-125a00000083  [203501298]
+  [138] 240829_BR_ACAM0315.MXF_57-01                        start=1:10:38:13    len=0:00:04:00    file=6f8c7aec-3fdb-2149-9f96-224400000083  [203653450]
+  [139] 240829_BR_ACAM0315.MXF_58-01                        start=1:10:42:13    len=0:00:03:06    file=b126c901-0577-7666-2d1b-7fa100000090  [203845642]
+  [140] 240829_BR_ACAM0315.MXF_59-01                        start=1:10:48:13    len=0:00:01:06    file=1e5c132d-0904-61ce-30db-e83f00000090  [204133930]
+  [141] 240829_BR_ACAM0315.MXF_60-01                        start=1:10:49:19    len=0:00:01:21    file=447c7a67-e371-5e7f-c09b-09df0000009d  [204193990]
+  [142] 240829_BR_ACAM0315.MXF_61-01                        start=1:10:51:16    len=0:00:00:08    file=2e45f689-8f46-aee8-2bfb-b0370000009d  [204284080]
+  [143] 240829_BR_ACAM0315.MXF_62-01                        start=1:10:52:00    len=0:00:00:18    file=bf49745f-6f23-4338-4290-502a0000009d  [204300096]
+  [144] 240829_BR_ACAM0315.MXF_63-01                        start=1:10:52:18    len=0:00:00:12    file=b1058d95-ce86-a022-78fb-634d00000090  [204336132]
+  [145] 240829_BR_ACAM0315.MXF_64-01                        start=1:10:53:06    len=0:00:01:01    file=a09f7648-24a2-e096-990d-b3ef00000083  [204360156]
+  [146] 240829_BR_ACAM0315.MXF_65-01                        start=1:11:00:15    len=0:00:04:10    file=f507c8cf-2a55-bc6f-49b7-c6110000009d  [204714510]
+
+── Audio 3 [Mono] ────────────────────────────────────────── (43 clips)
+  [01] 240314_GAYLE_A0051.MXF_19-01                        start=1:01:41:06    len=0:00:01:11    file=efeee762-193e-69be-e95e-87bd00000083  [177837660]
+  [02] 240314_GAYLE_A0051.MXF_20-01                        start=1:01:42:17    len=0:00:00:23    file=317d5b64-bab4-90b2-797c-e0c900000083  [177907730]
+  [03] 240314_GAYLE_A0051.MXF_21-01                        start=1:01:43:16    len=0:00:02:04    file=c4220c9a-2d79-5c42-7964-442f00000090  [177953776]
+  [04] 240314_GAYLE_A0051.MXF_22-01                        start=1:01:45:20    len=0:00:00:23    file=60e0ade9-6bcd-d2df-4be4-f2b700000090  [178057880]
+  [05] 240829_BR_ACAM0315.MXF_66-01                        start=1:02:43:00    len=0:00:01:01    file=aea06836-5b7e-7f53-ab9e-1e9d0000009d  [180804624]
+  [06] 240829_BR_ACAM0315.MXF_67-01                        start=1:06:02:22    len=0:00:06:13    file=4390eb53-0d0c-01c7-2044-f94800000083  [190410220]
+  [07] 240829_BR_ACAM0315.MXF_68-01                        start=1:06:09:11    len=0:00:03:06    file=5a53e8f9-7d82-3018-54c1-979900000083  [190724534]
+  [08] 240829_BR_ACAM0319.MXF-01                           start=1:08:00:16    len=0:00:05:19    file=39b6cd9e-8b4b-13a6-e35f-99020000009d  [196067872]
+  [09] 240829_BR_ACAM0319.MXF_01-01                        start=1:08:06:21    len=0:00:03:01    file=fc9d9e54-b087-ad73-e552-5b7c0000009d  [196366170]
+  [10] 240829_BR_ACAM0319.MXF_02-01                        start=1:08:11:02    len=0:00:01:18    file=f4390500-cb93-9ee5-118d-7c830000009d  [196568372]
+  [11] 240829_BR_ACAM0319.MXF_03-01                        start=1:08:14:21    len=0:00:00:14    file=8e8ed16d-0742-7341-6b6d-04e50000009d  [196750554]
+  [12] 240829_BR_ACAM0319.MXF_04-01                        start=1:08:15:11    len=0:00:00:16    file=0b801429-3159-f268-14c1-38620000009d  [196778582]
+  [13] 240829_BR_ACAM0319.MXF_05-01                        start=1:08:16:03    len=0:00:02:22    file=feccb882-96ec-7a75-5cce-780000000090  [196810614]
+  [14] 240829_BR_ACAM0319.MXF_06-01                        start=1:08:19:01    len=0:00:01:07    file=c858f23a-f519-aa23-885f-bb3f0000009d  [196950754]
+  [15] 240829_BR_ACAM0319.MXF_07-01                        start=1:08:26:10    len=0:00:04:13    file=ffad290e-2cc3-994f-2335-8ba20000009d  [197305108]
+  [16] 240829_BR_ACAM0319.MXF_08-01                        start=1:08:30:23    len=0:00:02:08    file=81a88228-bb44-8e3d-849e-1e430000009d  [197523326]
+  [17] 240829_BR_ACAM0319.MXF_09-01                        start=1:08:33:15    len=0:00:03:14    file=bb17bc8b-b5e3-f08b-36e3-346a0000009d  [197651454]
+  [18] 240829_BR_ACAM0319.MXF_10-01                        start=1:08:37:05    len=0:00:04:11    file=94117b60-1649-649e-c2dc-ea760000009d  [197823626]
+  [19] 240829_BR_ACAM0319.MXF_11-01                        start=1:08:44:17    len=0:00:03:00    file=9d4ff3ba-9259-8389-ba4e-eda600000090  [198183986]
+  [20] 240829_BR_ACAM0319.MXF_12-01                        start=1:08:48:07    len=0:00:01:12    file=e6b4cfe1-9a52-ec29-7d78-4e870000009d  [198356158]
+  [21] 240829_BR_ACAM0319.MXF_13-01                        start=1:08:49:19    len=0:00:03:02    file=486bdf46-4e3e-2358-0b43-22480000009d  [198428230]
+  [22] 240829_BR_ACAM0319.MXF_14-01                        start=1:08:56:05    len=0:00:03:15    file=ce099ff0-1fbf-bf1a-a17a-84110000009d  [198736538]
+  [23] 240829_BR_ACAM0319.MXF_15-01                        start=1:09:00:22    len=0:00:03:07    file=16dafc77-d037-9689-e272-a45a0000009d  [198962764]
+  [24] 240829_BR_ACAM0319.MXF_16-01                        start=1:09:04:05    len=0:00:03:22    file=710071d4-c51b-3e5d-2d33-f78b0000009d  [199120922]
+  [25] 240829_BR_ACAM0319.MXF_17-01                        start=1:09:08:20    len=0:00:01:12    file=f249788e-0d90-25c9-26af-3a8a0000009d  [199343144]
+  [26] 240829_BR_ACAM0319.MXF_18-01                        start=1:09:10:08    len=0:00:01:01    file=d3a97f5d-d9d3-c894-f859-09740000009d  [199415216]
+  [27] 240829_BR_ACAM0319.MXF_19-01                        start=1:09:11:09    len=0:00:01:16    file=2343f626-9564-db89-67cd-df990000009d  [199465266]
+  [28] 240829_BR_ACAM0319.MXF_20-01                        start=1:09:13:10    len=0:00:01:20    file=a140f54f-a0fc-7831-07c1-0cf40000009d  [199563364]
+  [29] 240829_BR_ACAM0319.MXF_21-01                        start=1:09:15:06    len=0:00:02:18    file=f0e37756-1a3a-eec2-444c-73b70000009d  [199651452]
+  [30] 240829_BR_ACAM0319.MXF_22-01                        start=1:09:18:13    len=0:00:03:02    file=91c7ff73-8121-cf94-bc58-a84f0000009d  [199809610]
+  [31] 240829_BR_ACAM0319.MXF_23-01                        start=1:09:21:15    len=0:00:00:20    file=7e3003d7-f926-9485-8097-78f50000009d  [199957758]
+  [32] 240829_BR_ACAM0319.MXF_24-01                        start=1:09:23:12    len=0:00:02:03    file=19b0ea12-563e-9b6c-bc65-cee50000009d  [200047848]
+  [33] 240829_BR_ACAM0319.MXF_25-01                        start=1:09:26:12    len=0:00:06:03    file=581ede58-e755-4acc-b777-076f0000009d  [200191992]
+  [34] 240829_BR_ACAM0319.MXF_26-01                        start=1:09:33:04    len=0:00:02:15    file=1d5ab67d-4e82-7837-f918-ad3c0000009d  [200512312]
+  [35] 240829_BR_ACAM0319.MXF_27-01                        start=1:09:37:04    len=0:00:02:10    file=7be15843-49d4-ec9a-1f62-624c0000009d  [200704504]
+  [36] 240829_BR_ACAM0319.MXF_28-01                        start=1:09:39:14    len=0:00:01:08    file=aaa2e9d4-e1d6-d06d-3db6-0a8f0000009d  [200820620]
+  [37] 240829_BR_ACAM0319.MXF_29-01                        start=1:09:42:05    len=0:00:05:04    file=15698163-96cc-ca20-6115-2c5a0000009d  [200946746]
+  [38] 240829_BR_ACAM0319.MXF_30-01                        start=1:09:47:09    len=0:00:03:13    file=ba5002a0-ee4c-c948-6729-a7790000009d  [201194994]
+  [39] 240829_BR_ACAM0319.MXF_31-01                        start=1:09:51:10    len=0:00:03:11    file=612d9667-9099-ad44-325c-53740000009d  [201389188]
+  [40] 240829_BR_ACAM0319.MXF_32-01                        start=1:09:54:21    len=0:00:02:16    file=27740379-0bbb-71ae-df85-0bd60000009d  [201555354]
+  [41] 240829_BR_ACAM0319.MXF_33-01                        start=1:09:57:13    len=0:00:02:12    file=04441616-084d-4cb3-4a5f-c6030000009d  [201683482]
+  [42] 240829_BR_ACAM0319.MXF_34-01                        start=1:10:00:01    len=0:00:02:00    file=2c49b63a-6062-1a66-1355-adbb0000009d  [201803602]
+  [43] 240829_BR_ACAM0319.MXF_35-01                        start=1:10:02:18    len=0:00:23:04    file=d3e82bf6-1bb8-da9b-f270-f4e30000009d  [201933732]
+
+── Audio 4 [Mono] ────────────────────────────────────────── (61 clips)
+  [01] JB_ACAM_2310220057.MXF_03-01                        start=1:03:27:07    len=0:00:07:10    file=14c6adae-57cd-0440-b1ea-18e80000009d  [182932750]
+  [02] JB_ACAM_2310220057.MXF_04-01                        start=1:03:34:17    len=0:00:04:07    file=99160fa8-8e0e-42a6-8b87-d11d0000009d  [183289106]
+  [03] JB_ACAM_2310220057.MXF_05-01                        start=1:03:45:09    len=0:00:02:06    file=fc45fa0a-cbf9-0f39-4ac6-029a0000009d  [183801618]
+  [04] JB_ACAM_2310220057.MXF_06-01                        start=1:03:47:15    len=0:00:01:18    file=237a99d4-c029-337f-6d98-65600000009d  [183909726]
+  [05] JB_ACAM_2310220057.MXF_07-01                        start=1:03:49:09    len=0:00:03:03    file=38d02a02-eb69-3070-7d46-865e0000009d  [183993810]
+  [06] JB_ACAM_2310220057.MXF_08-01                        start=1:03:56:14    len=0:00:03:02    file=0b397947-0419-074b-6748-38250000009d  [184340156]
+  [07] JB_ACAM_2310220057.MXF_09-01                        start=1:04:02:10    len=0:00:00:15    file=e2e1b8ba-0273-1c6d-c437-f4b600000090  [184620436]
+  [08] JB_ACAM_2310220057.MXF_10-01                        start=1:04:03:01    len=0:00:00:04    file=adc15193-0219-f233-8a1f-973800000090  [184650466]
+  [09] JB_ACAM_2310220057.MXF_11-01                        start=1:04:03:05    len=0:00:00:14    file=e7c1feba-b3a3-118c-a109-a1b50000009d  [184658474]
+  [10] JB_ACAM_2310220057.MXF_12-01                        start=1:04:03:19    len=0:00:00:04    file=7dee75fa-f89d-0b4e-6aa8-de880000009d  [184686502]
+  [11] JB_ACAM_2310220057.MXF_13-01                        start=1:04:03:23    len=0:00:01:14    file=23313eab-2884-07fc-d6f3-d0040000009d  [184694510]
+  [12] JB_ACAM_2310220057.MXF_14-01                        start=1:04:08:12    len=0:00:02:12    file=35c00958-20ba-a581-a1a3-2bab00000090  [184912728]
+  [13] JB_ACAM_2310220057.MXF_15-01                        start=1:04:11:00    len=0:00:01:00    file=2e44064b-7e2c-4cab-f0d9-3b0500000090  [185032848]
+  [14] JB_ACAM_2310220057.MXF_16-01                        start=1:04:12:00    len=0:00:02:01    file=6c499172-34b1-e8f3-627a-f8bb0000009d  [185080896]
+  [15] JB_ACAM_2310220057.MXF_17-01                        start=1:04:14:01    len=0:00:01:14    file=f8ca53fc-4e9e-c761-77f8-1c280000009d  [185178994]
+  [16] JB_ACAM_2310220057.MXF_18-01                        start=1:04:15:15    len=0:00:04:14    file=631d1482-2134-c5e3-4ca5-f22d00000090  [185255070]
+  [17] JB_ACAM_2310220057.MXF_19-01                        start=1:04:20:05    len=0:00:09:01    file=a6a78e42-5d20-34b6-f86a-00da00000090  [185475290]
+  [18] JB_ACAM_2310220057.MXF_20-01                        start=1:04:29:06    len=0:00:10:20    file=0029debd-8f20-0eb0-8b92-507a0000009d  [185909724]
+  [19] JB_ACAM_2310220057.MXF_21-01                        start=1:04:40:02    len=0:00:01:02    file=13303b50-9879-99fe-08d7-e25f00000090  [186430244]
+  [20] JB_ACAM_2310220057.MXF_22-01                        start=1:04:41:04    len=0:00:00:13    file=e4dba957-4588-7f2d-c362-82bb00000090  [186482296]
+  [21] JB_ACAM_2310220057.MXF_23-01                        start=1:04:41:17    len=0:00:00:22    file=3f4f3def-fcce-66c1-f2df-50720000009d  [186508322]
+  [22] JB_ACAM_2310220057.MXF_24-01                        start=1:04:42:15    len=0:00:00:14    file=3404ed86-565b-e056-22ea-7f380000009d  [186552366]
+  [23] JB_ACAM_2310220057.MXF_25-01                        start=1:04:43:05    len=0:00:01:04    file=f44ddb86-de8e-e9c1-e5c2-ad9e00000090  [186580394]
+  [24] JB_ACAM_2310220057.MXF_26-01                        start=1:04:44:09    len=0:00:01:05    file=25f52ddd-da85-0278-bcb2-a29f00000090  [186636450]
+  [25] JB_ACAM_2310220057.MXF_27-01                        start=1:04:45:14    len=0:00:04:19    file=ed3d9c03-bbb8-9825-be11-e0e200000090  [186694508]
+  [26] JB_ACAM_2310220057.MXF_28-01                        start=1:04:50:09    len=0:00:00:19    file=eef00760-864d-8197-d330-c31800000090  [186924738]
+  [27] JB_ACAM_2310220057.MXF_29-01                        start=1:04:51:04    len=0:00:00:20    file=8c5b94af-cf18-dbb7-0b16-96b80000009d  [186962776]
+  [28] JB_ACAM_2310220057.MXF_30-01                        start=1:04:52:00    len=0:00:03:01    file=384abd64-21e3-36be-5c79-bee800000090  [187002816]
+  [29] JB_ACAM_2310220057.MXF_31-01                        start=1:04:55:01    len=0:00:02:01    file=5fa03584-1397-74f3-a860-acf700000083  [187148962]
+  [30] JB_ACAM_2310220057.MXF_32-01                        start=1:04:57:02    len=0:00:01:22    file=11338cb2-73ad-243f-4913-9d1c00000090  [187247060]
+  [31] JB_ACAM_2310220057.MXF_33-01                        start=1:04:59:00    len=0:00:00:18    file=ef2130bc-3f76-9d8c-65d3-932f0000009d  [187339152]
+  [32] JB_ACAM_2310220057.MXF_34-01                        start=1:04:59:18    len=0:00:00:11    file=43af6de1-55b6-f944-c2bd-934400000090  [187375188]
+  [33] JB_ACAM_2310220057.MXF_35-01                        start=1:05:00:05    len=0:00:02:06    file=bd7db904-3d98-4471-209c-1c6200000090  [187397210]
+  [34] JB_ACAM_2310220057.MXF_36-01                        start=1:05:02:11    len=0:00:00:14    file=2959208a-5131-426a-eaed-aa5f0000009d  [187505318]
+  [35] JB_ACAM_2310220057.MXF_37-01                        start=1:05:03:01    len=0:00:00:20    file=1d9859ed-e63d-69bd-48ed-68000000009d  [187533346]
+  [36] JB_ACAM_2310220057.MXF_38-01                        start=1:05:03:21    len=0:00:00:07    file=73af8cfd-0995-34f1-fb0f-97990000009d  [187573386]
+  [37] JB_ACAM_2310220057.MXF_39-01                        start=1:05:04:04    len=0:00:01:03    file=2d968f60-a093-a434-ca86-2c3e0000009d  [187587400]
+  [38] JB_ACAM_2310220057.MXF_40-01                        start=1:05:05:07    len=0:00:01:23    file=4dc152aa-0274-176e-1480-4fb50000009d  [187641454]
+  [39] JB_ACAM_2310220057.MXF_41-01                        start=1:05:13:02    len=0:00:01:06    file=f89e87df-61cd-d163-a5be-45690000009d  [188015828]
+  [40] JB_ACAM_2310220057.MXF_42-01                        start=1:05:14:08    len=0:00:03:17    file=43690ad2-2b55-e883-72a3-c5ab00000090  [188075888]
+  [41] JB_ACAM_2310220057.MXF_43-01                        start=1:05:18:01    len=0:00:00:18    file=d2649512-4ef3-3930-b5e6-0f5100000083  [188254066]
+  [42] JB_ACAM_2310220057.MXF_44-01                        start=1:05:18:19    len=0:00:01:04    file=244b607b-fd1a-a1b1-cb4a-57d700000083  [188290102]
+  [43] JB_ACAM_2310220057.MXF_45-01                        start=1:05:19:23    len=0:00:00:13    file=b3551b2b-a7de-b032-cf6a-4d1c00000083  [188346158]
+  [44] JB_ACAM_2310220057.MXF_46-01                        start=1:05:20:12    len=0:00:02:21    file=6d7ae723-99ff-6391-9f65-bedf00000090  [188372184]
+  [45] JB_ACAM_2310220057.MXF_47-01                        start=1:05:23:09    len=0:00:00:17    file=728c21cf-eb18-0226-68b7-e9af0000009d  [188510322]
+  [46] JB_ACAM_2310220057.MXF_48-01                        start=1:06:14:02    len=0:00:02:08    file=98f113c5-c0fc-eeaa-db29-ee780000009d  [190946756]
+  [47] JB_ACAM_2310220057.MXF_49-01                        start=1:06:17:14    len=0:00:01:19    file=535fe015-ab84-e93e-f548-c5150000009d  [191114924]
+  [48] JB_ACAM_2310220057.MXF_50-01                        start=1:06:19:09    len=0:00:00:21    file=5fa3292e-a837-234b-99d2-ef4b0000009d  [191201010]
+  [49] JB_ACAM_2310220057.MXF_51-01                        start=1:06:20:06    len=0:00:00:17    file=04e5ce8d-d6f4-4038-9f26-f41f0000009d  [191243052]
+  [50] JB_ACAM_2310220057.MXF_52-01                        start=1:06:20:23    len=0:00:01:09    file=b372555f-8827-31ff-baa5-4e950000009d  [191277086]
+  [51] JB_ACAM_2310220057.MXF_53-01                        start=1:06:22:08    len=0:00:00:17    file=ec8908c7-a145-e116-2eef-28740000009d  [191343152]
+  [52] JB_ACAM_2310220057.MXF_54-01                        start=1:06:23:01    len=0:00:01:21    file=e8e9db2d-b659-b96e-31a3-a9370000009d  [191377186]
+  [53] JB_ACAM_2310220057.MXF_55-01                        start=1:06:24:22    len=0:00:05:03    file=348ae3ef-392c-9823-68d0-1d830000009d  [191467276]
+  [54] JB_ACAM_2310220057.MXF_56-01                        start=1:06:30:01    len=0:00:00:14    file=50d8b187-ed66-70ee-f8dd-bb330000009d  [191713522]
+  [55] JB_ACAM_2310220057.MXF_57-01                        start=1:06:30:15    len=0:00:01:17    file=1d3bfa79-89cc-4110-deac-bde500000090  [191741550]
+  [56] JB_ACAM_2310220057.MXF_58-01                        start=1:06:32:08    len=0:00:04:23    file=250dfba6-7e53-8f7c-6226-729e00000090  [191823632]
+  [57] JB_ACAM_2310220057.MXF_59-01                        start=1:06:37:07    len=0:00:01:14    file=c3413ab5-6ca8-7864-f9ec-c07300000090  [192061870]
+  [58] JB_ACAM_2310220057.MXF_60-01                        start=1:06:38:21    len=0:00:01:01    file=35603647-b6c0-7fa8-b092-2efc00000090  [192137946]
+  [59] JB_ACAM_2310220057.MXF_61-01                        start=1:06:39:22    len=0:00:01:15    file=2e26c22d-b403-2db8-34c4-040300000090  [192187996]
+  [60] JB_ACAM_2310220057.MXF_62-01                        start=1:06:41:13    len=0:00:00:13    file=3819ca77-39e9-edb7-5210-eaa400000090  [192266074]
+  [61] JB_ACAM_2310220057.MXF_63-01                        start=1:06:42:02    len=0:00:01:13    file=58452dbb-a7a5-43d2-82dd-6a460000009d  [192292100]
+
+── Audio 5 [Mono] ────────────────────────────────────────── (3 clips)
+  [01] 240314_GAYLE_A0051.MXF_23-01                        start=1:02:07:19    len=0:00:04:22    file=4f09a3d1-eadd-8579-6d11-5e200000009d  [179112934]
+  [02] 240601_BR_ACAM_C1121.MXF_03-01                      start=1:09:41:08    len=0:00:10:16    file=642a8477-54e1-7671-9988-4c4d00000090  [200904704]
+  [03] 240601_BR_ACAM_C1121.MXF_04-01                      start=1:09:53:03    len=0:00:05:10    file=4f5ce601-db38-c647-47a4-e7820000009d  [201471270]
+
+── Audio 6 [Mono] ────────────────────────────────────────── (11 clips)
+  [01] 240313_GAYLE_A0031.MXF_02-01                        start=1:00:00:00    len=0:00:09:08    file=e82bf2b6-6b9d-958c-2051-4b5800000090  [172972800]
+  [02] 240313_GAYLE_A0028.MXF_11-01                        start=1:00:09:08    len=0:00:19:18    file=90281d4a-d695-d73e-2479-1aee0000009d  [173421248]
+  [03] 240314_GAYLE_A0048.MXF_06-01                        start=1:01:33:13    len=0:00:04:04    file=5b44c274-9252-86cb-683c-982800000090  [177467290]
+  [04] 240314_GAYLE_A0049.MXF_02-01                        start=1:01:37:17    len=0:00:05:23    file=3e7e978f-d785-23ed-fdb9-964e00000090  [177667490]
+  [05] 240314_GAYLE_A0055.MXF_07-01                        start=1:02:09:13    len=0:00:00:22    file=5a3a8f9d-0f61-8638-3567-235f0000009d  [179197018]
+  [06] 240314_GAYLE_A0049.MXF_03-01                        start=1:02:20:16    len=0:00:12:02    file=704f837c-611e-50b5-65fa-854f00000083  [179731552]
+  [07] 240313_GAYLE_A0033.MXF_02-01                        start=1:05:42:19    len=0:00:08:22    file=a48eca06-2c3a-6ec5-a398-75f100000083  [189443254]
+  [08] 240313_GAYLE_A0033.MXF_03-01                        start=1:05:51:17    len=0:00:03:21    file=27356c80-93d1-fe6e-e8fc-e87600000083  [189871682]
+  [09] 240313_GAYLE_A0033.MXF_04-01                        start=1:05:55:14    len=0:00:04:18    file=04decd70-a8e6-a375-2c42-8ccc00000083  [190057868]
+  [10] 240313_GAYLE_A0033.MXF_05-01                        start=1:06:00:08    len=0:00:05:13    file=fbdb37c1-9178-0ef2-9851-119100000083  [190286096]
+  [11] 240313_GAYLE_A0033.MXF_06-01                        start=1:06:05:21    len=0:00:06:16    file=1f023d15-4168-6e96-eedc-448200000083  [190552362]
+
+── Audio 7 [Mono] ────────────────────────────────────────── (1 clips)
+  [01] 240313_GAYLE_A0033.MXF_07-01                        start=1:05:55:18    len=0:00:27:14    file=e73188f8-1a67-4f0d-444d-44bd00000090  [190065876]
+
+── Audio 8 [Mono] ────────────────────────────────────────── (12 clips)
+  [01] JB_ACAM_2310220057.MXF_64-01                        start=1:02:48:00    len=0:00:05:09    file=aace9108-52e7-ac44-07f6-a4490000009d  [181044864]
+  [02] JB_ACAM_2310220057.MXF_65-01                        start=1:02:53:09    len=0:00:04:12    file=bbbf0929-e72b-2709-4f40-da5000000090  [181303122]
+  [03] JB_ACAM_2310220057.MXF_66-01                        start=1:02:57:21    len=0:00:04:14    file=78871ea5-7cf4-3279-f1bc-08b300000083  [181519338]
+  [04] JB_ACAM_2310220057.MXF_67-01                        start=1:03:02:11    len=0:00:04:04    file=1984899d-bbe0-3703-b53a-4ebb00000083  [181739558]
+  [05] JB_ACAM_2310220057.MXF_68-01                        start=1:03:06:15    len=0:00:00:09    file=0f0f372a-6533-ec62-c5d7-bf0700000083  [181939758]
+  [06] JB_ACAM_2310220057.MXF_69-01                        start=1:03:07:00    len=0:00:00:18    file=06a35266-5cc6-c086-8e90-72a100000083  [181957776]
+  [07] JB_ACAM_2310220057.MXF_70-01                        start=1:03:07:18    len=0:00:00:11    file=fc16ab4c-9c1d-b27b-b088-3b7e00000083  [181993812]
+  [08] JB_ACAM_2310220057.MXF_71-01                        start=1:03:08:05    len=0:00:00:12    file=3c285472-cf31-59d1-b00c-5e4900000083  [182015834]
+  [09] JB_ACAM_2310220057.MXF_72-01                        start=1:03:08:17    len=0:00:01:04    file=2ee0b144-f668-f8e9-a829-de4c00000083  [182039858]
+  [10] JB_ACAM_2310220057.MXF_73-01                        start=1:03:09:21    len=0:00:07:06    file=2ba6b6ef-f89c-aa67-45da-8a1a00000083  [182095914]
+  [11] JB_ACAM_2310220057.MXF_74-01                        start=1:03:17:04    len=0:00:02:08    file=d4acedb4-7153-2215-ccc1-faeb00000083  [182446264]
+  [12] 240314_GAYLE_A0049.MXF_04-01                        start=1:09:29:16    len=0:00:05:21    file=05c5776c-45ba-061c-3d13-923d0000009d  [200344144]
+
+── Audio 1_L [Mono] ──────────────────────────────────────── (1 clips)
+  [01] Bars and Tone - Rec 709_L-01                        start=0:59:58:00    len=0:00:00:02    file=4173480c-34e5-a5ce-79be-d3d60000007b  [172876704]
+
+── Audio 1_R [Mono] ──────────────────────────────────────── (1 clips)
+  [01] Bars and Tone - Rec 709_R-01                        start=0:59:58:00    len=0:00:00:02    file=aec90cc9-2d9e-bac2-10cc-5b250000007b  [172876704]
+
+── Audio 4_L [Mono] ──────────────────────────────────────── (5 clips)
+  [01] 546869__takkyi__atm-int-wind-howl-cold-winter-11-s  start=1:08:05:06    len=0:00:12:04    file=dbd206b5-ada5-b455-bdc9-15d40000009d  [196288092]
+  [02] 546869__takkyi__atm-int-wind-howl-cold-winter-11-s  start=1:08:17:10    len=0:00:14:06    file=cfac204a-1583-ea32-600a-5f720000009d  [196872676]
+  [03] 546869__takkyi__atm-int-wind-howl-cold-winter-11-s  start=1:08:31:16    len=0:00:20:18    file=07feda3f-d533-b4c7-7886-b86b0000009d  [197557360]
+  [04] 204845__timkahn__seaside-cove-waves.wav_L-01        start=1:08:59:13    len=0:00:51:09    file=19cc485e-4a37-213d-6c50-8e6e00000090  [198896698]
+  [05] 204845__timkahn__seaside-cove-waves.wav_L_01-01     start=1:09:50:22    len=0:01:03:09    file=0e639ab0-0b5f-2c55-acc5-2aaf00000090  [201365164]
+
+── Audio 4_R [Mono] ──────────────────────────────────────── (5 clips)
+  [01] 546869__takkyi__atm-int-wind-howl-cold-winter-11-s  start=1:08:05:06    len=0:00:12:04    file=a5bf4648-6968-e709-c72c-4a5c0000009d  [196288092]
+  [02] 546869__takkyi__atm-int-wind-howl-cold-winter-11-s  start=1:08:17:10    len=0:00:14:06    file=a2fa80e6-77e0-36d6-2df4-659e0000009d  [196872676]
+  [03] 546869__takkyi__atm-int-wind-howl-cold-winter-11-s  start=1:08:31:16    len=0:00:20:18    file=bf28b121-0cd4-b101-1590-24fe0000009d  [197557360]
+  [04] 204845__timkahn__seaside-cove-waves.wav_R-01        start=1:08:59:13    len=0:00:51:09    file=2432f1da-a920-22dc-fa52-febe00000090  [198896698]
+  [05] 204845__timkahn__seaside-cove-waves.wav_R_01-01     start=1:09:50:22    len=0:01:03:09    file=a0d26c4e-5068-678e-86de-95fd00000090  [201365164]
+
+── Audio 5_L [Mono] ──────────────────────────────────────── (4 clips)
+  [01] Light Marimba.wav_L-01                              start=1:00:18:21    len=0:00:48:12    file=f6baabd6-79e9-6373-810f-bff300000090  [173879706]
+  [02] Light Marimba.wav_L_01-01                           start=1:01:07:09    len=0:00:04:02    file=c17499b5-6357-bd61-c5c3-936200000083  [176210034]
+  [03] Light Marimba.wav_L_02-01                           start=1:01:11:11    len=0:00:07:19    file=11e4c919-3f98-b4fc-4078-77fb00000090  [176406230]
+  [04] Light Marimba.wav_L_03-01                           start=1:01:19:06    len=0:00:05:18    file=5d18145e-9e4b-b05b-037b-abef0000009d  [176780604]
+
+── Audio 5_R [Mono] ──────────────────────────────────────── (4 clips)
+  [01] Light Marimba.wav_R-01                              start=1:00:18:21    len=0:00:48:12    file=d85b653f-c480-60ef-4461-014900000090  [173879706]
+  [02] Light Marimba.wav_R_01-01                           start=1:01:07:09    len=0:00:04:02    file=e9be1699-3b73-df89-8956-79c700000083  [176210034]
+  [03] Light Marimba.wav_R_02-01                           start=1:01:11:11    len=0:00:07:19    file=5301fd5f-c574-8e00-2887-625400000090  [176406230]
+  [04] Light Marimba.wav_R_03-01                           start=1:01:19:06    len=0:00:05:18    file=155ce476-55b4-9ef1-d53a-bcbd0000009d  [176780604]
+
+── Audio 6_L [Mono] ──────────────────────────────────────── (1 clips)
+  [01] Cymbal Scape.wav_L-01                               start=1:07:56:18    len=0:03:07:14    file=a4c9fe0b-c75e-a15c-19bb-51df00000090  [195879684]
+
+── Audio 6_R [Mono] ──────────────────────────────────────── (1 clips)
+  [01] Cymbal Scape.wav_R-01                               start=1:07:56:18    len=0:03:07:14    file=994fbc54-8b55-13a8-3cfc-72a500000090  [195879684]
+
+── Audio 7_L [Mono] ──────────────────────────────────────── (2 clips)
+  [01] The Wind.wav_L-01                                   start=1:07:43:09    len=0:00:14:05    file=a1db6785-a5d9-e57b-e144-cf6d00000090  [195237042]
+  [02] Landscape 1.wav_L-01                                start=1:08:35:20    len=0:02:33:13    file=924d0c80-ba66-f72d-4856-19b200000090  [197757560]
+
+── Audio 7_R [Mono] ──────────────────────────────────────── (2 clips)
+  [01] The Wind.wav_R-01                                   start=1:07:43:09    len=0:00:14:05    file=f4a2b40a-5af3-97dc-e2e4-455d00000090  [195237042]
+  [02] Landscape 1.wav_R-01                                start=1:08:35:20    len=0:02:33:13    file=628385f5-c504-0fa7-4c3c-996900000090  [197757560]
+
+── Audio 8_L [Mono] ──────────────────────────────────────── (3 clips)
+  [01] The Wind.wav_L_01-01                                start=1:07:53:06    len=0:00:50:13    file=b5f05d86-fc8f-39b4-eead-f2e600000090  [195711516]
+  [02] Landscape 1.wav_L_01-01                             start=1:10:39:02    len=0:00:45:07    file=0b19e606-5fa0-11a2-5d45-aa5500000090  [203679476]
+  [03] Landscape 1.wav_L_02-01                             start=1:11:24:09    len=0:00:23:17    file=1ea90e33-a743-861f-8df4-fcff0000009d  [205855650]
+
+── Audio 8_R [Mono] ──────────────────────────────────────── (3 clips)
+  [01] The Wind.wav_R_01-01                                start=1:07:53:06    len=0:00:50:13    file=26723b1c-e0ec-a2e1-606c-3aed00000090  [195711516]
+  [02] Landscape 1.wav_R_01-01                             start=1:10:39:02    len=0:00:45:07    file=ce1fe635-b581-6413-6226-6bc700000090  [203679476]
+  [03] Landscape 1.wav_R_02-01                             start=1:11:24:09    len=0:00:23:17    file=bb2e5af9-ef6e-268c-deb7-60d70000009d  [205855650]
+
+── Audio 9_L [Mono] ──────────────────────────────────────── (4 clips)
+  [01] Light Marimba.wav_L_04-01                           start=1:02:18:08    len=0:01:16:09    file=a0fc3bf9-dbf7-0fc4-2830-7f1e00000090  [179619440]
+  [02] Light Marimba.wav_L_05-01                           start=1:03:34:17    len=0:00:42:04    file=53d00b78-ff32-9f21-ded4-ef8d00000083  [183289106]
+  [03] Light Marimba.wav_L_06-01                           start=1:04:59:18    len=0:00:58:15    file=d908840d-d436-93f2-3883-2f2a00000090  [187375188]
+  [04] Light Marimba.wav_L_07-01                           start=1:06:36:05    len=0:01:59:14    file=0c3d06fd-c17b-1729-65ba-817700000083  [192009818]
+
+── Audio 9_R [Mono] ──────────────────────────────────────── (4 clips)
+  [01] Light Marimba.wav_R_04-01                           start=1:02:18:08    len=0:01:16:09    file=44e634cb-e66d-639a-f5e7-c9f200000090  [179619440]
+  [02] Light Marimba.wav_R_05-01                           start=1:03:34:17    len=0:00:42:04    file=c01242f6-1b4c-7299-49f5-22c200000083  [183289106]
+  [03] Light Marimba.wav_R_06-01                           start=1:04:59:18    len=0:00:58:15    file=113e6e0c-62f8-b28b-cae9-c2de00000090  [187375188]
+  [04] Light Marimba.wav_R_07-01                           start=1:06:36:05    len=0:01:59:14    file=b9edcec5-1aaa-5f2b-80af-118000000083  [192009818]
+
+── Audio 10_L [Mono] ─────────────────────────────────────── (1 clips)
+  [01] 677795__klankbeeld__storm-wind-in-trees-1659-16022  start=1:08:17:10    len=0:00:58:20    file=1768a953-945a-603e-74ac-9b1c0000009d  [196872676]
+
+── Audio 10_R [Mono] ─────────────────────────────────────── (1 clips)
+  [01] 677795__klankbeeld__storm-wind-in-trees-1659-16022  start=1:08:17:10    len=0:00:58:20    file=e8f6c045-bc8f-5a0d-38f6-9e1c0000009d  [196872676]
