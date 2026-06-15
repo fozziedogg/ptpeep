@@ -26,6 +26,13 @@ struct PTPeepApp: App {
                 .frame(minWidth: 480, minHeight: 320)
         }
 
+        // Video window — picture reference, follows the active tab.
+        Window("Video", id: "videoWindow") {
+            VideoWindow()
+                .environmentObject(appState)
+                .frame(minWidth: 360, minHeight: 240)
+        }
+
         Settings {
             SettingsView()
         }
@@ -335,6 +342,28 @@ final class AppState: ObservableObject {
     /// Existing model only (no creation) — used by the detached floating window.
     func existingAudioModel(for tabID: UUID) -> AudioFilesModel? { audioModels[tabID] }
 
+    // Per-tab Video window model (picture reference).
+    private var videoModels: [UUID: VideoPlayerModel] = [:]
+
+    func videoModel(for tabID: UUID, session: PTXSession, sessionURL: URL) -> VideoPlayerModel {
+        if let m = videoModels[tabID] { return m }
+        let m = VideoPlayerModel(tabID: tabID, session: session, sessionURL: sessionURL)
+        videoModels[tabID] = m
+        return m
+    }
+
+    /// The Video model for the currently-selected session (creates lazily). The
+    /// floating Video window uses this so it follows the active tab.
+    func activeVideoModel() -> VideoPlayerModel? {
+        guard let id = selectedTabID,
+              let tab = tabs.first(where: { $0.id == id }),
+              let session = tab.session, let url = tab.sessionURL else { return nil }
+        return videoModel(for: id, session: session, sessionURL: url)
+    }
+
+    /// Global: the Video window is open.
+    @Published var videoWindowDetached: Bool = false
+
     /// The Audio Files pane for the currently-selected session (creates lazily).
     /// The detached window uses this so it follows the active tab.
     func activeAudioModel() -> AudioFilesModel? {
@@ -352,6 +381,7 @@ final class AppState: ObservableObject {
         openTasks[id]?.cancel()
         openTasks[id] = nil
         audioModels[id] = nil
+        videoModels[id] = nil
         tabs.remove(at: idx)
         if tabs.isEmpty {
             selectedTabID = nil
@@ -365,6 +395,7 @@ final class AppState: ObservableObject {
         for id in tabs.map(\.id) { openTasks[id]?.cancel() }
         openTasks.removeAll()
         audioModels.removeAll()
+        videoModels.removeAll()
         tabs.removeAll()
         selectedTabID = nil
         updateWindowTitle()
@@ -526,6 +557,11 @@ struct AppContentView: View {
                 onDetach:             {
                     appState.audioPaneDetached = true
                     openWindow(id: "audioFilesWindow")
+                },
+                videoModel:           appState.videoModel(for: tab.id, session: session, sessionURL: url),
+                onOpenVideo:          {
+                    appState.videoWindowDetached = true
+                    openWindow(id: "videoWindow")
                 },
                 isResolvingFiles:     tab.isResolvingFiles,
                 initialViewState:     tab.viewState,

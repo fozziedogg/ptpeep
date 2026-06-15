@@ -48,6 +48,8 @@ struct SessionInspectorView: View {
     /// Audio Files tab while true.
     var audioPaneDetached: Bool = false
     var onDetach: (() -> Void)? = nil
+    @ObservedObject var videoModel: VideoPlayerModel
+    var onOpenVideo: (() -> Void)? = nil
     var isResolvingFiles: Bool = false
     var initialViewState:     TabViewState = TabViewState()
     var onViewStateChanged:   ((TabViewState) -> Void)? = nil
@@ -146,6 +148,13 @@ struct SessionInspectorView: View {
             profilesRaw = MetadataProfileStore.encode(list)
         }
     }
+    /// Mirror the timeline cursor (absolute samples) into the video model so the
+    /// detached Video window can follow it.
+    private func updateVideoCursor() {
+        let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
+        videoModel.cursorSample = Int64((tc.selStart ?? 0) * total)
+    }
+
     private func updateHighlightedFiles() {
         guard followClipSelection else { return }
         let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
@@ -379,7 +388,7 @@ struct SessionInspectorView: View {
         .onChange(of: activeProfileIDRaw) { _ in syncColumnsFromActiveProfile() }
         .onChange(of: profilesRaw)        { _ in syncColumnsFromActiveProfile() }
         .onChange(of: bwfFieldsRaw)       { _ in writeColumnsToActiveProfile() }
-        .onChange(of: tc.selStart) { _ in updateHighlightedFiles() }
+        .onChange(of: tc.selStart) { _ in updateHighlightedFiles(); updateVideoCursor() }
         .onChange(of: tc.selTrack) { _ in updateHighlightedFiles() }
         .onChange(of: tc.selEnd)   { _ in updateHighlightedFiles() }
         .onDisappear {
@@ -444,6 +453,17 @@ struct SessionInspectorView: View {
             }
 
             Spacer()
+
+            if let openVideo = onOpenVideo,
+               session.tracks.contains(where: { $0.type == .video && !$0.clips.isEmpty }) {
+                Button(action: openVideo) {
+                    Label("Video", systemImage: "film")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Open the picture in a floating video window")
+            }
 
             if let rescan = onRescan {
                 Button(action: rescan) {
