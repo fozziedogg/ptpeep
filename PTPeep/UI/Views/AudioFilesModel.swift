@@ -15,9 +15,6 @@ final class AudioFilesModel: ObservableObject {
     @Published var bwfCache: [String: BWFMetadata] = [:]
     @Published var isLoading: Bool = false
     @Published var highlightedFiles: Set<String> = []
-    /// True while the pane is popped out into the floating window (the inline
-    /// tab hides itself).
-    @Published var isDetached: Bool = false
 
     init(tabID: UUID, session: PTXSession) {
         self.tabID = tabID

@@ -43,8 +43,11 @@ struct TabViewState {
 struct SessionInspectorView: View {
     let session: PTXSession
     let sessionURL: URL
-    let tabID: UUID
     @ObservedObject var audioModel: AudioFilesModel
+    /// Global "pane is popped out" flag (owned by AppState). Hides the inline
+    /// Audio Files tab while true.
+    var audioPaneDetached: Bool = false
+    var onDetach: (() -> Void)? = nil
     var isResolvingFiles: Bool = false
     var initialViewState:     TabViewState = TabViewState()
     var onViewStateChanged:   ((TabViewState) -> Void)? = nil
@@ -86,7 +89,6 @@ struct SessionInspectorView: View {
     @AppStorage("bwf.activeProfileID")  private var activeProfileIDRaw: String = ""
     @AppStorage("af.followSelection")   private var followClipSelection: Bool = true
     @State private var showAFOptions: Bool = false
-    @Environment(\.openWindow) private var openWindow
 
     private var bwfSelectedFields: [BWFFieldKey] {
         bwfFieldsRaw.split(separator: ",").compactMap { BWFFieldKey(rawValue: String($0)) }
@@ -204,7 +206,7 @@ struct SessionInspectorView: View {
 
     /// Audio Files tab is hidden from the bar while the pane is detached.
     private var visibleDetailTabs: [DetailTab] {
-        DetailTab.allCases.filter { $0 != .audioFiles || !audioModel.isDetached }
+        DetailTab.allCases.filter { $0 != .audioFiles || !audioPaneDetached }
     }
     @ObservedObject private var pluginScanner = PluginScanner.shared
     @StateObject private var tc = TimelineController()
@@ -291,10 +293,7 @@ struct SessionInspectorView: View {
                         highlightedFiles: audioModel.highlightedFiles,
                         isBWFLoading: audioModel.isLoading,
                         onClearFilter: { audioModel.highlightedFiles.removeAll() },
-                        onDetach: {
-                            audioModel.isDetached = true
-                            openWindow(id: "audioFilesWindow", value: tabID)
-                        },
+                        onDetach: onDetach,
                         followClipSelection: $followClipSelection,
                         bwfFieldsRaw: $bwfFieldsRaw
                     ))
@@ -367,9 +366,14 @@ struct SessionInspectorView: View {
         .task(id: session.resolvedAudioFiles.count) {
             audioModel.updateResolved(session.resolvedAudioFiles)
         }
-        // If the Audio Files tab is detached while selected, fall back to Tracks.
-        .onChange(of: audioModel.isDetached) { detached in
-            if detached, selectedDetailTab == .audioFiles { selectedDetailTab = .tracks }
+        // Detaching hides the Audio Files tab (fall back to Tracks); reattaching
+        // (window closed/re-docked) brings it back and re-selects it.
+        .onChange(of: audioPaneDetached) { detached in
+            if detached {
+                if selectedDetailTab == .audioFiles { selectedDetailTab = .tracks }
+            } else {
+                selectedDetailTab = .audioFiles
+            }
         }
         // Metadata profile ⇄ live columns sync (all guarded by equality → no loop)
         .onChange(of: activeProfileIDRaw) { _ in syncColumnsFromActiveProfile() }

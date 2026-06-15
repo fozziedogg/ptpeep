@@ -19,9 +19,9 @@ struct PTPeepApp: App {
                     appState.open(url: url)
                 }
         }
-        // Detached Audio Files pane — one window per tab id.
-        WindowGroup(id: "audioFilesWindow", for: UUID.self) { $tabID in
-            AudioFilesWindow(tabID: tabID)
+        // Detached Audio Files pane — a single window that follows the active tab.
+        Window("Audio Files", id: "audioFilesWindow") {
+            AudioFilesWindow()
                 .environmentObject(appState)
                 .frame(minWidth: 480, minHeight: 320)
         }
@@ -335,6 +335,18 @@ final class AppState: ObservableObject {
     /// Existing model only (no creation) — used by the detached floating window.
     func existingAudioModel(for tabID: UUID) -> AudioFilesModel? { audioModels[tabID] }
 
+    /// The Audio Files pane for the currently-selected session (creates lazily).
+    /// The detached window uses this so it follows the active tab.
+    func activeAudioModel() -> AudioFilesModel? {
+        guard let id = selectedTabID,
+              let session = tabs.first(where: { $0.id == id })?.session else { return nil }
+        return audioModel(for: id, session: session)
+    }
+
+    /// Global: the Audio Files pane is popped out into the floating window. The
+    /// active session's inline tab hides while this is true.
+    @Published var audioPaneDetached: Bool = false
+
     func closeTab(id: UUID) {
         guard let idx = tabs.firstIndex(where: { $0.id == id }) else { return }
         openTasks[id]?.cancel()
@@ -473,6 +485,7 @@ final class AppState: ObservableObject {
 struct AppContentView: View {
     @EnvironmentObject var appState: AppState
     @AppStorage("colorMode") private var colorMode: ColorMode = .dark
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(spacing: 0) {
@@ -508,8 +521,12 @@ struct AppContentView: View {
             SessionInspectorView(
                 session:              session,
                 sessionURL:           url,
-                tabID:                tab.id,
                 audioModel:           appState.audioModel(for: tab.id, session: session),
+                audioPaneDetached:    appState.audioPaneDetached,
+                onDetach:             {
+                    appState.audioPaneDetached = true
+                    openWindow(id: "audioFilesWindow")
+                },
                 isResolvingFiles:     tab.isResolvingFiles,
                 initialViewState:     tab.viewState,
                 onViewStateChanged:   { state in appState.saveTabViewState(tabID: tab.id, state: state) },

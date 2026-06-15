@@ -1,31 +1,38 @@
 import SwiftUI
 
-/// Root of the detached Audio Files floating window. Resolves the per-tab
-/// `AudioFilesModel` from `AppState` and renders the shared table against it,
-/// so the window stays live-synced with the main session.
+/// Root of the detached Audio Files floating window. Follows the active session
+/// (selected tab) and mirrors the main window's color mode. Closing it clears
+/// the global detached flag, so the inline pane reattaches.
 struct AudioFilesWindow: View {
-    let tabID: UUID?
     @EnvironmentObject private var appState: AppState
+    @AppStorage("colorMode") private var colorMode: ColorMode = .dark
 
     var body: some View {
-        if let tabID, let model = appState.existingAudioModel(for: tabID) {
-            AudioFilesWindowContent(model: model)
-        } else {
-            VStack(spacing: 8) {
-                Image(systemName: "macwindow")
-                    .font(.system(size: 28))
-                    .foregroundStyle(.tertiary)
-                Text("Session closed")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+        ZStack {
+            if let model = appState.activeAudioModel() {
+                AudioFilesWindowContent(model: model)
+                    .id(appState.selectedTabID)   // re-init when the session switches
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "macwindow")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.tertiary)
+                    Text("No session open")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .preferredColorScheme(colorMode.colorScheme)
+        // Closing the window reattaches the pane to the main window.
+        .onDisappear { appState.audioPaneDetached = false }
     }
 }
 
 private struct AudioFilesWindowContent: View {
     @ObservedObject var model: AudioFilesModel
+    @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage("bwf.selectedFields") private var bwfFieldsRaw: String =
@@ -70,12 +77,10 @@ private struct AudioFilesWindowContent: View {
                 bwfFieldsRaw: $bwfFieldsRaw
             )
         }
-        // Closing the window (or Re-dock) restores the inline tab.
-        .onDisappear { model.isDetached = false }
     }
 
     private func redock() {
-        model.isDetached = false
+        appState.audioPaneDetached = false
         dismiss()
     }
 }
