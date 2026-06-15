@@ -11,6 +11,8 @@
 		39515987293229C2DD29FE03 /* SessionInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */; };
 		AF01TB02AF01TB02AF01TB02 /* AudioFilesTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */; };
 		PS01TB02PS01TB02PS01TB02 /* ProfilesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS01TB01PS01TB01PS01TB01 /* ProfilesSettingsView.swift */; };
+		VW01TB02VW01TB02VW01TB02 /* VideoWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */; };
+		WC01TB02WC01TB02WC01TB02 /* WindowCloseObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = WC01TB01WC01TB01WC01TB01 /* WindowCloseObserver.swift */; };
 		AW01TB02AW01TB02AW01TB02 /* AudioFilesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AW01TB01AW01TB01AW01TB01 /* AudioFilesWindow.swift */; };
 		AM01TB02AM01TB02AM01TB02 /* AudioFilesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */; };
 		AF01TB03AF01TB03AF01TB03 /* AudioFilesTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */; };
@@ -50,6 +52,8 @@
 		BF000002BF000002BF000002 /* BWFParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF000000BF000000BF000000 /* BWFParser.swift */; };
 		MP000001MP000001MP000001 /* MetadataProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = MP000000MP000000MP000000 /* MetadataProfile.swift */; };
 		MP000002MP000002MP000002 /* MetadataProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = MP000000MP000000MP000000 /* MetadataProfile.swift */; };
+		VM01TB02VM01TB02VM01TB02 /* VideoPlayerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM01TB01VM01TB01VM01TB01 /* VideoPlayerModel.swift */; };
+		VM01TB03VM01TB03VM01TB03 /* VideoPlayerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM01TB01VM01TB01VM01TB01 /* VideoPlayerModel.swift */; };
 		AM01TB03AM01TB03AM01TB03 /* AudioFilesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */; };
 		B02452675BFE6D1BA8A2228C /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
 		F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */; };
@@ -83,6 +87,7 @@
 		4B29D7A6E14B870EF3F9366B /* PTXParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXParser.swift; sourceTree = "<group>"; };
 		BF000000BF000000BF000000 /* BWFParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BWFParser.swift; sourceTree = "<group>"; };
 		MP000000MP000000MP000000 /* MetadataProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataProfile.swift; sourceTree = "<group>"; };
+		VM01TB01VM01TB01VM01TB01 /* VideoPlayerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerModel.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXBlockDecoder.swift; sourceTree = "<group>"; };
 		61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeepQLExtension.swift; sourceTree = "<group>"; };
 		DD22EE33FF44AA55BB666601 /* PTPeepQL.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PTPeepQL.entitlements; sourceTree = "<group>"; };
@@ -91,6 +96,8 @@
 		7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionInspectorView.swift; sourceTree = "<group>"; };
 		AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilesTableView.swift; sourceTree = "<group>"; };
 		PS01TB01PS01TB01PS01TB01 /* ProfilesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesSettingsView.swift; sourceTree = "<group>"; };
+		VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoWindow.swift; sourceTree = "<group>"; };
+		WC01TB01WC01TB01WC01TB01 /* WindowCloseObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCloseObserver.swift; sourceTree = "<group>"; };
 		AW01TB01AW01TB01AW01TB01 /* AudioFilesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilesWindow.swift; sourceTree = "<group>"; };
 		AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilesModel.swift; sourceTree = "<group>"; };
 		TR01TB01TR01TB01TR01TB01 /* TracksTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracksTabView.swift; sourceTree = "<group>"; };
@@ -149,6 +156,7 @@
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */,
 				BF000000BF000000BF000000 /* BWFParser.swift */,
 				MP000000MP000000MP000000 /* MetadataProfile.swift */,
+				VM01TB01VM01TB01VM01TB01 /* VideoPlayerModel.swift */,
 			);
 			name = Parser;
 			path = PTPeep/Parser;
@@ -169,6 +177,8 @@
 				7F200A0750C8C87E8FE32665 /* SessionInspectorView.swift */,
 				AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */,
 				PS01TB01PS01TB01PS01TB01 /* ProfilesSettingsView.swift */,
+				VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */,
+				WC01TB01WC01TB01WC01TB01 /* WindowCloseObserver.swift */,
 				AW01TB01AW01TB01AW01TB01 /* AudioFilesWindow.swift */,
 				AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */,
 				TR01TB01TR01TB01TR01TB01 /* TracksTabView.swift */,
@@ -345,12 +355,15 @@
 				3BC7416C87299656BD1B339E /* SessionInspectorView.swift in Sources */,
 				AF01TB02AF01TB02AF01TB02 /* AudioFilesTableView.swift in Sources */,
 				PS01TB02PS01TB02PS01TB02 /* ProfilesSettingsView.swift in Sources */,
+				VW01TB02VW01TB02VW01TB02 /* VideoWindow.swift in Sources */,
+				WC01TB02WC01TB02WC01TB02 /* WindowCloseObserver.swift in Sources */,
 				AW01TB02AW01TB02AW01TB02 /* AudioFilesWindow.swift in Sources */,
 				AM01TB02AM01TB02AM01TB02 /* AudioFilesModel.swift in Sources */,
 				TR01TB02TR01TB02TR01TB02 /* TracksTabView.swift in Sources */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* PTXBlockDecoder.swift in Sources */,
 				BF000001BF000001BF000001 /* BWFParser.swift in Sources */,
 				MP000001MP000001MP000001 /* MetadataProfile.swift in Sources */,
+				VM01TB02VM01TB02VM01TB02 /* VideoPlayerModel.swift in Sources */,
 				AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */,
 				BB00CC11DD22EE33FF445511 /* AppLog.swift in Sources */,
 				BB00CC11DD22EE33FF445513 /* PluginScanner.swift in Sources */,
@@ -378,6 +391,7 @@
 				C1D2E3F4A5B6C7D8E9F0A1B2 /* PTXBlockDecoder.swift in Sources */,
 				BF000002BF000002BF000002 /* BWFParser.swift in Sources */,
 				MP000002MP000002MP000002 /* MetadataProfile.swift in Sources */,
+				VM01TB03VM01TB03VM01TB03 /* VideoPlayerModel.swift in Sources */,
 				AM01TB03AM01TB03AM01TB03 /* AudioFilesModel.swift in Sources */,
 				AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */,
 				BB00CC11DD22EE33FF445512 /* AppLog.swift in Sources */,
