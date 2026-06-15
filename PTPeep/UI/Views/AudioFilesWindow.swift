@@ -25,8 +25,48 @@ struct AudioFilesWindow: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .preferredColorScheme(colorMode.colorScheme)
-        // Closing the window reattaches the pane to the main window.
-        .onDisappear { appState.audioPaneDetached = false }
+        // Closing the window reattaches the pane. SwiftUI's onDisappear is
+        // unreliable for window close, so observe the NSWindow directly.
+        .background(WindowCloseObserver { appState.audioPaneDetached = false })
+    }
+}
+
+/// Invokes `onClose` when the hosting NSWindow actually closes — reliable where
+/// SwiftUI's `.onDisappear` is not for `Window` scenes.
+private struct WindowCloseObserver: NSViewRepresentable {
+    let onClose: @MainActor () -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        let onClose = self.onClose
+        DispatchQueue.main.async { [weak view] in
+            guard let window = view?.window else { return }
+            context.coordinator.observe(window, onClose: onClose)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    @MainActor
+    final class Coordinator {
+        private var token: NSObjectProtocol?
+        func observe(_ window: NSWindow, onClose: @escaping @MainActor () -> Void) {
+            guard token == nil else { return }
+            token = NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification, object: window, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    onClose()
+                    // One-shot: remove the observer after the window closes.
+                    if let self, let token = self.token {
+                        NotificationCenter.default.removeObserver(token)
+                        self.token = nil
+                    }
+                }
+            }
+        }
     }
 }
 
