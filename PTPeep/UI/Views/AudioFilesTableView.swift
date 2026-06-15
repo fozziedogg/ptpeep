@@ -271,30 +271,6 @@ struct AudioFilesTableView: View {
                         }
                     }
                 }
-                .overlay(alignment: .topTrailing) {
-                    HStack(spacing: 10) {
-                        if let onDetach {
-                            Button(action: onDetach) {
-                                Image(systemName: "macwindow.on.rectangle")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .help("Pop out into a floating window")
-                        }
-                        Button { showOptions = true } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                        .popover(isPresented: $showOptions, arrowEdge: .bottom) {
-                            audioFilesOptionsPopover
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                }
             }
         }
         .onChange(of: bwfCache.count) { _ in rebuildAutoWidths() }
@@ -387,6 +363,26 @@ struct AudioFilesTableView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+            }
+
+            // Trailing controls live in the header row (not floating over columns)
+            if let onDetach {
+                Button(action: onDetach) {
+                    Image(systemName: "macwindow.on.rectangle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Pop out into a floating window")
+            }
+            Button { showOptions = true } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showOptions, arrowEdge: .bottom) {
+                audioFilesOptionsPopover
             }
         }
         .padding(.horizontal, 12)
