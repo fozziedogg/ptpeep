@@ -11,7 +11,7 @@ final class LibavFrameCache: @unchecked Sendable {
     var totalFrames: Int { decoder.totalFrames }
     var fps: Double { decoder.fps }
 
-    private var cache: [Int: CVPixelBuffer] = [:]
+    private var cache: [Int: CMSampleBuffer] = [:]
     private let cacheLock = NSLock()
     private let baseCacheRadius = 30          // ±30 frames ≈ ±1.25 s at 24 fps
     var speedMultiplier: Double = 1.0          // widen the window during fast shuttle
@@ -29,27 +29,26 @@ final class LibavFrameCache: @unchecked Sendable {
     private func release() { cacheLock.unlock() }
 
     /// Blocking: exact hit → return; miss → decode inline (~1.6 ms), insert, evict, prefetch.
-    func frame(at index: Int) -> CVPixelBuffer? {
+    func frame(at index: Int) -> CMSampleBuffer? {
         acquire()
-        if let pb = cache[index] { release(); triggerPrefetch(around: index); return pb }
+        if let sb = cache[index] { release(); triggerPrefetch(around: index); return sb }
         release()
 
-        guard let sb = decoder.decodeSample(at: index),
-              let pb = CMSampleBufferGetImageBuffer(sb) else { return nil }
-        acquire(); cache[index] = pb; evictLocked(around: index); release()
+        guard let sb = decoder.decodeSample(at: index) else { return nil }
+        acquire(); cache[index] = sb; evictLocked(around: index); release()
         triggerPrefetch(around: index)
-        return pb
+        return sb
     }
 
     /// Non-blocking motion path: exact hit → return; else nearest cached frame within a small
     /// radius (behind-first, since forward motion keeps recent frames); else decode inline.
-    func cachedFrame(at index: Int) -> CVPixelBuffer? {
+    func cachedFrame(at index: Int) -> CMSampleBuffer? {
         acquire()
-        if let pb = cache[index] { release(); triggerPrefetch(around: index); return pb }
-        var nearest: CVPixelBuffer?
+        if let sb = cache[index] { release(); triggerPrefetch(around: index); return sb }
+        var nearest: CMSampleBuffer?
         for d in 1...8 {
-            if let pb = cache[index - d] { nearest = pb; break }
-            if let pb = cache[index + d] { nearest = pb; break }
+            if let sb = cache[index - d] { nearest = sb; break }
+            if let sb = cache[index + d] { nearest = sb; break }
         }
         release()
         triggerPrefetch(around: index)
@@ -86,9 +85,8 @@ final class LibavFrameCache: @unchecked Sendable {
                 if self.prefetchGeneration != gen { self.prefetchInFlight = false; self.release(); return }
                 let already = self.cache[i] != nil
                 self.release()
-                if !already, let sb = self.decoder.decodeSample(at: i),
-                   let pb = CMSampleBufferGetImageBuffer(sb) {
-                    self.acquire(); self.cache[i] = pb; self.release()
+                if !already, let sb = self.decoder.decodeSample(at: i) {
+                    self.acquire(); self.cache[i] = sb; self.release()
                 }
                 i += 1
             }
