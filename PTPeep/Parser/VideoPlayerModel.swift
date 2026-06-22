@@ -91,15 +91,18 @@ final class VideoPlayerModel: ObservableObject {
     /// AVFoundation couldn't decode the file. Try the bundled fallback if available;
     /// otherwise (Quick Look, or the fallback also failed) surface codec-aware guidance.
     private func handleDecodeFailure(fourCC: String?) {
+        let codec = fourCC ?? "unknown"
         if backend is AVFoundationBackend,
            let make = Self.makeFallbackBackend,
            let url = videoURL {
+            AppLog.shared.log("[Video] AVFoundation can't decode \(codec); routing to VLCKit fallback")
             let fb = make(url)
             configure(fb)
             backend = fb
             fb.load(url: url)
             return
         }
+        AppLog.shared.log("[Video] No decoder for \(codec) (fallback unavailable or also failed)")
         loadError = Self.message(forFourCC: fourCC)
     }
 

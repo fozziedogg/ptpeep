@@ -12,6 +12,8 @@ final class VLCBackend: NSObject, VideoBackend {
     private let url: URL
     private let delegateShim = PlayerDelegate()
     private var view: NSView?
+    private var pendingURL: URL?
+    private var started = false
     private var didReportReady = false
     private var didReportLength = false
 
@@ -31,6 +33,17 @@ final class VLCBackend: NSObject, VideoBackend {
 
     func load(url: URL) {
         player.media = VLCMedia(url: url)
+        pendingURL = url
+        started = false
+        // VLC needs a drawable to render into. If the surface already exists, start now;
+        // otherwise defer to makeView() (the common path: the model swaps to this backend
+        // and calls load() before SwiftUI creates the surface).
+        if view != nil { startIfNeeded() }
+    }
+
+    private func startIfNeeded() {
+        guard view != nil, pendingURL != nil, !started else { return }
+        started = true
         // Start decoding so the first frame renders and length becomes known; we pause
         // once it's ready (the model treats the window as paused / locked to the cursor).
         player.play()
@@ -49,6 +62,7 @@ final class VLCBackend: NSObject, VideoBackend {
         v.layer?.backgroundColor = NSColor.black.cgColor
         player.drawable = v
         view = v
+        startIfNeeded()   // surface now exists — begin playback if load() was already called
         return v
     }
 
@@ -61,6 +75,7 @@ final class VLCBackend: NSObject, VideoBackend {
     fileprivate func handleStateChanged() {
         switch player.state {
         case .error:
+            AppLog.shared.log("[Video] VLC playback error for \(url.lastPathComponent)")
             if !didReportReady { didReportReady = true; onFail?(nil) }
         case .playing, .buffering, .esAdded:
             reportReadyIfNeeded()

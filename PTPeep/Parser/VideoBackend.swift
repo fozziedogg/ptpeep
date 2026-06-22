@@ -59,6 +59,7 @@ final class AVFoundationBackend: VideoBackend {
             await MainActor.run {
                 guard let self else { return }
                 if decodable {
+                    AppLog.shared.log("[Video] AVFoundation decoding \(fourCC ?? "?") (\(url.lastPathComponent))")
                     self.player.replaceCurrentItem(with: item)
                     self.onReady?(CMTimeGetSeconds(dur))
                 } else {
