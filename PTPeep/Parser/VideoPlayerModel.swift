@@ -66,6 +66,7 @@ final class VideoPlayerModel: ObservableObject {
     // MARK: Loading
 
     func load(url: URL) {
+        AppLog.shared.log("[Video] load(\(url.lastPathComponent))")
         loadError = nil
         videoURL = url
         isPlaying = false
@@ -118,7 +119,12 @@ final class VideoPlayerModel: ObservableObject {
 
     /// Find the session's movie near the .ptx by the video clip name (once).
     func autoLocateIfNeeded() {
-        guard !didAutoLocate, videoURL == nil, !videoClipName.isEmpty else { return }
+        guard !didAutoLocate, videoURL == nil else { return }
+        guard !videoClipName.isEmpty else {
+            AppLog.shared.log("[Video] autoLocate skipped: no video clip name (no .video track?)")
+            didAutoLocate = true
+            return
+        }
         didAutoLocate = true
         let stem = Self.stem(of: videoClipName)
         let exts: Set<String> = ["mov", "mp4", "m4v", "mxf"]
@@ -126,18 +132,21 @@ final class VideoPlayerModel: ObservableObject {
         let folders = [dir,
                        dir.appendingPathComponent("Video Files"),
                        dir.appendingPathComponent("Video")]
+        AppLog.shared.log("[Video] autoLocate stem='\(stem)' in \(folders.map { $0.lastPathComponent })")
         let fm = FileManager.default
         for folder in folders {
             guard let items = try? fm.contentsOfDirectory(
                 at: folder, includingPropertiesForKeys: nil) else { continue }
-            if let match = items.first(where: { url in
-                exts.contains(url.pathExtension.lowercased())
-                && Self.stem(of: url.deletingPathExtension().lastPathComponent).hasPrefix(stem)
+            let movies = items.filter { exts.contains($0.pathExtension.lowercased()) }
+            AppLog.shared.log("[Video] autoLocate \(folder.lastPathComponent): \(movies.count) movie file(s): \(movies.prefix(6).map { $0.lastPathComponent })")
+            if let match = movies.first(where: {
+                Self.stem(of: $0.deletingPathExtension().lastPathComponent).hasPrefix(stem)
             }) {
                 load(url: match)
                 return
             }
         }
+        AppLog.shared.log("[Video] autoLocate: no movie matched '\(stem)' — use Load Video…")
     }
 
     /// Strip a trailing "_<digits>" (channel/part suffix) for looser file matching.
