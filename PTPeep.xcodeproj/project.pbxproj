@@ -54,6 +54,8 @@
 		MP000002MP000002MP000002 /* MetadataProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = MP000000MP000000MP000000 /* MetadataProfile.swift */; };
 		VM01TB02VM01TB02VM01TB02 /* VideoPlayerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM01TB01VM01TB01VM01TB01 /* VideoPlayerModel.swift */; };
 		VM01TB03VM01TB03VM01TB03 /* VideoPlayerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM01TB01VM01TB01VM01TB01 /* VideoPlayerModel.swift */; };
+		VB01TB02VB01TB02VB01TB02 /* VideoBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = VB01TB01VB01TB01VB01TB01 /* VideoBackend.swift */; };
+		VB01TB03VB01TB03VB01TB03 /* VideoBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = VB01TB01VB01TB01VB01TB01 /* VideoBackend.swift */; };
 		AM01TB03AM01TB03AM01TB03 /* AudioFilesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */; };
 		B02452675BFE6D1BA8A2228C /* PTSLSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252B38580B8B14C048EC0F04 /* PTSLSessionInfo.swift */; };
 		F824EC45EB2C9181D5D8B871 /* PTXSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAD6632F1AB0CD7613B8147 /* PTXSession.swift */; };
@@ -88,6 +90,7 @@
 		BF000000BF000000BF000000 /* BWFParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BWFParser.swift; sourceTree = "<group>"; };
 		MP000000MP000000MP000000 /* MetadataProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataProfile.swift; sourceTree = "<group>"; };
 		VM01TB01VM01TB01VM01TB01 /* VideoPlayerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerModel.swift; sourceTree = "<group>"; };
+		VB01TB01VB01TB01VB01TB01 /* VideoBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackend.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* PTXBlockDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTXBlockDecoder.swift; sourceTree = "<group>"; };
 		61AC1F990962A248DF09C5E7 /* PTPeepQLExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTPeepQLExtension.swift; sourceTree = "<group>"; };
 		DD22EE33FF44AA55BB666601 /* PTPeepQL.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PTPeepQL.entitlements; sourceTree = "<group>"; };
@@ -157,6 +160,7 @@
 				BF000000BF000000BF000000 /* BWFParser.swift */,
 				MP000000MP000000MP000000 /* MetadataProfile.swift */,
 				VM01TB01VM01TB01VM01TB01 /* VideoPlayerModel.swift */,
+				VB01TB01VB01TB01VB01TB01 /* VideoBackend.swift */,
 			);
 			name = Parser;
 			path = PTPeep/Parser;
@@ -364,6 +368,7 @@
 				BF000001BF000001BF000001 /* BWFParser.swift in Sources */,
 				MP000001MP000001MP000001 /* MetadataProfile.swift in Sources */,
 				VM01TB02VM01TB02VM01TB02 /* VideoPlayerModel.swift in Sources */,
+				VB01TB02VB01TB02VB01TB02 /* VideoBackend.swift in Sources */,
 				AA11BB22CC33DD44EE55FF67 /* TimelineNav.swift in Sources */,
 				BB00CC11DD22EE33FF445511 /* AppLog.swift in Sources */,
 				BB00CC11DD22EE33FF445513 /* PluginScanner.swift in Sources */,
@@ -392,6 +397,7 @@
 				BF000002BF000002BF000002 /* BWFParser.swift in Sources */,
 				MP000002MP000002MP000002 /* MetadataProfile.swift in Sources */,
 				VM01TB03VM01TB03VM01TB03 /* VideoPlayerModel.swift in Sources */,
+				VB01TB03VB01TB03VB01TB03 /* VideoBackend.swift in Sources */,
 				AM01TB03AM01TB03AM01TB03 /* AudioFilesModel.swift in Sources */,
 				AA11BB22CC33DD44EE55FF68 /* TimelineNav.swift in Sources */,
 				BB00CC11DD22EE33FF445512 /* AppLog.swift in Sources */,

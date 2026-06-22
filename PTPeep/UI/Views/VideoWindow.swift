@@ -35,15 +35,36 @@ private struct VideoWindowContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PlayerLayerView(player: model.player)
-                .background(Color.black)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ZStack {
+                Color.black
+                // Re-create the surface when the backend swaps (AV ↔ VLC fallback).
+                BackendSurfaceView(backend: model.backend)
+                    .id(ObjectIdentifier(model.backend))
+                if let message = model.loadError {
+                    errorCard(message)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Divider()
             controls
         }
         .onAppear { model.autoLocateIfNeeded() }
         .onChange(of: model.cursorSample) { _ in model.seekToCursor() }
+    }
+
+    private func errorCard(_ message: String) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 28))
+                .foregroundStyle(.yellow)
+            Text(message)
+                .font(.callout)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 360)
+        }
+        .padding(24)
     }
 
     private var controls: some View {
@@ -54,7 +75,7 @@ private struct VideoWindowContent: View {
                     .frame(width: 22)
             }
             .buttonStyle(.plain)
-            .disabled(model.videoURL == nil)
+            .disabled(model.videoURL == nil || model.loadError != nil)
 
             Text(positionTC)
                 .font(.system(size: 11).monospacedDigit())
@@ -70,7 +91,7 @@ private struct VideoWindowContent: View {
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 11).monospacedDigit())
                     .frame(width: 104)
-                    .disabled(model.videoURL == nil)
+                    .disabled(model.videoURL == nil || model.loadError != nil)
             }
 
             Button("Load Video…") { loadVideo() }
@@ -108,28 +129,11 @@ private struct VideoWindowContent: View {
     }
 }
 
-/// A resizable AVPlayerLayer-backed surface (our own chrome, unlike AVPlayerView).
-struct PlayerLayerView: NSViewRepresentable {
-    let player: AVPlayer
+/// Hosts the active backend's picture surface. Keyed on backend identity by the caller
+/// so SwiftUI re-creates it when the engine swaps (AVFoundation ↔ VLCKit fallback).
+struct BackendSurfaceView: NSViewRepresentable {
+    let backend: VideoBackend
 
-    func makeNSView(context: Context) -> NSView {
-        let view = PlayerNSView()
-        view.playerLayer.player = player
-        view.playerLayer.videoGravity = .resizeAspect
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        (nsView as? PlayerNSView)?.playerLayer.player = player
-    }
-
-    final class PlayerNSView: NSView {
-        let playerLayer = AVPlayerLayer()
-        override init(frame frameRect: NSRect) {
-            super.init(frame: frameRect)
-            wantsLayer = true
-            layer = playerLayer
-        }
-        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    }
+    func makeNSView(context: Context) -> NSView { backend.makeView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
