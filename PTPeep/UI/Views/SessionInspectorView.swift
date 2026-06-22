@@ -1709,7 +1709,9 @@ private struct SessionTimelineView: View {
     @ViewBuilder
     private func tcCounter(sr: Double, total: Double) -> some View {
         let tcText: String = {
-            if let ap = audioPlayer, ap.isPlaying, let clip = ap.playingClip {
+            if tc.isPlaying, let frac = tc.playheadFraction {
+                return formatTC(frac * total / sr, fps: frameRate)
+            } else if let ap = audioPlayer, ap.isPlaying, let clip = ap.playingClip {
                 let samp = Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)
                 return formatTC(samp / sr, fps: frameRate)
             } else if let frac = tc.selStart {
@@ -1993,6 +1995,24 @@ private struct SessionTimelineView: View {
             HStack(spacing: 8) {
                 // TC counter — plain text, left-aligned
                 tcCounter(sr: sr, total: total)
+
+                // Transport: return-to-zero + play/stop (spacebar mirrors play/stop)
+                HStack(spacing: 6) {
+                    Button {
+                        tc.stopTransport()
+                        audioPlayer?.stop()
+                        tc.jumpTo(0)
+                        tc.selStart = 0; tc.selEnd = nil
+                    } label: { Image(systemName: "backward.end.fill") }
+                        .buttonStyle(.borderless).controlSize(.small)
+                        .help("Return to start")
+                    Button { tc.spacebarTapped += 1 } label: {
+                        Image(systemName: tc.isPlaying ? "stop.fill" : "play.fill")
+                    }
+                        .buttonStyle(.borderless).controlSize(.small)
+                        .help(tc.isPlaying ? "Stop (Space)" : "Play (Space)")
+                }
+                .padding(.leading, 4)
 
                 Spacer()
 
@@ -2453,6 +2473,11 @@ private struct SessionTimelineView: View {
             let toSample   = Int64((to   * total).rounded())
             audioPlayer?.playSession(from: fromSample, to: toSample, tracks: tracks,
                                      resolvedFiles: resolvedFiles, sampleRate: sr)
+        }
+        .onChange(of: tc.playheadFraction) { frac in
+            // Keep the playhead on screen while playing (don't fight manual panning when stopped).
+            guard tc.isPlaying, let frac else { return }
+            tc.ensureVisible(frac)
         }
         .onChange(of: tc.selStart) { newSelStart in
             // Autoplay on clip selection (click, tab, keyboard navigation).
