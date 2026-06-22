@@ -389,6 +389,10 @@ struct SessionInspectorView: View {
         .onChange(of: profilesRaw)        { _ in syncColumnsFromActiveProfile() }
         .onChange(of: bwfFieldsRaw)       { _ in writeColumnsToActiveProfile() }
         .onChange(of: tc.selStart) { _ in updateHighlightedFiles(); updateVideoCursor() }
+        .onChange(of: tc.isPlaying) { playing in
+            // Transport drives the picture: free-run while playing, return to cursor on stop.
+            if playing { videoModel.transportPlay() } else { videoModel.transportStop() }
+        }
         .onChange(of: tc.selTrack) { _ in updateHighlightedFiles() }
         .onChange(of: tc.selEnd)   { _ in updateHighlightedFiles() }
         .onDisappear {
@@ -1233,9 +1237,18 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     // Signal to view to toggle playback (spacebar)
     @Published var spacebarTapped: Int = 0
 
+    // Transport — a free-running session playhead advancing in real time.
+    @Published var playheadFraction: Double? = nil   // nil = stopped (cursor shows selStart)
+    @Published var isPlaying: Bool = false
+    private var playTimer:     Timer?
+    private var playAnchorDate: Date?
+    private var playAnchorFrac: Double = 0
+    private var playEndFrac:     Double = 1
+
     // Navigation context — set by view on appear
     var tracks:       [PTXTrack] = []
     var totalSamples: Double     = 1.0
+    var sampleRate:   Double     = 48000
     var hideMuted:    Bool       = false
 
     // Saved view state for E zoom toggle (nil = not in zoom-toggle mode)
@@ -1348,7 +1361,40 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         keyMonitor = nil; scrollMonitor = nil; magnifyMonitor = nil
     }
 
-    deinit { stopMonitoring() }
+    deinit { stopMonitoring(); playTimer?.invalidate() }
+
+    // MARK: Transport (free-running session playhead)
+
+    /// Begin advancing the playhead from `from` toward `to` (timeline fractions) at
+    /// wall-clock speed. Stops automatically at `to`.
+    func startTransport(from: Double, to: Double) {
+        playTimer?.invalidate()
+        playAnchorFrac = max(0, min(from, 1))
+        playEndFrac    = max(playAnchorFrac, min(to, 1))
+        playheadFraction = playAnchorFrac
+        isPlaying = true
+        playAnchorDate = Date()
+        let durSec = max(totalSamples / max(sampleRate, 1), 0.001)   // whole-session seconds
+        let t = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
+            guard let self, let anchor = self.playAnchorDate else { return }
+            let frac = self.playAnchorFrac + Date().timeIntervalSince(anchor) / durSec
+            if frac >= self.playEndFrac {
+                self.playheadFraction = self.playEndFrac
+                self.stopTransport()
+            } else {
+                self.playheadFraction = frac
+            }
+        }
+        RunLoop.main.add(t, forMode: .common)   // keep ticking during scroll/drag
+        playTimer = t
+    }
+
+    func stopTransport() {
+        playTimer?.invalidate(); playTimer = nil
+        playAnchorDate = nil
+        isPlaying = false
+        playheadFraction = nil
+    }
 
     // MARK: Zoom
 
@@ -2121,6 +2167,15 @@ private struct SessionTimelineView: View {
                 )
                 .equatable()
                 .allowsHitTesting(false)
+
+                // Transport playhead — moving line while the session transport plays.
+                PlayheadHairline(
+                    playheadFrac: tc.playheadFraction,
+                    viewStart: tc.viewStart,
+                    window: tc.window
+                )
+                .equatable()
+                .allowsHitTesting(false)
               }
               .frame(height: totalLaneHeight)
               .overlay(
@@ -2357,6 +2412,7 @@ private struct SessionTimelineView: View {
         .onAppear {
             tc.tracks       = tracks
             tc.totalSamples = allTracksSamples > 0 ? allTracksSamples : visibleMax
+            tc.sampleRate   = sr
             tc.hideMuted    = hideMuted
             tc.startMonitoring()
         }
@@ -2380,19 +2436,27 @@ private struct SessionTimelineView: View {
             showTCEntry = true
         }
         .onChange(of: tc.spacebarTapped) { _ in
-            guard let ap = audioPlayer else { return }
-            // Region selected → toggle region playback
-            if let region = selectedRegion {
-                if ap.isPlaying { ap.stop() }
-                else { ap.playRegion(region) }
+            // Spacebar drives the session transport: the playhead free-runs from the
+            // cursor along the timeline, carrying the picture continuously (even across
+            // audio-clip gaps). Audio plays best-effort from the selection/clip under it.
+            if tc.isPlaying {
+                tc.stopTransport()
+                audioPlayer?.stop()
                 return
             }
-            // Single clip → existing behaviour
-            guard let clip = selectedClip, !clip.isGroup,
-                  let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
-            else { return }
-            if ap.isPlaying && ap.playingClip == clip { ap.stop() }
-            else { ap.play(clip: clip, url: url, sampleRate: sr) }
+            let from = tc.selStart ?? 0
+            let to: Double = (tc.selStart != nil && (tc.selEnd ?? -1) > (tc.selStart ?? 0))
+                ? (tc.selEnd ?? 1) : 1.0
+            tc.startTransport(from: from, to: to)
+            // Best-effort audio under the playhead.
+            if let ap = audioPlayer {
+                if let region = selectedRegion {
+                    ap.playRegion(region)
+                } else if let clip = selectedClip, !clip.isGroup,
+                          let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                    ap.play(clip: clip, url: url, sampleRate: sr)
+                }
+            }
         }
         .onChange(of: tc.selStart) { newSelStart in
             // Autoplay on clip selection (click, tab, keyboard navigation).
@@ -2920,6 +2984,23 @@ private struct HoverHairline: View, Equatable {
                     with: .color(.primary.opacity(0.35))
                 )
             }
+        }
+    }
+}
+
+/// Moving session playhead drawn while the transport is running.
+private struct PlayheadHairline: View, Equatable {
+    var playheadFrac: Double?
+    var viewStart:    Double
+    var window:       Double
+
+    var body: some View {
+        Canvas { ctx, size in
+            guard let frac = playheadFrac else { return }
+            let x = CGFloat((frac - viewStart) / window) * size.width
+            guard x >= 0, x <= size.width else { return }
+            ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1.5, height: size.height)),
+                     with: .color(.accentColor))
         }
     }
 }

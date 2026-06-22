@@ -162,6 +162,23 @@ final class VideoPlayerModel: ObservableObject {
         isPlaying.toggle()
     }
 
+    /// Session transport started: align the picture to the cursor and free-run it
+    /// (the wall-clock playhead advances in lockstep, so no per-tick seeking needed).
+    func transportPlay() {
+        guard videoURL != nil, loadError == nil else { return }
+        seekToCursor(force: true)
+        backend.play()
+        isPlaying = true
+    }
+
+    /// Session transport stopped: hold and return the picture to the cursor.
+    func transportStop() {
+        guard videoURL != nil, loadError == nil else { return }
+        backend.pause()
+        isPlaying = false
+        seekToCursor(force: true)
+    }
+
     func seekToCursor(force: Bool = false) {
         guard videoURL != nil, loadError == nil, force || !isPlaying else { return }
         backend.seek(toSeconds: movieTimeForCursor)
