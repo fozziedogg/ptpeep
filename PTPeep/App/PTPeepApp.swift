@@ -282,6 +282,10 @@ final class AppState: ObservableObject {
     // MARK: Init
 
     init() {
+        // Bundled fallback for codecs AVFoundation can't decode (DNxHD/DNxHR, …).
+        // Left nil in the Quick Look extension, which never links VLCKit.
+        VideoPlayerModel.makeFallbackBackend = { VLCBackend(url: $0) }
+
         let fm = FileManager.default
         recentURLs = (UserDefaults.standard.stringArray(forKey: Self.recentsKey) ?? [])
             .compactMap { URL(string: $0) }
