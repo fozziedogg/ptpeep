@@ -2436,9 +2436,10 @@ private struct SessionTimelineView: View {
             showTCEntry = true
         }
         .onChange(of: tc.spacebarTapped) { _ in
-            // Spacebar drives the session transport: the playhead free-runs from the
-            // cursor along the timeline, carrying the picture continuously (even across
-            // audio-clip gaps). Audio plays best-effort from the selection/clip under it.
+            // Spacebar (and the Play/Stop button) drive the session transport: the playhead
+            // free-runs from the cursor along the timeline, carrying the picture continuously,
+            // while audio plays continuously from the playhead across all tracks (silent over
+            // gaps). A time selection limits playback to that range.
             if tc.isPlaying {
                 tc.stopTransport()
                 audioPlayer?.stop()
@@ -2448,15 +2449,10 @@ private struct SessionTimelineView: View {
             let to: Double = (tc.selStart != nil && (tc.selEnd ?? -1) > (tc.selStart ?? 0))
                 ? (tc.selEnd ?? 1) : 1.0
             tc.startTransport(from: from, to: to)
-            // Best-effort audio under the playhead.
-            if let ap = audioPlayer {
-                if let region = selectedRegion {
-                    ap.playRegion(region)
-                } else if let clip = selectedClip, !clip.isGroup,
-                          let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
-                    ap.play(clip: clip, url: url, sampleRate: sr)
-                }
-            }
+            let fromSample = Int64((from * total).rounded())
+            let toSample   = Int64((to   * total).rounded())
+            audioPlayer?.playSession(from: fromSample, to: toSample, tracks: tracks,
+                                     resolvedFiles: resolvedFiles, sampleRate: sr)
         }
         .onChange(of: tc.selStart) { newSelStart in
             // Autoplay on clip selection (click, tab, keyboard navigation).
