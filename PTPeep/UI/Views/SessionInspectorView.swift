@@ -1244,6 +1244,9 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     private var playAnchorDate: Date?
     private var playAnchorFrac: Double = 0
     private var playEndFrac:     Double = 1
+    /// When set, returns elapsed seconds of audio actually played (the audio engine's sample
+    /// clock). The playhead reads this so it stays locked to what's heard. nil → wall-clock.
+    private var playClock: (() -> Double?)?
 
     // Navigation context — set by view on appear
     var tracks:       [PTXTrack] = []
@@ -1367,17 +1370,27 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
 
     /// Begin advancing the playhead from `from` toward `to` (timeline fractions) at
     /// wall-clock speed. Stops automatically at `to`.
-    func startTransport(from: Double, to: Double) {
+    /// `clock`, when provided, returns elapsed seconds of audio actually played; the playhead
+    /// reads it so it tracks what's heard (holding at the start until audio begins). When nil
+    /// (e.g. video-only, no audio under the playhead) the playhead advances on wall-clock time.
+    func startTransport(from: Double, to: Double, clock: (() -> Double?)? = nil) {
         playTimer?.invalidate()
         playAnchorFrac = max(0, min(from, 1))
         playEndFrac    = max(playAnchorFrac, min(to, 1))
         playheadFraction = playAnchorFrac
         isPlaying = true
         playAnchorDate = Date()
+        playClock = clock
         let durSec = max(totalSamples / max(sampleRate, 1), 0.001)   // whole-session seconds
         let t = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
             guard let self, let anchor = self.playAnchorDate else { return }
-            let frac = self.playAnchorFrac + Date().timeIntervalSince(anchor) / durSec
+            let elapsed: Double
+            if let clock = self.playClock {
+                elapsed = clock() ?? 0        // hold at start until the audio engine reports
+            } else {
+                elapsed = Date().timeIntervalSince(anchor)   // no audio → wall-clock
+            }
+            let frac = self.playAnchorFrac + elapsed / durSec
             if frac >= self.playEndFrac {
                 self.playheadFraction = self.playEndFrac
                 self.stopTransport()
@@ -1392,6 +1405,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     func stopTransport() {
         playTimer?.invalidate(); playTimer = nil
         playAnchorDate = nil
+        playClock = nil
         isPlaying = false
         playheadFraction = nil
     }
@@ -2468,11 +2482,14 @@ private struct SessionTimelineView: View {
             let from = tc.selStart ?? 0
             let to: Double = (tc.selStart != nil && (tc.selEnd ?? -1) > (tc.selStart ?? 0))
                 ? (tc.selEnd ?? 1) : 1.0
-            tc.startTransport(from: from, to: to)
             let fromSample = Int64((from * total).rounded())
             let toSample   = Int64((to   * total).rounded())
-            audioPlayer?.playSession(from: fromSample, to: toSample, tracks: tracks,
-                                     resolvedFiles: resolvedFiles, sampleRate: sr)
+            // Start audio first; if it has something to play, drive the playhead off the audio
+            // engine's sample clock so the picture/timeline track exactly what's heard.
+            let hasAudio = audioPlayer?.playSession(from: fromSample, to: toSample, tracks: tracks,
+                                                    resolvedFiles: resolvedFiles, sampleRate: sr) ?? false
+            tc.startTransport(from: from, to: to,
+                              clock: hasAudio ? { [weak audioPlayer] in audioPlayer?.sessionElapsedSeconds() } : nil)
         }
         .onChange(of: tc.playheadFraction) { frac in
             // Keep the playhead on screen while playing (don't fight manual panning when stopped).
