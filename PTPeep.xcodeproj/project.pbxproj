@@ -14,6 +14,7 @@
 		VW01TB02VW01TB02VW01TB02 /* VideoWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */; };
 		VC01TB02VC01TB02VC01TB02 /* VLCBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = VC01TB01VC01TB01VC01TB01 /* VLCBackend.swift */; };
 		FF01TB02FF01TB02FF01TB02 /* FFmpegProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF01TB01FF01TB01FF01TB01 /* FFmpegProbe.swift */; };
+		LD01TB02LD01TB02LD01TB02 /* LibavDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = LD01TB01LD01TB01LD01TB01 /* LibavDecoder.swift */; };
 		WC01TB02WC01TB02WC01TB02 /* WindowCloseObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = WC01TB01WC01TB01WC01TB01 /* WindowCloseObserver.swift */; };
 		AW01TB02AW01TB02AW01TB02 /* AudioFilesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AW01TB01AW01TB01AW01TB01 /* AudioFilesWindow.swift */; };
 		AM01TB02AM01TB02AM01TB02 /* AudioFilesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */; };
@@ -105,6 +106,7 @@
 		VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoWindow.swift; sourceTree = "<group>"; };
 		VC01TB01VC01TB01VC01TB01 /* VLCBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VLCBackend.swift; sourceTree = "<group>"; };
 		FF01TB01FF01TB01FF01TB01 /* FFmpegProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegProbe.swift; sourceTree = "<group>"; };
+		LD01TB01LD01TB01LD01TB01 /* LibavDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibavDecoder.swift; sourceTree = "<group>"; };
 		WC01TB01WC01TB01WC01TB01 /* WindowCloseObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCloseObserver.swift; sourceTree = "<group>"; };
 		AW01TB01AW01TB01AW01TB01 /* AudioFilesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilesWindow.swift; sourceTree = "<group>"; };
 		AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilesModel.swift; sourceTree = "<group>"; };
@@ -189,6 +191,7 @@
 				VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */,
 				VC01TB01VC01TB01VC01TB01 /* VLCBackend.swift */,
 				FF01TB01FF01TB01FF01TB01 /* FFmpegProbe.swift */,
+				LD01TB01LD01TB01LD01TB01 /* LibavDecoder.swift */,
 				WC01TB01WC01TB01WC01TB01 /* WindowCloseObserver.swift */,
 				AW01TB01AW01TB01AW01TB01 /* AudioFilesWindow.swift */,
 				AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */,
@@ -371,6 +374,7 @@
 				VW01TB02VW01TB02VW01TB02 /* VideoWindow.swift in Sources */,
 				VC01TB02VC01TB02VC01TB02 /* VLCBackend.swift in Sources */,
 				FF01TB02FF01TB02FF01TB02 /* FFmpegProbe.swift in Sources */,
+				LD01TB02LD01TB02LD01TB02 /* LibavDecoder.swift in Sources */,
 				WC01TB02WC01TB02WC01TB02 /* WindowCloseObserver.swift in Sources */,
 				AW01TB02AW01TB02AW01TB02 /* AudioFilesWindow.swift in Sources */,
 				AM01TB02AM01TB02AM01TB02 /* AudioFilesModel.swift in Sources */,
