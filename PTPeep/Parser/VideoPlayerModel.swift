@@ -35,7 +35,9 @@ final class VideoPlayerModel: ObservableObject {
 
     /// Supplies a bundled fallback backend (VLCKit) for codecs AVFoundation can't decode.
     /// Set once by the main app at launch; left nil in the Quick Look extension.
-    static var makeFallbackBackend: (@MainActor (URL) -> VideoBackend)?
+    /// Builds the primary video backend (the in-process libav deck) in the main app.
+    /// Left nil in the Quick Look extension, which falls back to AVFoundation (no FFmpeg there).
+    static var makeBackend: (@MainActor (URL) -> VideoBackend)?
 
     private var didAutoLocate = false
 
@@ -71,11 +73,12 @@ final class VideoPlayerModel: ObservableObject {
         videoURL = url
         isPlaying = false
         duration = 0
-        // Always probe natively first; fall back only when AVFoundation can't decode.
-        let av = AVFoundationBackend()
-        configure(av)
-        backend = av
-        av.load(url: url)
+        // libav decodes everything in-process (frame-accurate, no VT cold-start). Quick Look
+        // has no FFmpeg, so it falls back to AVFoundation (DNx there shows the guide message).
+        let b: VideoBackend = Self.makeBackend?(url) ?? AVFoundationBackend()
+        configure(b)
+        backend = b
+        b.load(url: url)
     }
 
     private func configure(_ b: VideoBackend) {
@@ -89,21 +92,9 @@ final class VideoPlayerModel: ObservableObject {
         }
     }
 
-    /// AVFoundation couldn't decode the file. Try the bundled fallback if available;
-    /// otherwise (Quick Look, or the fallback also failed) surface codec-aware guidance.
+    /// The backend couldn't open/decode the file — surface codec-aware guidance.
     private func handleDecodeFailure(fourCC: String?) {
-        let codec = fourCC ?? "unknown"
-        if backend is AVFoundationBackend,
-           let make = Self.makeFallbackBackend,
-           let url = videoURL {
-            AppLog.shared.log("[Video] AVFoundation can't decode \(codec); routing to VLCKit fallback")
-            let fb = make(url)
-            configure(fb)
-            backend = fb
-            fb.load(url: url)
-            return
-        }
-        AppLog.shared.log("[Video] No decoder for \(codec) (fallback unavailable or also failed)")
+        AppLog.shared.log("[Video] decode failed (\(fourCC ?? "unknown"))")
         loadError = Self.message(forFourCC: fourCC)
     }
 
@@ -162,25 +153,28 @@ final class VideoPlayerModel: ObservableObject {
         isPlaying.toggle()
     }
 
-    /// Session transport started: align the picture to the cursor and free-run it
-    /// (the wall-clock playhead advances in lockstep, so no per-tick seeking needed).
+    /// Session transport started. The picture is driven frame-accurately from the playhead
+    /// (the inspector writes the playhead position into `cursorSample`), so we don't free-run
+    /// the backend's own clock — just stop any standalone playback and align the first frame.
     func transportPlay() {
         guard videoURL != nil, loadError == nil else { return }
-        seekToCursor(force: true)
-        backend.play()
+        backend.pause()
         isPlaying = true
+        seekToCursor()
     }
 
-    /// Session transport stopped: hold and return the picture to the cursor.
+    /// Session transport stopped: hold and return the picture to the edit cursor.
     func transportStop() {
         guard videoURL != nil, loadError == nil else { return }
         backend.pause()
         isPlaying = false
-        seekToCursor(force: true)
+        seekToCursor()
     }
 
+    /// Show the frame for the current `cursorSample` (carries the edit cursor when stopped,
+    /// or the session playhead during transport). Frame rounding happens in the backend.
     func seekToCursor(force: Bool = false) {
-        guard videoURL != nil, loadError == nil, force || !isPlaying else { return }
+        guard videoURL != nil, loadError == nil else { return }
         backend.seek(toSeconds: movieTimeForCursor)
     }
 

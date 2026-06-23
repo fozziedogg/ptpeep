@@ -282,9 +282,10 @@ final class AppState: ObservableObject {
     // MARK: Init
 
     init() {
-        // Bundled fallback for codecs AVFoundation can't decode (DNxHD/DNxHR, …).
-        // Left nil in the Quick Look extension, which never links VLCKit.
-        VideoPlayerModel.makeFallbackBackend = { VLCBackend(url: $0) }
+        // Primary video backend: the in-process libav deck (frame-accurate, decodes DNxHD/
+        // DNxHR/ProRes/H.264/… with no VideoToolbox cold-start). Left nil in the Quick Look
+        // extension, which has no FFmpeg and falls back to AVFoundation.
+        VideoPlayerModel.makeBackend = { LibavBackend(url: $0) }
 
         let fm = FileManager.default
         recentURLs = (UserDefaults.standard.stringArray(forKey: Self.recentsKey) ?? [])

@@ -155,6 +155,17 @@ struct SessionInspectorView: View {
         videoModel.cursorSample = Int64((tc.selStart ?? 0) * total)
     }
 
+    /// During transport, feed the session playhead into the video model (frame-accurate follow);
+    /// when stopped, restore the picture to the edit cursor.
+    private func updateVideoPlayhead() {
+        let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
+        if tc.isPlaying, let frac = tc.playheadFraction {
+            videoModel.cursorSample = Int64(frac * total)
+        } else {
+            updateVideoCursor()
+        }
+    }
+
     private func updateHighlightedFiles() {
         guard followClipSelection else { return }
         let total = tc.totalSamples > 0 ? tc.totalSamples : totalSamples
@@ -390,9 +401,9 @@ struct SessionInspectorView: View {
         .onChange(of: bwfFieldsRaw)       { _ in writeColumnsToActiveProfile() }
         .onChange(of: tc.selStart) { _ in updateHighlightedFiles(); updateVideoCursor() }
         .onChange(of: tc.isPlaying) { playing in
-            // Transport drives the picture: free-run while playing, return to cursor on stop.
             if playing { videoModel.transportPlay() } else { videoModel.transportStop() }
         }
+        .onChange(of: tc.playheadFraction) { _ in updateVideoPlayhead() }
         .onChange(of: tc.selTrack) { _ in updateHighlightedFiles() }
         .onChange(of: tc.selEnd)   { _ in updateHighlightedFiles() }
         .onDisappear {

@@ -12,11 +12,11 @@
 		AF01TB02AF01TB02AF01TB02 /* AudioFilesTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */; };
 		PS01TB02PS01TB02PS01TB02 /* ProfilesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS01TB01PS01TB01PS01TB01 /* ProfilesSettingsView.swift */; };
 		VW01TB02VW01TB02VW01TB02 /* VideoWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */; };
-		VC01TB02VC01TB02VC01TB02 /* VLCBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = VC01TB01VC01TB01VC01TB01 /* VLCBackend.swift */; };
 		FF01TB02FF01TB02FF01TB02 /* FFmpegProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF01TB01FF01TB01FF01TB01 /* FFmpegProbe.swift */; };
 		LD01TB02LD01TB02LD01TB02 /* LibavDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = LD01TB01LD01TB01LD01TB01 /* LibavDecoder.swift */; };
 		LC01TB02LC01TB02LC01TB02 /* LibavFrameCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = LC01TB01LC01TB01LC01TB01 /* LibavFrameCache.swift */; };
 		DK01TB02DK01TB02DK01TB02 /* VideoDeckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DK01TB01DK01TB01DK01TB01 /* VideoDeckView.swift */; };
+		LB01TB02LB01TB02LB01TB02 /* LibavBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = LB01TB01LB01TB01LB01TB01 /* LibavBackend.swift */; };
 		WC01TB02WC01TB02WC01TB02 /* WindowCloseObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = WC01TB01WC01TB01WC01TB01 /* WindowCloseObserver.swift */; };
 		AW01TB02AW01TB02AW01TB02 /* AudioFilesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AW01TB01AW01TB01AW01TB01 /* AudioFilesWindow.swift */; };
 		AM01TB02AM01TB02AM01TB02 /* AudioFilesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */; };
@@ -41,7 +41,6 @@
 		GRPC0002GRPC0002GRPC0002 /* GRPC in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0012GRPC0012GRPC0012 /* GRPC */; };
 		GRPC0003GRPC0003GRPC0003 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0013GRPC0013GRPC0013 /* NIOCore */; };
 		GRPC0004GRPC0004GRPC0004 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = GRPC0014GRPC0014GRPC0014 /* NIOPosix */; };
-		VLCK0001VLCK0001VLCK0001 /* VLCKitSPM in Frameworks */ = {isa = PBXBuildFile; productRef = VLCK0011VLCK0011VLCK0011 /* VLCKitSPM */; };
 		CC11DD22EE33FF44AA556615 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */; };
 		CC11DD22EE33FF44AA556616 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11DD22EE33FF44AA556603 /* QuickLookPreviewView.swift */; };
 		DD11EE22FF33AA44BB556601 /* PTPeepQL.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 927280E6749AFAE80FE9ABE2 /* PTPeepQL.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -106,11 +105,11 @@
 		AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilesTableView.swift; sourceTree = "<group>"; };
 		PS01TB01PS01TB01PS01TB01 /* ProfilesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesSettingsView.swift; sourceTree = "<group>"; };
 		VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoWindow.swift; sourceTree = "<group>"; };
-		VC01TB01VC01TB01VC01TB01 /* VLCBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VLCBackend.swift; sourceTree = "<group>"; };
 		FF01TB01FF01TB01FF01TB01 /* FFmpegProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegProbe.swift; sourceTree = "<group>"; };
 		LD01TB01LD01TB01LD01TB01 /* LibavDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibavDecoder.swift; sourceTree = "<group>"; };
 		LC01TB01LC01TB01LC01TB01 /* LibavFrameCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibavFrameCache.swift; sourceTree = "<group>"; };
 		DK01TB01DK01TB01DK01TB01 /* VideoDeckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDeckView.swift; sourceTree = "<group>"; };
+		LB01TB01LB01TB01LB01TB01 /* LibavBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibavBackend.swift; sourceTree = "<group>"; };
 		WC01TB01WC01TB01WC01TB01 /* WindowCloseObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCloseObserver.swift; sourceTree = "<group>"; };
 		AW01TB01AW01TB01AW01TB01 /* AudioFilesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilesWindow.swift; sourceTree = "<group>"; };
 		AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilesModel.swift; sourceTree = "<group>"; };
@@ -193,11 +192,11 @@
 				AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */,
 				PS01TB01PS01TB01PS01TB01 /* ProfilesSettingsView.swift */,
 				VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */,
-				VC01TB01VC01TB01VC01TB01 /* VLCBackend.swift */,
 				FF01TB01FF01TB01FF01TB01 /* FFmpegProbe.swift */,
 				LD01TB01LD01TB01LD01TB01 /* LibavDecoder.swift */,
 				LC01TB01LC01TB01LC01TB01 /* LibavFrameCache.swift */,
 				DK01TB01DK01TB01DK01TB01 /* VideoDeckView.swift */,
+				LB01TB01LB01TB01LB01TB01 /* LibavBackend.swift */,
 				WC01TB01WC01TB01WC01TB01 /* WindowCloseObserver.swift */,
 				AW01TB01AW01TB01AW01TB01 /* AudioFilesWindow.swift */,
 				AM01TB01AM01TB01AM01TB01 /* AudioFilesModel.swift */,
@@ -274,7 +273,6 @@
 				GRPC0012GRPC0012GRPC0012 /* GRPC */,
 				GRPC0013GRPC0013GRPC0013 /* NIOCore */,
 				GRPC0014GRPC0014GRPC0014 /* NIOPosix */,
-				VLCK0011VLCK0011VLCK0011 /* VLCKitSPM */,
 			);
 			productName = PTPeep;
 			productReference = B5C2EE3C4A771CD8663C679D /* PTPeep.app */;
@@ -328,7 +326,6 @@
 			packageReferences = (
 				GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */,
 				GRPC0021GRPC0021GRPC0021 /* XCRemoteSwiftPackageReference "swift-protobuf" */,
-				VLCK0020VLCK0020VLCK0020 /* XCRemoteSwiftPackageReference "vlckit-spm" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -378,11 +375,11 @@
 				AF01TB02AF01TB02AF01TB02 /* AudioFilesTableView.swift in Sources */,
 				PS01TB02PS01TB02PS01TB02 /* ProfilesSettingsView.swift in Sources */,
 				VW01TB02VW01TB02VW01TB02 /* VideoWindow.swift in Sources */,
-				VC01TB02VC01TB02VC01TB02 /* VLCBackend.swift in Sources */,
 				FF01TB02FF01TB02FF01TB02 /* FFmpegProbe.swift in Sources */,
 				LD01TB02LD01TB02LD01TB02 /* LibavDecoder.swift in Sources */,
 				LC01TB02LC01TB02LC01TB02 /* LibavFrameCache.swift in Sources */,
 				DK01TB02DK01TB02DK01TB02 /* VideoDeckView.swift in Sources */,
+				LB01TB02LB01TB02LB01TB02 /* LibavBackend.swift in Sources */,
 				WC01TB02WC01TB02WC01TB02 /* WindowCloseObserver.swift in Sources */,
 				AW01TB02AW01TB02AW01TB02 /* AudioFilesWindow.swift in Sources */,
 				AM01TB02AM01TB02AM01TB02 /* AudioFilesModel.swift in Sources */,
@@ -442,7 +439,6 @@
 				GRPC0002GRPC0002GRPC0002 /* GRPC in Frameworks */,
 				GRPC0003GRPC0003GRPC0003 /* NIOCore in Frameworks */,
 				GRPC0004GRPC0004GRPC0004 /* NIOPosix in Frameworks */,
-				VLCK0001VLCK0001VLCK0001 /* VLCKitSPM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -463,14 +459,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.36.1;
-			};
-		};
-		VLCK0020VLCK0020VLCK0020 /* XCRemoteSwiftPackageReference "vlckit-spm" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/tylerjonesio/vlckit-spm";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 3.6.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -495,11 +483,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */;
 			productName = NIOPosix;
-		};
-		VLCK0011VLCK0011VLCK0011 /* VLCKitSPM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = VLCK0020VLCK0020VLCK0020 /* XCRemoteSwiftPackageReference "vlckit-spm" */;
-			productName = VLCKitSPM;
 		};
 /* End XCSwiftPackageProductDependency section */
 
