@@ -23,13 +23,22 @@ final class VideoDeckView: NSView {
         displayLayer.frame = bounds
     }
 
-    /// Show a single frame now (scrub / cursor lock / per-frame playback).
+    private var didLogShow = false
+
+    /// Show a single frame now (scrub / cursor lock / per-frame playback). Uses the modern
+    /// sampleBufferRenderer on macOS 14+ (the layer-level enqueue is deprecated and does not
+    /// reliably render on macOS 15/26); falls back to the layer API on 13.
     func show(_ sampleBuffer: CMSampleBuffer) {
         setDisplayImmediately(sampleBuffer)
-        if displayLayer.status == .failed || !displayLayer.isReadyForMoreMediaData {
-            displayLayer.flush()
+        if #available(macOS 14.0, *) {
+            let r = displayLayer.sampleBufferRenderer
+            if r.status == .failed { r.flush() }
+            r.enqueue(sampleBuffer)
+        } else {
+            if displayLayer.status == .failed { displayLayer.flush() }
+            displayLayer.enqueue(sampleBuffer)
         }
-        displayLayer.enqueue(sampleBuffer)
+        if !didLogShow { didLogShow = true; AppLog.shared.log("[Video] deck displayed first frame (\(Int(bounds.width))x\(Int(bounds.height)))") }
     }
 
     func clear() { displayLayer.flushAndRemoveImage() }

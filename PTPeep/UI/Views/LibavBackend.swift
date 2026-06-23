@@ -18,6 +18,7 @@ final class LibavBackend: VideoBackend {
     private var totalFrames = 0
     private var currentFrame = 0
     private var playTimer: Timer?
+    private var didLogFirstFrame = false
     private let decodeQueue = DispatchQueue(label: "com.ptpeep.videoDecode")
 
     var onReady: ((Double) -> Void)?
@@ -80,8 +81,15 @@ final class LibavBackend: VideoBackend {
         let clamped = max(0, min(index, totalFrames - 1))
         currentFrame = clamped
         let deck = self.deck
+        let first = !didLogFirstFrame
+        if first { didLogFirstFrame = true }
         decodeQueue.async {
-            guard let sb = cache.cachedFrame(at: clamped) else { return }
+            if first { AppLog.shared.log("[Video] decoding frame \(clamped)…") }
+            guard let sb = cache.cachedFrame(at: clamped) else {
+                if first { AppLog.shared.log("[Video] frame \(clamped) decode returned nil") }
+                return
+            }
+            if first { AppLog.shared.log("[Video] frame \(clamped) decoded; enqueuing for display") }
             DispatchQueue.main.async { deck.show(sb) }
         }
     }
