@@ -1241,6 +1241,9 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         return true
     }
 
+    func toggleMute(_ i: Int) { if mutedTracks.contains(i) { mutedTracks.remove(i) } else { mutedTracks.insert(i) } }
+    func toggleSolo(_ i: Int) { if soloTracks.contains(i) { soloTracks.remove(i) } else { soloTracks.insert(i) } }
+
     // Saved view state for E zoom toggle (nil = not in zoom-toggle mode)
     private var zoomSnapshot: (scale: Double, viewStart: Double, trackHeightLevels: [Int: Int])? = nil
 
@@ -1705,9 +1708,8 @@ private struct SessionTimelineView: View {
     @ViewBuilder
     private func tcCounter(sr: Double, total: Double) -> some View {
         let tcText: String = {
-            if let ap = audioPlayer, ap.isPlaying, let clip = ap.playingClip {
-                let samp = Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)
-                return formatTC(samp / sr, fps: frameRate)
+            if let f = playheadAbsFrac {              // moving playhead (transport or audition)
+                return formatTC(f * total / sr, fps: frameRate)
             } else if let frac = tc.selStart {
                 return formatTC(frac * total / sr, fps: frameRate)
             }
@@ -1850,6 +1852,22 @@ private struct SessionTimelineView: View {
             return (Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)) / total
         }
         return nil
+    }
+
+    /// Compact Mute/Solo toggle for a track header row.
+    @ViewBuilder
+    private func msButton(_ label: String, active: Bool, activeColor: Color,
+                          _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 8, weight: .bold))
+                .frame(width: 13, height: 13)
+                .background(RoundedRectangle(cornerRadius: 2)
+                    .fill(active ? activeColor : Color.secondary.opacity(0.15)))
+                .foregroundStyle(active ? Color.white : Color.secondary)
+        }
+        .buttonStyle(.plain)
+        .help(label == "M" ? "Mute track (audition)" : "Solo track (audition)")
     }
 
     var body: some View {
@@ -2008,6 +2026,21 @@ private struct SessionTimelineView: View {
                 // TC counter — plain text, left-aligned
                 tcCounter(sr: sr, total: total)
 
+                // Transport: return-to-zero + play/stop (mirrors the spacebar scope logic).
+                HStack(spacing: 6) {
+                    Button {
+                        tc.stopTransport(); audioPlayer?.stop(); tc.jumpTo(0)
+                    } label: { Image(systemName: "backward.end.fill") }
+                        .buttonStyle(.borderless).controlSize(.small)
+                        .help("Return to start")
+                    Button { tc.spacebarTapped += 1 } label: {
+                        Image(systemName: (tc.isPlaying || (audioPlayer?.isPlaying ?? false)) ? "stop.fill" : "play.fill")
+                    }
+                        .buttonStyle(.borderless).controlSize(.small)
+                        .help("Play / Stop (Space)")
+                }
+                .padding(.leading, 4)
+
                 Spacer()
 
                 // Zoom controls
@@ -2123,7 +2156,7 @@ private struct SessionTimelineView: View {
               if showTrackNames {
                 VStack(spacing: 0) {
                   ForEach(Array(tracks.enumerated()), id: \.offset) { i, track in
-                    HStack(spacing: 4) {
+                    HStack(spacing: 3) {
                       RoundedRectangle(cornerRadius: 1.5)
                         .fill(trackColor(track, index: i).opacity(0.6))
                         .frame(width: 3)
@@ -2133,6 +2166,10 @@ private struct SessionTimelineView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                       Spacer(minLength: 0)
+                      if track.type == .audio {
+                        msButton("M", active: tc.mutedTracks.contains(i), activeColor: .orange) { tc.toggleMute(i) }
+                        msButton("S", active: tc.soloTracks.contains(i),  activeColor: .blue)   { tc.toggleSolo(i) }
+                      }
                     }
                     .padding(.horizontal, 4)
                     .frame(height: scaledLaneH(track, index: i))
