@@ -1,0 +1,14 @@
+prefix=/Users/fozzie/developer/ptpeep/PTPeep/Vendor/FFmpeg
+exec_prefix=${prefix}
+libdir=/Users/fozzie/developer/ptpeep/PTPeep/Vendor/FFmpeg/lib
+includedir=/Users/fozzie/developer/ptpeep/PTPeep/Vendor/FFmpeg/include
+
+Name: libswscale
+Description: FFmpeg image rescaling library
+Version: 9.5.102
+Requires: 
+Requires.private: libavutil >= 60.26.102
+Conflicts:
+Libs: -L${libdir}  -lswscale 
+Libs.private: -lm
+Cflags: -I${includedir}

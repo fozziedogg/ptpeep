@@ -12,7 +12,6 @@
 		AF01TB02AF01TB02AF01TB02 /* AudioFilesTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */; };
 		PS01TB02PS01TB02PS01TB02 /* ProfilesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS01TB01PS01TB01PS01TB01 /* ProfilesSettingsView.swift */; };
 		VW01TB02VW01TB02VW01TB02 /* VideoWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */; };
-		FF01TB02FF01TB02FF01TB02 /* FFmpegProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF01TB01FF01TB01FF01TB01 /* FFmpegProbe.swift */; };
 		LD01TB02LD01TB02LD01TB02 /* LibavDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = LD01TB01LD01TB01LD01TB01 /* LibavDecoder.swift */; };
 		LC01TB02LC01TB02LC01TB02 /* LibavFrameCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = LC01TB01LC01TB01LC01TB01 /* LibavFrameCache.swift */; };
 		DK01TB02DK01TB02DK01TB02 /* VideoDeckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DK01TB01DK01TB01DK01TB01 /* VideoDeckView.swift */; };
@@ -105,7 +104,6 @@
 		AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilesTableView.swift; sourceTree = "<group>"; };
 		PS01TB01PS01TB01PS01TB01 /* ProfilesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesSettingsView.swift; sourceTree = "<group>"; };
 		VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoWindow.swift; sourceTree = "<group>"; };
-		FF01TB01FF01TB01FF01TB01 /* FFmpegProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegProbe.swift; sourceTree = "<group>"; };
 		LD01TB01LD01TB01LD01TB01 /* LibavDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibavDecoder.swift; sourceTree = "<group>"; };
 		LC01TB01LC01TB01LC01TB01 /* LibavFrameCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibavFrameCache.swift; sourceTree = "<group>"; };
 		DK01TB01DK01TB01DK01TB01 /* VideoDeckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDeckView.swift; sourceTree = "<group>"; };
@@ -192,7 +190,6 @@
 				AF01TB01AF01TB01AF01TB01 /* AudioFilesTableView.swift */,
 				PS01TB01PS01TB01PS01TB01 /* ProfilesSettingsView.swift */,
 				VW01TB01VW01TB01VW01TB01 /* VideoWindow.swift */,
-				FF01TB01FF01TB01FF01TB01 /* FFmpegProbe.swift */,
 				LD01TB01LD01TB01LD01TB01 /* LibavDecoder.swift */,
 				LC01TB01LC01TB01LC01TB01 /* LibavFrameCache.swift */,
 				DK01TB01DK01TB01DK01TB01 /* VideoDeckView.swift */,
@@ -261,6 +258,7 @@
 				8C67127B5C772605C570F0E8 /* Sources */,
 				GRPC0030GRPC0030GRPC0030 /* Frameworks */,
 				DD11EE22FF33AA44BB556602 /* Embed App Extensions */,
+				FFEM0001FFEM0001FFEM0001 /* Embed FFmpeg dylibs */,
 			);
 			buildRules = (
 			);
@@ -375,7 +373,6 @@
 				AF01TB02AF01TB02AF01TB02 /* AudioFilesTableView.swift in Sources */,
 				PS01TB02PS01TB02PS01TB02 /* ProfilesSettingsView.swift in Sources */,
 				VW01TB02VW01TB02VW01TB02 /* VideoWindow.swift in Sources */,
-				FF01TB02FF01TB02FF01TB02 /* FFmpegProbe.swift in Sources */,
 				LD01TB02LD01TB02LD01TB02 /* LibavDecoder.swift in Sources */,
 				LC01TB02LC01TB02LC01TB02 /* LibavFrameCache.swift in Sources */,
 				DK01TB02DK01TB02DK01TB02 /* VideoDeckView.swift in Sources */,
@@ -443,6 +440,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		FFEM0001FFEM0001FFEM0001 /* Embed FFmpeg dylibs */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Embed FFmpeg dylibs";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nFW=\"$BUILT_PRODUCTS_DIR/$FRAMEWORKS_FOLDER_PATH\"\nmkdir -p \"$FW\"\nLIBS=\"libavcodec.62 libavformat.62 libavutil.60 libswscale.9 libswresample.6\"\nfor f in $LIBS; do\n  cp -f \"$SRCROOT/PTPeep/Vendor/FFmpeg/lib/$f.dylib\" \"$FW/$f.dylib\"\ndone\nif [ \"${CODE_SIGNING_ALLOWED}\" = \"YES\" ] && [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ]; then\n  for f in $LIBS; do\n    codesign --force --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" \"$FW/$f.dylib\"\n  done\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		GRPC0020GRPC0020GRPC0020 /* XCRemoteSwiftPackageReference "grpc-swift" */ = {
@@ -582,11 +597,11 @@
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"/opt/homebrew/include",
+					"$(SRCROOT)/PTPeep/Vendor/FFmpeg/include",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"/opt/homebrew/lib",
+					"$(SRCROOT)/PTPeep/Vendor/FFmpeg/lib",
 				);
 				SWIFT_INCLUDE_PATHS = (
 					"$(inherited)",
@@ -696,11 +711,11 @@
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"/opt/homebrew/include",
+					"$(SRCROOT)/PTPeep/Vendor/FFmpeg/include",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"/opt/homebrew/lib",
+					"$(SRCROOT)/PTPeep/Vendor/FFmpeg/lib",
 				);
 				SWIFT_INCLUDE_PATHS = (
 					"$(inherited)",

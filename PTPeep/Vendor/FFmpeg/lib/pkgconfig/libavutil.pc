@@ -1,0 +1,14 @@
+prefix=/Users/fozzie/developer/ptpeep/PTPeep/Vendor/FFmpeg
+exec_prefix=${prefix}
+libdir=/Users/fozzie/developer/ptpeep/PTPeep/Vendor/FFmpeg/lib
+includedir=/Users/fozzie/developer/ptpeep/PTPeep/Vendor/FFmpeg/include
+
+Name: libavutil
+Description: FFmpeg utility library
+Version: 60.26.102
+Requires: 
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavutil 
+Libs.private: -lm -framework CoreFoundation -framework CoreVideo -framework CoreMedia -pthread
+Cflags: -I${includedir}

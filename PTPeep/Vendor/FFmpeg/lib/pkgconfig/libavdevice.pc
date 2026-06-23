@@ -1,0 +1,14 @@
+prefix=/Users/fozzie/developer/ptpeep/PTPeep/Vendor/FFmpeg
+exec_prefix=${prefix}
+libdir=/Users/fozzie/developer/ptpeep/PTPeep/Vendor/FFmpeg/lib
+includedir=/Users/fozzie/developer/ptpeep/PTPeep/Vendor/FFmpeg/include
+
+Name: libavdevice
+Description: FFmpeg device handling library
+Version: 62.3.102
+Requires: 
+Requires.private: libavformat >= 62.12.102, libavcodec >= 62.28.102, libavutil >= 60.26.102
+Conflicts:
+Libs: -L${libdir}  -lavdevice 
+Libs.private: -lm
+Cflags: -I${includedir}
