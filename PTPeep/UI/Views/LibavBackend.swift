@@ -44,7 +44,8 @@ final class LibavBackend: VideoBackend {
                 self.fps = decoder.fps > 0 ? decoder.fps : 24
                 self.totalFrames = decoder.totalFrames
                 AppLog.shared.log("[Video] libav ready: \(decoder.totalFrames) frames @ \(String(format: "%.3f", self.fps))fps \(Int(decoder.dimensions.width))x\(Int(decoder.dimensions.height))")
-                cache.primePrefetch(around: 0)
+                // Decode frame 0 first (its cache miss triggers prefetch afterward) — avoids a
+                // prefetch decode racing the first frame on the shared decoder at startup.
                 self.showFrame(0)
                 self.onReady?(decoder.duration.seconds.isFinite ? decoder.duration.seconds : 0)
             }

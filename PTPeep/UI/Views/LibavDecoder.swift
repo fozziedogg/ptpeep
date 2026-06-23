@@ -92,9 +92,11 @@ final class LibavDecoder: @unchecked Sendable {
         guard avcodec_parameters_to_context(codecCtxOpt, codecpar) >= 0 else {
             avcodec_free_context(&codecCtxOpt); avformat_close_input(&formatCtx); return nil
         }
-        // Frame + slice threading, auto worker count — this is the 25×-real-time lever.
-        codecCtx.pointee.thread_count = 0
-        codecCtx.pointee.thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE
+        // Single-threaded decode: frame/slice threading is seek-hostile (decoder delay +
+        // out-of-order priming after flush) and can saturate every core during prefetch.
+        // Single-threaded DNxHD/ProRes decode is still well above real-time for a preview deck.
+        codecCtx.pointee.thread_count = 1
+        codecCtx.pointee.thread_type = 0
         guard avcodec_open2(codecCtxOpt, codec, nil) == 0 else {
             avcodec_free_context(&codecCtxOpt); avformat_close_input(&formatCtx); return nil
         }
