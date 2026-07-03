@@ -89,6 +89,7 @@ struct PTXTrack: Equatable {
     var channelLabel: String? = nil // exact PT format label ("7.1", "5.1", etc.) when known
     var isHidden:     Bool    = false
     var isInactive:   Bool    = false
+    var isMuted:      Bool    = false   // track muted in the session (parsed from 0x1029 via routing)
     var folderName:   String? = nil   // non-nil when this track lives inside a folder
     var indentDepth:  Int     = 0     // 0 = top-level, 1 = one folder deep, 2 = two folders deep, …
     var colorIndex:   Int     = -1    // Pro Tools color index 0–55; -1 = no custom color

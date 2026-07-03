@@ -1213,10 +1213,53 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     // Signal to view to toggle playback (spacebar)
     @Published var spacebarTapped: Int = 0
 
+    // Transport — a free-running session playhead advancing in real time.
+    @Published var playheadFraction: Double? = nil   // nil = stopped (cursor shows selStart)
+    @Published var isPlaying: Bool = false
+    // Per-track audition state — local only (not parsed from the session, not written back,
+    // not spotted to PT). Solo isolates soloed tracks; mute excludes.
+    @Published var mutedTracks: Set<Int> = []
+    @Published var soloTracks:  Set<Int> = []
+    private var playTimer:       Timer?
+    private var playAnchorDate:  Date?
+    private var playAnchorFrac:  Double = 0
+    private var playEndFrac:     Double = 1
+    /// When set, returns elapsed audio seconds (the engine's sample clock) so the playhead
+    /// sits exactly on what's heard; nil → advance on wall-clock time.
+    private var playClock: (() -> Double?)?
+
     // Navigation context — set by view on appear
     var tracks:       [PTXTrack] = []
     var totalSamples: Double     = 1.0
+    var sampleRate:   Double     = 48000
     var hideMuted:    Bool       = false
+
+    /// A track is audible when not muted and (no solos active, or it is soloed).
+    func isAudible(_ trackIdx: Int) -> Bool {
+        if mutedTracks.contains(trackIdx) { return false }
+        if !soloTracks.isEmpty { return soloTracks.contains(trackIdx) }
+        return true
+    }
+
+    /// Called after mute/solo changes so an in-progress transport can update live.
+    /// Set by the timeline view to forward the new audible set to the AudioPlayer.
+    var audibleDidChange: ((Set<Int>) -> Void)?
+    /// Indices of currently-audible tracks (mute/solo applied).
+    func currentAudibleSet() -> Set<Int> { Set(tracks.indices.filter { isAudible($0) }) }
+
+    private func toggle(_ set: inout Set<Int>, _ i: Int) {
+        if set.contains(i) { set.remove(i) } else { set.insert(i) }
+        audibleDidChange?(currentAudibleSet())   // let an in-progress transport update live
+    }
+    func toggleMute(_ i: Int) { toggle(&mutedTracks, i) }
+    func toggleSolo(_ i: Int) { toggle(&soloTracks, i) }
+
+    /// Seed the audition mute set from the session's parsed state: muted tracks and
+    /// inactive tracks (inactive tracks are silent in Pro Tools too).
+    /// Called on load and on session/tab switch; the M buttons stay user-toggleable afterward.
+    func seedMute(from tracks: [PTXTrack]) {
+        mutedTracks = Set(tracks.indices.filter { tracks[$0].isMuted || tracks[$0].isInactive })
+    }
 
     // Saved view state for E zoom toggle (nil = not in zoom-toggle mode)
     private var zoomSnapshot: (scale: Double, viewStart: Double, trackHeightLevels: [Int: Int])? = nil
@@ -1328,7 +1371,7 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         keyMonitor = nil; scrollMonitor = nil; magnifyMonitor = nil
     }
 
-    deinit { stopMonitoring() }
+    deinit { stopMonitoring(); playTimer?.invalidate() }
 
     // MARK: Zoom
 
@@ -1490,6 +1533,45 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         }
     }
 
+    // MARK: Transport
+
+    /// Advance the playhead from `from` toward `to` (timeline fractions) in real time. `clock`,
+    /// when provided, returns elapsed audio seconds so the playhead tracks what's heard (holds at
+    /// the start until audio begins); nil → wall-clock. Auto-stops at `to`.
+    func startTransport(from: Double, to: Double, clock: (() -> Double?)? = nil) {
+        playTimer?.invalidate()
+        playAnchorFrac = max(0, min(from, 1))
+        playEndFrac    = max(playAnchorFrac, min(to, 1))
+        playheadFraction = playAnchorFrac
+        isPlaying = true
+        playAnchorDate = Date()
+        playClock = clock
+        let durSec = max(totalSamples / max(sampleRate, 1), 0.001)   // whole-session seconds
+        let t = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
+            guard let self, let anchor = self.playAnchorDate else { return }
+            let elapsed: Double
+            if let clock = self.playClock { elapsed = clock() ?? 0 }   // hold at start until audio
+            else { elapsed = Date().timeIntervalSince(anchor) }
+            let frac = self.playAnchorFrac + elapsed / durSec
+            if frac >= self.playEndFrac {
+                self.playheadFraction = self.playEndFrac
+                self.stopTransport()
+            } else {
+                self.playheadFraction = frac
+            }
+        }
+        RunLoop.main.add(t, forMode: .common)   // keep ticking during scroll/drag
+        playTimer = t
+    }
+
+    func stopTransport() {
+        playTimer?.invalidate(); playTimer = nil
+        playAnchorDate = nil
+        playClock = nil
+        isPlaying = false
+        playheadFraction = nil
+    }
+
     // E key (PT zoom toggle): first press saves view state and zooms to clip;
     // second press restores the saved state.
     func zoomToFitCursor() {
@@ -1643,9 +1725,8 @@ private struct SessionTimelineView: View {
     @ViewBuilder
     private func tcCounter(sr: Double, total: Double) -> some View {
         let tcText: String = {
-            if let ap = audioPlayer, ap.isPlaying, let clip = ap.playingClip {
-                let samp = Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)
-                return formatTC(samp / sr, fps: frameRate)
+            if let f = playheadAbsFrac {              // moving playhead (transport or audition)
+                return formatTC(f * total / sr, fps: frameRate)
             } else if let frac = tc.selStart {
                 return formatTC(frac * total / sr, fps: frameRate)
             }
@@ -1772,6 +1853,40 @@ private struct SessionTimelineView: View {
         if maxEnd   != endSamp   { tc.selEnd   = Double(maxEnd)   / total }
     }
 
+    /// Absolute playhead position (0–1), unified across modes so the timeline playhead always
+    /// agrees with the waveform-pane playhead: the transport clock while the whole-timeline
+    /// transport plays, else the clip/region playback position during solo audition.
+    private var playheadAbsFrac: Double? {
+        let total = tc.totalSamples
+        guard total > 0 else { return nil }
+        if tc.isPlaying, let f = tc.playheadFraction { return f }
+        guard let ap = audioPlayer, ap.isPlaying else { return nil }
+        if ap.isPlayingRegion, ap.regionEndSample > ap.regionStartSample {
+            let span = Double(ap.regionEndSample - ap.regionStartSample)
+            return (Double(ap.regionStartSample) + ap.playbackFraction * span) / total
+        }
+        if let clip = ap.playingClip {
+            return (Double(clip.startSample) + ap.playbackFraction * Double(clip.lengthSamples)) / total
+        }
+        return nil
+    }
+
+    /// Compact Mute/Solo toggle for a track header row.
+    @ViewBuilder
+    private func msButton(_ label: String, active: Bool, activeColor: Color,
+                          _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 8, weight: .bold))
+                .frame(width: 13, height: 13)
+                .background(RoundedRectangle(cornerRadius: 2)
+                    .fill(active ? activeColor : Color.secondary.opacity(0.15)))
+                .foregroundStyle(active ? Color.white : Color.secondary)
+        }
+        .buttonStyle(.plain)
+        .help(label == "M" ? "Mute track (audition)" : "Solo track (audition)")
+    }
+
     var body: some View {
         // Use allTracksSamples if provided so ruler markers and the cursor always share
         // the same denominator, even when some tracks are hidden/filtered from the canvas.
@@ -1837,7 +1952,7 @@ private struct SessionTimelineView: View {
                 guard track.type == .audio else { continue }
                 let clipsInRange = track.clips.filter { clip in
                     !clip.isGroup &&
-                    !clip.isMuted &&   // muted clips excluded from playback
+                    (!hideMuted || !clip.isMuted) &&   // clip playback plays muted clips (unless hidden via hide-muted)
                     clip.startSample < endSamp &&
                     clip.startSample + clip.lengthSamples > startSamp
                 }.sorted { $0.startSample < $1.startSample }
@@ -1927,6 +2042,21 @@ private struct SessionTimelineView: View {
             HStack(spacing: 8) {
                 // TC counter — plain text, left-aligned
                 tcCounter(sr: sr, total: total)
+
+                // Transport: return-to-zero + play/stop (mirrors the spacebar scope logic).
+                HStack(spacing: 6) {
+                    Button {
+                        tc.stopTransport(); audioPlayer?.stop(); tc.jumpTo(0)
+                    } label: { Image(systemName: "backward.end.fill") }
+                        .buttonStyle(.borderless).controlSize(.small)
+                        .help("Return to start")
+                    Button { tc.spacebarTapped += 1 } label: {
+                        Image(systemName: (tc.isPlaying || (audioPlayer?.isPlaying ?? false)) ? "stop.fill" : "play.fill")
+                    }
+                        .buttonStyle(.borderless).controlSize(.small)
+                        .help("Play / Stop (Space)")
+                }
+                .padding(.leading, 4)
 
                 Spacer()
 
@@ -2043,7 +2173,7 @@ private struct SessionTimelineView: View {
               if showTrackNames {
                 VStack(spacing: 0) {
                   ForEach(Array(tracks.enumerated()), id: \.offset) { i, track in
-                    HStack(spacing: 4) {
+                    HStack(spacing: 3) {
                       RoundedRectangle(cornerRadius: 1.5)
                         .fill(trackColor(track, index: i).opacity(0.6))
                         .frame(width: 3)
@@ -2053,6 +2183,10 @@ private struct SessionTimelineView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                       Spacer(minLength: 0)
+                      if track.type == .audio {
+                        msButton("M", active: tc.mutedTracks.contains(i), activeColor: .orange) { tc.toggleMute(i) }
+                        msButton("S", active: tc.soloTracks.contains(i),  activeColor: .blue)   { tc.toggleSolo(i) }
+                      }
                     }
                     .padding(.horizontal, 4)
                     .frame(height: scaledLaneH(track, index: i))
@@ -2096,6 +2230,15 @@ private struct SessionTimelineView: View {
                 // Hover hairline — cheap 0.5px canvas, redraws on every mouse move.
                 HoverHairline(
                     hoverAbsFrac: hoverAbsFrac,
+                    viewStart: tc.viewStart,
+                    window: tc.window
+                )
+                .equatable()
+                .allowsHitTesting(false)
+
+                // Session transport playhead — moving line across the timeline while playing.
+                PlayheadHairline(
+                    playheadFrac: playheadAbsFrac,
                     viewStart: tc.viewStart,
                     window: tc.window
                 )
@@ -2336,8 +2479,11 @@ private struct SessionTimelineView: View {
         }
         .onAppear {
             tc.tracks       = tracks
+            tc.seedMute(from: tracks)
             tc.totalSamples = allTracksSamples > 0 ? allTracksSamples : visibleMax
+            tc.sampleRate   = sr
             tc.hideMuted    = hideMuted
+            tc.audibleDidChange = { [weak audioPlayer] audible in audioPlayer?.setSessionAudible(audible) }
             tc.startMonitoring()
         }
         .onDisappear {
@@ -2350,7 +2496,7 @@ private struct SessionTimelineView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
             audioPlayer?.stop()
         }
-        .onChange(of: tracks)           { tc.tracks       = $0 }
+        .onChange(of: tracks)           { tc.tracks       = $0; tc.seedMute(from: $0) }
         .onChange(of: allTracksSamples) { tc.totalSamples = $0 }
         .onChange(of: hideMuted)        { tc.hideMuted    = $0 }
         .onChange(of: tc.openTCEntry) { wants in
@@ -2359,20 +2505,36 @@ private struct SessionTimelineView: View {
             tcEntryText = tc.selStart.map { formatTC($0 * total / sr, fps: frameRate) } ?? ""
             showTCEntry = true
         }
+        .onChange(of: tc.playheadFraction) { frac in
+            // Keep the playhead on screen while the transport plays (don't fight manual panning).
+            guard tc.isPlaying, let frac else { return }
+            tc.ensureVisible(frac)
+        }
         .onChange(of: tc.spacebarTapped) { _ in
             guard let ap = audioPlayer else { return }
-            // Region selected → toggle region playback
+            // Toggle off if anything is already playing.
+            if tc.isPlaying || ap.isPlaying { tc.stopTransport(); ap.stop(); return }
+
+            // A selection SOLOS just that — region (range/group) or a single clip.
             if let region = selectedRegion {
-                if ap.isPlaying { ap.stop() }
-                else { ap.playRegion(region) }
-                return
+                ap.playRegion(region); return
             }
-            // Single clip → existing behaviour
-            guard let clip = selectedClip, !clip.isGroup,
-                  let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
-            else { return }
-            if ap.isPlaying && ap.playingClip == clip { ap.stop() }
-            else { ap.play(clip: clip, url: url, sampleRate: sr) }
+            if let clip = selectedClip, !clip.isGroup,
+               let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url {
+                ap.play(clip: clip, url: url, sampleRate: sr); return
+            }
+
+            // Nothing selected → whole-timeline transport from the cursor. Every track is
+            // scheduled; mute/solo is applied via node volume so it can change live.
+            let from       = tc.selStart ?? 0
+            let fromSample = Int64((from * total).rounded())
+            let toSample   = Int64(total.rounded())
+            let audible    = Set(tracks.indices.filter { tc.isAudible($0) })
+            let hasAudio   = ap.playSession(from: fromSample, to: toSample, tracks: tracks,
+                                            audible: audible,
+                                            resolvedFiles: resolvedFiles, sampleRate: sr)
+            tc.startTransport(from: from, to: 1.0,
+                              clock: hasAudio ? { [weak ap] in ap?.sessionElapsedSeconds() } : nil)
         }
         .onChange(of: tc.selStart) { newSelStart in
             // Autoplay on clip selection (click, tab, keyboard navigation).
@@ -2900,6 +3062,23 @@ private struct HoverHairline: View, Equatable {
                     with: .color(.primary.opacity(0.35))
                 )
             }
+        }
+    }
+}
+
+/// The moving session playhead (transport or solo-audition position) across the timeline.
+private struct PlayheadHairline: View, Equatable {
+    var playheadFrac: Double?
+    var viewStart:    Double
+    var window:       Double
+
+    var body: some View {
+        Canvas { ctx, size in
+            guard let frac = playheadFrac else { return }
+            let x = CGFloat((frac - viewStart) / window) * size.width
+            guard x >= 0, x <= size.width else { return }
+            ctx.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1.5, height: size.height)),
+                     with: .color(.accentColor))
         }
     }
 }

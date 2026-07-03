@@ -338,6 +338,7 @@ final class PTXParser {
             if let e = entry {
                 session.tracks[i].inputPath          = e.inputPath
                 session.tracks[i].outputPath         = e.outputPath
+                session.tracks[i].isMuted            = e.isMuted
                 session.tracks[i].isAtmosObject      = e.isAtmosObject
                 session.tracks[i].isAtmosBed            = e.isAtmosBed
                 session.tracks[i].atmosRendererInput    = e.atmosRendererInput

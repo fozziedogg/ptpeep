@@ -90,6 +90,10 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     @Published var isPlaying:       Bool      = false
     @Published var playingClip:     PTXClip?  = nil
     @Published var isPlayingRegion: Bool      = false   // true when playRegion() is active
+    // Region playback bounds (absolute session samples) so the timeline playhead can map the
+    // 0–1 playbackFraction back to an absolute position during region audition.
+    private(set) var regionStartSample: Int64 = 0
+    private(set) var regionEndSample:   Int64 = 0
     @Published var playbackFraction: Double   = 0       // 0…1 within the clip's duration
     @Published var volume: Float = 1.0 {                // linear gain; 1.0 = unity, >1.0 = over-unity
         didSet { gainNode.volume = volume }
@@ -111,6 +115,16 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     private var regionGeneration: Int = 0
     private var clipGeneration:   UInt64 = 0
     private var clipPlayStart:    Date?          // wall-clock time playback began (for playhead)
+
+    // Session transport playback — the playhead is driven off the audio engine's own
+    // sample clock (see sessionElapsedSeconds), so the timeline tracks what's heard.
+    private var isSessionPlaying = false
+    private weak var sessionClockNode: AVAudioPlayerNode?   // first track node; its sample time = playhead
+    // Track index → its session node, so mute/solo can be toggled live during playback
+    // (audibility is controlled by node volume, not by which tracks were scheduled).
+    private var sessionTrackNodes: [Int: AVAudioPlayerNode] = [:]
+    private let sessionQueue = DispatchQueue(label: "com.ptpeep.sessionAudio")  // serial: in-order chunk scheduling
+    private var sessionCursor: Int64 = 0          // next sample to schedule (touched only on sessionQueue)
 
     init() {
         engine.attach(playerNode)
@@ -151,12 +165,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
               channelIndex: Int? = nil) {
         stop()
 
-        // Apply the currently-stored device preference before starting
-        let prefUID = UserDefaults.standard.string(forKey: "audioOutputDeviceUID") ?? ""
-        if !prefUID.isEmpty, let deviceID = AudioDeviceManager.deviceID(forUID: prefUID) {
-            if engine.isRunning { engine.stop() }
-            AudioDeviceManager.setEngineOutputDevice(engine, deviceID: deviceID)
-        }
+        applyOutputDevicePreference()
 
         guard let file = try? AVAudioFile(forReading: url) else { return }
 
@@ -293,11 +302,44 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
             engine.detach(node)
         }
         regionNodes      = []
+        sessionTrackNodes = [:]
         isPlaying        = false
         isPlayingRegion  = false
+        isSessionPlaying = false
+        sessionClockNode = nil
+        regionStartSample = 0
+        regionEndSample   = 0
         playingClip      = nil
         playbackFraction = 0
         clipPlayStart    = nil
+    }
+
+    /// Route the engine to the user's stored output-device preference before playback.
+    /// No-op when no preference is set or the device isn't available.
+    private func applyOutputDevicePreference() {
+        let prefUID = UserDefaults.standard.string(forKey: "audioOutputDeviceUID") ?? ""
+        guard !prefUID.isEmpty, let deviceID = AudioDeviceManager.deviceID(forUID: prefUID) else { return }
+        if engine.isRunning { engine.stop() }
+        AudioDeviceManager.setEngineOutputDevice(engine, deviceID: deviceID)
+    }
+
+    /// Apply a new audible-track set to an in-progress session, live. Toggling a track's
+    /// mute/solo during playback flips its node volume immediately (no rescheduling).
+    func setSessionAudible(_ audible: Set<Int>) {
+        guard isSessionPlaying else { return }
+        for (idx, node) in sessionTrackNodes {
+            node.volume = audible.contains(idx) ? 1 : 0
+        }
+    }
+
+    /// Elapsed seconds of session playback, read from the audio engine's own sample clock.
+    /// nil when not playing a session — callers then fall back to a wall-clock playhead.
+    /// This is what keeps the on-screen playhead locked to the audio actually being heard.
+    func sessionElapsedSeconds() -> Double? {
+        guard isSessionPlaying, let node = sessionClockNode, node.isPlaying,
+              let rt = node.lastRenderTime, let pt = node.playerTime(forNodeTime: rt),
+              pt.sampleRate > 0 else { return nil }
+        return Double(max(pt.sampleTime, 0)) / pt.sampleRate
     }
 
     // MARK: - Region playback
@@ -309,13 +351,10 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         stop()   // increments regionGeneration
 
         guard !region.segments.isEmpty else { return }
+        regionStartSample = region.startSample
+        regionEndSample   = region.endSample
 
-        // Apply stored output device preference
-        let prefUID = UserDefaults.standard.string(forKey: "audioOutputDeviceUID") ?? ""
-        if !prefUID.isEmpty, let deviceID = AudioDeviceManager.deviceID(forUID: prefUID) {
-            if engine.isRunning { engine.stop() }
-            AudioDeviceManager.setEngineOutputDevice(engine, deviceID: deviceID)
-        }
+        applyOutputDevicePreference()
 
         let sr = region.sampleRate > 0 ? region.sampleRate : 48000
         guard let monoFmt = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1) else { return }
@@ -422,6 +461,173 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
                 }
             }
         }
+    }
+
+    // MARK: - Session transport playback
+
+    /// Build a mono buffer for one track over `range` (absolute session samples), with clips
+    /// mixed in at their timeline positions and gaps left silent. Always returns a buffer of
+    /// exactly `range` length (zero-filled) so every track advances in lockstep when streamed.
+    /// Shared stitching logic with `playRegion` (same channel-extraction / down-mix rules).
+    private func buildTrackBuffer(track: PTXTrack, range: Range<Int64>,
+                                  urlFor: (String) -> URL?,
+                                  monoFmt: AVAudioFormat) -> AVAudioPCMBuffer? {
+        let startSample = range.lowerBound, endSample = range.upperBound
+        let frames = AVAudioFrameCount(max(endSample - startSample, 0))
+        guard frames > 0,
+              let buf = AVAudioPCMBuffer(pcmFormat: monoFmt, frameCapacity: frames) else { return nil }
+        buf.frameLength = frames
+        if let ptr = buf.floatChannelData?[0] { ptr.initialize(repeating: 0, count: Int(frames)) }
+
+        let clips = track.clips.filter {
+            !$0.isGroup && !$0.isMuted &&
+            $0.startSample < endSample && $0.startSample + $0.lengthSamples > startSample
+        }
+        for clip in clips {
+            guard let url = urlFor(clip.sourceFile),
+                  let file = try? AVAudioFile(forReading: url) else { continue }
+            let clipStart = max(clip.startSample, startSample)
+            let clipEnd   = min(clip.startSample + clip.lengthSamples, endSample)
+            guard clipEnd > clipStart else { continue }
+            let clipFrames = AVAudioFrameCount(clipEnd - clipStart)
+            let bufOffset  = Int(clipStart - startSample)
+            let fileStart  = AVAudioFramePosition(clip.sourceOffset + (clipStart - clip.startSample))
+            guard bufOffset >= 0, bufOffset < Int(frames),
+                  let src = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                             frameCapacity: clipFrames) else { continue }
+            file.framePosition = fileStart
+            guard (try? file.read(into: src, frameCount: clipFrames)) != nil,
+                  src.frameLength > 0,
+                  let cd = src.floatChannelData,
+                  let dst = buf.floatChannelData?[0] else { continue }
+            let chIdx  = AudioPlayer.channelIndex(fromClipName: clip.name)
+            let fileCh = Int(src.format.channelCount)
+            let count  = min(Int(src.frameLength), Int(frames) - bufOffset)
+            guard count > 0 else { continue }
+            if let ch = chIdx {
+                let srcCh = min(ch, fileCh - 1)
+                memcpy(dst + bufOffset, cd[srcCh], count * MemoryLayout<Float>.size)
+            } else if fileCh > 1 {
+                let scale = Float(1.0 / Double(fileCh))
+                for f in 0..<count {
+                    var s: Float = 0; for c in 0..<fileCh { s += cd[c][f] }
+                    (dst + bufOffset)[f] = s * scale
+                }
+            } else {
+                memcpy(dst + bufOffset, cd[0], count * MemoryLayout<Float>.size)
+            }
+        }
+        return buf
+    }
+
+    /// Play the given tracks continuously from `startSample` to `endSample`, following the
+    /// session timeline (silent over gaps). The caller passes only the AUDIBLE tracks (after
+    /// Mute/Solo). Streams fixed-size chunks on persistent per-track nodes so memory stays
+    /// bounded regardless of session length. Returns true if there is audio to play (caller then
+    /// drives the playhead off `sessionElapsedSeconds`); false when no audible clips fall in range.
+    @discardableResult
+    /// `tracks` is the full track list (indices match the caller's track indices);
+    /// `audible` is the set of currently-audible track indices (mute/solo applied).
+    /// Every audio track with playable clips gets a node; audibility is set via node
+    /// volume so mute/solo can be toggled live mid-playback (see setSessionAudible).
+    func playSession(from startSample: Int64, to endSample: Int64,
+                     tracks: [PTXTrack],
+                     audible: Set<Int>,
+                     resolvedFiles: [ResolvedAudioFile],
+                     sampleRate: Double) -> Bool {
+        stop()
+        guard endSample > startSample else { return false }
+
+        applyOutputDevicePreference()
+
+        let sr = sampleRate > 0 ? sampleRate : 48000
+        guard let monoFmt = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1) else { return false }
+
+        // Audio tracks with at least one playable clip in range. Muted/un-soloed tracks
+        // are still included (given a node) so they can be un-muted live — audibility is
+        // applied below via node volume, not by excluding tracks here.
+        let trackIdxs = tracks.indices.filter { idx in
+            tracks[idx].type == .audio && tracks[idx].clips.contains {
+                !$0.isGroup && !$0.isMuted &&
+                $0.startSample < endSample && $0.startSample + $0.lengthSamples > startSample
+            }
+        }
+        guard !trackIdxs.isEmpty else { return false }   // no audio under the playhead
+
+        let urlFor: (String) -> URL? = { name in
+            resolvedFiles.first(where: { $0.name == name })?.url
+        }
+
+        // One persistent node per track; stored in regionNodes so stop() tears them down.
+        // Keep them ordered so scheduling/start touch every track consistently.
+        var orderedNodes: [(idx: Int, node: AVAudioPlayerNode)] = []
+        for idx in trackIdxs {
+            let node = AVAudioPlayerNode()
+            engine.attach(node)
+            engine.connect(node, to: gainNode, format: monoFmt)
+            node.volume = audible.contains(idx) ? 1 : 0   // mute/solo → live via volume
+            orderedNodes.append((idx, node))
+            regionNodes.append(node)
+            sessionTrackNodes[idx] = node
+        }
+        if !engine.isRunning { try? engine.start() }
+
+        regionGeneration &+= 1
+        let myGen = regionGeneration
+
+        isPlaying        = true
+        isPlayingRegion  = false   // the timeline playhead is the display, not playbackFraction
+        isSessionPlaying = true
+        sessionClockNode = orderedNodes.first?.node   // its sample time drives the playhead
+
+        // Smaller chunks → playback starts promptly; serial queue guarantees in-order
+        // scheduling so buffers play back-to-back gaplessly across all tracks.
+        let chunkFrames: Int64 = Int64(sr * 4.0)
+        sessionCursor = startSample
+        let end = endSample
+
+        // Build + schedule one chunk for every track. CALL ONLY ON sessionQueue (serial),
+        // which keeps both `sessionCursor` access and buffer ordering race-free.
+        func scheduleOneChunk() -> Bool {
+            guard self.regionGeneration == myGen, self.sessionCursor < end else { return false }
+            let cs = self.sessionCursor
+            let ce = min(cs + chunkFrames, end)
+            self.sessionCursor = ce
+            for (idx, node) in orderedNodes {
+                guard self.regionGeneration == myGen else { return false }
+                if let buf = self.buildTrackBuffer(track: tracks[idx], range: cs..<ce,
+                                                   urlFor: urlFor, monoFmt: monoFmt) {
+                    node.scheduleBuffer(buf, at: nil, completionHandler: nil)
+                }
+            }
+            return true
+        }
+
+        // Prime the first chunks, then start all tracks together at one host time so they're
+        // sample-aligned. Done on the serial queue so buffers are queued before play(at:).
+        sessionQueue.async { [weak self] in
+            guard let self, self.regionGeneration == myGen else { return }
+            _ = scheduleOneChunk()
+            _ = scheduleOneChunk()
+            let startTime = AVAudioTime(hostTime: mach_absolute_time() + self.msToHostTicks(120))
+            for (_, node) in orderedNodes {
+                guard self.regionGeneration == myGen else { return }
+                node.play(at: startTime)
+            }
+        }
+
+        // Keep ~1 chunk queued ahead. The timer just dispatches to the serial queue.
+        let chunkDur = Double(chunkFrames) / sr
+        let t = Timer(timeInterval: chunkDur, repeats: true) { [weak self] timer in
+            guard let self, self.regionGeneration == myGen else { timer.invalidate(); return }
+            self.sessionQueue.async { [weak self] in
+                guard let self, self.regionGeneration == myGen else { return }
+                _ = scheduleOneChunk()
+            }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        ticker = t   // stop() invalidates this
+        return true
     }
 
     // Convert milliseconds to Mach absolute time ticks (used for AVAudioTime sync).
