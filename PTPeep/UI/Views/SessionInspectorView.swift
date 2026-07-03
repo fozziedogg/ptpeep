@@ -1244,6 +1244,12 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     func toggleMute(_ i: Int) { if mutedTracks.contains(i) { mutedTracks.remove(i) } else { mutedTracks.insert(i) } }
     func toggleSolo(_ i: Int) { if soloTracks.contains(i) { soloTracks.remove(i) } else { soloTracks.insert(i) } }
 
+    /// Seed the audition mute set from the session's parsed per-track mute state.
+    /// Called on load and on session/tab switch; the M buttons stay user-toggleable afterward.
+    func seedMute(from tracks: [PTXTrack]) {
+        mutedTracks = Set(tracks.enumerated().filter { $0.element.isMuted }.map(\.offset))
+    }
+
     // Saved view state for E zoom toggle (nil = not in zoom-toggle mode)
     private var zoomSnapshot: (scale: Double, viewStart: Double, trackHeightLevels: [Int: Int])? = nil
 
@@ -1935,7 +1941,7 @@ private struct SessionTimelineView: View {
                 guard track.type == .audio else { continue }
                 let clipsInRange = track.clips.filter { clip in
                     !clip.isGroup &&
-                    !clip.isMuted &&   // muted clips excluded from playback
+                    (!hideMuted || !clip.isMuted) &&   // clip playback plays muted clips (unless hidden via hide-muted)
                     clip.startSample < endSamp &&
                     clip.startSample + clip.lengthSamples > startSamp
                 }.sorted { $0.startSample < $1.startSample }
@@ -2462,6 +2468,7 @@ private struct SessionTimelineView: View {
         }
         .onAppear {
             tc.tracks       = tracks
+            tc.seedMute(from: tracks)
             tc.totalSamples = allTracksSamples > 0 ? allTracksSamples : visibleMax
             tc.sampleRate   = sr
             tc.hideMuted    = hideMuted
@@ -2477,7 +2484,7 @@ private struct SessionTimelineView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
             audioPlayer?.stop()
         }
-        .onChange(of: tracks)           { tc.tracks       = $0 }
+        .onChange(of: tracks)           { tc.tracks       = $0; tc.seedMute(from: $0) }
         .onChange(of: allTracksSamples) { tc.totalSamples = $0 }
         .onChange(of: hideMuted)        { tc.hideMuted    = $0 }
         .onChange(of: tc.openTCEntry) { wants in

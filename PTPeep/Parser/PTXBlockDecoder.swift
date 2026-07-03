@@ -1837,6 +1837,7 @@ final class PTXBlockDecoder {
     struct RoutingEntry {
         var inputPath:    String?
         var outputPath:   String?
+        var isMuted:      Bool = false   // track mute: 0x1029 block byte[5]==0x01 (nested in this 0x261b container)
         var isAtmosObject: Bool = false  // true = Atmos Object send (b2 != 0xff && b2 != 0x00)
         var isAtmosBed:    Bool = false  // true = Atmos Bed send (flagOff+11 != 0xff = Atmos group id)
         var atmosRendererInput: Int = 0  // 1-indexed renderer input channel (b11+1); 0 = unknown
@@ -1995,9 +1996,22 @@ final class PTXBlockDecoder {
                 pos += 1
             }
 
-            guard outputPath != nil || inputPath != nil else { continue }
+            // ── Track mute ────────────────────────────────────────────────────
+            // The 0x1029 block nested in this 0x261b container carries the strip's
+            // mute state: data byte[5] == 0x01 → muted, 0x00 → unmuted.
+            // (Verified against two ground-truth sessions with disjoint mute sets.)
+            var isMuted = false
+            if let muteBlock = sorted.first(where: {
+                $0.contentType == 0x1029 &&
+                $0.dataOffset >= cStart && $0.dataOffset + $0.dataSize <= cEnd
+            }), muteBlock.dataSize >= 6 {
+                isMuted = data[muteBlock.dataOffset + 5] == 0x01
+            }
+
+            guard outputPath != nil || inputPath != nil || isMuted else { continue }
             strips.append(StripRouting(name: name, uid: uid,
                                        entry: RoutingEntry(inputPath: inputPath, outputPath: outputPath,
+                                                           isMuted: isMuted,
                                                            isAtmosObject: isAtmosObject,
                                                            isAtmosBed: isAtmosBed,
                                                            atmosRendererInput: isAtmosRendererInput,
