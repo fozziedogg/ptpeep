@@ -1,6 +1,21 @@
 import AppKit
 import SwiftUI
 
+/// Diagonal-stripe fill used to mark inactive track headers.
+struct DiagonalHatch: Shape {
+    var spacing: CGFloat = 4
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        var x = -rect.height
+        while x < rect.width {
+            p.move(to: CGPoint(x: x, y: rect.height))
+            p.addLine(to: CGPoint(x: x + rect.height, y: 0))
+            x += spacing
+        }
+        return p
+    }
+}
+
 // MARK: - Color mode (shared between main app and QL extension)
 
 enum ColorMode: String {
@@ -1911,20 +1926,22 @@ private struct SessionTimelineView: View {
         // or when the cursor is on a group clip (isGroup == true).
         // Group clips expand by position: all non-group clips across all tracks that
         // fall within the group's time range are treated as the group's contents.
-        let selectedRegion: PlayRegion? = {
+        // Build a PlayRegion from the current selection: a group clip expands across all
+        // tracks over its span; otherwise use the user-drawn time/track range. Muted clips
+        // are included unless hide-muted is on. `applyCaps` bails on very large regions —
+        // used for audition playback (selectedRegion), not for spot-to-PT (spotRegion).
+        let buildRegion: (_ applyCaps: Bool) -> PlayRegion? = { applyCaps in
             let startSamp: Int64
             let endSamp:   Int64
             let trackLo:   Int
             let trackHi:   Int
 
             if let clip = selectedClip, clip.isGroup {
-                // Group clip: expand across all tracks over the group's duration
                 startSamp = clip.startSample
                 endSamp   = clip.startSample + clip.lengthSamples
                 trackLo   = 0
                 trackHi   = tracks.count - 1
             } else if let s = tc.selStart, let e = tc.selEnd, e > s {
-                // User-drawn time selection
                 startSamp = Int64((s * total).rounded())
                 endSamp   = Int64((e * total).rounded())
                 trackLo   = tc.selTrack ?? 0
@@ -1935,12 +1952,10 @@ private struct SessionTimelineView: View {
 
             guard endSamp > startSamp else { return nil }
 
-            // Safety cap: don't build a region that would require reading
-            // hundreds of files or gigabytes of audio on the main thread.
-            let kMaxClips: Int    = 200
-            let kMaxSec:   Double = 120.0
-            let durationSec = Double(endSamp - startSamp) / sr
-            guard durationSec <= kMaxSec else { return nil }
+            // Safety cap (audition only): don't read hundreds of files / gigabytes on the main thread.
+            let kMaxClips = 200
+            let kMaxSec   = 120.0
+            if applyCaps, Double(endSamp - startSamp) / sr > kMaxSec { return nil }
 
             let hiIdx = min(max(trackLo, trackHi), tracks.count - 1)
             guard trackLo >= 0, trackLo <= hiIdx else { return nil }
@@ -1952,7 +1967,7 @@ private struct SessionTimelineView: View {
                 guard track.type == .audio else { continue }
                 let clipsInRange = track.clips.filter { clip in
                     !clip.isGroup &&
-                    (!hideMuted || !clip.isMuted) &&   // clip playback plays muted clips (unless hidden via hide-muted)
+                    (!hideMuted || !clip.isMuted) &&   // muted clips included unless hidden via hide-muted
                     clip.startSample < endSamp &&
                     clip.startSample + clip.lengthSamples > startSamp
                 }.sorted { $0.startSample < $1.startSample }
@@ -1966,76 +1981,21 @@ private struct SessionTimelineView: View {
                     totalClips += resolved.count
                     segments.append(PlayRegion.TrackSegment(trackIdx: idx, clips: resolved))
                 }
-                if totalClips > kMaxClips { return nil }  // bail early
+                if applyCaps, totalClips > kMaxClips { return nil }  // bail early
             }
             guard !segments.isEmpty else { return nil }
 
-            // Use clip bounds directly — region = exactly the clips touched, no leading/trailing space.
+            // Region = exactly the clips touched, no leading/trailing space.
             let allClips = segments.flatMap(\.clips).map(\.clip)
             let clipStart = allClips.map(\.startSample).min() ?? startSamp
             let clipEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
-
-            return PlayRegion(startSample: clipStart,
-                              endSample:   clipEnd,
+            return PlayRegion(startSample: clipStart, endSample: clipEnd,
                               segments: segments, sampleRate: sr,
                               resolvedPool: resolvedFiles.compactMap(\.url))
-        }()
+        }
 
-        // spotRegion: same bounds as selectedRegion but includes muted clips,
-        // unless hideMutedClips is on — hidden clips are never spotted.
-        let spotRegion: PlayRegion? = {
-            let startSamp: Int64
-            let endSamp:   Int64
-            let trackLo:   Int
-            let trackHi:   Int
-
-            if let clip = selectedClip, clip.isGroup {
-                startSamp = clip.startSample
-                endSamp   = clip.startSample + clip.lengthSamples
-                trackLo   = 0
-                trackHi   = tracks.count - 1
-            } else if let s = tc.selStart, let e = tc.selEnd, e > s {
-                startSamp = Int64((s * total).rounded())
-                endSamp   = Int64((e * total).rounded())
-                trackLo   = tc.selTrack ?? 0
-                trackHi   = tc.selTrackEnd ?? trackLo
-            } else {
-                return nil
-            }
-
-            guard endSamp > startSamp else { return nil }
-            let hiIdx = min(max(trackLo, trackHi), tracks.count - 1)
-            guard trackLo >= 0, trackLo <= hiIdx else { return nil }
-
-            var segments: [PlayRegion.TrackSegment] = []
-            for idx in trackLo...hiIdx {
-                let track = tracks[idx]
-                guard track.type == .audio else { continue }
-                let clipsInRange = track.clips.filter { clip in
-                    !clip.isGroup &&
-                    (!hideMuted || !clip.isMuted) &&   // hidden muted clips are never spotted
-                    clip.startSample < endSamp &&
-                    clip.startSample + clip.lengthSamples > startSamp
-                }.sorted { $0.startSample < $1.startSample }
-                let resolved = clipsInRange.compactMap { clip -> (PTXClip, URL)? in
-                    guard let url = resolvedFiles.first(where: { $0.name == clip.sourceFile })?.url
-                    else { return nil }
-                    return (clip, url)
-                }
-                if !resolved.isEmpty {
-                    segments.append(PlayRegion.TrackSegment(trackIdx: idx, clips: resolved))
-                }
-            }
-            guard !segments.isEmpty else { return nil }
-
-            let allClips = segments.flatMap(\.clips).map(\.clip)
-            let clipStart = allClips.map(\.startSample).min() ?? startSamp
-            let clipEnd   = allClips.map { $0.startSample + $0.lengthSamples }.max() ?? endSamp
-            return PlayRegion(startSample: clipStart,
-                              endSample:   clipEnd,
-                              segments: segments, sampleRate: sr,
-                              resolvedPool: resolvedFiles.compactMap(\.url))
-        }()
+        let selectedRegion = buildRegion(true)   // audition playback — capped
+        let spotRegion     = buildRegion(false)  // spot-to-PT — no caps
 
         VStack(spacing: 0) {
             // ── Row 1: TC counter + zoom/filter controls ─────────────────────
@@ -2173,13 +2133,16 @@ private struct SessionTimelineView: View {
               if showTrackNames {
                 VStack(spacing: 0) {
                   ForEach(Array(tracks.enumerated()), id: \.offset) { i, track in
+                    let inactive = track.isInactive
                     HStack(spacing: 3) {
                       RoundedRectangle(cornerRadius: 1.5)
-                        .fill(trackColor(track, index: i).opacity(0.6))
+                        .fill(trackColor(track, index: i).opacity(inactive ? 0.3 : 0.6))
                         .frame(width: 3)
                       Text(track.name)
                         .font(.system(size: 10))
-                        .foregroundStyle(trackColor(track, index: i).opacity(0.85))
+                        .foregroundStyle(inactive
+                          ? Color.secondary.opacity(0.7)
+                          : trackColor(track, index: i).opacity(0.85))
                         .lineLimit(1)
                         .truncationMode(.tail)
                       Spacer(minLength: 0)
@@ -2193,6 +2156,14 @@ private struct SessionTimelineView: View {
                     .background(i % 2 == 0
                       ? Color.clear
                       : Color(nsColor: .separatorColor).opacity(0.08))
+                    // Inactive tracks: diagonal hatch over the header cell (mute/solo still apply).
+                    .overlay {
+                      if inactive {
+                        DiagonalHatch()
+                          .stroke(Color.secondary.opacity(0.3), lineWidth: 0.5)
+                          .allowsHitTesting(false)
+                      }
+                    }
                     if i < tracks.count - 1 {
                       Spacer().frame(height: Self.laneGap)
                     }
