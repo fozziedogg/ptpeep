@@ -1241,8 +1241,20 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
         return true
     }
 
-    func toggleMute(_ i: Int) { if mutedTracks.contains(i) { mutedTracks.remove(i) } else { mutedTracks.insert(i) } }
-    func toggleSolo(_ i: Int) { if soloTracks.contains(i) { soloTracks.remove(i) } else { soloTracks.insert(i) } }
+    /// Called after mute/solo changes so an in-progress transport can update live.
+    /// Set by the timeline view to forward the new audible set to the AudioPlayer.
+    var audibleDidChange: ((Set<Int>) -> Void)?
+    /// Indices of currently-audible tracks (mute/solo applied).
+    func currentAudibleSet() -> Set<Int> { Set(tracks.indices.filter { isAudible($0) }) }
+
+    func toggleMute(_ i: Int) {
+        if mutedTracks.contains(i) { mutedTracks.remove(i) } else { mutedTracks.insert(i) }
+        audibleDidChange?(currentAudibleSet())
+    }
+    func toggleSolo(_ i: Int) {
+        if soloTracks.contains(i) { soloTracks.remove(i) } else { soloTracks.insert(i) }
+        audibleDidChange?(currentAudibleSet())
+    }
 
     /// Seed the audition mute set from the session's parsed state: muted tracks and
     /// inactive tracks (inactive tracks are silent in Pro Tools too).
@@ -2473,6 +2485,7 @@ private struct SessionTimelineView: View {
             tc.totalSamples = allTracksSamples > 0 ? allTracksSamples : visibleMax
             tc.sampleRate   = sr
             tc.hideMuted    = hideMuted
+            tc.audibleDidChange = { [weak audioPlayer] audible in audioPlayer?.setSessionAudible(audible) }
             tc.startMonitoring()
         }
         .onDisappear {
@@ -2513,12 +2526,14 @@ private struct SessionTimelineView: View {
                 ap.play(clip: clip, url: url, sampleRate: sr); return
             }
 
-            // Nothing selected → whole-timeline transport from the cursor across AUDIBLE tracks.
+            // Nothing selected → whole-timeline transport from the cursor. Every track is
+            // scheduled; mute/solo is applied via node volume so it can change live.
             let from       = tc.selStart ?? 0
             let fromSample = Int64((from * total).rounded())
             let toSample   = Int64(total.rounded())
-            let audible    = tracks.enumerated().filter { tc.isAudible($0.offset) }.map(\.element)
-            let hasAudio   = ap.playSession(from: fromSample, to: toSample, tracks: audible,
+            let audible    = Set(tracks.indices.filter { tc.isAudible($0) })
+            let hasAudio   = ap.playSession(from: fromSample, to: toSample, tracks: tracks,
+                                            audible: audible,
                                             resolvedFiles: resolvedFiles, sampleRate: sr)
             tc.startTransport(from: from, to: 1.0,
                               clock: hasAudio ? { [weak ap] in ap?.sessionElapsedSeconds() } : nil)

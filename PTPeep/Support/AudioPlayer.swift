@@ -120,6 +120,9 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     // sample clock (see sessionElapsedSeconds), so the timeline tracks what's heard.
     private var isSessionPlaying = false
     private weak var sessionClockNode: AVAudioPlayerNode?   // first track node; its sample time = playhead
+    // Track index → its session node, so mute/solo can be toggled live during playback
+    // (audibility is controlled by node volume, not by which tracks were scheduled).
+    private var sessionTrackNodes: [Int: AVAudioPlayerNode] = [:]
     private let sessionQueue = DispatchQueue(label: "com.ptpeep.sessionAudio")  // serial: in-order chunk scheduling
     private var sessionCursor: Int64 = 0          // next sample to schedule (touched only on sessionQueue)
 
@@ -304,6 +307,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
             engine.detach(node)
         }
         regionNodes      = []
+        sessionTrackNodes = [:]
         isPlaying        = false
         isPlayingRegion  = false
         isSessionPlaying = false
@@ -313,6 +317,15 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         playingClip      = nil
         playbackFraction = 0
         clipPlayStart    = nil
+    }
+
+    /// Apply a new audible-track set to an in-progress session, live. Toggling a track's
+    /// mute/solo during playback flips its node volume immediately (no rescheduling).
+    func setSessionAudible(_ audible: Set<Int>) {
+        guard isSessionPlaying else { return }
+        for (idx, node) in sessionTrackNodes {
+            node.volume = audible.contains(idx) ? 1 : 0
+        }
     }
 
     /// Elapsed seconds of session playback, read from the audio engine's own sample clock.
@@ -514,8 +527,13 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
     /// bounded regardless of session length. Returns true if there is audio to play (caller then
     /// drives the playhead off `sessionElapsedSeconds`); false when no audible clips fall in range.
     @discardableResult
+    /// `tracks` is the full track list (indices match the caller's track indices);
+    /// `audible` is the set of currently-audible track indices (mute/solo applied).
+    /// Every audio track with playable clips gets a node; audibility is set via node
+    /// volume so mute/solo can be toggled live mid-playback (see setSessionAudible).
     func playSession(from startSample: Int64, to endSample: Int64,
                      tracks: [PTXTrack],
+                     audible: Set<Int>,
                      resolvedFiles: [ResolvedAudioFile],
                      sampleRate: Double) -> Bool {
         stop()
@@ -531,7 +549,9 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         let sr = sampleRate > 0 ? sampleRate : 48000
         guard let monoFmt = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1) else { return false }
 
-        // Audio tracks with at least one (audible) clip in range.
+        // Audio tracks with at least one playable clip in range. Muted/un-soloed tracks
+        // are still included (given a node) so they can be un-muted live — audibility is
+        // applied below via node volume, not by excluding tracks here.
         let trackIdxs = tracks.indices.filter { idx in
             tracks[idx].type == .audio && tracks[idx].clips.contains {
                 !$0.isGroup && !$0.isMuted &&
@@ -551,8 +571,10 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
             let node = AVAudioPlayerNode()
             engine.attach(node)
             engine.connect(node, to: gainNode, format: monoFmt)
+            node.volume = audible.contains(idx) ? 1 : 0   // mute/solo → live via volume
             orderedNodes.append((idx, node))
             regionNodes.append(node)
+            sessionTrackNodes[idx] = node
         }
         if !engine.isRunning { try? engine.start() }
 
