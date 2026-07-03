@@ -165,12 +165,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
               channelIndex: Int? = nil) {
         stop()
 
-        // Apply the currently-stored device preference before starting
-        let prefUID = UserDefaults.standard.string(forKey: "audioOutputDeviceUID") ?? ""
-        if !prefUID.isEmpty, let deviceID = AudioDeviceManager.deviceID(forUID: prefUID) {
-            if engine.isRunning { engine.stop() }
-            AudioDeviceManager.setEngineOutputDevice(engine, deviceID: deviceID)
-        }
+        applyOutputDevicePreference()
 
         guard let file = try? AVAudioFile(forReading: url) else { return }
 
@@ -319,6 +314,15 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         clipPlayStart    = nil
     }
 
+    /// Route the engine to the user's stored output-device preference before playback.
+    /// No-op when no preference is set or the device isn't available.
+    private func applyOutputDevicePreference() {
+        let prefUID = UserDefaults.standard.string(forKey: "audioOutputDeviceUID") ?? ""
+        guard !prefUID.isEmpty, let deviceID = AudioDeviceManager.deviceID(forUID: prefUID) else { return }
+        if engine.isRunning { engine.stop() }
+        AudioDeviceManager.setEngineOutputDevice(engine, deviceID: deviceID)
+    }
+
     /// Apply a new audible-track set to an in-progress session, live. Toggling a track's
     /// mute/solo during playback flips its node volume immediately (no rescheduling).
     func setSessionAudible(_ audible: Set<Int>) {
@@ -350,12 +354,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         regionStartSample = region.startSample
         regionEndSample   = region.endSample
 
-        // Apply stored output device preference
-        let prefUID = UserDefaults.standard.string(forKey: "audioOutputDeviceUID") ?? ""
-        if !prefUID.isEmpty, let deviceID = AudioDeviceManager.deviceID(forUID: prefUID) {
-            if engine.isRunning { engine.stop() }
-            AudioDeviceManager.setEngineOutputDevice(engine, deviceID: deviceID)
-        }
+        applyOutputDevicePreference()
 
         let sr = region.sampleRate > 0 ? region.sampleRate : 48000
         guard let monoFmt = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1) else { return }
@@ -539,12 +538,7 @@ final class AudioPlayer: ObservableObject, @unchecked Sendable {
         stop()
         guard endSample > startSample else { return false }
 
-        // Apply stored output-device preference (same as play/playRegion).
-        let prefUID = UserDefaults.standard.string(forKey: "audioOutputDeviceUID") ?? ""
-        if !prefUID.isEmpty, let deviceID = AudioDeviceManager.deviceID(forUID: prefUID) {
-            if engine.isRunning { engine.stop() }
-            AudioDeviceManager.setEngineOutputDevice(engine, deviceID: deviceID)
-        }
+        applyOutputDevicePreference()
 
         let sr = sampleRate > 0 ? sampleRate : 48000
         guard let monoFmt = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1) else { return false }

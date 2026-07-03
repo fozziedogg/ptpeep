@@ -1247,20 +1247,18 @@ private final class TimelineController: ObservableObject, @unchecked Sendable {
     /// Indices of currently-audible tracks (mute/solo applied).
     func currentAudibleSet() -> Set<Int> { Set(tracks.indices.filter { isAudible($0) }) }
 
-    func toggleMute(_ i: Int) {
-        if mutedTracks.contains(i) { mutedTracks.remove(i) } else { mutedTracks.insert(i) }
-        audibleDidChange?(currentAudibleSet())
+    private func toggle(_ set: inout Set<Int>, _ i: Int) {
+        if set.contains(i) { set.remove(i) } else { set.insert(i) }
+        audibleDidChange?(currentAudibleSet())   // let an in-progress transport update live
     }
-    func toggleSolo(_ i: Int) {
-        if soloTracks.contains(i) { soloTracks.remove(i) } else { soloTracks.insert(i) }
-        audibleDidChange?(currentAudibleSet())
-    }
+    func toggleMute(_ i: Int) { toggle(&mutedTracks, i) }
+    func toggleSolo(_ i: Int) { toggle(&soloTracks, i) }
 
     /// Seed the audition mute set from the session's parsed state: muted tracks and
     /// inactive tracks (inactive tracks are silent in Pro Tools too).
     /// Called on load and on session/tab switch; the M buttons stay user-toggleable afterward.
     func seedMute(from tracks: [PTXTrack]) {
-        mutedTracks = Set(tracks.enumerated().filter { $0.element.isMuted || $0.element.isInactive }.map(\.offset))
+        mutedTracks = Set(tracks.indices.filter { tracks[$0].isMuted || tracks[$0].isInactive })
     }
 
     // Saved view state for E zoom toggle (nil = not in zoom-toggle mode)

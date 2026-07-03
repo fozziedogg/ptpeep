@@ -1870,6 +1870,7 @@ final class PTXBlockDecoder {
         let all261b = sorted.filter { $0.contentType == 0x261b }
         let all260d  = sorted.filter { $0.contentType == 0x260d }
         let all260e  = sorted.filter { $0.contentType == 0x260e }
+        let all1029  = sorted.filter { $0.contentType == 0x1029 }
 
         // Per-strip routing data collected from 0x261b containers
         struct StripRouting { var name: String; var uid: String; var entry: RoutingEntry }
@@ -2001,8 +2002,7 @@ final class PTXBlockDecoder {
             // mute state: data byte[5] == 0x01 → muted, 0x00 → unmuted.
             // (Verified against two ground-truth sessions with disjoint mute sets.)
             var isMuted = false
-            if let muteBlock = sorted.first(where: {
-                $0.contentType == 0x1029 &&
+            if let muteBlock = all1029.first(where: {
                 $0.dataOffset >= cStart && $0.dataOffset + $0.dataSize <= cEnd
             }), muteBlock.dataSize >= 6 {
                 isMuted = data[muteBlock.dataOffset + 5] == 0x01
