@@ -52,14 +52,22 @@ extension PTSLSessionInfo {
                             guard let u = poolByName[name] else { return nil }
                             return (u, Int16(i + 1))
                         }
-                        // Interleaved multichannel: all channel entries point to the same file.
-                        // Send just one event (Strm=1) — PT reads all channels from the interleaved
-                        // file automatically. Sending N identical URLs with Strm=1…N only spots the
-                        // first channel into every stream.
-                        if Set(resolved.map(\.url)).count == 1, resolved.count > 1 {
-                            resolved = [(resolved[0].url, 1)]
+                        // Decide interleaved vs multi-mono from the FILE ON DISK, not from the
+                        // parser's channelFiles bookkeeping. Two cases collapse to a single
+                        // Strm=1 event (PT then reads every channel from that one file):
+                        //   (a) the primary channel file is itself multichannel (interleaved), or
+                        //   (b) every channelFiles entry resolved to the same URL.
+                        // Genuine multi-mono (N distinct MONO files) still sends N streams.
+                        // Sending N events for an interleaved file only spots channel 1 into
+                        // every stream — the stereo-spot bug this guards against.
+                        let primaryChannels: Int = resolved.first
+                            .flatMap { try? AVAudioFile(forReading: $0.url) }
+                            .map { Int($0.processingFormat.channelCount) } ?? 1
+                        if let first = resolved.first,
+                           primaryChannels >= 2 || (Set(resolved.map(\.url)).count == 1 && resolved.count > 1) {
+                            resolved = [(first.url, 1)]
                         }
-                        AppLog.shared.log("[AESpot] channels: \(resolved.map { "Strm\($0.stream):\($0.url.lastPathComponent)" })")
+                        AppLog.shared.log("[AESpot] channels (primaryCh=\(primaryChannels)): \(resolved.map { "Strm\($0.stream):\($0.url.lastPathComponent)" })")
                         channelCache[url] = resolved
                         channels = resolved
                     }
