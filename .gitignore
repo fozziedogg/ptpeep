@@ -11,3 +11,6 @@ xcuserdata/
 # direnv (local env)
 .envrc
 .direnv/
+
+# App runtime log (may get dropped into Tests/ for debugging)
+ptpeep.log
