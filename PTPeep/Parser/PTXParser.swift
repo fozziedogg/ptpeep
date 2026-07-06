@@ -397,16 +397,20 @@ final class PTXParser {
                 let name = stripChannelSuffix(clipEntry?.name ?? "Clip \(p.clipIdx)")
                 let ch1File = clipEntry.flatMap { fileNameByIndex[$0.audioFileIndex] } ?? ""
                 var channelFiles: [String] = [ch1File]
+                // Per-channel raw clip names, index-aligned with channelFiles (channel 1 first).
+                var channelNames: [String] = [clipEntry?.name ?? name]
                 for compIdx in p.companionClipIdxs {
                     if let entry = compIdx < clips.count ? clips[compIdx] : nil,
                        let fn = fileNameByIndex[entry.audioFileIndex] {
                         channelFiles.append(fn)
+                        channelNames.append(entry.name)
                     }
                 }
                 byPos[p.timelineSample] = PTXClip(
                     name: name, startSample: p.timelineSample, lengthSamples: len,
                     sourceOffset: clipEntry?.sourceOffset ?? 0,
                     sourceFile: ch1File, channelFiles: channelFiles,
+                    channelNames: channelNames,
                     isMuted: p.isMuted, isGroup: false
                 )
             }

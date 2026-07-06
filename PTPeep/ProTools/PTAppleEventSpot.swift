@@ -38,19 +38,23 @@ extension PTSLSessionInfo {
                 if poolByName[stem] == nil { poolByName[stem] = u }
             }
             // Cache per-clip channel lists so repeated clips (same source file) resolve once.
-            var channelCache: [URL: [(url: URL, stream: Int16)]] = [:]
+            var channelCache: [URL: [(url: URL, stream: Int16, name: String)]] = [:]
             for (segIdx, segment) in segments.enumerated() {
                 for (clip, url) in segment.clips {
                     let srcStart  = Int32(clamping: clip.sourceOffset)
                     let srcStop   = Int32(clamping: clip.sourceOffset + clip.lengthSamples)
                     let offset    = Int32(clamping: clip.startSample - regStart)
-                    let channels: [(url: URL, stream: Int16)]
+                    let channels: [(url: URL, stream: Int16, name: String)]
                     if let cached = channelCache[url] {
                         channels = cached
                     } else {
-                        var resolved: [(url: URL, stream: Int16)] = clip.channelFiles.enumerated().compactMap { i, name in
-                            guard let u = poolByName[name] else { return nil }
-                            return (u, Int16(i + 1))
+                        // Resolve each channel to (file URL, stream, per-channel name). The name
+                        // is that channel's own clip name (e.g. "…wav_L-09" / "…wav_R-08") so PT
+                        // labels each channel correctly — not the channel-1 name on both.
+                        var resolved: [(url: URL, stream: Int16, name: String)] = clip.channelFiles.enumerated().compactMap { i, fname in
+                            guard let u = poolByName[fname] else { return nil }
+                            let chName = i < clip.channelNames.count ? clip.channelNames[i] : clip.name
+                            return (u, Int16(i + 1), chName)
                         }
                         // Decide interleaved vs multi-mono from the FILE ON DISK, not from the
                         // parser's channelFiles bookkeeping. Two cases collapse to a single
@@ -65,20 +69,20 @@ extension PTSLSessionInfo {
                             .map { Int($0.processingFormat.channelCount) } ?? 1
                         if let first = resolved.first,
                            primaryChannels >= 2 || (Set(resolved.map(\.url)).count == 1 && resolved.count > 1) {
-                            resolved = [(first.url, 1)]
+                            resolved = [first]
                         }
-                        AppLog.shared.log("[AESpot] channels (primaryCh=\(primaryChannels)): \(resolved.map { "Strm\($0.stream):\($0.url.lastPathComponent)" })")
+                        AppLog.shared.log("[AESpot] channels (primaryCh=\(primaryChannels)): \(resolved.map { "Strm\($0.stream):\($0.url.lastPathComponent)=\($0.name)" })")
                         channelCache[url] = resolved
                         channels = resolved
                     }
-                    for (chURL, stream) in channels {
+                    for (chURL, stream, chName) in channels {
                         let muteTag = clip.isMuted ? " MUTED" : ""
-                        AppLog.shared.log("[AESpot] clip='\(clip.name)'\(muteTag) track+\(segIdx) Strm=\(stream) SMSt=\(offset) Star=\(srcStart) Stop=\(srcStop) url=\(chURL.lastPathComponent)")
+                        AppLog.shared.log("[AESpot] clip='\(chName)'\(muteTag) track+\(segIdx) Strm=\(stream) SMSt=\(offset) Star=\(srcStart) Stop=\(srcStop) url=\(chURL.lastPathComponent)")
                         try PTSLSessionInfo.aeSendSpot(
                             url:          chURL,
                             srcStart:     srcStart,
                             srcStop:      srcStop,
-                            name:         clip.name,
+                            name:         chName,
                             trackOffset:  Int16(segIdx),
                             sampleOffset: offset,
                             stream:       stream,

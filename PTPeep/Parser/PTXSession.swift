@@ -147,6 +147,10 @@ struct PTXClip: Equatable {
     /// Base filenames (no extension) for every channel of a multi-mono clip, in stream order.
     /// channelFiles[0] == sourceFile.  Empty for mono or when not parsed (fall back to name search).
     var channelFiles: [String] = []
+    /// Per-channel clip names (raw, unstripped), index-aligned with channelFiles — e.g.
+    /// ["…wav_L-09", "…wav_R-08"]. Used to label each stream correctly when spotting.
+    /// Empty when not a multi-channel clip; consumers fall back to `name`.
+    var channelNames: [String] = []
     var isMuted:     Bool   = false
     var isGroup:     Bool   = false
 }
