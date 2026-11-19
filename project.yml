@@ -26,17 +26,35 @@ targets:
       - path: PTPeep/Parser
       - path: PTPeep/ProTools
       - path: PTPeep/UI
+      - path: PTPeep/Video
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fozzie.ptpeep
         INFOPLIST_FILE: PTPeep/App/Info.plist
         CODE_SIGN_STYLE: Automatic
         SWIFT_STRICT_CONCURRENCY: minimal
+        # FFmpeg (Homebrew) for in-process DNx/MXF decode — app target only, not the
+        # sandboxed QL extension. See Docs/timecode-synced-video-playback-handoff.md.
+        SWIFT_INCLUDE_PATHS:
+          - $(SRCROOT)/PTPeep/CFFmpeg
+          - /opt/homebrew/include
+        HEADER_SEARCH_PATHS:
+          - /opt/homebrew/include
+        LIBRARY_SEARCH_PATHS:
+          - /opt/homebrew/lib
+        OTHER_LDFLAGS:
+          - -lavcodec
+          - -lavformat
+          - -lavutil
+          - -lswscale
+          - -lswresample
     entitlements:
       path: PTPeep/App/PTPeep.entitlements
       properties:
         com.apple.security.app-sandbox: false
         com.apple.security.network.client: true
+        # Hardened runtime must be allowed to load the Homebrew-signed libav dylibs.
+        com.apple.security.cs.disable-library-validation: true
 
   PTPeepQL:
     type: app-extension
